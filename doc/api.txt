@@ -1,0 +1,54 @@
+API for AdHoc.
+
+Basic data types
+================
+
+Host
+====
+
+The host datatype represents a host computer in the network, whether it is a physical machine or a virtual.
+
+The host datatype holds the following data:
+
+id              A Unique idaentifier for the host. This is not the same thing as the host's DNS name. 
+                This is the ID with which we refer the host when doing administrative operations and is used
+                as the host name in dhcpd.conf.
+                Its syntax is similar to that of a DNS name, but dots (.) are forbidden so that it may not
+                be confused with a DNS name. This field may not be null.
+                
+dns             The DNS name of the host. May be null, if not, the host may not be part of a pool.
+                The DNS name may be used for looking up a host in the administrative interface, but should never be
+                reported outward as being a host ID. In dhcpd.conf it is used as the specifier to the fixed-address option.
+                
+group           The AdHoc group in which the host belongs. Default group is 'plain'. This is the group in dhcpd.conf where
+                the host is actually located.
+
+mac             The media access control address (MAC) which is used by the host to identify itself to the DHCP server.
+
+owner           The cid of the host owner. This is used for access control. default is 'root'.
+
+room            The room code for the machine's physical location. This information is used for generating printer information. May be null.
+
+category        Categorizes the host wrt what operations may be applied to the host and by whom. Default is 'Normal'
+
+optionspace     Defined any option spaces used for that host. May be NULL.
+
+changed_by      The cid of the person who last changed any data for this host.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+info            Freetext information about the machine.
+
+bootmode        Specified which boot mide the host is currently in. May be either of: disk, install, update_keytab and will_install.
+
+installinfo     This field contains returned data from the installation process.
+
+entry_status    Status of this host entry, one of Acitve, Dead or Inactive.
+
+last_installed  A timestamp telling when the machine was last installed.
+
+
+To be continued...
+
+
+
