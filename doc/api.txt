@@ -3,6 +3,8 @@ API for AdHoc.
 Basic data types
 ================
 
+
+
 Host
 ====
 
@@ -25,13 +27,10 @@ group           The AdHoc group in which the host belongs. Default group is 'pla
 
 mac             The media access control address (MAC) which is used by the host to identify itself to the DHCP server.
 
-owner           The cid of the host owner. This is used for access control. default is 'root'.
-
 room            The room code for the machine's physical location. This information is used for generating printer information. May be null.
+                It is currently disputed whether this field is needed or not.
 
-category        Categorizes the host wrt what operations may be applied to the host and by whom. Default is 'Normal'
-
-optionspace     Defined any option spaces used for that host. May be NULL.
+optionspace     Defines any option spaces used for that host. May be NULL.
 
 changed_by      The cid of the person who last changed any data for this host.
 
@@ -39,16 +38,229 @@ mtime           Time of last modification. This is automatically handled by the 
 
 info            Freetext information about the machine.
 
-bootmode        Specified which boot mide the host is currently in. May be either of: disk, install, update_keytab and will_install.
-
-installinfo     This field contains returned data from the installation process.
-
 entry_status    Status of this host entry, one of Acitve, Dead or Inactive.
 
-last_installed  A timestamp telling when the machine was last installed.
 
 
-To be continued...
+Group
+=====
+This datatype is used in order to group hosts or other groups together. 
+The groups may form a strict tree of groups such that a group may be containd within another group.
+In such cases, options defined in an outer group are inherited unless the same option is defined in the inner group.
+
+groupname       Defines the name of the group.
+
+parent_group    Refers to the parent group of the group tree.
+
+optionspace     Defines any option spaces used for this group. May be NULL.
+
+info            Freetext information about the group.
+
+changed_by      The cid of the person who last changed any data for this group.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+
+
+Class
+=====
+This datatype defines a class of hosts. This separation is done with a match statement 
+that checks the vendor class identifier.
+
+classname       The name of the class
+
+optionspace     Defines any option spaces used for this class. May be NULL.
+
+info            Freetext information about the class.
+
+changed_by      The cid of the person who last changed any data for this class.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+
+
+Pool
+====
+This datatype defines poold of addresses that will be treated differently than another pool of addresses, 
+even on the same network segment or subnet.
+
+poolname        The pool name.
+
+optionspace     Defines any option spaces used for this class. May be NULL.
+
+network         Defines the network in which the pool lives. This is a mandatory field.
+
+info            Freetext information about the pool.
+
+changed_by      The cid of the person who last changed any data for this pool.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+
+
+Pool_range
+==========
+The pool-range datatype defines an IP address range served by a pool. 
+
+pool            The pool for which this range is specified.
+
+start_ip        The first IP address in the range, specified as a dotted numeric address, e.g. 129.16.45.19. Not as a DNS name.
+
+end_ip          The last IP address in the range, specified as a dotted numeric address, e.g. 129.16.45.19. Not as a DNS name.
+
+served_by       The ID of the DHCP server that serves the specified range,
+
+changed_by      The cid of the person who last changed any data for this range.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+
+
+Dhcp_server
+===========
+Specifies an actual DHCP server that is to be configured by the AdHoc system.
+
+id              Internal ID of the DHCP server, referred to by the served_by field of the pool_range datatype.
+
+name            The DNS name of the actual DHCP server.
+
+info            Freetext information about the DHCP server.
+
+changed_by      The cid of the person who last changed any data for this server.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+
+
+Room
+====
+This datatype is implemented beacuse of backward compatibility and may go away in a later version.
+This datatype defines a physical location for a host and a mapping to a set of printers for each room.
+
+id              Room ID.
+
+info            Freetext information about the room.
+
+printer         Comma separated list of printer ID's in order of preference for the room.
+
+changed_by      The cid of the person who last changed any data for this room.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+
+
+Building
+========
+This datatype defines the buildings in which rooms are located. It is used mainly for checking the room number specifications.
+
+id              Building ID
+
+re              Regular expression with which room numbers may be checked.
+
+info            Freetext information about the building.
+
+changed_by      The cid of the person who last changed any data for this building.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+
+
+Literal_option
+==============
+This datatype is used for specifying options literally, in the lanuagge of dhcpd.conf. It os used in the cases where it is not
+possible to specify options using a simple key/value schema. Literal options may be applied on hosts, groups, classes and pools,
+but the datatype is the same in all four cases.
+
+for             ID for which this literal option should be applied. This field may thus refer to a host, a group, a class or a pool.
+
+value           The value of the literal as a raw string to be entered as-id into dhcpd.conf at the right point.
+
+changed_by      The cid of the person who last changed any data for this option.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+
+
+Option
+======
+This datatype is used for specifying options to be applied on hosts, groups, classes, pools, networks or subnetworks.
+
+for             ID for which this literal option should be applied. This field may thus refer to a host, a group, a class, a pool, a networ or a subnetwork.
+
+name            The name of the option to specify. This name refers to an option_def which defines the characteristics of this option.
+
+value           The value of the literal, internally stored as a string. However the type of the option as defined by its option_def may restrict what can be entered into this string.
+
+changed_by      The cid of the person who last changed any data for this option.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+id              An internal id for the option, automatically handled by the database.
+
+
+
+Option_def
+==========
+This datatype defines the characteristics of a DHCP option as used by the option datatype.
+
+id              An internal ID for the option definition, automatically handled by the database.
+
+name            The name of the option to which these characteristics apply.
+
+code            The code in the DHCP protocol used for this option. An integer between 0 and 255.
+
+qualifier       Defines whether the option is to be treated as an array and/or an a standard DHCP protocol parameter. There are four possible values:
+                NULL:   The option is a scalar option.
+                array:  The option is an array
+                parameter: The option is a scalar standard DHCP parameter.
+                parameter-array: The option is an array and a standard DHCP parameter.
+                
+type            Defines the type of the value or of the elements in case of being an array. There are ten different types, as defined by dhcp_options(5):
+                ip-address: The ip-address data type can be entered either as an explicit IP address (e.g., 239.254.197.10) or as a domain name (e.g., haagen.isc.org). 
+                integer 32: The int32 data type specifies a signed 32-bit integer.
+                integer 16: The int16 data type specifies a signed 16-bit integer.
+                integer  8: The int8 data type specifies a signed 16-bit integer.
+                unsigned integer 32: The uint32 data type specifies an unsigned 32-bit integer.
+                unsigned integer 16: The uint16 data type specifies an usigned 16-bit integer.
+                unsigned integer  8: The uint8 data type specifies an usigned 16-bit integer.
+                text: The text data type specifies an NVT ASCII string, which must be enclosed in double quotes
+                string: An option whose type is a data string is essentially just a collection of bytes, and can be specified either as quoted text, 
+                        like the text type, or as a list of hexadecimal contents separated by colons whose values must be between 0 and FF
+                boolean: An option of type boolean is a flag with a value of either on or off (or true or false).
+                
+optionspace     Defines for which option namespace this definition is valid. If null, it is valid outside any namespaces.
+
+encapsulate     If defined, the contents of the option space specified will be encapsulated into this option.In this case the type and qualifier fields are ignored.
+                It requires that the given option space is defined.
+                
+struct          This field turns the option into a structure. The structure is defined as a string containing a list comma separated types as defined above. The string
+                must start with a { and end with a }.
+                
+info            Freetext information about the option.
+
+changed_by      The cid of the person who last changed any data for this option.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
+
+
+Optionspace
+===========
+
+An option space defines a namespace used mainly by site-local or vendor-local options.
+
+id              An internal ID for the option definition, automatically handled by the database.
+
+type            Specifies whether the option space is site- or vendor local. Can assume the values 'vendor' or 'site'.
+
+value           A string that defined the name, or prefix, of the namespace.
+
+info            Freetext information about the option space.
+
+changed_by      The cid of the person who last changed any data for this option.
+
+mtime           Time of last modification. This is automatically handled by the database.
+
 
 
 
