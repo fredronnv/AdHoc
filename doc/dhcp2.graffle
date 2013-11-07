@@ -26,7 +26,7 @@
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2013-11-07 16:08:37 +0000</string>
+	<string>2013-11-07 16:32:19 +0000</string>
 	<key>Modifier</key>
 	<string>Christer Bernerus</string>
 	<key>NotesVisible</key>
@@ -4034,8 +4034,8 @@ mtime}</string>
 					<integer>18407</integer>
 					<key>Points</key>
 					<array>
-						<string>{324.49978559274552, 244.21302614662088}</string>
-						<string>{358.87664335057087, 243.20595587699856}</string>
+						<string>{324.49996829258737, 245.31326230433527}</string>
+						<string>{358.87510759682453, 244.92625835764937}</string>
 					</array>
 					<key>Style</key>
 					<dict>
@@ -5643,8 +5643,8 @@ mtime}</string>
 					<integer>18353</integer>
 					<key>Points</key>
 					<array>
-						<string>{462.30239057203687, 270.37640752259887}</string>
-						<string>{537.5709466142024, 316.07643243448928}</string>
+						<string>{462.31065612590572, 275.10969562063292}</string>
+						<string>{537.5657780514515, 317.49388894715037}</string>
 					</array>
 					<key>Style</key>
 					<dict>
@@ -5861,7 +5861,7 @@ mtime}</string>
 						</dict>
 						<dict>
 							<key>Bounds</key>
-							<string>{{359.375, 203.99998474121094}, {102.5, 70}}</string>
+							<string>{{359.375, 203.99998474121094}, {102.5, 84}}</string>
 							<key>Class</key>
 							<string>ShapedGraphic</string>
 							<key>FitText</key>
@@ -5901,6 +5901,7 @@ mtime}</string>
 
 \f0\fs24 \cf0 classname\
 optionspace\
+vendor_class_id\
 info\
 changed_by\
 mtime}</string>
@@ -9140,7 +9141,7 @@ systemstruktur}</string>
 			</dict>
 		</array>
 		<key>Frame</key>
-		<string>{{-110, 199}, {1633, 1181}}</string>
+		<string>{{-60, -73}, {1633, 1181}}</string>
 		<key>ListView</key>
 		<true/>
 		<key>OutlineWidth</key>

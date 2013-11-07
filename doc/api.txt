@@ -71,6 +71,8 @@ classname       The name of the class
 
 optionspace     Defines any option spaces used for this class. May be NULL.
 
+vendor_class_id Defines the vendor class id to check for when determining whethjer a calling clinet belongs to the class or not.
+
 info            Freetext information about the class.
 
 changed_by      The cid of the person who last changed any data for this class.
