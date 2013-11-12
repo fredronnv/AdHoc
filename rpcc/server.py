@@ -126,8 +126,11 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     def __init__(self, address, port, ssl_config=None, handler_class=None):
         self.session_store = self.session_store_class(self)
         self.authenticator = self.authenticator_class(self)
+
         if self.database_class:
             self.database = self.database_class(self)
+        else:
+            self.database = None
 
         self.manager_by_name = {}
         for cls in self.manager_classes:
@@ -257,10 +260,15 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         fun = None
         start_time = time.time()
 
+        db = None
         try:
             try:
                 api = self.api_handler.get_api(api_version)
-                fun = api.get_function_object(function, httphandler)
+                if self.database:
+                    db = self.database.get_link()
+                else:
+                    db = None
+                fun = api.get_function_object(function, httphandler, db)
                 self.function_start(fun, params, start_time, api_version)
                 result = fun.call(params)
                 self.function_stop(fun)
@@ -299,6 +307,9 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             s = e.struct()
             s['api_version'] = api_version
             ret = {'error': s}
+        finally:
+            if db:
+                self.database.return_link(db)
 
         if api_version > 0:
             ret['api_version'] = api_version

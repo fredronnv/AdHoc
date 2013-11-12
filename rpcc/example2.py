@@ -6,6 +6,7 @@ from function import Function
 
 import server
 import authenticator
+import database
 
 class ExtPerson(ExtString):
     def lookup(self, fun, cval):
@@ -37,11 +38,11 @@ class Person(Model):
     name = "person"
     exttype = ExtPerson
 
-    def init(self, myid, fname, lname):
+    def init(self, myid, fname, lname, acc):
         self.pid = myid
         self.fname = fname
         self.lname = lname
-        self.account_name = "acc-" + myid
+        self.account_name = acc
 
     @template(ExtPerson)
     def get_person(self):
@@ -63,19 +64,22 @@ class PersonManager(Manager):
     name = "person_manager"
 
     def get_person(self, pid):
-        if not pid.startswith("pers-"):
-            raise LookupError()
-        persid = pid[5:]
-        return Person(self, persid, "fn-" + persid, "en-" + persid)
+        q = "SELECT p.ucid, p.fname, p.lname, a.ucid "
+        q += " FROM person p, account a "
+        q += "WHERE p.ucid=a.ucid_owner "
+        q += "  AND a.primary=1 "
+        q += "  AND p.ucid=:pid "
+        ((persid, fname, lname, acc),) = self.db.get(q, pid=pid)
+        return Person(self, persid, fname, lname, acc)
 
 class Account(Model):
     name = "account"
     exttype = ExtAccount
 
-    def init(self, myid, uid):
+    def init(self, myid, uid, owner_id):
         self.aid = myid
         self.uid = uid
-        self.owner_id = "pers-" + self.aid
+        self.owner_id = owner_id
 
     @template(ExtAccount)
     def get_account(self):
@@ -93,13 +97,16 @@ class AccountManager(Manager):
     name = "account_manager"
 
     def get_account(self, aid):
-        if not aid.startswith("acc-"):
-            raise LookupError()
-        accid = aid[4:]
-        return Account(self, accid, len(accid))
+        q = "SELECT ucid, unix_uid, ucid_owner "
+        q += " FROM account "
+        q += "WHERE ucid=:aid "
+        ((accid, uid, owner_id),) = self.db.get(q, aid=aid)
+        return Account(self, accid, uid, owner_id)
 
 class MyServer(server.Server):
     authenticator = authenticator.NullAuthenticator
+    database_class = database.OracleDatabase
+    envvar_prefix = "XMPL_"
 
 srv = MyServer("venus.ita.chalmers.se", 12121)
 srv.register_function(FunPersonGetName)

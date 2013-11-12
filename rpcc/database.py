@@ -399,9 +399,9 @@ class MySQLDatabase(Database):
     link_class = MySQLLink
 
     def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):
-        user = user or self.server.config("DB_USER"]
-        password = password or self.server.config("DB_PASSWORD"]
-        database = database or self.server.config("DB_DATABASE"]
+        user = user or self.server.config("DB_USER")
+        password = password or self.server.config("DB_PASSWORD")
+        database = database or self.server.config("DB_DATABASE")
         host = host or self.server.config("DB_HOST", None)
         port = port or self.server.config("DB_PORT", None)
         socket = port or self.server.config("DB_SOCKET", None)

@@ -78,11 +78,6 @@ class Function(object):
     # functions they consider belong to them.
     #categories = []
 
-    # If True, the Function wants a DatabaseLink to be set in its
-    # .db attribute before performing any operations in the Function.
-    # If False, .db will be None on all calls.
-    with_db = False
-
     # If True, the Function will likely create at least one Event, and a
     # marker event should be created/destroyed.
     creates_event = False
@@ -194,9 +189,9 @@ class Function(object):
         typ.to_xml(elem, value)
         return elem
 
-    def __init__(self, server, http_handler, api):
+    def __init__(self, server, http_handler, api, db=None):
         self.server = server
-        self.db = None
+        self.db = db
         # HTTPRequestHandler that handles this request. Interesting
         # for the .headers and .client attributes.
         self.http_handler = http_handler
@@ -279,15 +274,11 @@ class Function(object):
         """Called by the rpc server for call handling."""
 
         self.call_time = datetime.datetime.now()
-        self.db = None
         marker_id = None
         try:
             if self.creates_event:
                 marker_id = self.server.create_marker_event()
                 
-            if self.with_db:
-                self.db = self.server.get_db_link()
-
             self.parse_args(args)
             self.check_access()
             ret = self.do()
@@ -297,9 +288,6 @@ class Function(object):
         finally:
             if marker_id:
                 self.server.destroy_marker_event(marker_id)
-
-            if self.with_db and self.db:
-                self.server.return_db_link(db)
 
     def do(self):
         """Implement in subclasses for actual functionality."""
