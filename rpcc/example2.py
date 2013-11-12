@@ -38,14 +38,6 @@ class FunPersonGetName(PersonFunBase):
     def do(self):
         return self.person.fname + " " + self.person.lname
 
-class FunPersonSetName(PersonFunBase):
-    extname = "person_set_lastname"
-    params = [("new_name", ExtString, "New name")]
-    returns = ExtNull
-
-    def do(self):
-        self.person.set_lastname(self.new_name)
-
 class Person(Model):
     name = "person"
     exttype = ExtPerson

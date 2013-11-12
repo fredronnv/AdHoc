@@ -17,3 +17,4 @@ print s.person_fetch("viktor", {"firstname": True, "lastname": True})
 print s.person_update("viktor", {"firstname": u"Viktor"})
 print s.person_fetch("viktor", {"firstname": True, "lastname": True})
 
+print s.person_get_name("viktor")
