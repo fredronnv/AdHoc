@@ -250,7 +250,7 @@ class ExtType(object):
 
         if isinstance(typ, ExtType):
             return typ
-        elif type(typ) == type(type) and issubclass(typ, ExtType):
+        elif (type(typ) == type(type) or type(typ) == _StructMetaClass) and issubclass(typ, ExtType):
             if typ not in cls._instance_cache:
                 cls._instance_cache[typ] = typ()
             return cls._instance_cache[typ]

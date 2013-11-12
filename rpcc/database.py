@@ -90,95 +90,6 @@ class DatabaseIterator(object):
             self.curs.close()
             raise
 
-class DatabaseLink(object):
-    """A database link, which simplifies database calls by giving the
-    .get(), .put() and .insert() methods. Hides the 'cursor' concept
-    entirely, which is OK for most usages.
-
-    Subclasses implement .insert() (where some databases have native
-    ways of getting the last inserted id), set .iterator_class if needed,
-    and override .exception() to convert database-specific errors to
-    local errors.
-    """
-    iterator_class = DatabaseIterator
-
-    def __init__(self, database, raw_link):
-        self.database = database
-        self.link = raw_link
-        self.intrans = False
-        self.open = True
-
-    def close(self):
-        self.open = False
-        self.link.close()
-        
-    def exception(self, inner):
-        print "Unhandled error: %s" % (inner,)
-        raise inner
-        
-    def iterator(self, curs):
-        return self.iterator_class(curs)
-
-    def get(self, query, **kwargs):
-        if not self.open:
-            raise LinkClosedError()
-
-        curs = self.link.cursor()
-        try:
-            try:
-                if isinstance(query, Query):
-                    curs.execute(query.query(), **query.values)
-                else:
-                    curs.execute(query, **kwargs)
-                return self.iterator(curs)
-            except Exception as e:
-                self.exception(e)
-        finally:
-            pass
-            #curs.close()
-
-    def put(self, query, **kwargs):
-        if not self.open:
-            raise LinkClosedError()
-
-        curs = self.link.cursor()
-        try:
-            try:
-                if isinstance(query, Query):
-                    curs.execute(query.query(), **query.values)
-                else:
-                    curs.execute(query, **kwargs)
-                return curs.rowcount
-            except Exception as e:
-                self.exception(e)
-        finally:
-            curs.close()
-
-    def insert(self, insert_col, query, **kwargs):
-        raise NotImplementedError()
-
-    def begin(self):
-        if not self.open:
-            raise LinkClosedError()
-
-        self.link.begin()
-        self.intrans = True
-
-    def commit(self):
-        if not self.open:
-            raise LinkClosedError()
-
-        self.link.commit()
-        self.intrans = False
-
-    def rollback(self):
-        if not self.open:
-            raise LinkClosedError()
-
-        self.link.rollback()
-        self.intrans = False
-
-
 class Query(object):
     """Query objects that allow incrementally built queries, as well
     as abstracting common database-specific things like limited queries
@@ -253,6 +164,106 @@ class Query(object):
     def dblimit(self, limit):
         return ""
 
+class DatabaseLink(object):
+    """A database link, which simplifies database calls by giving the
+    .get(), .put() and .insert() methods. Hides the 'cursor' concept
+    entirely, which is OK for most usages.
+
+    Subclasses implement .insert() (where some databases have native
+    ways of getting the last inserted id), set .iterator_class if needed,
+    and override .exception() to convert database-specific errors to
+    local errors.
+
+    Subclasses also implement .convert() to convert (if needed) :abcde 
+    variable references into native format.
+    """
+    iterator_class = DatabaseIterator
+    query_class = Query
+
+    def __init__(self, database, raw_link):
+        self.database = database
+        self.link = raw_link
+        self.intrans = False
+        self.open = True
+
+    def close(self):
+        self.open = False
+        self.link.close()
+        
+    def exception(self, inner):
+        print "Unhandled error: %s" % (inner,)
+        raise inner
+        
+    def iterator(self, curs):
+        return self.iterator_class(curs)
+
+    def convert(self, query):
+        return query
+
+    def get(self, query, **kwargs):
+        if not self.open:
+            raise LinkClosedError()
+
+        curs = self.link.cursor()
+        try:
+            try:
+                if isinstance(query, Query):
+                    curs.execute(query.query(), **query.values)
+                else:
+                    curs.execute(self.convert(query), **kwargs)
+                return self.iterator(curs)
+            except Exception as e:
+                print "ERROR IN QUERY:", self.convert(query)
+                print "WITH ARGUMENTS:", kwargs
+                self.exception(e)
+        finally:
+            pass
+            #curs.close()
+
+    def put(self, query, **kwargs):
+        if not self.open:
+            raise LinkClosedError()
+
+        curs = self.link.cursor()
+        try:
+            try:
+                if isinstance(query, Query):
+                    curs.execute(query.query(), **query.values)
+                else:
+                    curs.execute(self.convert(query), **kwargs)
+                return curs.rowcount
+            except Exception as e:
+                print "ERROR IN QUERY:", self.convert(query)
+                print "WITH ARGUMENTS:", kwargs
+                self.exception(e)
+        finally:
+            curs.close()
+
+    def insert(self, insert_col, query, **kwargs):
+        raise NotImplementedError()
+
+    def begin(self):
+        if not self.open:
+            raise LinkClosedError()
+
+        self.link.begin()
+        self.intrans = True
+
+    def commit(self):
+        if not self.open:
+            raise LinkClosedError()
+
+        self.link.commit()
+        self.intrans = False
+
+    def rollback(self):
+        if not self.open:
+            raise LinkClosedError()
+
+        self.link.rollback()
+        self.intrans = False
+
+
 class Database(object):
     """Represents a database - with methods to handle DatabaseLink.
 
@@ -260,7 +271,6 @@ class Database(object):
     initialization options), .get_link() and .return_link() (which
     may be a null operation if the database is quick to create links).
     """
-    query_class = Query
     link_class = DatabaseLink
 
     def __init__(self, server, **args):
@@ -308,6 +318,7 @@ class OracleIterator(DatabaseIterator):
 
 class OracleLink(DatabaseLink):
     iterator_class = OracleIterator
+    query_class = OracleQuery
 
     def insert(self, insert_col, query, **kwargs):
         if not self.open:
@@ -320,7 +331,7 @@ class OracleLink(DatabaseLink):
                     q = query.query()
                     kw = query.values
                 else:
-                    q = query
+                    q = self.convert(query)
                     kw = kwargs
 
                 var = curs.var(cx_Oracle.NUMBER)
@@ -334,7 +345,6 @@ class OracleLink(DatabaseLink):
             curs.close()
 
 class OracleDatabase(Database):
-    query_class = OracleQuery
     link_class = OracleLink
 
     def init(self, user=None, password=None, database=None):
@@ -377,6 +387,13 @@ class MySQLQuery(Query):
         return "LIMIT %d" % (limit,)
 
 class MySQLLink(DatabaseLink):
+    def __init__(self, *args, **kwargs):
+        DatabaseLink.__init__(self, *args, **kwargs)
+        self.re = re.compile(":([a-z])")
+
+    def convert(self, query):
+        return self.re.sub("\\1", query)
+        
     def insert(self, dummy, query, **kwargs):
         if not self.open:
             raise LinkClosedError()
@@ -387,7 +404,7 @@ class MySQLLink(DatabaseLink):
                 if isinstance(query, Query):
                     curs.execute(query.query(), **query.values)
                 else:
-                    curs.execute(query, **kwargs)
+                    curs.execute(self.convert(query), **kwargs)
                 return curs.lastrowid
             except Exception as e:
                 self.exception(e)

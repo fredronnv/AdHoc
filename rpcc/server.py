@@ -8,14 +8,15 @@ import threading
 import SocketServer
 import BaseHTTPServer
 
-__all__ = ["RPCServer"]
+#__all__ = ["RPCServer"]
 
 from function import Function
-from default_function import *
-from session import SessionStore
-from request_handler import RawRequestHandler
-from api_handler import APIHandler
-from authenticator import Authenticator
+
+import default_function
+import session
+import authenticator
+import request_handler
+import api_handler
 
 import exttype
 import exterror
@@ -69,11 +70,11 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     # BaseHTTPServer from Python's standard library works). You'll
     # seldom want to override this.
 
-    handler_class = RawRequestHandler
+    handler_class = request_handler.RawRequestHandler
 
-    session_store_class = SessionStore
+    session_store_class = session.SessionStore
 
-    authenticator_class = Authenticator
+    authenticator_class = authenticator.Authenticator
 
     database_class = None
 
@@ -171,9 +172,10 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         self.server_activate()
 
         self.thread_lock = threading.RLock()
-        self.api_handler = APIHandler(self)
+        self.api_handler = api_handler.APIHandler(self)
 
         self.add_default_protocol_handlers()
+        self.register_default_functions()
 
     ###
     # Optional subsystems.
@@ -300,7 +302,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
             self.log_error(httphandler,
                            "%s#%d" % (function, api_version),
-                           fun, fun.log_arguments(params), e,
+                           fun, params, e,
                            traceback.extract_tb(sys.exc_info()[2]),
                            time.time() - start_time)
 
@@ -479,14 +481,21 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         raise LookupError("No protocol handler found for request path " + path)
 
-    def enable_default_sessions(self):
-        self.register_class(StartSessionFun)
-        self.register_class(StopSessionFun)
-        self.register_class(SessionInfoFun)
+    def register_default_functions(self):
+        self.register_function(default_function.FunSessionStart)
+        self.register_function(default_function.FunSessionStop)
+        self.register_function(default_function.FunSessionAuthLogin)
+        self.register_function(default_function.FunSessionDeauth)
+        self.register_function(default_function.FunSessionInfo)
 
-    def enable_default_auth(self):
-        self.register_class(Sys_Login)
-        self.register_class(Sys_Logout)
+    #def enable_default_sessions(self):
+    #    self.register_class(StartSessionFun)
+    #    self.register_class(StopSessionFun)
+    #    self.register_class(SessionInfoFun)
+
+    #def enable_default_auth(self):
+    #    self.register_class(Sys_Login)
+    #    self.register_class(Sys_Logout)
 
     def enable_default_introspection(self):
         self.register_class(Sys_ListFunctions)

@@ -76,14 +76,11 @@ class API(object):
                 raise IntAPIValidationError("%s parameter %s: %s" % (funclass, pname, e.args[0]))
 
         try:
-            if isinstance(funclass.returns, tuple):
-                self.add_type(funclass.returns[0])
-            else:
-                self.add_type(funclass.returns)
+            self.add_type(funclass._returns()[0])
         except IntAPIValidationError as e:
             raise TypeError("%s return type: %s" % (funclass, e.args[0]))
         except:
-            print "Defunct return type:", funclass.rettype
+            print "Defunct return type:", funclass.returns
             raise
 
     def get_function(self, funname):

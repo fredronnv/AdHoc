@@ -3,7 +3,10 @@ import sys
 import time
 import random
 import string
+import datetime
 import threading
+
+import function
 
 """
 The session mechanism is used to give clients a call context that
@@ -49,36 +52,34 @@ class Session(object):
 
     Session instances are read-only. Value changes are performed
     through the SessionStore (session.store).
-
-    All sessions contain the three default attributes 'authuser', 
-    'privs' and 'lastuse'. 
     """
 
     def __init__(self, store, sesn, attrs):
         self.store = store
-        self.session_id = sesn
-        self.init_defaults()
-        self.init(attrs)
-        self.locked = True
-
-    def init_defaults(self):
-        self.authuser = None
-        self.privs = []
-        self.lastuse = None
+        self.id = sesn
+        self.load(attrs)
 
     def init(self, attrs):
         for (key, value) in attrs.items():
-            self.key = value
+            setattr(self, key, value)
+
+    def load(self, attrs):
+        self.locked = False
+        self.init(attrs)
+        self.locked = True
 
     def __setattr__(self, attr, newval):
-        if hasattr(self, "locked") and self.locked:
-            raise ValueError("Cannot write to session instances - use the .store")
+        if hasattr(self, "locked") and self.locked and attr != "locked":
+            raise ValueError("Cannot write to session instances - use the session store")
         object.__setattr__(self, attr, newval)
             
 
 class SessionStore(object):
     session_id_length = 40
-    max_session_age = 8.0 * 60.0 * 60.0
+    session_lifetime = datetime.timedelta(hours=8)
+    session_class = Session
+    # "id" and "expires" are implicit.
+    default_attrs = {"authuser": None}
 
     def __init__(self, server):
         self.server = server
@@ -86,278 +87,144 @@ class SessionStore(object):
         self.cache_list = []
         self.init()
 
-    def create_session_id(self):
+    def new_session_id(self):
         chars = string.ascii_letters + string.digits
         l = self.session_id_length
-        newid = "".join([random.choice(sesnid_chars) for a in [0,]*l])
+        newid = "".join([random.choice(chars) for a in [0,]*l])
         return newid
 
     def init(self):
+        pass
+
+    def get_default_attributes(self, fun):
+        return self.default_attrs
+
+    def create_session(self, fun, remote_ip):
+        self.delete_expired(fun)
+        newid = self.new_session_id()
+        newattrs = self.default_attrs.copy()
+        newattrs["expires"] = fun.started_at() + self.session_lifetime
+        self.store_create(fun, newid, newattrs)
+        return newid
+
+    def destroy_session(self, fun, sesnid):
+        self.store_delete(fun, sesnid)
+
+    def set_session_attribute(self, fun, sesnid, attr, value):
+        self.store_update(fun, sesnid, attr, value)
+
+    def get_session(self, fun, sesnid):
+        if not isinstance(fun, function.Function):
+            raise ValueError(fun)
+        self.set_session_attribute(fun, sesnid, "expires", fun.started_at() + datetime.timedelta(hours=8))
+        data = self.load(fun, sesnid)
+        return self.session_class(self, sesnid, data)
+
+    def delete_expired(self, fun):
+        for sesnid in self.find_expired(fun):
+            self.destroy_session(sesnid)
+
+    def auth_login(self, fun, sesnid, user, password):
+        if self.login(fun, user, password):
+            self.set_session_attribute(fun, sesnid, "authuser", user)
+
+    def deauth(self, fun, sesnid):
+        self.set_session_attribute(fun, sesnid, "authuser", None)
+
+
+class MemorySessionStore(SessionStore):
+    def init(self):
         self.session_data = {}
+        self.lock = threading.Lock()
 
-    def remove_expired(self):
-        toremove = []
-        for (sesn, data) in self.session_data.items():
-            if data["last_use"] < (time.time() - max_session_age):
-                toremove.append(sesn)
-        for sesn in toremove:
-            del self.session_data[sesn]
-
-    def create_session(self):
-        newid = self.create_session_id()
-        self.session_data[newid] = dict()
-
-    def destroy_session(self, sesn):
-        """Override point"""
-        del self.session_data[sesn]
-
-    def set_session_attr(self, sesn, attr, newval):
-        """Override"""
-        self.session_data[sesn][attr] = newval
-
-    def unset_session_attr(self, sesn, attr):
-        """Override"""
-        del self.session_data[sesn][attr]
-
-    def login(self, function, user, password):
-        # if ...:
-        #    self.store.set_attribute(self.session_id, "authuser", user) 
-        #    self.store.set_attribute(self.session_id, "privs", get_privs())
-        raise NotImplementedError()
-
-    def logout(self, fun, user, password):
-        #    self.store.set_attribute(self.session_id, "authuser", None) 
-        #    self.store.set_attribute(self.session_id, "privs", [])
-        raise NotImplementedError()
-
-    
-
+    def store_create(self, fun, sesnid, attrs):
+        with self.lock:
+            self.session_data[sesnid] = attrs.copy()
+            print self.session_data
         
+    def store_update(self, fun, sesnid, key, newval):
+        with self.lock:
+            self.session_data[sesnid][key] = newval
+
+    def store_delete(self, fun, sesnid):
+        with self.lock:
+            del self.session_data[sesnid]
+
+    def load(self, fun, sesnid):
+        with self.lock:
+            print "URHJ", self.session_data[sesnid]
+            return self.session_data[sesnid]
+
+    def find_expired(self, fun):
+        with self.lock:
+            todel = []
+            for (sesnid, data) in self.session_data.items():
+                if data["expires"] > fun.started_at():
+                    todel.append(sesnid)
+            return todel
 
 
+class DatabaseSessionStore(SessionStore):
+    """Required tables:
 
+    CREATE TABLE rpcc_session (
+      id VARCHAR(40) NOT NULL PRIMARY KEY,
+      expires TIMESTAMP
+    );
 
-    def __init__(self, remote_ip, function=None, temporary=False, max_age=None):
-        # Note! The session _must_not_ retain a reference to the function!!
-        #       The session has a longer life-span than the function.
-        #       It is OK to extract the server and keep a reference to
-        #       that, since the server object lives "forever".
-        self.remote_ip = remote_ip
-        self.temporary = temporary
-        self.create_time = time.time()
+    CREATE TABLE rpcc_session_string (
+      session_id VARCHAR(40) NOT NULL,
+        FOREIGN KEY (session_id) REFERENCES rpcc_session(id),
+      name VARCHAR(30) NOT NULL,
+      value VARCHAR(30)
+    )
 
-        if max_age:
-            self.max_age = max_age
-            self.expiry_time = self.create_time + self.max_age
-        else:
-            self.extend_expiry_time()
+    No thread locking needed - the SQL queries are against one Function's
+    db link and that link's transaction.
 
-        self.id = self.create_session_id()
-        self.init_authuser(function)
-        if function:
-            self.server = function.server
-        self.start()
-
-    def allow_remote_ip(self, remote_ip):
-        return self.remote_ip == remote_ip
-
-    def get_id(self):
-        return self.id
-
-    def get_create_time(self):
-        return self.create_time
-
-    def get_remote_ip(self):
-        return self.remote_ip
-
-    def get_expiry_time(self):
-        return self.expiry_time
-
-    def extend_expiry_time(self):
-        timeout = 8.0 * 60.0 * 60.0
-        self.expiry_time = time.time() + timeout
-
-    def expired(self):
-        return time.time() >= self.expiry_time
-
-    def datadict(self):
-        return {'id': self.id, 'create_time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))}
-
-    def init_authuser(self, function):
-        self.authuser = None
-
-        if not function:
-            return
-        
-        if not function.handler.headers.has_key('authorization'):
-            return
-
-        auth_header = function.handler.headers['authorization']
-        if auth_header[:10].lower() != 'negotiate ':
-            return
-
-        auth_token = auth_header[10:]
-
-        try:
-            import kerberos
-        except ImportError:
-            raise RPCKerberosAuthNotAvailableError()
-
-        ctx = None
-        try:
-            server_principal = "HTTP@" + function.server.instance_address
-            (res, ctx) = kerberos.authGSSServerInit(server_principal)
-            res = kerberos.authGSSServerStep(ctx, auth_token)
-            if res != kerberos.AUTH_GSS_COMPLETE:
-                raise RPCKerberosAuthFailedError()
-            
-            authprinc = kerberos.authGSSServerUserName(ctx)
-            sys.stderr.write("--> Kerberos SPNEGO auth: %s\n" % (authprinc,))
-            if '@' in authprinc:
-                authprinc = authprinc.split('@')[0]
-            self.authuser = authprinc
-        finally:
-            if ctx:
-                kerberos.authGSSServerClean(ctx)
-
-    def login(self, username, password):
-        raise NotImplementedError
-
-    def logout(self):
-        raise NotImplementedError
-
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-    
-
-class SessionStore(object):
-    """Handles sessions across RPC invocations.
-
-    When an incoming call has a session id in it, the SessionStore
-    singleton is asked (under a mutex external to it)
     """
-    
-    session_class = Session
 
-    # A new session may only be created from a particular IP address
-    # if that IP address has created less than .throttle_session_count
-    # sessions in the last throttle_session_time seconds.
-    throttle_session_count = 1000
-    throttle_session_time = 10
+    def store_create(self, fun, sesnid, attrs):
+        q = "INSERT INTO rpcc_session (id, expires) VALUES (:i, :e)"
+        fun.db.put(q, i=sesnid, e=attrs["expires"])
 
-    def __init__(self, server, session_class=None):
-        self.server = server
-        if session_class:
-            self.session_class = session_class
+        for (key, value) in attrs.items():
+            if key == "expires":
+                continue
+            q = "INSERT INTO rpcc_session_string (session_id, name, value) "
+            q += "VALUES (:s, :k, :v) "
+            fun.db.put(q, s=sesnid, k=key, v=value)
 
-        self.thread_lock = threading.RLock()
-        self.sessions_by_id = {}
-        self.sessions_by_ip = {}
+    def store_update(self, fun, sesnid, key, value):
+        if key == "expires":
+            q = "UPDATE rpcc_session SET expires=:e WHERE id=:i"
+            fun.db.put(q, e=value, i=sesnid)
+        elif key == "id":
+            raise ValueError()
+        else:
+            q = "UPDATE rpcc_session_string SET value=:v "
+            q += "WHERE session_id=:i AND name=:k "
+            fun.db.put(q, v=value, i=sesnid, k=key)
 
-    def clean_expired_sessions(self):
-        """Remove all sessions whose .expired() method returns a true value."""
+    def store_delete(self, fun, sesnid):
+        q = "DELETE FROM rpcc_session_string WHERE session_id=:i"
+        fun.db.put(q, i=sesnid)
 
-        with self.thread_lock:
-            for (key, sesn) in self.sessions_by_id.items():
-                if sesn.expired():
-                    self.kill_session(sesn)
+        q = "DELETE FROM rpcc_session WHERE id=:i"
+        fun.db.put(q, i=sesnid)
 
-    def check_throttle(self, remote_ip):
-        """Check session creation throttling for the supplied IP address.
-        """
-        with self.thread_lock:
-            if not self.throttle_session_count or not self.throttle_session_time:
-                return
+    def load(self, fun, sesnid):
+        ret = {'id': sesnid}
+        q = "SELECT expires FROM rpcc_session WHERE id=:i"
+        ((expires,),) = fun.db.get(q, i=sesnid)
+        ret["expires"] = expires
+        q = "SELECT name, value FROM rpcc_session_string WHERE session_id=:i"
+        for (key, value) in fun.db.get(q, i=sesnid):
+            ret[key] = value
 
-            if not self.sessions_by_ip.has_key(remote_ip):
-                return
+        return ret
 
-            sesnlist = self.sessions_by_ip[remote_ip]
-            since = time.time() - self.throttle_session_time
+    def find_expired(self, fun):
+        q = "SELECT id FROM rpcc_session WHERE expires > :n"
+        return [s for (s,) in fun.db.get(q, n=fun.started_at())]
 
-            count = len([a for a in sesnlist if a.get_create_time() >= since])
-
-            if count > self.throttle_session_count:
-                raise RuntimeError, "You are not allowed to create that many sessions."
-
-    def create_session(self, remote_ip, function, temporary):
-        """Create a new Session instance, and return it to the caller.
-
-        The Session is saved and later retreivable via a call to
-        server.get_session() using the session's id, available through
-        the session.get_id() method.
-
-        Before creating a new session, the list of old sessions is
-        cleaned of any expired sessions, and then checked to see that
-        at least this particular client is not flooding us.
-
-        The temporary flag is passed to the session class' constructor.
-        It is intended for sessions that should be removed immediately
-        after a call using them is finished, e.g. for Kerberos HTTP SPNEGO-
-        authenticated singleton calls.
-
-        The function initiating the creation needs to be passed, since
-        the session startup code may initialize e.g. .authuser depending
-        on the HTTP request the function call was passed in.
-
-        The session must not retain a reference to the function, since it
-        lives between functions.
-        """
-
-        with self.thread_lock:
-            self.clean_expired_sessions()
-            self.check_throttle(remote_ip)
-
-            sesn = self.session_class(remote_ip, function, temporary)
-            self.sessions_by_id[sesn.get_id()] = sesn
-            try:
-                self.sessions_by_ip[sesn.get_remote_ip()].append(sesn)
-            except KeyError:
-                self.sessions_by_ip[sesn.get_remote_ip()] = [sesn]
-            return sesn
-            
-    def get_session(self, sesnid, remote_ip):
-        """Return a session object refered to by the session id.
-
-        The session gets a shot at access control by looking at the
-        remote IP. If the session does not think the current remote
-        IP address should be able to see it, the server will send back
-        the same error as if the session did not exist at all.
-        """
-
-        with self.thread_lock:
-            self.clean_expired_sessions()
-            try:
-                sesn = self.sessions_by_id[sesnid]
-                if not sesn.allow_remote_ip(remote_ip):
-                    raise KeyError
-                return sesn
-            except KeyError:
-                raise ValueError, "No active such session exists for this client."
-
-    def get_all_sessions(self):
-        """Return a list of data about all sessions."""
-
-        with self.thread_lock:
-            self.clean_expired_sessions()
-            try:
-                return [sesn.datadict() for sesn in self.sessions_by_id.values()]
-            except:
-                return []
-            
-    def kill_session(self, sesn):
-        """Immediately invalidate a session object and remove all references
-        to it.
-        """
-
-        with self.thread_lock:
-            sesn.stop()
-            sesn_ip = sesn.get_remote_ip()
-            sesnlist = self.sessions_by_ip[sesn_ip]
-            sesnlist.remove(sesn)
-            if not sesnlist:
-                del self.sessions_by_ip[sesn_ip]
-            del self.sessions_by_id[sesn.get_id()]

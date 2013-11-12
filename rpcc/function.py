@@ -3,7 +3,7 @@ import re
 import datetime
 
 from exttype import *
-from default_type import ExtSessionID
+import default_type
 from session import Session
 from xmlnode import XMLNode
 
@@ -264,7 +264,7 @@ class Function(object):
             else:
                 raise exterror.ExtAccessDeniedError("Function access denied.")
 
-    def started(self):
+    def started_at(self):
         return self.call_time
 
     def started_iso(self):
@@ -295,7 +295,7 @@ class Function(object):
 
 
 class SessionedFunction(Function):
-    params = [("session", ExtSessionID, "Execution context")]
+    params = [("session", default_type.ExtSession, "Execution context")]
 
 
 # This class is _dynamically_ (i.e. automatically) subclassed by
@@ -316,6 +316,8 @@ class UpdateFunction(Function):
         obj = getattr(self, params[-2][0])
         upd = getattr(self, params[-1][0])
         obj.apply_update(self.api.version, upd)
+
+
 
 
 class XXXTypedFunction(Function):

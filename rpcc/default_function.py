@@ -5,69 +5,119 @@ from exttype import *
 from default_type import *
 from function import Function, SessionedFunction
 
-class ExtFunctionName(ExtString):
-    name = "function-name"
-    desc = "A string containing the name of a function this server exposes."
+class FunServerURLAPI(Function):
+    extname = 'server_url_api'
 
-    def lookup(self, server, function, val):
-        if function.api.has_function(val):
-            return val
-        raise ExtValueError("Unknown function", value=val)
+    desc = "Returns a struct indicating the protocol version of this URL. The version number is increased whenever changes programmatically visible to clients are made."
+    params = []
+    returns = (ExtServerVersion, "API version for current URL")
 
+    grants = None
 
-class ExtSessionID(ExtString):
-    name = "session-id"
-    desc = """Execution context. See session_start()."""
-    regexp = '(singlecall)|([a-zA-Z0-9]+)'
+    def do(self):
+        return {'service': self.server.service_name,
+                'major': self.server.major_version,
+                'minor': self.server.minor_version}
 
-    def lookup(self, server, function, val):
-        try:
-            session = server.get_session(val, function.handler.client_address[0])
-            session.extend_expiry_time()
-            return session
-        except:
-            raise RPCInvalidSessionIDError(value=val)
-            
-
-class ExtDateTime(ExtString):
-    name = 'datetime'
-    regexp = '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$'
-    desc = 'A date and time in YYYY-MM-DDTHH:MM:SS format, e.g. 2007-04-14T13:54:22'
+class FunSessionStart(Function):
+    """Default function to create a new session."""
     
-    def lookup(self, server, function, val):
-        import datetime
+    extname = 'session_start'
+    params = []
+    desc = "Creates a new session (execution context) for further calling. Returns an ID valid for a limited time for the current client address only."
+    returns = (ExtSession, "A string that must be the first argument of any furter calls to perform in the context of this session.")
+    
+    def do(self):
+        remote_ip = self.http_handler.client_address[0]
+        sesnid = self.server.session_store.create_session(self, remote_ip)
+        # Below makes the session id be logged together with the
+        # session_start() call in the call log.
+        self.session = self.server.session_store.get_session(self, sesnid)
+        return self.session
+    
+class FunSessionStop(SessionedFunction):
+    extname = 'session_stop'
+    params = []
+    desc = "Invalidates a session (execution context), making it unavailable for any furhter calls."
+    returns = ExtNull
+    
+    def typed_do(self):
+        self.server.kill_session(self.session)
         
-        try:
-            date, tm = val.split('T')
-            y, mo, d = [int(i) for i in date.split('-')]
-            h, mi, s = [int(i) for i in tm.split(':')]
-            return datetime.datetime(y, mo, d, h, mi, s)
-        except:
-            raise ExtValueError("Not a valid datetime")
-
-class ExtSessionInfo(ExtStruct):
-    name = 'session-info'
-    mandatory = {'authuser': ExtOrNull(ExtString),
-                 'startup': ExtDateTime,
-                 'expires': ExtDateTime}
-
-class ExtServerVersion(ExtStruct):
-    name = "server-version-type"
+class FunSessionInfo(SessionedFunction):
+    extname = 'session_info'
+    returns = (ExtSessionInfo, "Information about the supplied session")
     
-    mandatory = {
-        'service': ExtString,
-        'major': ExtString,
-        'minor': ExtString
-        }
+    desc = "Returns information about the session (execution context)."
 
-class ExtAPIVersion(ExtStruct):
-    name = "api-version"
-    desc = "A version of the public API"
+    def do(self):
+        return {'session': self.session,
+                'expires': self.session.expires,
+                'authuser': self.session.authuser}
 
-    mandatory = {
-        "major": ExtInteger,
-        "minor": ExtInteger
-        }
+class FunSessionAuthLogin(SessionedFunction):
+    extname = 'session_auth_login'
+    params = [('username', ExtString, 'Username to authenticate as'),
+              ('password', ExtString, 'Password to authenticate with')]
+
+    returns = (ExtBoolean, "Will always be True - a failed login is returned as an error")
+
+    desc = "Authenticates a session (execution context). If successful, further calls done in that context count as being made by the user whose username was given as argument to this call."
+
+    def log_arguments(self, args):
+        return ('*', args[1], '****')
+    
+    def do(self):
+        ath = self.server.authenticator
+        ath.login(self, self.session.id, self.username, self.password)
+        return True
+
+class FunSessionStartWithLogin(Function):
+    extname = 'session_start_with_login'
+    params = [('username', ExtString, 'Username to authenticate as'),
+              ('password', ExtString, 'Password to authenticate with')]
+    returns = (ExtSession, "Authenticated call context")
+
+    desc = "Create a session and attempt to authenticate it returning the session if authentication succeeded."
+
+    def log_arguments(self, args):
+        return (args[0], '****')
+
+    def do(self):
+        remote_ip = self.handler.client_address[0]
+        sesnid = self.server.session_store.create_session(self, remote_ip)
+        # Below makes the session id be logged together with the
+        # session_start() call in the call log.
+        self.session = self.server.session_store.get_session(self, sesnid)
+
+        try:
+            ath = self.server.authenticator
+            ath.login(self, self.session.id, self.username, self.password)
+            return self.session
+        except:
+            self.server.authenticator.delete_session(self, self.session.id)
+            raise
+        
+class FunSessionDeauth(SessionedFunction):
+    extname = 'session_deauth'
+    params = []
+    returns = ExtNull
+
+    desc = "De-authenticate, leavning the session unauthenticated."
+    
+    def do(self):
+        self.server.authenticator.logout(self, self.session.id)
+
+
+class FunServerListFunctions(Function):
+    rpcname = 'server_list_functions'
+    params = []
+    returns = ExtList(ExtString)
+    desc = 'Return a list of function names available on this server.'
+    grants = None
+    
+    def do(self):
+        return self.api.get_all_function_names()
 
 dummy = """
 class ExtStructItemDocdictType(ExtStruct):
@@ -131,23 +181,6 @@ class Sys_FunctionDocdictType(RPCStructType):
         "max_api_version": (Sys_APIVersionType, "Maximum API version where this function is available"),
         }
 
-"""
-
-class FunServerURLAPI(Function):
-    extname = 'server_url_api'
-
-    desc = "Returns a struct indicating the protocol version of this URL. The version number is increased whenever changes programmatically visible to clients are made."
-    params = []
-    returns = (ExtServerVersion, "API version for current URL")
-
-    grants = None
-
-    def do(self):
-        return {'service': self.server.service_name,
-                'major': self.server.major_version,
-                'minor': self.server.minor_version}
-
-dummy = """
 class Sys_Documentation(RPCTypedFunction):
     rpcname = 'server_documentation'
     desc = "Returns a string containing the documentation of the given function."
@@ -206,108 +239,4 @@ class Sys_XmlDocumentationAll(RPCTypedFunction):
         generator.close()
         return str(generator)
 """
-
-class FunSessionInfo(SessionedFunction):
-    extname = 'session_info'
-    params = [('session', ExtSessionID, "Execution context.")]
-    desc = "Returns information about the session (execution context)."
-    returns = (ExtSessionInfo, "Information about the supplied session")
-    
-    def typed_do(self):
-        return {'authuser': self.session.authuser,
-                'startup': self.session.get_create_time(),
-                'expires': self.session.get_expiry_time(),
-                'temporary': self.session.temporary,
-                'id': self.session.get_id()}
-
-class FunSessionStart(Function):
-    """Default function to create a new session."""
-    
-    extname = 'session_start'
-    params = []
-    desc = "Creates a new session (execution context) for further calling. Returns an ID valid for a limited time for the current client address only."
-    returns = (ExtSessionID, "A string that must be the first argument of any furter calls to perform in the context of this session.")
-    
-    def do(self):
-        remote_ip = self.handler.client_address[0]
-        sesn = self.server.create_session(remote_ip, function=self, temporary=False)
-        # Below makes the session id be logged together with the
-        # session_start() call in the call log.
-        self.session = sesn
-        return sesn.get_id()
-    
-
-class FunSessionStop(SessionedFunction):
-    """Default function to destroy a session."""
-    
-    rpcname = 'session_stop'
-    params = []
-    desc = "Invalidates a session (execution context), making it unavailable for any furhter calls."
-    rettype = ExtNull
-    
-    def typed_do(self):
-        self.server.kill_session(self.session)
-        
-
-class FunSessionAuthLogin(SessionedFunction):
-    extname = 'session_auth_login'
-    params = [('username', ExtString, 'Username to authenticate as'),
-              ('password', ExtString, 'Password to authenticate with')]
-
-    desc = "Authenticates a session (execution context). If successful, further calls done in that context count as being made by the user whose username was given as argument to this call."
-    returns = (ExtBoolean, "Will always be True - a failed login is returned as an error")
-
-    def log_arguments(self, args):
-        return ('*', args[1], '****')
-    
-    def do(self):
-        return self.server.auth.login(self.session, self.username, self.password)
-
-
-class FunSessionStartWithLogin(Function):
-    extname = 'session_start_with_login'
-    params = [('username', ExtString, 'Username to authenticate as'),
-              ('password', ExtString, 'Password to authenticate with')]
-
-    desc = "Create a session and attempt to authenticate it returning the session if authentication succeeded."
-    rettype = (ExtSessionID, "Authenticated call context")
-
-    def log_arguments(self, args):
-        return (args[0], '****')
-
-    def do(self):
-        remote_ip = self.handler.client_address[0]
-        sesn = self.server.create_session(remote_ip, function=self, temporary=False)
-        # Below makes the session id be logged together with the
-        # session_start() call in the call log.
-        self.session = sesn
-
-        try:
-            self.server.auth.login(self.session, self.username, self.password)
-            return self.session.get_id()
-        except:
-            self.server.kill_session(self.session)
-            raise
-        
-
-class FunSessionDeauth(SessionedFunction):
-    rpcname = 'session_deauth'
-    params = []
-
-    desc = "De-authenticate, leavning the session unauthenticated."
-    returns = ExtNull
-    
-    def do(self):
-        self.server.auth.logout(self.session)
-
-
-class FunServerListFunctions(Function):
-    rpcname = 'server_list_functions'
-    params = []
-    returns = ExtList(ExtString)
-    desc = 'Return a list of function names available on this server.'
-    grants = None
-    
-    def do(self):
-        return self.api.get_all_function_names()
 

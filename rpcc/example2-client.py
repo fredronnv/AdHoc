@@ -5,6 +5,15 @@ import xmlrpclib
 
 s = xmlrpclib.ServerProxy("http://venus.ita.chalmers.se:12121/RPC2", allow_none=True, encoding="UTF-8")
 
+sesn = s.session_start()['result']
+print s.session_info(sesn)
+print s.session_auth_login(sesn, "viktor", "2viktor")
+print s.session_info(sesn)
+print s.session_auth_login(sesn, "viktor", "viktor")
+print s.session_info(sesn)
+
+raise SystemExit()
+
 print s.account_fetch("viktor", {"account": True, "uid": True, "owner": True, "owner_data": {"person": True, "firstname": True, "lastname": True, "account_data": {"account": True}}})
 
 print s.person_update("viktor", {"lastname": u"Foügstedt"})
@@ -18,3 +27,4 @@ print s.person_update("viktor", {"firstname": u"Viktor"})
 print s.person_fetch("viktor", {"firstname": True, "lastname": True})
 
 print s.person_get_name("viktor")
+

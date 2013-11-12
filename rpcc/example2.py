@@ -7,6 +7,7 @@ from function import Function
 import server
 import authenticator
 import database
+import session
 
 class ExtPerson(ExtString):
     def lookup(self, fun, cval):
@@ -128,8 +129,9 @@ class AccountManager(Manager):
         return Account(self, accid, uid, owner_id)
 
 class MyServer(server.Server):
-    authenticator = authenticator.NullAuthenticator
+    authenticator_class = authenticator.NullAuthenticator
     database_class = database.OracleDatabase
+    session_store_class = session.DatabaseSessionStore
     envvar_prefix = "XMPL_"
 
 srv = MyServer("venus.ita.chalmers.se", 12121)

@@ -19,23 +19,23 @@ class Authenticator(object):
     def init(self):
         pass
 
-    def auth_session(self, session, username):
-        self.server.session_store.set_session_attr(session, "authuser", username)
+    def auth_session(self, fun, session_id, username):
+        self.server.session_store.set_session_attribute(fun, session_id, "authuser", username)
 
-    def deauth_session(self, session):
-        self.server.session_store.unset_session_attr(session, "authuser")
+    def deauth_session(self, fun, session_id):
+        self.server.session_store.set_session_attribute(fun, session_id, "authuser", None)
 
-    def login(self, session, username, password):
+    def login(self, fun, session_id, username, password):
         raise NotImplementedError()
 
-    def logout(self, session):
-        self.deauth_session(session)
+    def logout(self, fun, session_id):
+        self.deauth_session(fun, session_id)
 
 
 class NullAuthenticator(Authenticator):
-    def login(self, session, username, password):
+    def login(self, fun, session_id, username, password):
         if username == password:
-            self.auth_session(session, username)
+            self.auth_session(fun, session_id, username)
         else:
             raise exterror.ExtAuthenticationFailedError("Supplied username or password was invalid")
 
