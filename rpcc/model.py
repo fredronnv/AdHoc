@@ -49,7 +49,7 @@ class _TemplateReference(object):
 
 class ExternalAttribute(object):
     # Valid for one particular API version.
-    def __init__(self, name, type=None, method=None, desc=None, model=None, args=None, kwargs=None):
+    def __init__(self, name, type=None, method=None, desc=None, model=None, args=[], kwargs={}):
         self.extname = name
         self.exttype = type
         self.method = method
@@ -180,24 +180,27 @@ class Model(object):
 
         # Note 2: If the attribute has a "model" attribute, the
         # _TemplateReference object is used in the templates on an
-        # "<attr>-data" attribute. _TemplateReferences are used to
-        # resolve mutual references between several template types.
+        # "<attr>_data" attribute. _TemplateReferences are used as
+        # placeholders, to resolve mutual references between template
+        # types.
 
         try:
             return cls._attributes_cache[api_version]
         except KeyError:
-            cls._attributes_cache[api_version] = {}
+            cls._attributes_cache[api_version] = ({}, {})
         except AttributeError:
-            cls._attributes_cache = {api_version: {}}
+            cls._attributes_cache = {api_version: ({}, {})}
 
         for candname in dir(cls):
             candidate = getattr(cls, candname)
             if hasattr(candidate, "_template"):
                 attrcls = ExternalReadAttribute
                 defs = candidate._template
+                dest = cls._attributes_cache[api_version][0]
             elif hasattr(candidate, "_update"):
                 attrcls = ExternalWriteAttribute
                 defs = candidate._update
+                dest = cls._attributes_cache[api_version][1]
             else:
                 continue
 
@@ -208,22 +211,30 @@ class Model(object):
                 continue
 
             name = data.pop("name", None) or candname[4:]
-            if name in cls._attributes_cache[api_version]:
+            if name in dest:
                 raise IntAPIValidationError("Multiple @template/@update definitions uses the public name %s for API version %d" % (name, api_version))
-
-            data["method"] = candidate
 
             typminv, typmaxv = ExtType.instance(data["type"])._api_versions()
             if api_version < typminv or api_version > typmaxv:
                 raise IntAPIValidationError("@template/@update definition on method %s.%s says its valid through API versions (%d, %d), but the type %s it uses is valid through (%d, %d) making it invalid for version %d" % (cls, candname, minv, maxv, data["type"], typminv, typmaxv, api_version))
 
+            data["method"] = candidate
+
             if "model" in data and data["model"]:
-                cls._attributes_cache[api_version][name + "-data"] = attrcls(name + "-data", **data)
+                dest[name + "_data"] = attrcls(name + "_data", **data)
 
             dummy = data.pop("model", None)
-            cls._attributes_cache[api_version][name] = attrcls(name, **data)
+            dest[name] = attrcls(name, **data)
 
-        return cls._attributes_cache[api_version].values()
+        return cls._attributes_cache[api_version]
+
+    @classmethod
+    def _read_attributes(cls, api_version):
+        return cls._attributes(api_version)[0]
+
+    @classmethod
+    def _write_attributes(cls, api_version):
+        return cls._attributes(api_version)[1]
 
     @classmethod
     def _template_type(cls, api_version):
@@ -232,7 +243,7 @@ class Model(object):
         tmpl.to_version = api_version
         tmpl.name = ExtType.capsify(cls.name + "-data-template")
 
-        for attr in cls._attributes(api_version):
+        for attr in cls._read_attributes(api_version).values():
             attr.fill_template_type(tmpl)
         return tmpl
 
@@ -243,7 +254,7 @@ class Model(object):
         data.to_version = api_version
         data.name = ExtType.capsify(cls.name + "-templated-data")
         
-        for attr in cls._attributes(api_version).values():
+        for attr in cls._read_attributes(api_version).values():
             attr.fill_data_type(data)
         return data
 
@@ -253,10 +264,16 @@ class Model(object):
         upd.from_version = api_version
         upd.to_version = api_version
         upd.name = ExtType.capsify(cls.name + "-update")
-        
-        for attr in cls._attributes(api_version).values():
+
+        for attr in cls._write_attributes(api_version).values():
             attr.fill_update_type(upd)
         return upd
+
+    def apply_update(self, api_version, updates):
+        writeattrs = self._write_attributes(api_version)
+        for (name, newval) in updates.items():
+            attr = writeattrs[name]
+            attr.method(self, newval, *attr.args, **attr.kwargs)
 
     def apply_template(self, api_version, tmpl):
         # Note: many different other Model instances may call
@@ -269,43 +286,34 @@ class Model(object):
         if (api_version, tmplidx) in self._templated:
             return self._templated[(api_version, tmplidx)]
 
-        # _attributes_cache will be filled in the _class_ object when
-        # the server generates the template types, and therefore
-        # always available to instances when applying information
-        # parsed by such a type.
-
         out = {}
-        for (name, attr) in self._attributes_cache[api_version].items():
-            # Does the client want data for this template key? Note:
-            # "not tmpl[name]" would be wrong - an empty subtemplate
-            # should generate an emtpy sub-data.
-
-            if name not in tmpl or tmpl[name] == False:
+        readattrs = self._read_attributes(api_version)
+        for (name, tmpl_value) in tmpl.items():
+            if tmpl_value == False:
                 continue
 
             # The ExternalAttribute instance has a reference to the
             # method (directly from the class, i.e. unbound so we need
             # to pass self explicitly) and any parameters to
             # it.
-
+            attr = readattrs[name]
             value = attr.method(self, *attr.args, **attr.kwargs)
 
             if value is None:
                 if "_remove_nulls" in tmpl and tmpl["_remove_nulls"]:
                     continue
-                out[name] = None
+                out[attr.name] = None
                 continue
 
             if attr.model:
-                subtmpl = tmpl[name]
+                subtmpl = tmpl_value
                 if "_remove_nulls" in tmpl and "_remove_nulls" not in subtmpl:
                     subtmpl = subtmpl.copy()
                     subtmpl["_remove_nulls"] = tmpl["_remove_nulls"]
                 out[name] = value.apply_template(api_version, subtmpl)
             else:
-                out[name] = value #ExtType.instance(attr.exttype).output(self.function, value)
+                out[name] = value
         self._templated[(api_version, tmplidx)] = out
-        print out
         return out
 
     def init(self, *args, **kwargs):

@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import time
+import traceback
 import mimetypes
 import xmlrpclib
 import json
@@ -236,6 +237,7 @@ class WSDLProtocolHandler(ProtocolHandler):
             data = self.server.api_handler.get_wsdl(path)
             return HTTPResponse(data, encoding='utf-8', ctype='text/xml')
         except:
+            raise
             return HTTPResponse("404 Not Found.", ctype="text/plain", code=404)
 
 
@@ -271,6 +273,20 @@ class MicrosoftWorkaroundWSDLProtocolHandler(WSDLProtocolHandler):
 # Authorization: Negotiate header is present and just calls the request handler
 # below otherwise.
 #
+
+def od(s):
+    chunks = [""]
+    for char in s:
+        if len(chunks[-1]) == 16:
+            chunks.append("")
+        chunks[-1] += char
+    for chunk in chunks:
+        for char in chunk:
+            print "%02x" % (ord(char),),
+        print "   " * (16 - len(chunk)),
+        print chunk.replace("\n", " ").replace("\r", " ").replace("\t", " ")
+    print
+
 class XMLRPCProtocolHandler(ProtocolHandler):
     def request(self, httphandler, path, data):
         response = None
@@ -278,21 +294,13 @@ class XMLRPCProtocolHandler(ProtocolHandler):
             params, function = xmlrpclib.loads(data)
             if function is None:
                 raise ValueError
+            #if function == "person_update":
+            #    od(data)
+            #    print type(params[-1]["lastname"])
+            #    od(params[-1]["lastname"])
         except:
+            traceback.print_exc()
             response = ({'error': exterror.ExtMalformedXMLRPCError().struct()},)
-            if False:
-                print data
-                chunks = [""]
-                for char in data:
-                    if len(chunks[-1]) == 16:
-                        chunks.append("")
-                    chunks[-1] += char
-                for chunk in chunks:
-                    for char in chunk:
-                        print "%02x" % (ord(char),),
-                    print "   " * (16 - len(chunk)),
-                    print chunk.replace("\n", " ").replace("\r", " ").replace("\t", " ")
-                print
 
         if not response:
             mo = re.search("\?v([0-9]+)", path)

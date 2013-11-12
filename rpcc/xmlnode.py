@@ -75,7 +75,10 @@ class XMLNode(object):
                 attrnames = [special] + attrnames
 
         for name in attrnames:
-            value = self.attrs[name].replace('&', '&amp;')
+            value = self.attrs[name]
+            if isinstance(value, int):
+                value = str(value)
+            value = value.replace('&', '&amp;')
 
             try:
                 value = value.encode('utf-8')

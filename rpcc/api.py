@@ -3,7 +3,7 @@
 from exterror import ExtFunctionNotFoundError
 from interror import IntAPINotFoundError, IntAPIValidationError
 from function import Function
-from exttype import ExtStruct, ExtList, ExtType
+from exttype import ExtStruct, ExtList, ExtType, ExtNull
 from xmlnode import XMLNode
 
 import model
@@ -395,18 +395,25 @@ class API(object):
         wsdl_root.add(wsdl_service_root)
 
         return wsdl_root.xml()
-        
-    # Auto-generation for _dig() et. al.
-    def generate_fetch_types(self):
+
+    ###
+    # Auto-generation for _dig(), _update(), _fetch() et. al.
+    ###
+    def generate_dynamic_types(self):
         self._template_by_model = {}
         self._data_by_model = {}
+        self._update_by_model = {}
 
         for modelcls in self.server.get_all_models():
+            name = modelcls._name()
             tmpl = modelcls._template_type(self.version)
-            self._template_by_model[modelcls._name()] = tmpl
+            self._template_by_model[name] = tmpl
             data = modelcls._data_type(self.version)
-            self._data_by_model[modelcls._name()] = data
+            self._data_by_model[name] = data
+            update = modelcls._update_type(self.version)
+            self._update_by_model[name] = update
 
+        # Resolve template references.
         for tmpl in self._template_by_model.values():
             for (attr, (typ, desc)) in tmpl.mandatory.items():
                 if isinstance(typ, model._TemplateReference):
@@ -421,6 +428,7 @@ class API(object):
                     else:
                         tmpl.optional[attr] = (self._template_by_model[typ.name], desc)
 
+        # Resolve data references.
         for tmpl in self._data_by_model.values():
             for (attr, (typ, desc)) in tmpl.mandatory.items():
                 if isinstance(typ, model._TemplateReference):
@@ -451,4 +459,21 @@ class API(object):
 
             fetchcls = type("Fun" + capsname + "Fetch", (function.FetchFunction,), clsattrs)
             self.add_function(fetchcls)
+
+    def generate_update_functions(self):
+        for modelcls in self.server.get_all_models():
+            name = modelcls._name()
+            capsname = name[0].upper() + name[1:]
+
+            clsattrs = dict(from_version = self.version,
+                            to_version = self.version,
+                            extname = name + "_update",
+                            returns = ExtNull)
+            clsattrs["params"] = [(name, modelcls.exttype, "The %s to update" % (name,)),
+                                  ("updates", self._update_by_model[name], "Fields and updates")]
+            clsattrs["desc"] = "Update one or more fields atomically."
+
+            upcls = type("Fun" + capsname + "Update", (function.UpdateFunction,), clsattrs)
+            self.add_function(upcls)
+
 

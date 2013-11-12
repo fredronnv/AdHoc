@@ -298,6 +298,8 @@ class SessionedFunction(Function):
     params = [("session", ExtSessionID, "Execution context")]
 
 
+# This class is _dynamically_ (i.e. automatically) subclassed by
+# api.create_fetch_functions() to create the actual update functions.
 class FetchFunction(Function):
     def do(self):
         # Find the object and template.
@@ -306,8 +308,17 @@ class FetchFunction(Function):
         tmpl = getattr(self, params[-1][0])
         return obj.apply_template(self.api.version, tmpl)
 
+# This class is _dynamically_ (i.e. automatically) subclassed by
+# api.create_update_functions() to create the actual update functions.
+class UpdateFunction(Function):
+    def do(self):
+        params = self.get_parameters()
+        obj = getattr(self, params[-2][0])
+        upd = getattr(self, params[-1][0])
+        obj.apply_update(self.api.version, upd)
 
-class TypedFunction(Function):
+
+class XXXTypedFunction(Function):
     """Subclass to Function that adds automatic documentation and typing.
     
     The .params attribute is exposed by the Server as the

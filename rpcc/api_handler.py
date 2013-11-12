@@ -119,5 +119,6 @@ class APIHandler(object):
 
     def generate_model_stuff(self):
         for api in self.apis:
-            api.generate_fetch_types()
+            api.generate_dynamic_types()
             api.generate_fetch_functions()
+            api.generate_update_functions()

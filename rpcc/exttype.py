@@ -342,16 +342,13 @@ class ExtString(ExtType):
     def check(self, function, rawval):
         import codecs
 
-        # We do not accept "str" input that is non-ASCII - the
-        # encoding is specified by the transport and the "str"
-        # therefore cannot be correctly interpreted.
-
         if not isinstance(rawval, unicode):
             if isinstance(rawval, str):
                 try:
                     rawval = rawval.decode("ascii")
                 except:
-                    raise ExtInternalError(desc="The transport has failed to decode an incoming string into unicode.")
+                    traceback.print_exc()
+                    raise ExtInternalError(desc="On input (or output) ExtString returned a non-ascii str instance instead of unicode")
             else:
                 raise ExtExpectedStringError(value=rawval)
 
@@ -568,6 +565,27 @@ class ExtNull(ExtType):
             raise ExtExpectedNullError(value=rawval)
         return rawval
 
+    def xsd(self):
+        node = self.xsd_complex_type()
+        node.new("sequence").new("element", name="null", min_occurs=1, max_occurs=1)
+        return node
+
+    def from_xml(self, elem):
+        try:
+            (child,) = self.child_elements(elem)
+        except:
+            raise ExtExpectedNullError("Expected exactly one element - <null>")
+
+        if child.tagName.split(":")[-1] != "null":
+            raise ExtExpectedNullError("Element %s found instead" % (child.tagName))
+
+        return None
+
+    def to_xml(self, element, value):
+        if value is not None:
+            raise ExtInternalError("Expected None, got %s instead" % (value,))
+        element.new("null")
+
     def _typedef_inline(self, dummystack=[]):
         return '<null>'
 
@@ -684,8 +702,10 @@ class ExtStruct(ExtType):
 
         for key in rawval:
             if key not in self.mandatory and key not in self.optional:
-                #print "mandatory:", self.mandatory.keys()
-                #print "optional:", self.optional.keys()
+                print '"' + key + '"'
+                print self.__class__.__name__
+                print "mandatory:", self.mandatory.keys()
+                print "optional:", self.optional.keys()
                 raise ExtUnknownStructKeyError(value=key)
 
         for (key, val) in rawval.items():

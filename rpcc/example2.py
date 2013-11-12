@@ -22,17 +22,29 @@ class ExtAccount(ExtString):
     def output(self, fun, obj):
         return obj.aid
 
+class ExtUnknownPersonError(ExtLookupError):
+    desc = "No such person exists."
+
+class ExtUnknownAccountError(ExtLookupError):
+    desc = "No such account exists."
+
 class PersonFunBase(Function):
     params = [("person", ExtPerson, "A person")]
 
 class FunPersonGetName(PersonFunBase):
     extname = "person_get_name"
-    params = []
     returns = (ExtString, "Composite name")
 
     def do(self):
-        raise ValueError()
         return self.person.fname + " " + self.person.lname
+
+class FunPersonSetName(PersonFunBase):
+    extname = "person_set_lastname"
+    params = [("new_name", ExtString, "New name")]
+    returns = ExtNull
+
+    def do(self):
+        self.person.set_lastname(self.new_name)
 
 class Person(Model):
     name = "person"
@@ -52,9 +64,23 @@ class Person(Model):
     def get_firstname(self):
         return self.fname
 
+    @update(ExtString)
+    def set_firstname(self, newname):
+        print "set_firstname"
+        q = "UPDATE person SET fname=:name WHERE ucid=:pid"
+        self.db.put(q, pid=self.pid, name=newname.encode("iso-8859-1"))
+        self.db.commit()
+
     @template(ExtString)
     def get_lastname(self):
         return self.lname
+
+    @update(ExtString)
+    def set_lastname(self, newname):
+        print "set_lastname"
+        q = "UPDATE person SET lname=:name WHERE ucid=:pid"
+        self.db.put(q, pid=self.pid, name=newname.encode("iso-8859-1"))
+        self.db.commit()
 
     @template(ExtAccount, model="account")
     def get_account(self):
@@ -69,8 +95,11 @@ class PersonManager(Manager):
         q += "WHERE p.ucid=a.ucid_owner "
         q += "  AND a.primary=1 "
         q += "  AND p.ucid=:pid "
-        ((persid, fname, lname, acc),) = self.db.get(q, pid=pid)
-        return Person(self, persid, fname, lname, acc)
+        try:
+            ((persid, fname, lname, acc),) = self.db.get(q, pid=pid)
+        except:
+            raise ExtUnknownPersonError()
+        return Person(self, persid, fname.decode("iso-8859-1"), lname.decode("iso-8859-1"), acc)
 
 class Account(Model):
     name = "account"
@@ -100,7 +129,10 @@ class AccountManager(Manager):
         q = "SELECT ucid, unix_uid, ucid_owner "
         q += " FROM account "
         q += "WHERE ucid=:aid "
-        ((accid, uid, owner_id),) = self.db.get(q, aid=aid)
+        try:
+            ((accid, uid, owner_id),) = self.db.get(q, aid=aid)
+        except:
+            raise ExtUnknownAccountError()
         return Account(self, accid, uid, owner_id)
 
 class MyServer(server.Server):
