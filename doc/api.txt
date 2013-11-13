@@ -12,13 +12,13 @@ The host datatype represents a host computer in the network, whether it is a phy
 
 The host datatype holds the following data:
 
-id              A Unique idaentifier for the host. This is not the same thing as the host's DNS name. 
+id              A Unique identifier for the host. This is no longer the same thing as the host's DNS name. 
                 This is the ID with which we refer the host when doing administrative operations and is used
-                as the host name in dhcpd.conf.
+                as the host "name" in dhcpd.conf.
                 Its syntax is similar to that of a DNS name, but dots (.) are forbidden so that it may not
                 be confused with a DNS name. This field may not be null.
                 
-dns             The DNS name of the host. May be null, if not, the host may not be part of a pool.
+dns             The DNS name of the host. May be null, if not, the host may not be part of a pool or have a fixed address.
                 The DNS name may be used for looking up a host in the administrative interface, but should never be
                 reported outward as being a host ID. In dhcpd.conf it is used as the specifier to the fixed-address option.
                 
@@ -40,6 +40,14 @@ info            Freetext information about the machine.
 
 entry_status    Status of this host entry, one of Acitve, Dead or Inactive.
 
+Operations:
+host_create(id, mac, dns, group, room, optionspace)
+host_get(id)
+host_update(id, what, value)
+host_delete(id)
+host_add_to_pool(id, pool)
+host_remove_from_pool(id, pool)
+
 
 
 Group
@@ -60,6 +68,12 @@ changed_by      The cid of the person who last changed any data for this group.
 
 mtime           Time of last modification. This is automatically handled by the database.
 
+Operations:
+group_create(groupname, parent_group, info, optionspace)
+group_get(groupname)
+group_update(groupname, what, value)
+group_delete(groupname)
+
 
 
 Class
@@ -79,11 +93,17 @@ changed_by      The cid of the person who last changed any data for this class.
 
 mtime           Time of last modification. This is automatically handled by the database.
 
+Operations:
+class_create(classname, vendor_class_id, info, optionspace)
+class_get(classname)
+class_update(classname, what, vakue)
+class_delete(classname)
+
 
 
 Pool
 ====
-This datatype defines poold of addresses that will be treated differently than another pool of addresses, 
+This datatype defines pools of addresses that will be treated differently than another pool of addresses, 
 even on the same network segment or subnet.
 
 poolname        The pool name.
@@ -97,6 +117,14 @@ info            Freetext information about the pool.
 changed_by      The cid of the person who last changed any data for this pool.
 
 mtime           Time of last modification. This is automatically handled by the database.
+
+Operations:
+pool_create(poolname, network, info, optionspace)
+pool_get(poolname)
+pool_update(poolname, what, value)
+pool_delete(poolname)
+pool_add_host(poolname, host)
+pool_remove_host(poolname, host)
 
 
 
@@ -116,6 +144,12 @@ changed_by      The cid of the person who last changed any data for this range.
 
 mtime           Time of last modification. This is automatically handled by the database.
 
+Operations:
+range_create(start_ip, end_ip, pool, served_by)
+range_get(ip)
+range_update(ip, what, value)
+range_delete(ip)
+
 
 
 Dhcp_server
@@ -132,6 +166,14 @@ changed_by      The cid of the person who last changed any data for this server.
 
 mtime           Time of last modification. This is automatically handled by the database.
 
+Operations:
+id = dhcpd_create(name, info)
+dhcpd_get(id)
+dhcpd_update(id, what, value)
+dhcpd_delete(id)
+dhcpd_get_config(id)
+id_list = dhcpd_list()
+
 
 
 Room
@@ -143,11 +185,19 @@ id              Room ID.
 
 info            Freetext information about the room.
 
-printer         Comma separated list of printer ID's in order of preference for the room.
+printers        Comma separated list of printer ID's in order of preference for the room.
 
 changed_by      The cid of the person who last changed any data for this room.
 
 mtime           Time of last modification. This is automatically handled by the database.
+
+Operations:
+room_create(id, info, printers)
+room_get(id)
+room_update(id, what, value)
+room_delete(id)
+room_add_printer(id, printer)
+room_remove_printer(id, printer)
 
 
 
@@ -165,13 +215,20 @@ changed_by      The cid of the person who last changed any data for this buildin
 
 mtime           Time of last modification. This is automatically handled by the database.
 
+Operations:
+building_create(id, re, info)
+building_get(id)
+building_update(id, what, value)
+building_delete(id)
+
 
 
 Literal_option
 ==============
-This datatype is used for specifying options literally, in the lanuagge of dhcpd.conf. It os used in the cases where it is not
+This datatype is used for specifying options literally, in the lanuage of dhcpd.conf. It is used in the cases where it is not
 possible to specify options using a simple key/value schema. Literal options may be applied on hosts, groups, classes and pools,
 but the datatype is the same in all four cases.
+id              ID for referencing.
 
 for             ID for which this literal option should be applied. This field may thus refer to a host, a group, a class or a pool.
 
@@ -180,6 +237,14 @@ value           The value of the literal as a raw string to be entered as-id int
 changed_by      The cid of the person who last changed any data for this option.
 
 mtime           Time of last modification. This is automatically handled by the database.
+
+Operations:
+In the following, type is either host, group, class or pool
+id = literal_create(for, type, value)
+literal_get(id)
+id_list = literal_list([for] [, type])
+literal_update(id, value)
+literal_delete(id)
 
 
 
@@ -198,6 +263,14 @@ changed_by      The cid of the person who last changed any data for this option.
 mtime           Time of last modification. This is automatically handled by the database.
 
 id              An internal id for the option, automatically handled by the database.
+
+Operations:
+In the following, type is either host, group, class, pool, network or subnetwork
+option_create(for, type, name, value)
+option_get(for, type, name)
+option_update(for, type, name, value)
+option_delete(for, type, name)
+id_list = option_list(for, type)
 
 
 
@@ -232,7 +305,7 @@ type            Defines the type of the value or of the elements in case of bein
                 
 optionspace     Defines for which option namespace this definition is valid. If null, it is valid outside any namespaces.
 
-encapsulate     If defined, the contents of the option space specified will be encapsulated into this option.In this case the type and qualifier fields are ignored.
+encapsulate     If defined, the contents of the option space specified will be encapsulated into this option. In this case the type and qualifier fields are ignored.
                 It requires that the given option space is defined.
                 
 struct          This field turns the option into a structure. The structure is defined as a string containing a list comma separated types as defined above. The string
@@ -244,6 +317,14 @@ changed_by      The cid of the person who last changed any data for this option.
 
 mtime           Time of last modification. This is automatically handled by the database.
 
+Operations:
+id = optiondef_create(name, code, qualifier, type, info [,struct_def])
+id = optiondef_create_encapsulated(name, code, optionspace)
+optiondef_get(id)
+optiondef_update(id, what, value)
+optiondef_delete(id)
+id_list = optiondef_list()
+
 
 
 Optionspace
@@ -251,11 +332,9 @@ Optionspace
 
 An option space defines a namespace used mainly by site-local or vendor-local options.
 
-id              An internal ID for the option definition, automatically handled by the database.
+name            A string that defines the name, or prefix, of the namespace.
 
 type            Specifies whether the option space is site- or vendor local. Can assume the values 'vendor' or 'site'.
-
-value           A string that defined the name, or prefix, of the namespace.
 
 info            Freetext information about the option space.
 
@@ -263,6 +342,10 @@ changed_by      The cid of the person who last changed any data for this option.
 
 mtime           Time of last modification. This is automatically handled by the database.
 
-
+Operations:
+optionspace_create(name, type, info)
+optionspace_get(name, type)
+optionspace_update(name, type, what, value)
+optionspace_delete(name)
 
 

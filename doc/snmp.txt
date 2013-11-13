@@ -1,0 +1,6 @@
+SNMP for dhcpd.
+
+There is an open-source package callled NET-SNMP at http://www.net-snmp.org.
+There is an extension to NET-SNMP called dhcpd-snmp at http://www.net-track.ch/opensource/dhcpd-snmp/ 
+
+These two packages may be useful in order ti get SNMP access to the servers
