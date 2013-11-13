@@ -9,7 +9,7 @@ engine.
 
 .get_link() gets a DB link as specified below.
 
-.return_link() returns a DB link. It might be reused if the database engine 
+.return_link() returns a DB link. It might be reused if the database engine
     is slow to create new links.
 
 .query() returns a Query subclass instance specific to the engine. The
@@ -19,7 +19,7 @@ engine.
 The DatabaseLink subclass implements actual database interaction.
 
 .get(query, **params)
-    The query must be a SELECT. Returns an iterator over sequences 
+    The query must be a SELECT. Returns an iterator over sequences
     representing the result in native Python data types (for example
     with BLOB:s/CLOB:s processed for database modules that need this).
 
@@ -29,7 +29,7 @@ The DatabaseLink subclass implements actual database interaction.
 
 .insert(column, query, **params)
     The query must be an INSERT. Returns the new value of an AUTO_INCREMENT
-    column. Only works with a single AUTO_INCREMENT column. The column name 
+    column. Only works with a single AUTO_INCREMENT column. The column name
     must be given since Oracle needs that.
 
 """
@@ -38,6 +38,7 @@ import os
 import sys
 import threading
 import datetime
+import re
 
 try:
     import cx_Oracle
@@ -53,18 +54,22 @@ except:
 class DatabaseError(Exception):
     pass
 
+
 class LinkClosedError(DatabaseError):
     pass
+
 
 class IntegrityError(DatabaseError):
     pass
 
+
 class ProgrammingError(DatabaseError):
     pass
 
+
 class DatabaseIterator(object):
     """A DatabaseIterator supplies on-the-fly translation of database-
-    specific column values (such as cx_Oracle's BLOB data types), one 
+    specific column values (such as cx_Oracle's BLOB data types), one
     row at a time. The database cursor is used as sub-iterator so
     that data is only read and converted on actual use.
 
@@ -89,6 +94,7 @@ class DatabaseIterator(object):
         except StopIteration, GeneratorExit:
             self.curs.close()
             raise
+
 
 class Query(object):
     """Query objects that allow incrementally built queries, as well
@@ -164,6 +170,7 @@ class Query(object):
     def dblimit(self, limit):
         return ""
 
+
 class DatabaseLink(object):
     """A database link, which simplifies database calls by giving the
     .get(), .put() and .insert() methods. Hides the 'cursor' concept
@@ -174,7 +181,7 @@ class DatabaseLink(object):
     and override .exception() to convert database-specific errors to
     local errors.
 
-    Subclasses also implement .convert() to convert (if needed) :abcde 
+    Subclasses also implement .convert() to convert (if needed) :abcde
     variable references into native format.
     """
     iterator_class = DatabaseIterator
@@ -189,11 +196,11 @@ class DatabaseLink(object):
     def close(self):
         self.open = False
         self.link.close()
-        
+
     def exception(self, inner):
         print "Unhandled error: %s" % (inner,)
         raise inner
-        
+
     def iterator(self, curs):
         return self.iterator_class(curs)
 
@@ -288,11 +295,9 @@ class Database(object):
         return self.query_class()
 
 
-
 ###
 # Oracle specifics
 ###
-
 class OracleQuery(Query):
     def dbvar(self, name):
         return ":" + name
@@ -300,6 +305,7 @@ class OracleQuery(Query):
     def limit(self, limit):
         self.where("ROWNUM < " + self.var(limit))
         Query.limit(self, limit)
+
 
 class OracleIterator(DatabaseIterator):
     def convert(self, row):
@@ -315,6 +321,7 @@ class OracleIterator(DatabaseIterator):
                 ret[idx] = c.read()
 
         return ret or row
+
 
 class OracleLink(DatabaseLink):
     iterator_class = OracleIterator
@@ -343,6 +350,7 @@ class OracleLink(DatabaseLink):
                 self.exception(e)
         finally:
             curs.close()
+
 
 class OracleDatabase(Database):
     link_class = OracleLink
@@ -375,7 +383,8 @@ class OracleDatabase(Database):
             if link.intrans:
                 link.rollback()
             self.pool.append(link)
-            
+
+
 ###
 # MySQL specifics.
 ###
@@ -386,6 +395,7 @@ class MySQLQuery(Query):
     def dblimit(self, limit):
         return "LIMIT %d" % (limit,)
 
+
 class MySQLLink(DatabaseLink):
     def __init__(self, *args, **kwargs):
         DatabaseLink.__init__(self, *args, **kwargs)
@@ -393,7 +403,7 @@ class MySQLLink(DatabaseLink):
 
     def convert(self, query):
         return self.re.sub("\\1", query)
-        
+
     def insert(self, dummy, query, **kwargs):
         if not self.open:
             raise LinkClosedError()
@@ -410,6 +420,7 @@ class MySQLLink(DatabaseLink):
                 self.exception(e)
         finally:
             curs.close()
+
 
 class MySQLDatabase(Database):
     query_class = MySQLQuery
@@ -431,7 +442,7 @@ class MySQLDatabase(Database):
         elif socket:
             self.connect_args["unix_socket"] = socket
         else:
-            raise ValueError()        
+            raise ValueError()
 
     def get_link(self):
         raw_link = MySQLdb.connect(**self.connect_args)
@@ -467,14 +478,13 @@ if __name__ == '__main__':
         assert lnk1 is lnk3
 
         # If we return a link and then mess it up so that it won't work,
-        # the code to fetch a link should detect this and give us a 
+        # the code to fetch a link should detect this and give us a
         # fresh link instead.
 
         db.return_link(lnk3)
         lnk3.link = None
         lnk4 = db.get_link()
         assert lnk4 is not lnk3
-
 
     if True:
         db = MySQLDatabase()
@@ -497,4 +507,4 @@ if __name__ == '__main__':
 
         if not checked:
             raise ValueError("Test failed to return any rows")
-            
+
