@@ -114,9 +114,10 @@ class Query(object):
     """
 
     def __init__(self, *selects):
+        self.store_prefix = ""
         self.selects = selects or []
-        self.tables = []
-        self.conditions = []
+        self.tables = set()
+        self.conditions = set()
         self.groups = []
         self.havings = []
         self.orders = []
@@ -124,14 +125,21 @@ class Query(object):
         self.limit = None
         self.varid = 0
 
+    def store_result(self, expr):
+        self.store_prefix = expr
+
     def select(self, sel):
         self.selects.append(sel)
 
     def table(self, *tbls):
-        self.tables += tbls
+        for tbl in tbls:
+            if tbl not in self.tables:
+                self.tables.add(tbl)
 
     def where(self, *conds):
-        self.conditions += conds
+        for cond in conditions:
+            if cond not in self.conditions:
+                self.conditions.add(cond)
 
     def group(self, *groups):
         self.groups += groups
@@ -152,7 +160,8 @@ class Query(object):
         self.limit = count
 
     def query(self, curs):
-        q = "SELECT " + self.select
+        q = self.store_prefix or ""
+        q += " SELECT " + self.select
         q += " FROM " + ",".join(self.tables)
         if self.conditions:
             q += "WHERE " + "AND ".join(self.conditions)
@@ -192,6 +201,9 @@ class DatabaseLink(object):
         self.link = raw_link
         self.intrans = False
         self.open = True
+
+    def query(self):
+        return self.query_class()
 
     def close(self):
         self.open = False

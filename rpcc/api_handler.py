@@ -122,3 +122,4 @@ class APIHandler(object):
             api.generate_dynamic_types()
             api.generate_fetch_functions()
             api.generate_update_functions()
+            api.generate_dig_functions()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.6
 
-from model import Model, Manager, template, update
+from model import *
 from exttype import *
 from function import Function
 
@@ -49,38 +49,39 @@ class Person(Model):
         self.lname = lname
         self.account_name = acc
 
-    @template(ExtPerson)
+    @template("person", ExtPerson)
     def get_person(self):
         return self
 
-    @template(ExtString)
+    @template("firstname", ExtString)
     def get_firstname(self):
         return self.fname
 
-    @update(ExtString)
+    @update("firstname", ExtString)
     def set_firstname(self, newname):
         print "set_firstname"
         q = "UPDATE person SET fname=:name WHERE ucid=:pid"
         self.db.put(q, pid=self.pid, name=newname.encode("iso-8859-1"))
         self.db.commit()
 
-    @template(ExtString)
+    @template("lastname", ExtString)
     def get_lastname(self):
         return self.lname
 
-    @update(ExtString)
+    @update("lastname", ExtString)
     def set_lastname(self, newname):
         print "set_lastname"
         q = "UPDATE person SET lname=:name WHERE ucid=:pid"
         self.db.put(q, pid=self.pid, name=newname.encode("iso-8859-1"))
         self.db.commit()
 
-    @template(ExtAccount, model="account")
+    @template("account", ExtAccount, model="account")
     def get_account(self):
         return self.account_manager.get_account(self.account_name)
 
 class PersonManager(Manager):
     name = "person_manager"
+    manages = Person
 
     def get_person(self, pid):
         q = "SELECT p.ucid, p.fname, p.lname, a.ucid "
@@ -94,6 +95,22 @@ class PersonManager(Manager):
             raise ExtUnknownPersonError()
         return Person(self, persid, fname.decode("iso-8859-1"), lname.decode("iso-8859-1"), acc)
 
+    @search("firstname", StringMatch)
+    def s_firstname(self, q):
+        q.table("person p")
+        return "p.firstname"
+
+    @search("lastname", StringMatch)
+    def s_lastname(self, q):
+        q.table("person p")
+        return "p.lastname"
+
+    @search("account", StringMatch, manager="account_manager")
+    def s_account(self, q):
+        q.table("person a")
+        q.where("a.ucid_owner = p.ucid")
+        return "a.ucid"
+
 class Account(Model):
     name = "account"
     exttype = ExtAccount
@@ -103,20 +120,21 @@ class Account(Model):
         self.uid = uid
         self.owner_id = owner_id
 
-    @template(ExtAccount)
+    @template("account", ExtAccount)
     def get_account(self):
         return self
 
-    @template(ExtInteger)
+    @template("uid", ExtInteger)
     def get_uid(self):
         return self.uid
 
-    @template(ExtPerson, model="person")
+    @template("owner", ExtPerson, model="person")
     def get_owner(self):
         return self.person_manager.get_person(self.owner_id)
 
 class AccountManager(Manager):
     name = "account_manager"
+    manages = Account
 
     def get_account(self, aid):
         q = "SELECT ucid, unix_uid, ucid_owner "

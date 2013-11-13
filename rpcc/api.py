@@ -400,6 +400,7 @@ class API(object):
         self._template_by_model = {}
         self._data_by_model = {}
         self._update_by_model = {}
+        self._search_by_manager = {}
 
         for modelcls in self.server.get_all_models():
             name = modelcls._name()
@@ -410,16 +411,20 @@ class API(object):
             update = modelcls._update_type(self.version)
             self._update_by_model[name] = update
 
+        for mgrcls in self.server.get_all_managers():
+            search = mgrcls._search_type(self.version)
+            self._search_by_manager[mgrcls._name()] = search
+
         # Resolve template references.
         for tmpl in self._template_by_model.values():
             for (attr, (typ, desc)) in tmpl.mandatory.items():
-                if isinstance(typ, model._TemplateReference):
+                if isinstance(typ, model._TmpReference):
                     if typ.nullable:
                         tmpl.mandatory[attr] = (ExtOrNull(self._template_by_model[typ.name]), desc)
                     else:
                         tmpl.mandatory[attr] = (self._template_by_model[typ.name], desc)
             for (attr, (typ, desc)) in tmpl.optional.items():
-                if isinstance(typ, model._TemplateReference):
+                if isinstance(typ, model._TmpReference):
                     if typ.nullable:
                         tmpl.optional[attr] = (ExtOrNull(self._template_by_model[typ.name]), desc)
                     else:
@@ -428,17 +433,24 @@ class API(object):
         # Resolve data references.
         for tmpl in self._data_by_model.values():
             for (attr, (typ, desc)) in tmpl.mandatory.items():
-                if isinstance(typ, model._TemplateReference):
+                if isinstance(typ, model._TmpReference):
                     if typ.nullable:
                         tmpl.mandatory[attr] = (ExtOrNull(self._data_by_model[typ.name]), desc)
                     else:
                         tmpl.mandatory[attr] = (self._data_by_model[typ.name], desc)
             for (attr, (typ, desc)) in tmpl.optional.items():
-                if isinstance(typ, model._TemplateReference):
+                if isinstance(typ, model._TmpReference):
                     if typ.nullable:
                         tmpl.optional[attr] = (ExtOrNull(self._data_by_model[typ.name]), desc)
                     else:
                         tmpl.optional[attr] = (self._data_by_model[typ.name], desc)
+
+        # Resolve search references.
+        for srch in self._search_by_manager.values():
+            for (key, (typ, desc)) in srch.optional.items():
+                if isinstance(typ, model._TmpReference):
+                    srch[key] = (self._search_by_manager[typ.name], desc)
+                
 
     def generate_fetch_functions(self):
         for modelcls in self.server.get_all_models():
@@ -457,6 +469,7 @@ class API(object):
             fetchcls = type("Fun" + capsname + "Fetch", (function.FetchFunction,), clsattrs)
             self.add_function(fetchcls)
 
+
     def generate_update_functions(self):
         for modelcls in self.server.get_all_models():
             name = modelcls._name()
@@ -473,4 +486,24 @@ class API(object):
             upcls = type("Fun" + capsname + "Update", (function.UpdateFunction,), clsattrs)
             self.add_function(upcls)
 
+
+    def generate_dig_functions(self):
+        for mgrcls in self.server.get_all_managers():
+            print mgrcls
+            mgrname = mgrcls._name()
+            modelname = mgrcls.manages._name()
+
+            capsname = modelname[0].upper() + modelname[1:]
+
+            clsattrs = dict(from_version=self.version,
+                            to_version=self.version,
+                            extname=modelname + "_dig",
+                            returns=self._data_by_model[modelname])
+
+            clsattrs["params"] = [("search", self._search_by_manager[mgrname], "Search options"),
+                                  ("template", self._template_by_model[modelname], "Fields and updates")]
+            clsattrs["desc"] = "Search and return %ss." % (modelname,)
+
+            digcls = type("Fun" + capsname + "Dig", (function.DigFunction,), clsattrs)
+            self.add_function(digcls)
 

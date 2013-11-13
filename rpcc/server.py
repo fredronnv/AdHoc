@@ -518,6 +518,9 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             return getattr(self, "create_" + mgrname)(function)
         return None
 
+    def get_all_managers(self):
+        return self.manager_by_name.values()
+
     def register_model(self, model_class):
         self.model_by_name[model_class._name()] = model_class
 

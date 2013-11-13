@@ -38,9 +38,9 @@ sets a default external description.
 """
 
 from error import IntAPIValidationError
-from exttype import ExtType, ExtStruct, ExtList, ExtBoolean, ExtOrNull
+from exttype import *
 
-class _TemplateReference(object):
+class _TmpReference(object):
     def __init__(self, other, nullable):
         if type(other) == type(type) and issubclass(other, Model):
             other = other._name()
@@ -69,7 +69,7 @@ class ExternalReadAttribute(ExternalAttribute):
                 nullable = True
             else:
                 nullable = False
-            tmpl.optional[self.extname] = (_TemplateReference(self.model, nullable), self.extdesc)
+            tmpl.optional[self.extname] = (_TmpReference(self.model, nullable), self.extdesc)
         else:
             tmpl.optional[self.extname] = (ExtBoolean, self.extdesc)
 
@@ -79,7 +79,7 @@ class ExternalReadAttribute(ExternalAttribute):
                 nullable = True
             else:
                 nullable = False
-            data.optional[self.extname] = (_TemplateReference(self.model, nullable), self.extdesc)
+            data.optional[self.extname] = (_TmpReference(self.model, nullable), self.extdesc)
         else:
             data.optional[self.extname] = (self.exttype, self.extdesc)
 
@@ -98,7 +98,7 @@ class ExternalWriteAttribute(ExternalAttribute):
         upd.optional[self.extname] = (self.exttype, self.extdesc)
 
 
-def template(exttype, name=None, minv=0, maxv=10000, desc=None, model=None, args=[], kwargs={}):
+def template(name, exttype, minv=0, maxv=10000, desc=None, model=None, args=[], kwargs={}):
     def decorate(decorated):
         data = dict(name=name, type=exttype, desc=desc, model=model, args=args, kwargs=kwargs)
         if hasattr(decorated, "_update"):
@@ -115,7 +115,7 @@ def template(exttype, name=None, minv=0, maxv=10000, desc=None, model=None, args
     return decorate
 
 
-def update(exttype, name=None, minv=0, maxv=10000, desc=None):
+def update(name, exttype, minv=0, maxv=10000, desc=None):
     def decorate(decorated):
         data = dict(name=name, type=exttype, desc=desc)
         if hasattr(decorated, "_template"):
@@ -179,8 +179,8 @@ class Model(object):
         # therefore only ever calculated once.
 
         # Note 2: If the attribute has a "model" attribute, the
-        # _TemplateReference object is used in the templates on an
-        # "<attr>_data" attribute. _TemplateReferences are used as
+        # _TmpReference object is used in the templates on an
+        # "<attr>_data" attribute. _TmpReferences are used as
         # placeholders, to resolve mutual references between template
         # types.
 
@@ -210,7 +210,7 @@ class Model(object):
             else:
                 continue
 
-            name = data.pop("name", None) or candname[4:]
+            name = data.pop("name")
             if name in dest:
                 raise IntAPIValidationError("Multiple @template/@update definitions uses the public name %s for API version %d" % (name, api_version))
 
@@ -320,6 +320,102 @@ class Model(object):
         return
 
 
+
+def suffix(suff, exttype, desc=""):
+    def decorate(decorated):
+        data = dict(prefix=None, suffix=suff, exttype=exttype, desc=desc)
+
+        if hasattr(decorated, "_matchers"):
+            decorated._matchers.append(data)
+        else:
+            decorated._matchers = [data]
+        return decorated
+    return decorate
+
+
+def prefix(pref, exttype, desc=""):
+    def decorate(decorated):
+        data = dict(prefix=pref, suffix=None, exttype=exttype, desc=desc)
+
+        if hasattr(decorated, "_matchers"):
+            decorated._matchers.append(data)
+        else:
+            decorated._matchers = [data]
+        return decorated
+    return decorate
+
+
+class Match(object):
+    """When searches are performed, each incoming key is mapped
+    to a combination of a Match subclass method and a Manager 
+    subclass method. The Manager subclass method adds to a search 
+    query by adding necessary tables and returning the expression
+    the Match subclass method is to work with. The Match subclass
+    method then updates the query by adding the search expression.
+
+    As an example, a 'firstname_like' search parameter might map
+    to a StringMatch method .like() and a PersonManager method
+    .firstname_search(). .firstname_search(query) adds some tables
+    to the query, then returns 'p.fname'. .firstname_search(query, 
+    searchopt) adds the condition 'p.fname LIKE searchopt'.
+    """
+
+    @classmethod
+    def _keys_for(cls, name, desc):
+        # [ (key, clsmeth, exttype, desc) ]
+        ret = []
+        for candname in dir(cls):
+            candidate = getattr(cls, candname)
+            if not hasattr(candidate, "_matchers"):
+                continue
+
+            for m in candidate._matchers:
+                if m["prefix"]:
+                    key = m["prefix"] + "_" + name
+                elif m["suffix"]:
+                    key = name + "_" + m["suffix"]
+                else:
+                    key = name
+
+                if m["desc"]:
+                    desc = desc + "(" + m["desc"] + ")"
+                    
+                ret.append( (key, candidate, m["exttype"], desc) )
+        return ret
+
+    def __init__(self):
+        pass
+
+
+class StringMatch(Match):
+    @suffix("equal", ExtString)
+    @suffix("", ExtString)
+    def eq(self, q, expr, val):
+        q.where(expr + "=" + q.var(val))
+
+    @suffix("not_equal", ExtString)
+    def neq(self, q, expr, val):
+        q.where(expr + "!=" + q.var(val))
+
+    @suffix("maxlen", ExtInteger)
+    def maxlen(self, q, expr, val):
+        q.where("LENGTH(%s) <= " + q.var(val))
+
+    
+def search(name, matchcls, minv=0, maxv=10000, desc=None, manager=None):
+    def decorate(decorated):
+        data = dict(name=name, matchcls=matchcls, desc=desc, manager=None)
+        if hasattr(decorated, "_searches"):
+            for (submin, submax, subdata) in decorated._searches:
+                if submin < maxv and submax > minv:
+                    raise IntAPIValidationError("Two @template directives have overlapping API versions for %s" % (decorated,))
+            decorated._searches.append((minv, maxv, data))
+        else:
+            decorated._searches = [(minv, maxv, data)]
+        return decorated
+    return decorate
+
+
 class Manager(object):
     # If name="foo_manager", then <function>.foo_manager,
     # <manager>.foo_manager and <model>.foo_manager will return a
@@ -330,10 +426,53 @@ class Manager(object):
     # The model class that this manager creates instances of.
     manages = None
 
+    # The table to insert search results into ("rpcc_result_string" or
+    # "rpcc_result_int" depending on data type of the models ID)
+    result_table = "rpcc_result_string"
+
     @classmethod
     def _name(cls):
         assert cls.name.endswith("_manager")
         return cls.name
+
+    @classmethod
+    def _shortname(cls):
+        return self._name()[:-8]
+
+    #@classmethod
+    #def _subsearcher(cls, q, subopts, 
+
+    @classmethod
+    def _search_type(cls, api_version):
+        cls._search_lookup = {}
+        for candname in dir(cls):
+            candidate = getattr(cls, candname)
+            if not hasattr(candidate, "_searches"):
+                continue
+
+            for (minv, maxv, srch) in candidate._searches:
+                if api_version >= minv and api_version <= maxv:
+                    break
+            else:
+                continue
+
+            for (key, meth, exttype, desc) in srch["matchcls"]._keys_for(srch["name"], srch["desc"]):
+                if key in cls._search_lookup:
+                    raise ValueError("Double search key spec error for %s" % (candidate,))
+                cls._search_lookup[key] = (candidate, meth, exttype, desc)
+
+            if srch["manager"]:
+                self._search_lookup[srch["name"] + "_in"] = (candidate, XXXmethodwhichhandlessubsearches, _TmpReference(srch["manager"]), desc)
+
+        styp = ExtStruct()
+        styp.from_version = api_version
+        styp.to_version = api_version
+        styp.name = cls._name()[:-8] + "-search-options"
+        for (key, (x, x, exttype, desc)) in cls._search_lookup.items():
+            styp.optional[key] = (exttype, desc)
+
+        print styp.optional
+        return styp
 
     def __init__(self, function, *args, **kwargs):
         self.function = function
@@ -351,6 +490,42 @@ class Manager(object):
             return getattr(self, attr)
         else:
             raise AttributeError(attr)
+
+    def new_result_set(self):
+        q = "SELECT resid FROM rpcc_result WHERE expires > :now"
+        for expired in self.db.get(q, now=self.function.started_at()):
+            q = "DELETE FROM rpcc_result_string WHERE resid=:r"
+            self.db.put(q, r=expired)
+            q = "DELETE FROM rpcc_result_int WHERE resid=:r"
+            self.db.put(q, r=expired)
+
+        while 1:
+            rid = random.randint(0, 1<<31)
+            q = "SELECT resid FROM rpcc_result WHERE resid=:r"
+            if len(db.get(q, rid)) == 0:
+                break
+
+        q = "INSERT INTO rpcc_result (resid, manager, expires) "
+        q += "VALUES (:r, :m, :e) "
+        self.db.put(q, r=rid, m=self._shortname(), e=self.function.started_at() + datetime.timespan(hours=1))
+
+        return rid
+
+    def perform_search(self, opts):
+        q = self.db.query()
+        rid = self.new_result_set()
+
+        q.store_prefix("INSERT INTO %s (resid, value)" % (self.result_table,))
+        q.select(q.var(rid))
+        for (key, opt) in opts.items():
+            (mymeth, matchmeth, x, x) = self._search_lookup[key]
+            expr = mymeth(self, q)
+            matchmeth(q, expr, opt)
+
+        print q.query()
+        print q.values
+        #self.db.put(q)
+        #self.db.commit()
 
     
 if __name__ == "__main__":

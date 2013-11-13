@@ -317,6 +317,16 @@ class UpdateFunction(Function):
         upd = getattr(self, params[-1][0])
         obj.apply_update(self.api.version, upd)
 
+# This class is _dynamically_ (i.e. automatically) subclassed by
+# api.create_update_functions() to create the actual update functions.
+class DigFunction(Function):
+    def do(self):
+        pass
+        #params = self.get_parameters()
+        #obj = getattr(self, params[-2][0])
+        #upd = getattr(self, params[-1][0])
+        #obj.apply_update(self.api.version, upd)
+
 
 
 
