@@ -45,6 +45,24 @@ class ExtDateTime(ExtString):
     def output(self, fun, value):
         return value.isoformat()[:19]
 
+class ExtLikePattern(ExtString):
+    name = "like-pattern"
+    desc = "A pattern where % is 0, 1 or more characters and _ is exactly one character."
+
+class ExtGlobPattern(ExtString):
+    name = "glob-pattern"
+    desc = "A pattern where * is 0, 1 or more characters and ? is exactly one character."
+
+class ExtRegexpMatch(ExtString):
+    name = "regexp-pattern"
+    desc = "A regexp."
+
+    def check(self, fun, rawval):
+        try:
+            re.compile(rawval)
+        except:
+            raise ExtValueError("Invalid regexp pattern")
+
 class ExtSessionInfo(ExtStruct):
     name = 'session-info'
 

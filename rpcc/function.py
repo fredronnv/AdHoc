@@ -321,13 +321,10 @@ class UpdateFunction(Function):
 # api.create_update_functions() to create the actual update functions.
 class DigFunction(Function):
     def do(self):
-        pass
-        #params = self.get_parameters()
-        #obj = getattr(self, params[-2][0])
-        #upd = getattr(self, params[-1][0])
-        #obj.apply_update(self.api.version, upd)
-
-
+        mgr = getattr(self, self.dig_manager)
+        resid = mgr.perform_search(self.search)
+        objs = mgr.models_by_result_id(resid)
+        return [o.apply_template(self.api.version, self.template) for o in objs]
 
 
 class XXXTypedFunction(Function):

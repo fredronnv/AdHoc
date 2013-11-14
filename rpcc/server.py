@@ -510,6 +510,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     ###
     def register_manager(self, manager_class):
         self.manager_by_name[manager_class._name()] = manager_class
+        modelcls = manager_class.manages
+        self.model_by_name[modelcls._name()] = modelcls
 
     def create_manager(self, mgrname, function):
         if mgrname in self.manager_by_name:

@@ -27,9 +27,6 @@ class API(object):
         # Indexed by public names
         self.functions = {}
         self.types = {}
-        #self.soap_fundefs = {}
-        #self.soap_typedefs = {}
-        #self.soap_request_elements = {}
         self.fun_by_elemname = {}
         self.categories = {}
         self.cat_by_fun = {}
@@ -50,7 +47,6 @@ class API(object):
         return next
 
     def add_function(self, funclass):
-        # Check API version of added Function
         if funclass.from_version > self.version or \
                funclass.to_version < self.version:
             raise IntAPIValidationError()
@@ -489,7 +485,6 @@ class API(object):
 
     def generate_dig_functions(self):
         for mgrcls in self.server.get_all_managers():
-            print mgrcls
             mgrname = mgrcls._name()
             modelname = mgrcls.manages._name()
 
@@ -503,6 +498,8 @@ class API(object):
             clsattrs["params"] = [("search", self._search_by_manager[mgrname], "Search options"),
                                   ("template", self._template_by_model[modelname], "Fields and updates")]
             clsattrs["desc"] = "Search and return %ss." % (modelname,)
+            clsattrs["dig_manager"] = mgrname
+            clsattrs["returns"] = (ExtList(self._data_by_model[modelname]), "Formatted data for matched %ss." % (modelname,))
 
             digcls = type("Fun" + capsname + "Dig", (function.DigFunction,), clsattrs)
             self.add_function(digcls)

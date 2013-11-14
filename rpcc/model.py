@@ -37,8 +37,12 @@ API versions. There is therefore a special @extdesc() decorator which
 sets a default external description.
 """
 
+import random
+import datetime
+
 from error import IntAPIValidationError
 from exttype import *
+from default_type import *
 
 class _TmpReference(object):
     def __init__(self, other, nullable):
@@ -321,9 +325,10 @@ class Model(object):
 
 
 
-def suffix(suff, exttype, desc=""):
+def suffix(suff, exttype, desc="", minv=0, maxv=10000):
     def decorate(decorated):
-        data = dict(prefix=None, suffix=suff, exttype=exttype, desc=desc)
+        data = dict(prefix=None, suffix=suff, exttype=exttype, desc=desc, 
+                    minv=minv, maxv=maxv)
 
         if hasattr(decorated, "_matchers"):
             decorated._matchers.append(data)
@@ -333,9 +338,10 @@ def suffix(suff, exttype, desc=""):
     return decorate
 
 
-def prefix(pref, exttype, desc=""):
+def prefix(pref, exttype, desc="", minv=0, maxv=10000):
     def decorate(decorated):
-        data = dict(prefix=pref, suffix=None, exttype=exttype, desc=desc)
+        data = dict(prefix=pref, suffix=None, exttype=exttype, desc=desc,
+                    minv=minv, maxv=maxv)
 
         if hasattr(decorated, "_matchers"):
             decorated._matchers.append(data)
@@ -360,21 +366,37 @@ class Match(object):
     searchopt) adds the condition 'p.fname LIKE searchopt'.
     """
 
-    @classmethod
-    def _keys_for(cls, name, desc):
+    def _keys_for(self, api_version, name, desc):
         # [ (key, clsmeth, exttype, desc) ]
         ret = []
-        for candname in dir(cls):
-            candidate = getattr(cls, candname)
+        prefixes = {}
+        suffixes = {}
+
+        for candname in dir(self):
+            candidate = getattr(self, candname)
             if not hasattr(candidate, "_matchers"):
                 continue
 
             for m in candidate._matchers:
+                # Only one decorator in the entire class
+                # (independently of which method it is on) may claim a
+                # particular prefix/suffix for a particular API
+                # version.
+
                 if m["prefix"]:
+                    if m["prefix"] in prefixes:
+                        raise IntAPIValidationError("Two @prefix decorators (on %s and %s) both claim the prefix %s for version %d of the API" % (candidate, prefixes[m["prefix"]], m["prefix"], api_version))
+                    prefixes[m["prefix"]] = candidate
                     key = m["prefix"] + "_" + name
                 elif m["suffix"]:
+                    if m["suffix"] in suffixes:
+                        raise IntAPIValidationError("Two @suffix decorators (on %s and %s) both claim the suffix %s for version %d of the API" % (candidate, suffixes[m["suffix"]], m["suffix"], api_version))
+                    suffixes[m["suffix"]] = candidate
                     key = name + "_" + m["suffix"]
                 else:
+                    if "" in suffixes:
+                        raise IntAPIValidationError("Two @suffix decorators (on %s and %s) both claim the empty suffix for version %d of the API" % (candidate, suffixes[""], api_version))
+                    suffixes[""] = candidate
                     key = name
 
                 if m["desc"]:
@@ -387,7 +409,7 @@ class Match(object):
         pass
 
 
-class StringMatch(Match):
+class EqualityMatchMixin(object):
     @suffix("equal", ExtString)
     @suffix("", ExtString)
     def eq(self, q, expr, val):
@@ -395,12 +417,35 @@ class StringMatch(Match):
 
     @suffix("not_equal", ExtString)
     def neq(self, q, expr, val):
-        q.where(expr + "!=" + q.var(val))
+        q.where(expr + "<>" + q.var(val))
 
+
+class StringMatch(EqualityMatchMixin, Match):
     @suffix("maxlen", ExtInteger)
     def maxlen(self, q, expr, val):
-        q.where("LENGTH(%s) <= " + q.var(val))
+        q.where("LENGTH(" + expr + ") <= " + q.var(val))
 
+    @suffix("like", ExtLikePattern)
+    def like(self, q, expr, val):
+        q.where(expr + " LIKE " + q.var(val))
+
+    @suffix("nocase_equal", ExtString)
+    def nceq(self, q, expr, val):
+        q.where("LOWER(" + expr + ") = LOWER(" + q.var(val) + ") ")
+
+    @suffix("nocase_not_equal", ExtString)
+    def nceq(self, q, expr, val):
+        q.where("LOWER(" + expr + ") <> LOWER(" + q.var(val) + ") ")
+
+
+class IntegerMatch(Match):
+    @prefix("max", ExtInteger)
+    def max(self, q, expr, val):
+        q.where(expr + "<=" + q.var(val))
+    
+    @prefix("min", ExtInteger)
+    def min(self, q, expr, val):
+        q.where(expr + ">=" + q.var(val))
     
 def search(name, matchcls, minv=0, maxv=10000, desc=None, manager=None):
     def decorate(decorated):
@@ -430,6 +475,8 @@ class Manager(object):
     # "rpcc_result_int" depending on data type of the models ID)
     result_table = "rpcc_result_string"
 
+    model_lookup_error = ExtLookupError
+
     @classmethod
     def _name(cls):
         assert cls.name.endswith("_manager")
@@ -437,7 +484,7 @@ class Manager(object):
 
     @classmethod
     def _shortname(cls):
-        return self._name()[:-8]
+        return cls._name()[:-8]
 
     #@classmethod
     #def _subsearcher(cls, q, subopts, 
@@ -456,10 +503,11 @@ class Manager(object):
             else:
                 continue
 
-            for (key, meth, exttype, desc) in srch["matchcls"]._keys_for(srch["name"], srch["desc"]):
+            mo = srch["matchcls"]()
+            for (key, meth, exttype, desc) in mo._keys_for(api_version, srch["name"], srch["desc"]):
                 if key in cls._search_lookup:
                     raise ValueError("Double search key spec error for %s" % (candidate,))
-                cls._search_lookup[key] = (candidate, meth, exttype, desc)
+                cls._search_lookup[key] = (candidate, (mo, meth), exttype, desc)
 
             if srch["manager"]:
                 self._search_lookup[srch["name"] + "_in"] = (candidate, XXXmethodwhichhandlessubsearches, _TmpReference(srch["manager"]), desc)
@@ -471,16 +519,57 @@ class Manager(object):
         for (key, (x, x, exttype, desc)) in cls._search_lookup.items():
             styp.optional[key] = (exttype, desc)
 
-        print styp.optional
         return styp
 
     def __init__(self, function, *args, **kwargs):
         self.function = function
         self.db = function.db
+        self._model_cache = {}
         self.init(*args, **kwargs)
 
     def init(self, *args, **kwargs):
         return
+
+    def base_query(self, dq):
+        """Fill a supplied empty DynamicQuery instance, to set it up to 
+        select the attributes that the model expects as input.
+
+        In the DynamicQuery, the object ID column MUST be the
+        first column in the select - the first returned column is used for
+        caching and for matching.        
+        """
+        raise NotImplementedError()
+
+    def model(self, oid):
+        """Return one instance of self.manages, created by passing the
+        result of self.base_query() to the Model's constructor."""
+
+        if oid not in self._model_cache:
+            dq = self.db.dynamic_query()
+            self.base_query(dq)
+            dq.where(dq.get_select_at(0) + "=" + dq.var(oid))
+            try:
+                (args,) = dq.run()
+            except:
+                raise self.model_lookup_error(oid)
+            self._model_cache[oid] = self.manages(self, *args)
+        return self._model_cache[oid]
+
+    def models_by_result_id(self, rid):
+        dq = self.db.dynamic_query()
+        self.base_query(dq)
+        dq.table("rpcc_result", "rpcc_result_string")
+        dq.where("rpcc_result.resid = " + dq.var(rid))
+        dq.where("rpcc_result.manager = " + dq.var(self._shortname()))
+        dq.where(self.result_table + ".resid = " + dq.var(rid))
+        dq.where(self.result_table + ".value = " + dq.get_select_at(0))
+        res = []
+        for args in dq.run():
+            oid = args[0]
+            if not oid in self._model_cache:
+                self._model_cache[oid] = self.manages(self, *args)
+            res.append(self._model_cache[oid])
+        return res
 
     def __getattr__(self, attr):
         if self.name and attr == self.name + "_manager":
@@ -501,32 +590,32 @@ class Manager(object):
 
         while 1:
             rid = random.randint(0, 1<<31)
-            q = "SELECT resid FROM rpcc_result WHERE resid=:r"
-            if len(db.get(q, rid)) == 0:
+            q = "SELECT COUNT(*) FROM rpcc_result WHERE resid=:rid"
+            if self.db.get_value(q, rid=rid) == 0:
                 break
 
         q = "INSERT INTO rpcc_result (resid, manager, expires) "
         q += "VALUES (:r, :m, :e) "
-        self.db.put(q, r=rid, m=self._shortname(), e=self.function.started_at() + datetime.timespan(hours=1))
+        self.db.put(q, r=rid, m=self._shortname(), e=self.function.started_at() + datetime.timedelta(hours=1))
 
         return rid
 
-    def perform_search(self, opts):
-        q = self.db.query()
-        rid = self.new_result_set()
+    def search_select(self, q):
+        raise NotImplementedError()
 
-        q.store_prefix("INSERT INTO %s (resid, value)" % (self.result_table,))
+    def perform_search(self, opts):
+        q = self.db.dynamic_query()
+        rid = self.new_result_set()
+        q.store_result("INSERT INTO " + self.result_table + " (resid, value)")
         q.select(q.var(rid))
+        self.search_select(q)
         for (key, opt) in opts.items():
-            (mymeth, matchmeth, x, x) = self._search_lookup[key]
+            (mymeth, (mo, matchmeth), x, x) = self._search_lookup[key]
             expr = mymeth(self, q)
             matchmeth(q, expr, opt)
 
-        print q.query()
-        print q.values
-        #self.db.put(q)
-        #self.db.commit()
-
+        self.db.put(q)
+        return rid
     
 if __name__ == "__main__":
     from exttype import *

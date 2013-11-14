@@ -23,10 +23,10 @@ class ExtAccount(ExtString):
     def output(self, fun, obj):
         return obj.aid
 
-class ExtUnknownPersonError(ExtLookupError):
+class ExtNoSuchPersonError(ExtLookupError):
     desc = "No such person exists."
 
-class ExtUnknownAccountError(ExtLookupError):
+class ExtNoSuchAccountError(ExtLookupError):
     desc = "No such account exists."
 
 class PersonFunBase(Function):
@@ -44,9 +44,10 @@ class Person(Model):
     exttype = ExtPerson
 
     def init(self, myid, fname, lname, acc):
+        print "Person.init", myid
         self.pid = myid
-        self.fname = fname
-        self.lname = lname
+        self.fname = fname.decode("iso-8859-1")
+        self.lname = lname.decode("iso-8859-1")
         self.account_name = acc
 
     @template("person", ExtPerson)
@@ -83,31 +84,38 @@ class PersonManager(Manager):
     name = "person_manager"
     manages = Person
 
+    result_table = "rpcc_result_string"
+    model_lookup_error = ExtNoSuchPersonError
+
+    def init(self):
+        self._model_cache = {}
+
+    def base_query(self, dq):
+        dq.select("p.ucid", "p.fname", "p.lname", "a.ucid")
+        dq.table("person p", "account a")
+        dq.where("p.ucid=a.ucid_owner")
+        dq.where("a.primary=1")
+
     def get_person(self, pid):
-        q = "SELECT p.ucid, p.fname, p.lname, a.ucid "
-        q += " FROM person p, account a "
-        q += "WHERE p.ucid=a.ucid_owner "
-        q += "  AND a.primary=1 "
-        q += "  AND p.ucid=:pid "
-        try:
-            ((persid, fname, lname, acc),) = self.db.get(q, pid=pid)
-        except:
-            raise ExtUnknownPersonError()
-        return Person(self, persid, fname.decode("iso-8859-1"), lname.decode("iso-8859-1"), acc)
+        return self.model(pid)
+
+    def search_select(self, q):
+        q.table("person p")
+        q.select("p.ucid")
 
     @search("firstname", StringMatch)
     def s_firstname(self, q):
         q.table("person p")
-        return "p.firstname"
+        return "p.fname"
 
     @search("lastname", StringMatch)
     def s_lastname(self, q):
         q.table("person p")
-        return "p.lastname"
+        return "p.lname"
 
     @search("account", StringMatch, manager="account_manager")
     def s_account(self, q):
-        q.table("person a")
+        q.table("account a")
         q.where("a.ucid_owner = p.ucid")
         return "a.ucid"
 
@@ -116,6 +124,7 @@ class Account(Model):
     exttype = ExtAccount
 
     def init(self, myid, uid, owner_id):
+        print "Account.init", myid
         self.aid = myid
         self.uid = uid
         self.owner_id = owner_id
@@ -136,15 +145,30 @@ class AccountManager(Manager):
     name = "account_manager"
     manages = Account
 
+    result_table = "rpcc_result_string"
+    model_lookup_error = ExtNoSuchAccountError
+
+    def init(self):
+        self._model_cache = {}
+
+    def base_query(self, dq):
+        dq.select("a.ucid", "a.unix_uid", "a.ucid_owner")
+        dq.table("account a")
+        return dq
+
     def get_account(self, aid):
-        q = "SELECT ucid, unix_uid, ucid_owner "
-        q += " FROM account "
-        q += "WHERE ucid=:aid "
-        try:
-            ((accid, uid, owner_id),) = self.db.get(q, aid=aid)
-        except:
-            raise ExtUnknownAccountError()
-        return Account(self, accid, uid, owner_id)
+        return self.model(aid)
+
+    @search("uid", IntegerMatch)
+    def s_uid(self, q):
+        q.table("account a")
+        return "a.unix_uid"
+
+    @search("account", StringMatch)
+    def s_uid(self, q):
+        q.table("account a")
+        return "a.ucid"
+
 
 class MyServer(server.Server):
     authenticator_class = authenticator.NullAuthenticator
@@ -156,7 +180,7 @@ srv = MyServer("venus.ita.chalmers.se", 12121)
 srv.register_function(FunPersonGetName)
 srv.register_manager(AccountManager)
 srv.register_manager(PersonManager)
-srv.register_model(Account)
-srv.register_model(Person)
+#srv.register_model(Account)
+#srv.register_model(Person)
 srv.generate_model_stuff()
 srv.serve_forever()

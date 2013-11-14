@@ -12,8 +12,8 @@ engine.
 .return_link() returns a DB link. It might be reused if the database engine
     is slow to create new links.
 
-.query() returns a Query subclass instance specific to the engine. The
-    Query objects are used to incrementally build queries.
+.query() returns a DynamicQuery subclass instance specific to the engine. The
+    DynamicQuery objects are used to incrementally build queries.
 
 
 The DatabaseLink subclass implements actual database interaction.
@@ -96,26 +96,29 @@ class DatabaseIterator(object):
             raise
 
 
-class Query(object):
-    """Query objects that allow incrementally built queries, as well
+class DynamicQuery(object):
+    """DynamicQuery objects that allow incrementally built queries, as well
     as abstracting common database-specific things like limited queries
     and input variables (which the Python DB-API tragically didn't
     specify a standard for).
 
     Intended use:
 
-    q = Query()
+    q = DynamicQuery()
     q.select('p.ucid', 'a.ucid')
     q.table('person p')
     q.table('account a')
     q.where('p.ucid = a.ucid_owner')
     q.where('a.ucid =' + self.var(account.ucid))
     q.limit(100)
+    q.run() (OR db.get(q) / db.put(q))
     """
 
-    def __init__(self, *selects):
+    def __init__(self, link):
+        self.link = link
+
         self.store_prefix = ""
-        self.selects = selects or []
+        self.selects = []
         self.tables = set()
         self.conditions = set()
         self.groups = []
@@ -128,18 +131,20 @@ class Query(object):
     def store_result(self, expr):
         self.store_prefix = expr
 
-    def select(self, sel):
-        self.selects.append(sel)
+    def select(self, *sels):
+        self.selects += sels
+
+    def get_select_at(self, idx):
+        return self.selects[idx]
 
     def table(self, *tbls):
         for tbl in tbls:
             if tbl not in self.tables:
                 self.tables.add(tbl)
 
-    def where(self, *conds):
-        for cond in conditions:
-            if cond not in self.conditions:
-                self.conditions.add(cond)
+    def where(self, cond):
+        if cond not in self.conditions:
+            self.conditions.add(cond)
 
     def group(self, *groups):
         self.groups += groups
@@ -154,24 +159,31 @@ class Query(object):
         varname = "var%d" % (self.varid,)
         self.varid += 1
         self.values[varname] = value
-        return dbvar(varname)
+        return self.dbvar(varname)
 
     def limit(self, count):
         self.limit = count
 
-    def query(self, curs):
+    def query(self):
         q = self.store_prefix or ""
-        q += " SELECT " + self.select
+        q += " SELECT " + ",".join(self.selects)
         q += " FROM " + ",".join(self.tables)
         if self.conditions:
-            q += "WHERE " + "AND ".join(self.conditions)
+            q += " WHERE " + " AND ".join(list(self.conditions))
         if self.groups:
-            q += "GROUP BY " + ", ".join(self.groups)
+            q += " GROUP BY " + ", ".join(list(self.groups))
         if self.havings:
-            q += "HAVING " + "AND ".join(self.havings)
+            q += " HAVING " + " AND ".join(list(self.havings))
         if self.limit:
-            q += self.dblimit(self.limit)
+            q += " " + self.dblimit(self.limit)
         return q
+
+    def run(self):
+        qstr = self.query()
+        if qstr[:7].lower() == "insert ":
+            return self.link.put(qstr, **self.values)
+        else:
+            return self.link.get(qstr, **self.values)
 
     def dbvar(self, name):
         raise NotImplementedError()
@@ -194,7 +206,7 @@ class DatabaseLink(object):
     variable references into native format.
     """
     iterator_class = DatabaseIterator
-    query_class = Query
+    query_class = DynamicQuery
 
     def __init__(self, database, raw_link):
         self.database = database
@@ -202,8 +214,8 @@ class DatabaseLink(object):
         self.intrans = False
         self.open = True
 
-    def query(self):
-        return self.query_class()
+    def dynamic_query(self):
+        return self.query_class(self)
 
     def close(self):
         self.open = False
@@ -226,18 +238,26 @@ class DatabaseLink(object):
         curs = self.link.cursor()
         try:
             try:
-                if isinstance(query, Query):
-                    curs.execute(query.query(), **query.values)
+                if isinstance(query, DynamicQuery):
+                    q = query.query()
+                    v = query.values
                 else:
-                    curs.execute(self.convert(query), **kwargs)
+                    q = self.convert(query)
+                    v = kwargs
+
+                curs.execute(q, **v)
                 return self.iterator(curs)
             except Exception as e:
-                print "ERROR IN QUERY:", self.convert(query)
-                print "WITH ARGUMENTS:", kwargs
+                print "ERROR IN QUERY:", q
+                print "WITH ARGUMENTS:", v
                 self.exception(e)
         finally:
             pass
             #curs.close()
+
+    def get_value(self, query, **kwargs):
+        ((val,),) = self.get(query, **kwargs)
+        return val
 
     def put(self, query, **kwargs):
         if not self.open:
@@ -246,14 +266,17 @@ class DatabaseLink(object):
         curs = self.link.cursor()
         try:
             try:
-                if isinstance(query, Query):
-                    curs.execute(query.query(), **query.values)
+                if isinstance(query, DynamicQuery):
+                    q = query.query()
+                    v = query.values
                 else:
-                    curs.execute(self.convert(query), **kwargs)
+                    q = self.convert(query)
+                    v = kwargs
+                curs.execute(q, **v)
                 return curs.rowcount
             except Exception as e:
-                print "ERROR IN QUERY:", self.convert(query)
-                print "WITH ARGUMENTS:", kwargs
+                print "ERROR IN QUERY:", q
+                print "WITH ARGUMENTS:", v
                 self.exception(e)
         finally:
             curs.close()
@@ -310,14 +333,13 @@ class Database(object):
 ###
 # Oracle specifics
 ###
-class OracleQuery(Query):
+class OracleDynamicQuery(DynamicQuery):
     def dbvar(self, name):
         return ":" + name
 
     def limit(self, limit):
         self.where("ROWNUM < " + self.var(limit))
-        Query.limit(self, limit)
-
+        DynamicQuery.limit(self, limit)
 
 class OracleIterator(DatabaseIterator):
     def convert(self, row):
@@ -337,7 +359,7 @@ class OracleIterator(DatabaseIterator):
 
 class OracleLink(DatabaseLink):
     iterator_class = OracleIterator
-    query_class = OracleQuery
+    query_class = OracleDynamicQuery
 
     def insert(self, insert_col, query, **kwargs):
         if not self.open:
@@ -346,7 +368,7 @@ class OracleLink(DatabaseLink):
         curs = self.link.cursor()
         try:
             try:
-                if isinstance(query, Query):
+                if isinstance(query, DynamicQuery):
                     q = query.query()
                     kw = query.values
                 else:
@@ -400,7 +422,7 @@ class OracleDatabase(Database):
 ###
 # MySQL specifics.
 ###
-class MySQLQuery(Query):
+class MySQLDynamicQuery(DynamicQuery):
     def dbvar(self, name):
         return "%(" + name + ")"
 
@@ -423,7 +445,7 @@ class MySQLLink(DatabaseLink):
         curs = self.link.cursor()
         try:
             try:
-                if isinstance(query, Query):
+                if isinstance(query, DynamicQuery):
                     curs.execute(query.query(), **query.values)
                 else:
                     curs.execute(self.convert(query), **kwargs)
@@ -435,7 +457,7 @@ class MySQLLink(DatabaseLink):
 
 
 class MySQLDatabase(Database):
-    query_class = MySQLQuery
+    query_class = MySQLDynamicQuery
     link_class = MySQLLink
 
     def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):
