@@ -159,15 +159,24 @@ class AccountManager(Manager):
     def get_account(self, aid):
         return self.model(aid)
 
+    def search_select(self, dq):
+        dq.table("account a")
+        dq.select("a.ucid")
+
     @search("uid", IntegerMatch)
-    def s_uid(self, q):
-        q.table("account a")
+    def s_uid(self, dq):
+        dq.table("account a")
         return "a.unix_uid"
 
     @search("account", StringMatch)
-    def s_uid(self, q):
-        q.table("account a")
+    def s_acc(self, dq):
+        dq.table("account a")
         return "a.ucid"
+
+    @search("owner", StringMatch, manager="person_manager")
+    def s_own(self, q):
+        q.table("account a")
+        return "a.ucid_owner"
 
 
 class MyServer(server.Server):

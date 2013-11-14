@@ -39,6 +39,7 @@ sets a default external description.
 
 import random
 import datetime
+import functools
 
 from error import IntAPIValidationError
 from exttype import *
@@ -412,44 +413,45 @@ class Match(object):
 class EqualityMatchMixin(object):
     @suffix("equal", ExtString)
     @suffix("", ExtString)
-    def eq(self, q, expr, val):
+    def eq(self, fun, q, expr, val):
         q.where(expr + "=" + q.var(val))
 
     @suffix("not_equal", ExtString)
-    def neq(self, q, expr, val):
+    def neq(self, fun, q, expr, val):
         q.where(expr + "<>" + q.var(val))
 
 
 class StringMatch(EqualityMatchMixin, Match):
     @suffix("maxlen", ExtInteger)
-    def maxlen(self, q, expr, val):
+    def maxlen(self, fun, q, expr, val):
         q.where("LENGTH(" + expr + ") <= " + q.var(val))
 
     @suffix("like", ExtLikePattern)
-    def like(self, q, expr, val):
+    def like(self, fun, q, expr, val):
         q.where(expr + " LIKE " + q.var(val))
 
     @suffix("nocase_equal", ExtString)
-    def nceq(self, q, expr, val):
+    def nceq(self, fun, q, expr, val):
         q.where("LOWER(" + expr + ") = LOWER(" + q.var(val) + ") ")
 
     @suffix("nocase_not_equal", ExtString)
-    def nceq(self, q, expr, val):
+    def ncneq(self, fun, q, expr, val):
         q.where("LOWER(" + expr + ") <> LOWER(" + q.var(val) + ") ")
 
 
 class IntegerMatch(Match):
     @prefix("max", ExtInteger)
-    def max(self, q, expr, val):
+    def max(self, fun, q, expr, val):
         q.where(expr + "<=" + q.var(val))
     
     @prefix("min", ExtInteger)
-    def min(self, q, expr, val):
+    def min(self, fun, q, expr, val):
         q.where(expr + ">=" + q.var(val))
-    
+
+
 def search(name, matchcls, minv=0, maxv=10000, desc=None, manager=None):
     def decorate(decorated):
-        data = dict(name=name, matchcls=matchcls, desc=desc, manager=None)
+        data = dict(name=name, matchcls=matchcls, desc=desc, manager=manager)
         if hasattr(decorated, "_searches"):
             for (submin, submax, subdata) in decorated._searches:
                 if submin < maxv and submax > minv:
@@ -460,6 +462,15 @@ def search(name, matchcls, minv=0, maxv=10000, desc=None, manager=None):
         return decorated
     return decorate
 
+
+class _Subsearch(object):
+    def __init__(self, manager_name):
+        self.manager_name = manager_name
+
+    def subsearch(self, fun, dq, expr, val):
+        mgr = getattr(fun, self.manager_name)
+        subq = dq.subquery(expr)
+        mgr.inner_search(subq, val)
 
 class Manager(object):
     # If name="foo_manager", then <function>.foo_manager,
@@ -486,9 +497,6 @@ class Manager(object):
     def _shortname(cls):
         return cls._name()[:-8]
 
-    #@classmethod
-    #def _subsearcher(cls, q, subopts, 
-
     @classmethod
     def _search_type(cls, api_version):
         cls._search_lookup = {}
@@ -510,7 +518,11 @@ class Manager(object):
                 cls._search_lookup[key] = (candidate, (mo, meth), exttype, desc)
 
             if srch["manager"]:
-                self._search_lookup[srch["name"] + "_in"] = (candidate, XXXmethodwhichhandlessubsearches, _TmpReference(srch["manager"]), desc)
+                # When performing searches, the method that is item
+                # two of the tuple is called. It needn't be a Match
+                # method, really.
+                ss = _Subsearch(srch["manager"])
+                cls._search_lookup[srch["name"] + "_in"] = (candidate, (ss, ss.subsearch), _TmpReference(srch["manager"], nullable=False), desc)
 
         styp = ExtStruct()
         styp.from_version = api_version
@@ -600,22 +612,24 @@ class Manager(object):
 
         return rid
 
-    def search_select(self, q):
+    def search_select(self, dq):
         raise NotImplementedError()
 
     def perform_search(self, opts):
-        q = self.db.dynamic_query()
+        dq = self.db.dynamic_query()
         rid = self.new_result_set()
-        q.store_result("INSERT INTO " + self.result_table + " (resid, value)")
-        q.select(q.var(rid))
-        self.search_select(q)
+        dq.store_result("INSERT INTO " + self.result_table + " (resid, value)")
+        dq.select(dq.var(rid))
+        self.inner_search(dq, opts)
+        dq.run()
+        return rid
+
+    def inner_search(self, dq, opts):
+        self.search_select(dq)
         for (key, opt) in opts.items():
             (mymeth, (mo, matchmeth), x, x) = self._search_lookup[key]
-            expr = mymeth(self, q)
-            matchmeth(q, expr, opt)
-
-        self.db.put(q)
-        return rid
+            expr = mymeth(self, dq)
+            matchmeth(self.function, dq, expr, opt)
     
 if __name__ == "__main__":
     from exttype import *

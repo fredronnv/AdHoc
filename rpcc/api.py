@@ -445,7 +445,7 @@ class API(object):
         for srch in self._search_by_manager.values():
             for (key, (typ, desc)) in srch.optional.items():
                 if isinstance(typ, model._TmpReference):
-                    srch[key] = (self._search_by_manager[typ.name], desc)
+                    srch.optional[key] = (self._search_by_manager[typ.name], desc)
                 
 
     def generate_fetch_functions(self):

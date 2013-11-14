@@ -110,8 +110,7 @@ Searches:
   special key "<attr>_in" is also created and bound to the Manager
   that manages the subsearch.
 
-  When such a search key comes in, the Manager's decorated method
-  executes the subsearch, and updates the Query to join with the
-  result table under a unique alias. It calls the "<attr>" method on
-  itself, and adds the expression to compare the returned expression
-  against the result table alias and result id of the subsearch.
+  When a subsearch comes in, the outer manager creates a DynamicQuery
+  as usual. When adding the subquery, the DynamicQuery is asked for a
+  sub-query. The sub-dynamic-query is then used to build the subquery.
+

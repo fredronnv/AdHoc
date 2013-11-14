@@ -114,19 +114,30 @@ class DynamicQuery(object):
     q.run() (OR db.get(q) / db.put(q))
     """
 
-    def __init__(self, link):
+    def __init__(self, link, master_query=None):
         self.link = link
+        self.master_query = master_query 
+        if not master_query:
+            self.varid = 0
 
         self.store_prefix = ""
         self.selects = []
         self.tables = set()
         self.conditions = set()
+        self.subqueries = []
         self.groups = []
         self.havings = []
         self.orders = []
         self.values = {}
         self.limit = None
-        self.varid = 0
+
+    def subquery(self, onexpr):
+        """Return a DynamicQuery which uses the same database values and
+        is executed as a subquery (implicit condition: <onexpr> IN (<subq string>))
+        """
+        subq = self.__class__(self.link, self)
+        self.subqueries.append((onexpr, subq))
+        return subq
 
     def store_result(self, expr):
         self.store_prefix = expr
@@ -156,10 +167,13 @@ class DynamicQuery(object):
         self.orders += orders
 
     def var(self, value):
-        varname = "var%d" % (self.varid,)
-        self.varid += 1
-        self.values[varname] = value
-        return self.dbvar(varname)
+        if self.master_query:
+            return self.master_query.var(value)
+        else:
+            varname = "var%d" % (self.varid,)
+            self.varid += 1
+            self.values[varname] = value
+            return self.dbvar(varname)
 
     def limit(self, count):
         self.limit = count
@@ -168,6 +182,8 @@ class DynamicQuery(object):
         q = self.store_prefix or ""
         q += " SELECT " + ",".join(self.selects)
         q += " FROM " + ",".join(self.tables)
+        for (onexpr, subq) in self.subqueries:
+            self.where(onexpr + " IN (" + subq.query() + ")")
         if self.conditions:
             q += " WHERE " + " AND ".join(list(self.conditions))
         if self.groups:

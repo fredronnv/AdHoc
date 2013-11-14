@@ -5,7 +5,7 @@ import xmlrpclib
 
 s = xmlrpclib.ServerProxy("http://venus.ita.chalmers.se:12121/RPC2", allow_none=True, encoding="UTF-8")
 
-print s.person_dig({"firstname_maxlen": 4, "firstname_like": "V%"}, {"firstname": True, "account": True, "account_data": {"account": True, "uid": True}})
+print s.person_dig({"firstname_maxlen": 4, "firstname_like": "V%", "account_in": {"account_maxlen": 4}}, {"firstname": True, "account": True, "account_data": {"account": True, "uid": True}})
 
 raise SystemExit()
 
