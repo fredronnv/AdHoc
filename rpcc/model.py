@@ -46,11 +46,12 @@ from exttype import *
 from default_type import *
 
 class _TmpReference(object):
-    def __init__(self, other, nullable):
+    def __init__(self, other, nullable=False, islist=False):
         if type(other) == type(type) and issubclass(other, Model):
             other = other._name()
         self.name = other
         self.nullable = nullable
+        self.islist = islist
 
 class ExternalAttribute(object):
     # Valid for one particular API version.
@@ -81,10 +82,13 @@ class ExternalReadAttribute(ExternalAttribute):
     def fill_data_type(self, data):
         if self.model:
             if isinstance(ExtType.instance(self.exttype), ExtOrNull):
-                nullable = True
+                nullable, islist = True, False
+            elif isinstance(ExtType.instance(self.exttype), ExtList):
+                nullable, islist = False, True
             else:
-                nullable = False
-            data.optional[self.extname] = (_TmpReference(self.model, nullable), self.extdesc)
+                nullable, islist = False, False
+                
+            data.optional[self.extname] = (_TmpReference(self.model, nullable, islist), self.extdesc)
         else:
             data.optional[self.extname] = (self.exttype, self.extdesc)
 
@@ -156,7 +160,11 @@ class Model(object):
     # principle, never change the model completely, we only modify it
     # and adapt the API with which that model is accessed). Choose
     # carefully.
-    name = None
+    name = ""
+
+    # The ID type determines, among other things, which result set
+    # table will be used. Valid values are str/int (the Python types).
+    id_type = str
 
     def __init__(self, manager, *args, **kwargs):
         if not isinstance(manager, Manager):
@@ -165,6 +173,12 @@ class Model(object):
         self.function = manager.function
         self.db = manager.function.db
         self._templated = {}
+
+        if len(args) == 0:
+            raise ValueError("There must be a second argument to a Model instance  - the object id - but none was received by %s." % (self.__class__.__name__,))
+        if not isinstance(args[0], self.id_type):
+            raise ValueError("The object id %s is not of type %s, which %s.id_type says it should be." % (args[0], self.id_type, self.__class__.__name__))
+
         self.init(*args, **kwargs)
 
     def __getattr__(self, attr):
@@ -315,7 +329,11 @@ class Model(object):
                 if "_remove_nulls" in tmpl and "_remove_nulls" not in subtmpl:
                     subtmpl = subtmpl.copy()
                     subtmpl["_remove_nulls"] = tmpl["_remove_nulls"]
-                out[name] = value.apply_template(api_version, subtmpl)
+                
+                if isinstance(ExtType.instance(attr.exttype), ExtList):
+                    out[name] = [d.apply_template(api_version, subtmpl) for d in value]
+                else:
+                    out[name] = value.apply_template(api_version, subtmpl)
             else:
                 out[name] = value
         self._templated[(api_version, tmplidx)] = out
@@ -557,6 +575,9 @@ class Manager(object):
         result of self.base_query() to the Model's constructor."""
 
         if oid not in self._model_cache:
+            if not isinstance(oid, self.manages.id_type):
+                raise ValueError("%s id must be of type %s - supplied value %s isn't" % (self.manages.__name__, self.manages.id_type, oid))
+                
             dq = self.db.dynamic_query()
             self.base_query(dq)
             dq.where(dq.get_select_at(0) + "=" + dq.var(oid))

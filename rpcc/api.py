@@ -108,20 +108,20 @@ class API(object):
             raise IntAPIValidationError("%s (%d-%d) invalid for version %d" % (typething, typething.from_version, typething.to_version, self.version))
 
         if typename in self.types:
-            if self.types[typename] == typething:
-                return            
+            if self.types[typename] == typ:
+                return
             raise IntAPIValidationError("Both %s and %s implement public name %s for version %d" % (typething, self.types[typename], typename, self.version))
         
-        self.types[typename] = typething
+        self.types[typename] = typ
 
-        for (key, subtype) in ExtType.instance(typething)._subtypes():
+        for (key, subtype) in typ._subtypes():
             try:
                 self.add_type(subtype)
             except IntAPIValidationError as e:
                 if key:
-                    raise IntAPIValidationError("%s attribute %s: %s" % (typething, key, e.args[0]))
+                    raise IntAPIValidationError("%s attribute %s: %s" % (typ, key, e.args[0]))
                 else:
-                    raise IntAPIValidationError("%s value type: %s" % (typething, e.args[0]))
+                    raise IntAPIValidationError("%s value type: %s" % (typ, e.args[0]))
 
     def add_category(self, catclass):
         """Registers a category class, making it available for
@@ -432,12 +432,16 @@ class API(object):
                 if isinstance(typ, model._TmpReference):
                     if typ.nullable:
                         tmpl.mandatory[attr] = (ExtOrNull(self._data_by_model[typ.name]), desc)
+                    elif typ.islist:
+                        tmpl.mandatory[attr] = (ExtList(self._data_by_model[typ.name]), desc)
                     else:
                         tmpl.mandatory[attr] = (self._data_by_model[typ.name], desc)
             for (attr, (typ, desc)) in tmpl.optional.items():
                 if isinstance(typ, model._TmpReference):
                     if typ.nullable:
                         tmpl.optional[attr] = (ExtOrNull(self._data_by_model[typ.name]), desc)
+                    elif typ.islist:
+                        tmpl.optional[attr] = (ExtList(self._data_by_model[typ.name]), desc)
                     else:
                         tmpl.optional[attr] = (self._data_by_model[typ.name], desc)
 

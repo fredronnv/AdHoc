@@ -14,14 +14,14 @@ class ExtPerson(ExtString):
         return fun.person_manager.get_person(cval)
 
     def output(self, fun, obj):
-        return obj.pid
+        return obj.oid
 
 class ExtAccount(ExtString):
     def lookup(self, fun, cval):
         return fun.account_manager.get_account(cval)
 
     def output(self, fun, obj):
-        return obj.aid
+        return obj.oid
 
 class ExtNoSuchPersonError(ExtLookupError):
     desc = "No such person exists."
@@ -42,10 +42,11 @@ class FunPersonGetName(PersonFunBase):
 class Person(Model):
     name = "person"
     exttype = ExtPerson
+    id_type = str
 
-    def init(self, myid, fname, lname, acc):
-        print "Person.init", myid
-        self.pid = myid
+    def init(self, persid, fname, lname, acc):
+        print "Person.init", persid
+        self.oid = persid
         self.fname = fname.decode("iso-8859-1")
         self.lname = lname.decode("iso-8859-1")
         self.account_name = acc
@@ -71,14 +72,15 @@ class Person(Model):
 
     @update("lastname", ExtString)
     def set_lastname(self, newname):
-        print "set_lastname"
         q = "UPDATE person SET lname=:name WHERE ucid=:pid"
         self.db.put(q, pid=self.pid, name=newname.encode("iso-8859-1"))
         self.db.commit()
 
-    @template("account", ExtAccount, model="account")
-    def get_account(self):
-        return self.account_manager.get_account(self.account_name)
+    @template("account", ExtList(ExtAccount), model="account")
+    def get_accounts(self):
+        q = "SELECT ucid FROM account WHERE ucid_owner=:pid"
+        amgr = self.account_manager
+        return [amgr.model(a) for (a,) in self.db.get(q, pid=self.oid)]
 
 class PersonManager(Manager):
     name = "person_manager"
@@ -122,10 +124,11 @@ class PersonManager(Manager):
 class Account(Model):
     name = "account"
     exttype = ExtAccount
+    id_type = str
 
-    def init(self, myid, uid, owner_id):
-        print "Account.init", myid
-        self.aid = myid
+    def init(self, accid, uid, owner_id):
+        print "Account.init", accid
+        self.oid = accid
         self.uid = uid
         self.owner_id = owner_id
 

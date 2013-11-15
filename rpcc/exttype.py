@@ -75,7 +75,9 @@ class ExtType(object):
     prefix = "Ext"
     suffix = None
 
+    # CLASS-level caching for the class-method .instance().
     _instance_cache = dict()
+    _list_cache = dict()
 
     def parse(self, function, rawval):
         self.check(function, rawval)
@@ -126,6 +128,30 @@ class ExtType(object):
 
     def _api_versions(self):
         return (self.from_version or 0, self.to_version or 10000)
+
+    @classmethod
+    def instance(cls, typ):
+        # Both struct keys and return types may be tuples (typ, desc),
+        # simplify other code by unpacking here.
+        if isinstance(typ, tuple):
+            typ = typ[0]
+
+        # Two different ExtList instances covering the same underlying
+        # type should return the same instance.
+        if isinstance(typ, ExtList):
+            if typ.typ not in cls._list_cache:
+                cls._list_cache[typ.typ] = typ
+            return cls._list_cache[typ.typ]
+
+        if isinstance(typ, ExtType):
+            return typ
+        elif (type(typ) == type(type) or type(typ) == _StructMetaClass) and issubclass(typ, ExtType):
+            if typ not in cls._instance_cache:
+                cls._instance_cache[typ] = typ()
+            return cls._instance_cache[typ]
+        else:
+            raise TypeError("Not an ExtType subclass or object: %s" % (typ,))
+
 
     # SOAP helpers
 
@@ -240,22 +266,6 @@ class ExtType(object):
             l.append('%-*s ::= %s' % (maxlen, left, right))
         l.reverse()
         return (myname, '\n\n'.join(l))
-
-    @classmethod
-    def instance(cls, typ):
-        # Both struct keys and return types may be tuples (typ, desc),
-        # simplify other code by unpacking here.
-        if isinstance(typ, tuple):
-            typ = typ[0]
-
-        if isinstance(typ, ExtType):
-            return typ
-        elif (type(typ) == type(type) or type(typ) == _StructMetaClass) and issubclass(typ, ExtType):
-            if typ not in cls._instance_cache:
-                cls._instance_cache[typ] = typ()
-            return cls._instance_cache[typ]
-        else:
-            raise TypeError("Not an ExtType subclass or object: %s" % (typ,))
 
     @classmethod
     def _namevers(cls):
