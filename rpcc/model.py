@@ -173,6 +173,7 @@ class Model(object):
         self.function = manager.function
         self.db = manager.function.db
         self._templated = {}
+        self._guard_decision_cache = {}
 
         if len(args) == 0:
             raise ValueError("There must be a second argument to a Model instance  - the object id - but none was received by %s." % (self.__class__.__name__,))
@@ -555,6 +556,7 @@ class Manager(object):
         self.function = function
         self.db = function.db
         self._model_cache = {}
+        self._guard_decision_cache = {}
         self.init(*args, **kwargs)
 
     def init(self, *args, **kwargs):

@@ -1,0 +1,30 @@
+
+CREATE TABLE rpcc_session (
+  id VARCHAR(40) NOT NULL PRIMARY KEY,
+  expires TIMESTAMP
+);
+
+CREATE TABLE rpcc_session_string (
+  session_id VARCHAR(40) NOT NULL,
+  FOREIGN KEY (session_id) REFERENCES rpcc_session(id),
+  name VARCHAR(30) NOT NULL,
+  value VARCHAR(30)
+);
+
+CREATE TABLE rpcc_result (
+  resid INTEGER NOT NULL PRIMARY KEY,
+  manager VARCHAR(32) NOT NULL,
+  expires TIMESTAMP NOT NULL
+);
+
+CREATE TABLE rpcc_result_string (
+  resid INTEGER NOT NULL,
+  FOREIGN KEY (resid) REFERENCES rpcc_result(resid),
+  value VARCHAR(128)
+);
+
+CREATE TABLE rpcc_result_int (
+  resid INTEGER NOT NULL,
+  FOREIGN KEY (resid) REFERENCES rpcc_result(resid),
+  value INTEGER
+);

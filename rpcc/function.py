@@ -196,6 +196,7 @@ class Function(object):
         # for the .headers and .client attributes.
         self.http_handler = http_handler
         self.api = api
+        self._guard_decision_cache = {}
 
     def __getattr__(self, attr):
         if attr.endswith("_manager"):
