@@ -107,6 +107,9 @@ class ExternalWriteAttribute(ExternalAttribute):
         upd.optional[self.extname] = (self.exttype, self.extdesc)
 
 
+# NOTE! In order for @entry and @template to be stackable in arbitrary
+# order, @entry needs to know about (and copy) the _template method
+# attribute.
 def template(name, exttype, minv=0, maxv=10000, desc=None, model=None, args=[], kwargs={}):
     def decorate(decorated):
         data = dict(name=name, type=exttype, desc=desc, model=model, args=args, kwargs=kwargs)
@@ -124,6 +127,9 @@ def template(name, exttype, minv=0, maxv=10000, desc=None, model=None, args=[], 
     return decorate
 
 
+# NOTE! In order for @entry and @update to be stackable in arbitrary
+# order, @entry needs to know about (and copy) the _update method
+# attribute.
 def update(name, exttype, minv=0, maxv=10000, desc=None):
     def decorate(decorated):
         data = dict(name=name, type=exttype, desc=desc)
@@ -173,7 +179,9 @@ class Model(object):
         self.function = manager.function
         self.db = manager.function.db
         self._templated = {}
-        self._guard_decision_cache = {}
+
+        # Dict of Model-stable _Decision:s, indexed by Guard instance.
+        self._decision_cache = {}
 
         if len(args) == 0:
             raise ValueError("There must be a second argument to a Model instance  - the object id - but none was received by %s." % (self.__class__.__name__,))
@@ -345,6 +353,9 @@ class Model(object):
 
 
 
+# NOTE! In order for @entry and @suffix to be stackable in arbitrary
+# order, @entry needs to know about (and copy) the _matchers method
+# attribute.
 def suffix(suff, exttype, desc="", minv=0, maxv=10000):
     def decorate(decorated):
         data = dict(prefix=None, suffix=suff, exttype=exttype, desc=desc, 
@@ -358,6 +369,9 @@ def suffix(suff, exttype, desc="", minv=0, maxv=10000):
     return decorate
 
 
+# NOTE! In order for @entry and @prefix to be stackable in arbitrary
+# order, @entry needs to know about (and copy) the _matchers method
+# attribute.
 def prefix(pref, exttype, desc="", minv=0, maxv=10000):
     def decorate(decorated):
         data = dict(prefix=pref, suffix=None, exttype=exttype, desc=desc,
@@ -468,6 +482,9 @@ class IntegerMatch(Match):
         q.where(expr + ">=" + q.var(val))
 
 
+# NOTE! In order for @entry and @search to be stackable in arbitrary
+# order, @entry needs to know about (and copy) the _searches method
+# attribute.
 def search(name, matchcls, minv=0, maxv=10000, desc=None, manager=None):
     def decorate(decorated):
         data = dict(name=name, matchcls=matchcls, desc=desc, manager=manager)
@@ -555,8 +572,13 @@ class Manager(object):
     def __init__(self, function, *args, **kwargs):
         self.function = function
         self.db = function.db
+
+        # Dict of Model instances already created, indexed by Model id.
         self._model_cache = {}
-        self._guard_decision_cache = {}
+
+        # Dict of Model-stable _Decision:s, indexed by Guard instance.
+        self._decision_cache = {}
+
         self.init(*args, **kwargs)
 
     def init(self, *args, **kwargs):

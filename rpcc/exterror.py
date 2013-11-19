@@ -267,7 +267,7 @@ class ExtAuthenticationFailedError(ExtRuntimeError):
     desc = "Authentication failed."
 
 class ExtAccessDeniedError(ExtRuntimeError):
-    desc = "Access was denied."
+    desc = "Access not allowed."
 
 
 class ExtTransportError(ExtError):

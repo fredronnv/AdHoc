@@ -196,7 +196,15 @@ class Function(object):
         # for the .headers and .client attributes.
         self.http_handler = http_handler
         self.api = api
-        self._guard_decision_cache = {}
+
+        # Dict of Function-stable _Decision:s, indexed by Guard
+        # instance.
+        self._decision_cache = {}
+
+        # Flag indicating that the Function is currently in "granted"
+        # state (set/cleared in a try/finally in the @entry decorator
+        # where a Guard has returned AccessGranted).
+        self._entry_granted = False
 
     def __getattr__(self, attr):
         if attr.endswith("_manager"):
@@ -301,7 +309,7 @@ class SessionedFunction(Function):
 
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_fetch_functions() to create the actual update functions.
-class FetchFunction(Function):
+class FetchFunction(SessionedFunction):
     def do(self):
         # Find the object and template.
         params = self.get_parameters()
@@ -311,7 +319,7 @@ class FetchFunction(Function):
 
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
-class UpdateFunction(Function):
+class UpdateFunction(SessionedFunction):
     def do(self):
         params = self.get_parameters()
         obj = getattr(self, params[-2][0])
@@ -320,7 +328,7 @@ class UpdateFunction(Function):
 
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
-class DigFunction(Function):
+class DigFunction(SessionedFunction):
     def do(self):
         mgr = getattr(self, self.dig_manager)
         resid = mgr.perform_search(self.search)

@@ -5,9 +5,50 @@ from exttype import *
 from function import Function
 
 import server
+import access
 import authenticator
 import database
 import session
+
+class AllowCertainUser(access.Guard):
+    def __init__(self, uname):
+        self.uname = uname
+
+    def check(self, obj, fun):
+        if fun.session.authuser == self.uname:
+            return access.AccessGranted(access.CacheInFunction)
+        else:
+            return access.AccessDenied(access.CacheInFunction)
+
+class AllowOwner(access.Guard):
+    def check(self, obj, fun):
+        if isinstance(obj, Account):
+            if fun.session.authuser == obj.oid:
+                return access.AccessGranted(access.CacheInFunction)
+            else:
+                return access.AccessDenied(access.CacheInFunction)
+        elif isinstance(obj, Person):
+            if fun.session.authuser == obj.account_name:
+                return access.AccessGranted(access.CacheInFunction)
+            else:
+                return access.AccessDenied(access.CacheInFunction)
+        else:
+            return access.AccessReferred(access.CacheInFunction)
+
+class AllowBeforeLunch(access.Guard):
+    def check(self, obj, fun):
+        if fun.started_at().hour < 12:
+            return access.AccessGranted(access.CacheInFunction)
+        else:
+            return access.AccessDenied(access.CacheInFunction)
+
+class AllowAfterLunch(access.Guard):
+    def check(self, obj, fun):
+        if fun.started_at().hour >= 12:
+            return access.AccessGranted(access.CacheInFunction)
+        else:
+            return access.AccessDenied(access.CacheInFunction)
+
 
 class ExtPerson(ExtString):
     def lookup(self, fun, cval):
@@ -44,12 +85,17 @@ class Person(Model):
     exttype = ExtPerson
     id_type = str
 
-    def init(self, persid, fname, lname, acc):
-        print "Person.init", persid
+    def init(self, persid, fname, lname, pnr, acc):
         self.oid = persid
         self.fname = fname.decode("iso-8859-1")
         self.lname = lname.decode("iso-8859-1")
+        self.pnr = pnr
         self.account_name = acc
+
+    g_before_lunch = AllowBeforeLunch()
+    g_after_lunch = AllowAfterLunch()
+    g_owner = AllowOwner()
+    g_viktor = AllowCertainUser("viktor")
 
     @template("person", ExtPerson)
     def get_person(self):
@@ -60,6 +106,7 @@ class Person(Model):
         return self.fname
 
     @update("firstname", ExtString)
+    @access.entry(g_before_lunch)
     def set_firstname(self, newname):
         print "set_firstname"
         q = "UPDATE person SET fname=:name WHERE ucid=:pid"
@@ -70,11 +117,36 @@ class Person(Model):
     def get_lastname(self):
         return self.lname
 
+    @access.entry(g_before_lunch)
+    @update("noop1", ExtBoolean)
+    def set_noop1(self, newvalue):
+        pass
+
+    @update("noop2", ExtBoolean)
+    @access.entry(g_before_lunch)
+    def set_noop2(self, newvalue):
+        pass
+
+    @access.entry(g_after_lunch)
+    @update("noop3", ExtBoolean)
+    def set_noop3(self, newvalue):
+        pass
+
+    @update("noop4", ExtBoolean)
+    @access.entry(g_after_lunch)
+    def set_noop4(self, newvalue):
+        pass
+
     @update("lastname", ExtString)
     def set_lastname(self, newname):
         q = "UPDATE person SET lname=:name WHERE ucid=:pid"
         self.db.put(q, pid=self.pid, name=newname.encode("iso-8859-1"))
         self.db.commit()
+
+    @template("personnummer", ExtString)
+    @access.entry(access.AnyGrants(g_owner, g_viktor))
+    def get_personnummer(self):
+        return self.pnr
 
     @template("account", ExtList(ExtAccount), model="account")
     def get_accounts(self):
@@ -93,7 +165,7 @@ class PersonManager(Manager):
         self._model_cache = {}
 
     def base_query(self, dq):
-        dq.select("p.ucid", "p.fname", "p.lname", "a.ucid")
+        dq.select("p.ucid", "p.fname", "p.lname", "p.pnr", "a.ucid")
         dq.table("person p", "account a")
         dq.where("p.ucid=a.ucid_owner")
         dq.where("a.primary=1")

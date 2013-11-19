@@ -1,98 +1,96 @@
+#!/usr/bin/env python
 
-from exterror import ExtAccessError
+from exterror import ExtAccessDeniedError
+from model import Model, Manager
+
+"""
+Access control.
+
+The base data type of RPCC access control is the _Decision class, or
+rather the specific subclasses AccessGranted, AccessDenied and
+DecisionReferred.
+
+_Decisions are returned by the .check(obj, function) method of
+Guard:s. The parameters are an object for which the access control is
+now running, and the other is the Function instance from which the
+protected call is being made.
+
+_Decisions can be cached - they have an attribute specifying what
+stability (if any) they have with the special values CacheInFunction
+(if the same Function is passed, the result will always be the same),
+CacheInObject (if the same object is passed, the result will always be
+the same) and NeverCache (no guarantees of a future call can be made).
+
+When _Decisions are cached, they are cached keyed by Guard
+instance. When using Guards, applications must therefore ensure that
+they reuse the same Guard instances if they want caching to work.
+
+There are some standard Guard chaining classes, which combine several
+Guards, returning a combined _Decision with a proper cacheability that
+depends on the sub-_Decisions they are based on.
+
+The system works according to a 'perimeter defense' model. When a
+protected method's Guard has granted access, a generic pass flag is
+set on the Function. When the method returns (either by a 'return' or
+an unhandled exception), the flag is cleared. Calls to other protected
+methods are allowed, without calling any Guards, as long as the flag
+is set. This means that all calls to protected methods performed from
+inside a protected method, regardless of intermediate calls to
+non-protected methods, are allowed.
+
+This model is thread-safe as long as one Function only runs in one
+thread. If Functions spawn off new threads with access to the same
+data structures, this won't work. On the other hand, all sorts of
+other stuff will break then as well.
+
+To set up an entry point on the perimeter, the @entry(guard) decorator
+is used before a method. If, as is frequently the case, the
+@entry()-decorated method is also decorated with a @template, @update,
+@search, @prefix or @suffix decorator, these decorators can be stacked
+in any order. 
 
 """
 
-"""
-
-class BorderAccess(object):
-    """Class representing one particular border access control for a 
-    Function.
-
-    Border-checks are done when a Function is called. They are by 
-    necessity very broad, mostly of the type 'only authenticated 
-    users'. For any serious access control tasks you instead use @guard:s, 
-    which can guard access to individual attributes on individual objects.
-
-    Functions will check with all BorderAccess classes registered
-    with them, and if one of them says yes, access is allowed.
-
-    BorderAccess classes do not retain state between calls, and
-    the checks are therefore done in class methods.
-    """
-
-    # The name and description visible in external documentation.
-    name = ''
-    desc = ''
-
-    @classmethod
-     def delegate(cls, function)
-         """Delegate decision to another Access class."""
-         cls.check(function)
-
-    @classmethod
-    def check(cls, function):
-        raise ExtAccessError("Access denied")
-
-class Privilege(object):
-    """A Privilege represents some form o privilege that a logged in
-    user can have. Whenever the session.authuser attribute is set,
-    the SessionStore also gets the option of setting session.privileges
-    to a set of Privilege instances.
-
-    There really are no attributes to set by default - the presence of 
-    the class or an instance of it in the set session.privileges is 
-    adequate.
-    """
-
-    pass
-
-###
-# Method access control
-#
-# Method access control is performed using the @entry() decorator. 
-#
-# Each method decorated by @entry is a possible entry point into the
-# data model, and is guarded by one Guard. When a call is made to such
-# a method, the Guard determines if access is to be allowed.
-#
-# Once "inside" the data model, no further checks are made - calling
-# one @entry-decorated method from inside another does not perform an
-# additional access check on the inner one.
-###
-
+# Cacheability constants. The "level" is used when chaining - the
+# result when merging two _Decisions will get the _Cacheability from
+# the source where the .level is lowest.
 class _Cacehability(object):
-    pass
+    """The level is used when chaining. When two decisions have been
+    used to make a third one, the result will have the cacheability 
+    that has the lowest level.
+
+    If one decision is stable for the Function lifetime and another 
+    decision is only stable for each object, a decision that is a merge 
+    of these two can only be cached in the object.
+    """
+    level = None
+
+    def __cmp__(self, other):
+        if isinstance(other, _Cacehability):
+            return cmp(self.level, other.level)
+        raise TypeError("_Cacehability cannot be compared with %s" % (other,))
+
+    __hash__ = None
 
 class CacheInFunction(_Cacehability):
-    pass
+    level = 2
 
 class CacheInObject(_Cacehability):
-    pass
+    level = 1
 
 class NeverCache(_Cacehability):
-    pass
+    level = 0
 
 
 class _Decision(object): 
-    def __init__(self, cache=None):
-        self.cache = cache
+    def __init__(self, cacheability=None):
+        self.cacheability = cacheability
 
-    @classmethod
-    def instance(cls, other, cache_override=None):
-        if isinstance(other, _Decision):
-            if cache_override and _Decision.cache != cache:
-                ret = other.__class__(cache_override)
-            else:
-                ret = other
+    def copy(self, cacheability=None):
+        if cacheability:
+            return self.__class__(cacheability)
         else:
-            if cache_override:
-                ret = other(cache_override)
-            else:
-                ret = other()
-
-        ret.cache = cache
-        return ret
+            return self.__class__(self.cacheability)
 
 class AccessGranted(_Decision): 
     pass
@@ -100,19 +98,19 @@ class AccessGranted(_Decision):
 class AccessDenied(_Decision): 
     pass
 
-class AccessReferred(_Decision): 
+class DecisionReferred(_Decision): 
     pass
 
 class Guard(object):
     """A Guard is posted at an @entry-decorated method. On conditions
     defined in the @entry decorator definition, a Guard is called upon
     to make an access control decision. It is passed the object for 
-    which the check is to be made. It is also passed the session of
-    the function, since it will almost always want to use that anyways.
+    which the check is to be made. It is also passed the Function instance
+    that started the call.
 
-    The response from .check() must be AccessGranted (definitely grant 
-    access), AccessDenied (definitely deny access) or DecisionReferred 
-    (let someone else decide).
+    The response from .check() must be one of AccessGranted (definitely 
+    grant access), AccessDenied (definitely deny access) or 
+    DecisionReferred (let someone else decide).
     """
 
     @classmethod
@@ -131,126 +129,139 @@ class Guard(object):
         raise NotImplementedError()
 
 
-class PrivilegeGuard(Guard):
-    """A Guard, instantiated with a single Privilege. If the session's
-    .privileges set contains the Privilege, the Guard answers AccessGranted.
-    Otherwise it answers self.default_decision (AccessReferred if not 
-    overriden).
-    """
-
-    priv = None
-    default_decision = AccessReferred(CacheInFunction)
-
-    def __init__(self, priv=None, default=None):
-        if priv:
-            self.priv = priv
-        if default:
-            self.default_decision = default
-
-    def check(self, obj, function, *args, **kwargs):
-        if self.priv in function.session.privileges:
-            return AccessGranted(CacheInFunction)
-        else:
-            return self.default_decision
-
 class AlwaysAllowGuard(Guard):
-    def check(self, obj, function, *args, **kwargs):
+    def check(self, obj, function):
         return AccessGranted(CacheInFunction)
 
-class Chain(Guard):
+# Chain types: 
+
+# * First response that isn't say DecisionReferred (Postfix-style
+#   chaining - first Guard that has an opinion wins). Otherwise the
+#   default decision is returned.
+#
+# * First Guard that says Yes wins (Yes if anyone says Yes, default
+#   decision otherwise).
+#
+# * First Guard that says No wins (No if anyone says No, default
+#   decision otherwise).
+
+
+class _Chain(Guard):
     """Chain multiple Guards together.
 
-    Chained Guards are asked in turn, and the first response which is not 
-    AccessReferred is returned.
+    The exact operational mode depends on .mode, which is set in 
+    subclasses with better names.
 
-    If all guards return AccessReferred, self.default_decision is returned.
+    Common to all modes is that the cacheability of the result
+    is set to the minimum cacheability of any decision actually used.
+    A decision based only on Function-stable sub-decisions will
+    also be Function-stable, regardless of whether any Guards later
+    in the chain would return decisions of less cacheability - they will 
+    never be reached in a subsequent check.
 
+    If an Object-stable decision was used, however, the combined
+    decision is only Object-stable.
     """
-    default_decision = AccessReferred(NeverCache)
+    default_decision = DecisionReferred(CacheInFunction)
 
-    def __init__(self, *guards, default=None):
+    # Constants for operational mode, set in subclasses below.
+    first_opinion = "o"
+    first_yes = "y"
+    first_no = "n"
+
+    def __init__(self, *guards, **kwargs):
         self.guards = [Guard.instance(g) for g in guards]
-        if default:
-            self.default_decision = default
+        if "default_decision" in kwargs:
+            self.default_decision = kwargs.pop("default_decision")
+        if kwargs:
+            raise ValueError("Unknown keyword arguments %s" % (kwargs.keys()))
 
-    def check(self, obj, function, *args, **kwargs):
-        cacheability = None
+    # Please note that the code below contains repetitions and is
+    # rather ugly. But it needs to be ultra-optimized - this code path
+    # is a bottleneck on ALL calls to @entry-protected methods.
+    def check(self, obj, function):
+        combined_cacheability = CacheInFunction
+
         for guard in self.guards:
-            decision = None
-            if args or kwargs:
-                # With arguments, the response cannot be cached.
-                decision = guard.check(obj, fun, *args, **kwargs)
+            if guard in function._decision_cache:
+                des = function._decision_cache[guard]
+            elif guard in obj._decision_cache:
+                des = function._decision_cache[guard]
             else:
-                if self in function._guard_decision_cache:
-                    decision = function._guard_decision_cache[self]
-                elif self in obj._guard_decision_cache:
-                    decision = obj._guard_decision_cache[self]
+                des = guard.check(obj, function)
+                if des.cacheability == CacheInFunction:
+                    function._decision_cache[guard] = des
+                elif des.cacheability == CacheInObject:
+                    obj._decision_cache[guard] = des
+
+            if des.cacheability < combined_cacheability:
+                combined_cacheability = des.cacheability
+
+            if self.mode == self.first_opinion and (isinstance(des, AccessGranted) or isinstance(des, AccessDenied)):
+                if des.cacheability == combined_cacheability:
+                    return des
                 else:
-                    decision = guard.check(obj, fun, *args, **kwargs)
-                    if decision.cache == CacheInFunction:
-                        function._guard_decision_cache[self] = decision
-                    elif decision.cache == CacheInObject:
-                        obj._guard_decision_cache[self] = decision
+                    return des.copy(combined_cacheability)
+            
+            elif self.mode == self.first_yes and isinstance(des, AccessGranted):
+                if des.cacheability == combined_cacheability:
+                    return des
+                else:
+                    return des.copy(combined_cacheability)
 
-            if decision.cache == None or decision.cache == NeverCache:
-                cacheability = NeverCache
+            elif self.mode == self.first_no and isinstance(des, AccessDenied):
+                if des.cacheability == combined_cacheability:
+                    return des
+                else:
+                    return des.copy(combined_cacheability)
 
-            elif decision.cache == CacheInObject and cacheability == CacheInFunction:
-                cacheability = CacheInObject
-            elif decision.cache == CacheInFunction and cacheability is None:
-                cacheability = CacheInFunction
-            else:
-                # should not happen
-                raise ValueError()
+        return self.default_decision.copy(combined_cacheability)
 
-            if decision != AccessReferred:
-                return _Decision.instance(decision, cacheability)
 
-        return AccessReferred(cacheability or NeverCache)
+class FirstOpinion(_Chain):
+    """Chain guard where the first _Decision which is not DecisionDeferred
+    is returned."""
+    mode = _Chain.first_opinion
 
+class AnyGrants(_Chain):
+    """Chain guard that returns AccessGranted if any sub-guards returned
+    AccessGranted, regardless of what other returned."""
+    mode = _Chain.first_yes
+
+class NoDenies(_Chain):
+    """Chain guard that returns AccessDenied if any of the sub-guards
+    returned AccessDenied, regardless of what the other returned."""
+    mode = _Chain.first_no
 
 # When the decorator is used, which is in when the "class" statement
 # is being run, entry() is called. It returns a copy of
 # checked_method_maker, where that copy also includes the "guard"
 # variable's value passed to entry().
 
-# This copy is then called and given the method that's being decorated
-# as its only argument. It returns a copy of actually_called where
-# wrapped_method is defined and contains a reference to the decorated
-# method.
+def entry(guard):
+    """@entry decorator, which marks a method as access protected.
 
-# On method call, the copy of actually_called is what is being
-# executed. That copy contains (and can use) both "guard" and
-# wrapped_method. On execution, the arguments to actually_called are
-# the arguments to the method - and since this is a method call, the
-# first parameter will be "self" of the instance.
+    The argument when using the @entry decorator must be a Guard instance.
+    If you need to have several Guards checked, use a chain instance.
 
-# The actually_called copy performs the access control, then calls
-# wrapped_method and returns the return value from it.
+    When an @entry-decorated method is called, a copy of the actually_called 
+    function is run. That copy has the 'guard' argument from the
+    @entry statement bound to it.
 
-# Notes about optimization (which actually matters in this function): 
-# 
-# * isinstance(x, Guard) 
-#   hasattr(x, "check")
-#   try: x.check() except AttributeError: 
-#
-#   are equally fast if the respective statement is true. But when
-#   false, the latter two has to search the entire inheritance chain,
-#   and are therefore slower if the statement is false (hasattr 2x
-#   slower, try/except 5x slower).
-#
-# * if x not in cache
-#   try: dec = cache[x] except: cache[x] = ...
-#
-#   are also equally fast on cache hit, but on cache miss the
-#   try/except is 7x slower.
+    The actually_called() function extracts the Function. It passes the
+    first argument and the Function to the Guard's .check() method.
 
-# check_args and check_kwargs are passed to Guard.check. A Chain guard
-# passes them to all its subguards, so they all need to accept these
-# arguments and know what to do with them.
+    The response from the Guard must be a _Decision instance, with a 
+    correctly set cacheability, which is used to determine whether the 
+    decision can be cached in the Function, in the decorated method's 
+    self, or not at all.
 
-def entry(guard, *check_args, **check_kwargs):
-    guard = Guard.instance(guard)
+    If the Guard responds with an AccessGranted() instance, a flag is set
+    in the Function that access has been granted, and the decorated 
+    method is called. Any @entry decorators further down the call chain
+    will allow access. When the decorated method returns control, either by
+    a return or by an unhandled Exception, the flag is reset.
+    """
 
     def checked_method_maker(wrapped_method):
         def actually_called(obj, *args, **kwargs):
@@ -266,22 +277,45 @@ def entry(guard, *check_args, **check_kwargs):
             if function._entry_granted:
                 return wrapped_method(obj, *args, **kwargs)
 
-            decision = guard.check(obj, function, *check_args, **check_kwargs)
-                
-            ### Guard per-object caching?
-            if decision == Yes:
+            # Try to find a previous decision, which could be in one
+            # of the decision caches. If not found, retreive a new
+            # decision, and store it in a cache if the decision is
+            # cacheable.
+
+            if guard in function._decision_cache:
+                decision = function._decision_cache[guard]
+            elif guard in obj._decision_cache:
+                decision = obj._decision_cache[guard]
+            else:
+                decision = guard.check(obj, function)
+
+                if decision.cacheability == CacheInFunction:
+                    function._decision_cache[guard] = decision
+                elif decision.cacheability == CacheInObject:
+                    obj._decision_cache[guard] = decision
+
+            if isinstance(decision, AccessGranted):
                 try:
-                    old_bypass = fun.bypass_guards
-                    fun.bypass_guards = set_bypass
+                    function._entry_granted = True
                     return wrapped_method(obj, *args, **kwargs)
                 finally:
-                    fun.bypass_guards = old_bypass
-            elif decision in [No, Pass]:
-                raise PDBInadequatePrivilegesError("Checked: " + ", ".join(fun.checked_privs))
+                    function._entry_granted = False
+            elif isinstance(decision, AccessDenied) or isinstance(decision, DecisionReferred):
+                raise ExtAccessDeniedError()
             else:
                 raise ValueError("Rugbyboll" + str(decision))
+            
+        if hasattr(wrapped_method, "_update"):
+            actually_called._update = wrapped_method._update
+        if hasattr(wrapped_method, "_template"):
+            actually_called._template = wrapped_method._template
+        if hasattr(wrapped_method, "_matchers"):
+            actually_called._matchers = wrapped_method._matchers
+        if hasattr(wrapped_method, "_searches"):
+            actually_called._searches = wrapped_method._searches
         return actually_called
     return checked_method_maker
+
 
 
 
