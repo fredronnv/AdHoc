@@ -117,6 +117,28 @@ class Function(object):
         return pars
 
     @classmethod
+    def _subtypes_flat(cls):
+        """Returns a dict-by-name of all types referenced directly or 
+        indirectly in the function's parameters or return type, in 
+        depth-first order."""
+
+        types = {}
+        def add_type(typedict, t):
+            t = ExtType.instance(t)
+            n = t._name()
+            if n in typedict:
+                return
+            typedict[n] = t
+            for (name, subt) in t._subtypes():
+                add_type(typedict, subt)
+
+        for (p, t, d) in cls.get_parameters():
+            add_type(types, t)
+
+        add_type(types, cls._returns()[0])
+        return types
+
+    @classmethod
     def soap_name(cls):
         return ExtType.capsify(cls._name())
 

@@ -159,10 +159,19 @@ class ExtInternalError(ExtError):
 class ExtOutputError(ExtInternalError):
     name = "InternalError"
 
-    def __init__(self, tbstring, value, **kwargs):
-        sys.stderr.write(tbstring)
-        sys.stderr.write("Offending value: %s\n" % (value,))
-        ExtInternalError.__init__(self, **kwargs)
+    def __init__(self, typething, msg, inner=None):
+        #sys.stderr.write(tbstring)
+        #sys.stderr.write("Offending value: %s\n" % (value,))
+        self.output_trace = [(typething, msg)]
+        if inner:
+            self.output_trace += inner.output_trace
+
+        ExtInternalError.__init__(self)
+
+    def print_trace(self):
+        for (typething, msg) in self.output_trace:
+            print "  In %s" % (typething,)
+            print "    ", msg
 
 class ExtValueError(ExtError):
     name = "ValueError"

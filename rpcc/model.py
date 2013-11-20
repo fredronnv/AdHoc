@@ -269,7 +269,7 @@ class Model(object):
         tmpl = ExtStruct()
         tmpl.from_version = api_version
         tmpl.to_version = api_version
-        tmpl.name = ExtType.capsify(cls.name + "-data-template")
+        tmpl.name = cls.name + "-data-template"
 
         for attr in cls._read_attributes(api_version).values():
             attr.fill_template_type(tmpl)
@@ -280,7 +280,7 @@ class Model(object):
         data = ExtStruct()
         data.from_version = api_version
         data.to_version = api_version
-        data.name = ExtType.capsify(cls.name + "-templated-data")
+        data.name = cls.name + "-templated-data"
         
         for attr in cls._read_attributes(api_version).values():
             attr.fill_data_type(data)
@@ -291,7 +291,7 @@ class Model(object):
         upd = ExtStruct()
         upd.from_version = api_version
         upd.to_version = api_version
-        upd.name = ExtType.capsify(cls.name + "-update")
+        upd.name = cls.name + "-update"
 
         for attr in cls._write_attributes(api_version).values():
             attr.fill_update_type(upd)

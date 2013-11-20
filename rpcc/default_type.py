@@ -6,16 +6,15 @@ class ExtFunctionName(ExtString):
     name = "function-name"
     desc = "A string containing the name of a function this server exposes."
 
-    def lookup(self, server, function, val):
-        if function.api.has_function(val):
-            return val
-        raise ExtValueError("Unknown function", value=val)
-
+    def lookup(self, fun, cval):
+        if fun.api.has_function(cval):
+            return cval
+        raise ExtValueError("Unknown function", value=cval)
 
 class ExtSession(ExtString):
     name = "session"
     desc = """Execution context. See session_start()."""
-    regexp = '(singlecall)|([a-zA-Z0-9]+)'
+    regexp = '[a-zA-Z0-9]{40}'
 
     def lookup(self, fun, cval):
         try:
@@ -88,6 +87,62 @@ class ExtAPIVersion(ExtStruct):
         "minor": ExtInteger
         }
 
+class ExtDocTypename(ExtString):
+    name = "doc-typename"
+    regexp = "[-a-z_]+"
 
+class ExtDocParamname(ExtDocTypename):
+    name = "doc-parameter-name"
 
+class ExtDocBasetype(ExtEnum):
+    name = "doc-basetype"
+    values = ("string", "enum", "integer", "null", "boolean", "list", 
+              "struct", "nullable")
 
+class ExtDocParameter(ExtStruct):
+    name = "doc-parameter"
+    desc = "A (name, type, description) tuple, also used for the single (type, description) case of return values."
+    
+    mandatory = {
+        "type_name": ExtDocTypename
+        }
+
+    optional = {
+        "name": ExtDocParamname,
+        "description": ExtString
+        }
+
+class ExtDocTypedef(ExtStruct):
+    name = "doc-typedef"
+    desc = "A type definition, matching a type name to a definition"
+
+    mandatory = {
+        "name": ExtDocTypename,
+        "base": ExtDocBasetype,
+        }
+
+    optional = {
+        "regexp": (ExtString, "For strings: constraining regexp"),
+        "maxlen": (ExtInteger, "For strings: maximum length"),
+        "values": (ExtList(ExtString), "For enums: valid values"),
+        "min": (ExtInteger, "For integers: minimum value (inclusive)"),
+        "max": (ExtInteger, "For integers: maximum value (inclusive)"),
+        "subtype": (ExtDocTypename, "For nullable: type of non-null, for lists: type of elements"),
+        "mandatory": (ExtList(ExtDocParameter), "For structs: list of mandatory members"),
+        "optional": (ExtList(ExtDocParameter), "For structs: list of optional members")
+        }
+
+class ExtDocFunction(ExtStruct):
+    name = "doc-function"
+    desc = "Top-level struct for documenting a function"
+
+    mandatory = {
+        "function": ExtFunctionName,
+        "parameters": ExtList(ExtDocParameter),
+        "returns": ExtDocParameter,
+        "types": ExtList(ExtDocTypedef)
+        }
+
+    optional = {
+        "description": ExtString,
+        }

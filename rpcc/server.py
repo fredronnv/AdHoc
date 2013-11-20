@@ -23,6 +23,8 @@ import exterror
 import function
 import protocol
 import response
+import documentation
+
 
 class SSLConfig(object):
     keyfile = None
@@ -176,6 +178,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         self.add_default_protocol_handlers()
         self.register_default_functions()
+        self.documentation = documentation.Documentation(self)
 
     ###
     # Optional subsystems.
@@ -274,6 +277,10 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                 self.function_start(fun, params, start_time, api_version)
                 result = fun.call(params)
                 self.function_stop(fun)
+            except exterror.ExtOutputError as e:
+                print "OutputError (sent as InternalError with ID %s" % (e.id,)
+                e.print_trace()
+                raise
             except exterror.ExtInternalError as e:
                 print "InternalError with ID %s" % (e.id,)
                 traceback.print_exc()
@@ -487,6 +494,9 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         self.register_function(default_function.FunSessionAuthLogin)
         self.register_function(default_function.FunSessionDeauth)
         self.register_function(default_function.FunSessionInfo)
+        self.register_function(default_function.FunServerListFunctions)
+        self.register_function(default_function.FunServerDocumentation)
+        self.register_function(default_function.FunServerFunctionDefinition)
 
     #def enable_default_sessions(self):
     #    self.register_class(StartSessionFun)

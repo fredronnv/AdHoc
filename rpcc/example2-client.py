@@ -5,6 +5,12 @@ import xmlrpclib
 
 s = xmlrpclib.ServerProxy("http://venus.ita.chalmers.se:12121/RPC2", allow_none=True, encoding="UTF-8")
 
+print s.server_function_definition("server_function_definition")["result"]
+
+print s.server_documentation("server_function_definition")["result"]
+
+raise SystemExit()
+
 sesn = s.session_start()["result"]
 s.session_auth_login(sesn, "mort", "mort")
 
@@ -17,8 +23,6 @@ for noop in range(1, 5):
     if "result" in s.person_update(sesn, "viktor", {"noop%d" % (noop,): True}):
         update_count += 1
 assert update_count == 2
-
-raise SystemExit()
 
 print s.person_dig({"account_in": {"account": "viktor"}}, {"person": True, "account_data": {"account": True}})
 

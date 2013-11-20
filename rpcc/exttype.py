@@ -105,8 +105,8 @@ class ExtType(object):
     def output(self, function, value):
         try:
             self.check(function, value)
-        except:
-            raise ExtOutputError(traceback.format_exc(), value)
+        except ExtError as e:
+            raise ExtOutputError(self, ".check() returned error: %s %s %s" % (e.__class__, e.desc, e.value))
         return value
 
     def _name(self):
@@ -328,7 +328,7 @@ class ExtType(object):
 ###
 class ExtString(ExtType):
     name = "string"
-    desc = "A string."
+    #desc = "A string."
 
     regexp = None
     regexp_flags = 0
@@ -434,8 +434,8 @@ class ExtString(ExtType):
 ###
 class ExtEnum(ExtString):
     values = []
-    desc = "A string with a number of valid values"
     name = "enum"
+    #desc = "A string with a number of valid values"
 
     # SOAP
     def xsd(self):
@@ -472,8 +472,8 @@ class ExtEnum(ExtString):
 ###
 class ExtInteger(ExtType):
     range = None
-    desc = "Signed Integer"
     name = 'integer'
+    #desc = "Signed Integer"
 
     def check(self, function, rawval):
         if not isinstance(rawval, int):
@@ -531,7 +531,7 @@ class ExtInteger(ExtType):
 ###
 class ExtBoolean(ExtType):
     name = 'boolean'
-    desc = "True or False"
+    #desc = "True or False"
     
     def check(self, function, rawval):
         if not isinstance(rawval, bool):
@@ -568,7 +568,7 @@ class ExtBoolean(ExtType):
 
 class ExtNull(ExtType):
     name = 'null'
-    desc = 'Null type'
+    #desc = 'Null type'
     
     def check(self, function, rawval):
         if not rawval is None:
@@ -669,13 +669,22 @@ class ExtStruct(ExtType):
             raise AttributeError(name)
 
     def _subtypes(self):
-        subs = []
-        for (k, v) in self.mandatory.items() + self.optional.items():
+        return [(k, t) for (o, k, t, c) in self._all_items()]
+
+    def _all_items(self):
+        """List of (optional, key, type, comment)."""
+        ret = []
+        for (k, v) in self.mandatory.items():
             if isinstance(v, tuple):
-                subs.append( (k, v[0]) )
+                ret.append( (False, k, v[0], v[1]) )
             else:
-                subs.append( (k, v) )
-        return subs
+                ret.append( (False, k, v, None) )
+        for (k, v) in self.optional.items():
+            if isinstance(v, tuple):
+                ret.append( (True, k, v[0], v[1]) )
+            else:
+                ret.append( (True, k, v, None) )
+        return ret
 
     def _api_versions(self):
         return (self.from_version or 0, self.to_version or 10000)
@@ -748,18 +757,24 @@ class ExtStruct(ExtType):
             try:
                 subval = inval.pop(key)
             except KeyError:
-                raise ExtOutputError("Mandatory key %s missing." % (key,))
+                raise ExtOutputError(self, "Mandatory key '%s' missing." % (key,))
 
-            converted[key] = typ.output(function, subval)
+            try:
+                converted[key] = typ.output(function, subval)
+            except ExtOutputError as e:
+                raise ExtOutputError(self, "While converting key '%s'" % (key,), e)
 
         for (key, subval) in inval.items():
             try:
                 typ = self.optional[key]
             except KeyError:
-                raise ExtOutputError("Key %s is not defined." % (key,))
+                raise ExtOutputError(self, "Key '%s' is present but not defined." % (key,))
 
             typ = ExtType.instance(typ)
-            converted[key] = typ.output(function, subval)
+            try:
+                converted[key] = typ.output(function, subval)
+            except ExtOutputError as e:
+                raise ExtOutputError(self, "While converting key '%s'" % (key,), e)
 
         return converted
             
@@ -1044,6 +1059,14 @@ class ExtOrNull(ExtType):
         converted = typ.convert(function, typ)
         return typ.lookup(function, converted)
 
+    def output(self, function, value):
+        try:
+            if value is None:
+                return None
+            return ExtType.instance(self.typ).output(function, value)
+        except ExtOutputError as e:
+            raise ExtOutputError(self, "Non-null value")
+
     # SOAP
     def xsd(self):
         xsd = self.xsd_complex_type()
@@ -1120,8 +1143,11 @@ class ExtList(ExtType):
         if not isinstance(value, tuple) and not isinstance(value, list):
             raise ExtOutputError("Expected sequence, got %s" % (value,))
 
-        for subval in value:
-            out.append(typ.output(function, subval))
+        for subval, subidx in zip(value, range(len(value))):
+            try:
+                out.append(typ.output(function, subval))
+            except ExtOutputError as e:
+                raise ExtOutputError(self, "List element at index %d" % (subidx,), e)
             
         return out
             

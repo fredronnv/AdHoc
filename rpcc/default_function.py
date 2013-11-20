@@ -110,7 +110,7 @@ class FunSessionDeauth(SessionedFunction):
 
 
 class FunServerListFunctions(Function):
-    rpcname = 'server_list_functions'
+    extname = 'server_list_functions'
     params = []
     returns = ExtList(ExtString)
     desc = 'Return a list of function names available on this server.'
@@ -118,6 +118,26 @@ class FunServerListFunctions(Function):
     
     def do(self):
         return self.api.get_all_function_names()
+
+class FunServerDocumentation(Function):
+    extname = "server_documentation"
+    params = [("function", ExtFunctionName, "Name of function to document")]
+    returns = ExtString
+    desc = "Returns a text-version of the documentation for a function."
+    
+    def do(self):
+        return self.server.documentation.function_as_text(self.api.version, self.function)
+
+class FunServerFunctionDefinition(Function):
+    extname = "server_function_definition"
+    params = [("function", ExtFunctionName, "Name of function to document")]
+    returns = ExtDocFunction
+    desc = "Returns a structured definition of the named function"
+    
+    def do(self):
+        t = self.server.documentation.function_as_struct(self.api.version, self.function)
+        print t
+        return t
 
 dummy = """
 class ExtStructItemDocdictType(ExtStruct):

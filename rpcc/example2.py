@@ -51,6 +51,9 @@ class AllowAfterLunch(access.Guard):
 
 
 class ExtPerson(ExtString):
+    name = "person"
+    desc = "ID of a person in the system"
+
     def lookup(self, fun, cval):
         return fun.person_manager.get_person(cval)
 
@@ -58,6 +61,9 @@ class ExtPerson(ExtString):
         return obj.oid
 
 class ExtAccount(ExtString):
+    name = "account"
+    desc = "ID of an account in the system"
+
     def lookup(self, fun, cval):
         return fun.account_manager.get_account(cval)
 
@@ -254,6 +260,54 @@ class AccountManager(Manager):
         return "a.ucid_owner"
 
 
+###
+# Complex types and functions that only serve to test documentation code.
+###
+class ExtCharacter(ExtEnum):
+    name = "character"
+    desc = "A character from comic books"
+    values = ["scrooge", "donald", "minnie", "batman"]
+
+class ExtName(ExtString):
+    name = "name"
+    desc = "A person's name"
+    maxlen = 40
+    regexp = '\w+'
+
+class ExtAge(ExtInteger):
+    name = "age"
+    range = (18, 150)
+
+class ExtPersonalInfo(ExtStruct):
+    name = "personal-info"
+    desc = "Very personal information"
+
+    mandatory = {
+        "firstname": (ExtName, "Firstname"),
+        "lastname": (ExtName, "Lastname, given name or surname"),
+        "age": ExtAge,
+        }
+
+    optional = {
+        "identifies_with": ExtList(ExtCharacter),
+        # "friends" added below - self recursion.
+        }
+
+ExtPersonalInfo.optional["friends"] = (ExtList(ExtPersonalInfo), "Who would be invited to their 40th birthday party?")
+
+class FunWhackAPerson(Function):
+    extname = "whack_a_person"
+    params = [("whackee", ExtPerson),
+              ("whacker", ExtPerson, "The one which whacks the whackee"),]
+    returns = (ExtList(ExtPersonalInfo), "Very personal info about everyone who is interesing in the system")
+    desc = """
+This function whacks. A whacker will whack a whackee, until no whacking remains in the whacker's soul.
+
+Once properly whacked, the function returns interesting data about people in the system that it likes."""
+
+    def do(self):
+        raise NotImplementedError("It's not a real function, buddy.")
+
 class MyServer(server.Server):
     authenticator_class = authenticator.NullAuthenticator
     database_class = database.OracleDatabase
@@ -262,6 +316,7 @@ class MyServer(server.Server):
 
 srv = MyServer("venus.ita.chalmers.se", 12121)
 srv.register_function(FunPersonGetName)
+srv.register_function(FunWhackAPerson)
 srv.register_manager(AccountManager)
 srv.register_manager(PersonManager)
 #srv.register_model(Account)
