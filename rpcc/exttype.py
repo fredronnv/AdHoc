@@ -424,7 +424,7 @@ class ExtInteger(ExtType):
 
         if self.range:
             if rawval < self.range[0] or rawval > self.range[1]:
-                raise ExtIntegerOutOfRangeError(self.range, value=val)
+                raise ExtIntegerOutOfRangeError(self.range, value=rawval)
 
     # SOAP
     def xsd(self):
