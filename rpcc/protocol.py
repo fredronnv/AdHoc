@@ -16,13 +16,13 @@ from response import HTTPResponse
 import exterror
 
 
-class ProtocolHandler(object):
+class Protocol(object):
     """An object which handles communications of a certain kind.
 
     Incoming HTTP requests are decoded into a path, optional data and
     optional header fields, which are then sent to the Server
     instance for dispatch. The Server uses available data to choose an 
-    ProtocolHandler subclass instance, and passes the request on to that 
+    Protocol subclass instance, and passes the request on to that 
     handler's .request() method.
 
     That method then decodes the request according to the rules
@@ -55,10 +55,10 @@ class ProtocolHandler(object):
         return ('text/html', None, "<h1>Default response</h1>(invalid HTML)")
 
 
-class StaticDocumentHandler(ProtocolHandler):
+class StaticDocumentProtocol(Protocol):
     def __init__(self, docroot):
         self.docroot = docroot
-        ProtocolHandler.__init__(self)
+        Protocol.__init__(self)
 
     def request(self, httphandler, path, data):
         """Returns a document from the docroot, replacing
@@ -158,7 +158,24 @@ class StaticDocumentHandler(ProtocolHandler):
         return funobj.html_documentation()
 
 
-class FunctionDefinitionProtocolHandler(ProtocolHandler):
+class FunctionDefinitionProtocol(Protocol):
+    def request(self, httphandler, path, data):
+        # [/api/]3/funname
+        pathcomp = path.split("/")
+        
+        if len(pathcomp) == 1 and pathcomp[0] == "api.css":
+            s = self.server.documentation.css_for_html()
+            return HTTPResponse(s.encode("utf-8"), ctype="text/css", encoding="utf-8")
+        if len(pathcomp) == 2:
+            apivers = int(pathcomp[0])
+            funname = pathcomp[1]
+            s = self.server.documentation.function_as_html(apivers, funname)
+            print s
+            return HTTPResponse(s.encode("utf-8"), ctype="text/html", encoding="utf-8")
+        print "XXX", pathcomp
+        
+
+class XXXFunctionDefinitionProtocol(Protocol):
     def request(self, httphandler, path, data):
         # Takes a path of format:
         #   "" (lists all API versions)
@@ -223,7 +240,7 @@ class FunctionDefinitionProtocolHandler(ProtocolHandler):
         return HTTPResponse(doc, ctype='text/html')
 
 
-class WSDLProtocolHandler(ProtocolHandler):
+class WSDLProtocol(Protocol):
     mscompat = False
     def request(self, httphandler, path, data):
         if not path:
@@ -241,7 +258,7 @@ class WSDLProtocolHandler(ProtocolHandler):
             return HTTPResponse("404 Not Found.", ctype="text/plain", code=404)
 
 
-class MicrosoftWorkaroundWSDLProtocolHandler(WSDLProtocolHandler):
+class MicrosoftWorkaroundWSDLProtocol(WSDLProtocol):
     """Microsoft are a little too clever, and we have to cover for them.
 
     If both the request and the response to a SOAP call contain an
@@ -269,7 +286,7 @@ class MicrosoftWorkaroundWSDLProtocolHandler(WSDLProtocolHandler):
 # To implement Kerberos HTTP SPNEGO authentication, the XMLRPC request handler
 # accepts an incoming "Authorization: Negotiate <token>" header if present. Some
 # clients might need to get a 401 from the same URL to force them into sending
-# this header, so a special ProtocolHandler sends such a response if no
+# this header, so a special Protocol sends such a response if no
 # Authorization: Negotiate header is present and just calls the request handler
 # below otherwise.
 #
@@ -287,7 +304,7 @@ def od(s):
         print chunk.replace("\n", " ").replace("\r", " ").replace("\t", " ")
     print
 
-class XMLRPCProtocolHandler(ProtocolHandler):
+class XMLRPCProtocol(Protocol):
     def request(self, httphandler, path, data):
         response = None
         try:
@@ -322,34 +339,34 @@ class XMLRPCProtocolHandler(ProtocolHandler):
         return HTTPResponse(data=retdata, encoding='iso-8859-1',
                                ctype='application/xml+rpc')
 
-class ApacheXMLRPCProtocolHandler(XMLRPCProtocolHandler):
+class ApacheXMLRPCProtocol(XMLRPCProtocol):
     def request(self, httphandler, path, data):
         data = data.replace('<ex:nil', '<nil')
 
-        resp = XMLRPCProtocolHandler.request(self, httphandler, path, data)
+        resp = XMLRPCProtocol.request(self, httphandler, path, data)
 
         resp.set_data(resp.data.replace('<nil/>', '<ex:nil/>'))
         resp.set_data(resp.data.replace('<methodResponse>', "<methodResponse xmlns:ex='http://ws.apache.org/xmlrpc/namespaces/extensions'>"))
 
         return resp
 
-class KRB5XMLRPCProtocolHandler(XMLRPCProtocolHandler):
+class KRB5XMLRPCProtocol(XMLRPCProtocol):
     def request(self, httphandler, path, data):
         if not httphandler.headers.has_key('authorization'):
             return HTTPResponse(code=401, data="<h1>401 Authentication Required</h1>",
                                    headers=[('WWW-Authentication', 'Negotiate')],
                                    ctype="text/html")
 
-        return XMLRPCProtocolHandler.request(self, httphandler, path, data)
+        return XMLRPCProtocol.request(self, httphandler, path, data)
 
-class KRB5ApacheXMLRPCProtocolHandler(ApacheXMLRPCProtocolHandler):
+class KRB5ApacheXMLRPCProtocol(ApacheXMLRPCProtocol):
     def request(self, httphandler, path, data):
         if not httphandler.headers.has_key('authorization'):
             return HTTPResponse(code=401, data="<h1>401 Authentication Required</h1>",
                                    headers=[('WWW-Authentication', 'Negotiate')],
                                    ctype="text/html")
 
-        return ApacheXMLRPCProtocolHandler.request(self, httphandler, path, data)
+        return ApacheXMLRPCProtocol.request(self, httphandler, path, data)
 
 # JSON is a QUITE much smaller encoding format with the same
 # properties as XMLRPC (undeclared encoding of strings, numbers,
@@ -373,7 +390,7 @@ class KRB5ApacheXMLRPCProtocolHandler(ApacheXMLRPCProtocolHandler):
 # This eases development with PHP, where prepending a session argument
 # leads to ugly code.
 
-class JSONProtocolHandler(ProtocolHandler):
+class JSONProtocol(Protocol):
     def request(self, httphandler, path, data):
         response = None
         try:
@@ -404,7 +421,7 @@ class JSONProtocolHandler(ProtocolHandler):
                             ctype='application/json')
 
             
-class SOAPProtocolHandler(ProtocolHandler):
+class SOAPProtocol(Protocol):
     mscompat = False
     
     def tag(self, domelem):
@@ -515,7 +532,7 @@ class SOAPProtocolHandler(ProtocolHandler):
         
         return HTTPResponse(data=retxml, encoding="UTF-8", ctype="text/xml")
 
-class KRB5SOAPProtocolHandler(SOAPProtocolHandler):
+class KRB5SOAPProtocol(SOAPProtocol):
     def request(self, httphandler, path, data):
         if not httphandler.headers.has_key('authorization'):
             return HTTPResponse(code=401, data="<h1>401 Authentication Required</h1>",
@@ -523,4 +540,4 @@ class KRB5SOAPProtocolHandler(SOAPProtocolHandler):
                                    ctype="text/html")
 
         path = path.replace("spnego+", "")
-        return SOAPProtocolHandler.request(self, httphandler, path, data)
+        return SOAPProtocol.request(self, httphandler, path, data)

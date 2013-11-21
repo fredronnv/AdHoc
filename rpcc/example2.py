@@ -263,50 +263,48 @@ class AccountManager(Manager):
 ###
 # Complex types and functions that only serve to test documentation code.
 ###
-class ExtCharacter(ExtEnum):
-    name = "character"
-    desc = "A character from comic books"
-    values = ["scrooge", "donald", "minnie", "batman"]
+class ExtStringSample(ExtString):
+    name = "string-sample"
+    desc = "A sample of a string"
+    regexp = "[sample]+"
+    maxlen = 33
 
-class ExtName(ExtString):
-    name = "name"
-    desc = "A person's name"
-    maxlen = 40
-    regexp = '\w+'
+class ExtIntegerSample(ExtInteger):
+    name = "integer-sample"
+    desc = "An integer sample"
+    range = (1, 11)
 
-class ExtAge(ExtInteger):
-    name = "age"
-    range = (18, 150)
+class ExtEnumSample(ExtEnum):
+    name = "enum-sample"
+    desc = "A sample of an enum"
+    values = ["value1", "value2", "value3", "value4"]
 
-class ExtPersonalInfo(ExtStruct):
-    name = "personal-info"
-    desc = "Very personal information"
-
+class ExtStructSample(ExtStruct):
+    name = "struct-sample"
+    desc = "A sample of a struct"
     mandatory = {
-        "firstname": (ExtName, "Firstname"),
-        "lastname": (ExtName, "Lastname, given name or surname"),
-        "age": ExtAge,
+        "string": (ExtStringSample, "Mandatory string"),
+        "integer": (ExtIntegerSample, "Mandatory integer"),
+        "bool": ExtBoolean,
+        "or_null": ((ExtOrNull(ExtEnumSample), "Mandatory or-null enum")),
         }
 
     optional = {
-        "identifies_with": ExtList(ExtCharacter),
-        # "friends" added below - self recursion.
+        "null": (ExtNull, "Optional null"),
         }
 
-ExtPersonalInfo.optional["friends"] = (ExtList(ExtPersonalInfo), "Who would be invited to their 40th birthday party?")
+ExtStructSample.optional["self"] = (ExtStructSample, "A value of its own type")
 
-class FunWhackAPerson(Function):
-    extname = "whack_a_person"
-    params = [("whackee", ExtPerson),
-              ("whacker", ExtPerson, "The one which whacks the whackee"),]
-    returns = (ExtList(ExtPersonalInfo), "Very personal info about everyone who is interesing in the system")
-    desc = """
-This function whacks. A whacker will whack a whackee, until no whacking remains in the whacker's soul.
-
-Once properly whacked, the function returns interesting data about people in the system that it likes."""
+class FunDoctest(Function):
+    extname = "doctest"
+    params = [("first_string", ExtStringSample),
+              ("second_string", ExtString, "A second string of the generic type"),
+              ]
+    returns = (ExtList(ExtStructSample), "A sample struct returned")
 
     def do(self):
-        raise NotImplementedError("It's not a real function, buddy.")
+        pass
+
 
 class MyServer(server.Server):
     authenticator_class = authenticator.NullAuthenticator
@@ -316,7 +314,7 @@ class MyServer(server.Server):
 
 srv = MyServer("venus.ita.chalmers.se", 12121)
 srv.register_function(FunPersonGetName)
-srv.register_function(FunWhackAPerson)
+srv.register_function(FunDoctest)
 srv.register_manager(AccountManager)
 srv.register_manager(PersonManager)
 #srv.register_model(Account)

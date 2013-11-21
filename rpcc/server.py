@@ -104,14 +104,14 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     # method yourself.
     
     default_protocol_handlers = [
-        ('/RPC2', protocol.XMLRPCProtocolHandler),
-        ('/xmlrpc', protocol.XMLRPCProtocolHandler),
-        #('__POST__', protocol.XMLRPCProtocolHandler),
-        ('/apache-xmlrpc', protocol.ApacheXMLRPCProtocolHandler),
-        ('/json', protocol.JSONProtocolHandler),
-        ('/WSDL', protocol.WSDLProtocolHandler),
-        ('/SOAP', protocol.SOAPProtocolHandler),
-        ('/functions', protocol.FunctionDefinitionProtocolHandler),
+        ('/RPC2', protocol.XMLRPCProtocol),
+        ('/xmlrpc', protocol.XMLRPCProtocol),
+        #('__POST__', protocol.XMLRPCProtocol),
+        ('/apache-xmlrpc', protocol.ApacheXMLRPCProtocol),
+        ('/json', protocol.JSONProtocol),
+        ('/WSDL', protocol.WSDLProtocol),
+        ('/SOAP', protocol.SOAPProtocol),
+        ('/api', protocol.FunctionDefinitionProtocol),
 
         #('/spnego+xmlrpc', RPCKRB5XMLRPCProtocolHandler),
         #('/spnego+apache-xmlrpc', RPCKRB5ApacheXMLRPCProtocolHandler),
@@ -427,7 +427,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         """
         
         try:
-            if issubclass(handler, protocol.ProtocolHandler):
+            if issubclass(handler, protocol.Protocol):
                 handler = handler()
         except TypeError:
             pass
