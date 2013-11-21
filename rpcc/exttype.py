@@ -241,32 +241,6 @@ class ExtType(object):
             node.new('annotation').new('documentation').cdata(XMLNode.escape(self.desc))
         return node
 
-    def _typedef(self, dummystack=[]):
-        if self.name:
-            if self.desc:
-                desc = '   # %s' % (self.desc,)
-            else:
-                desc = ''
-            return ('<%s>' % (self.name,), [('<%s>' % (self.name,), '%s%s' % (self._typedef_inline(), desc))])
-        else:
-            return (self._typedef_inline(), [])
-
-    def _typedef_doc(self):
-        (myname, defs) = self._typedef()
-        if not defs:
-            return (myname, '')
-        maxlen = max([len(a[0]) for a in defs])
-        l = []
-        lefts = {}
-        defs.reverse()
-        for (left, right) in defs:
-            if lefts.has_key(left):
-                continue
-            lefts[left] = True
-            l.append('%-*s ::= %s' % (maxlen, left, right))
-        l.reverse()
-        return (myname, '\n\n'.join(l))
-
     @classmethod
     def _namevers(cls):
         if cls.to_version == 1000000:
@@ -397,27 +371,6 @@ class ExtString(ExtType):
         element.cdata(value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
 
-    def _typedef_inline(self, dummystack=[]):
-        inl = "<string"
-        if self.maxlen:
-            inl += " len<=%d" % (self.maxlen,)
-        if self.regexp:
-            inl += " regexp " + self.regexp
-        return inl + ">"
-
-    def _docdict(self, parent_names=[]):
-        d = {'dict_type': 'string-type',
-             'name': self._name(),
-             'description': self.desc}
-
-        if self.regexp is not None:
-            d['regexp'] = self.regexp
-
-        if self.maxlen is not None:
-            d['maxlen'] = self.maxlen
-
-        return d
-
 
 ###
 # Enumeration
@@ -444,16 +397,6 @@ class ExtEnum(ExtString):
         for v in self.values:
             res.new('enumeration', value=v)
         return xsd
-
-
-    def _typedef_inline(self, dummystack=[]):
-        return '<string enum %s>' % ("|".join(self.values),)
-
-    def _docdict(self, parent_names=[]):
-        return {'dict_type': 'enum-type',
-                'name': self.name,
-                'description': self.desc,
-                'values': self.values}
 
     def check(self, function, rawval):
         if rawval not in self.values:
@@ -501,24 +444,6 @@ class ExtInteger(ExtType):
     def to_xml(self, element, value):
         element.cdata('%d' % (value,))
 
-
-    def _typedef_inline(self, dummystack=[]):
-        if self.range:
-            return '<integer range %d-%d>' % self.range
-        else:
-            return '<integer>'
-
-    def _docdict(self, parent_names=[]):
-        d = {'dict_type': 'integer-type',
-             'name': self.name,
-             'description': self.desc}
-
-        if self.range:
-            d['min_value'], d['max_value'] = self.range
-
-        return d
-
-
 ###
 # Boolean
 #
@@ -557,15 +482,6 @@ class ExtBoolean(ExtType):
         else:
             element.cdata("false")
 
-    def _typedef_inline(self, dummystack=[]):
-        return '<boolean>'
-
-    def _docdict(self, parent_names=[]):
-        return {'dict_type': 'boolean-type',
-                'name': self.name,
-                'description': self.desc }
-
-
 class ExtNull(ExtType):
     name = 'null'
     #desc = 'Null type'
@@ -596,14 +512,6 @@ class ExtNull(ExtType):
             raise ExtInternalError("Expected None, got %s instead" % (value,))
         element.new("null")
 
-    def _typedef_inline(self, dummystack=[]):
-        return '<null>'
-
-    def _docdict(self, parent_names=[]):
-        return {'dict_type': 'null-type',
-                'name': self.name}
-        
-
 class _StructMetaClass(type):
     """By having ExtStructType be a class of this meta-class, a
     class-attribute "optional" or "mandatory" is created upon first
@@ -620,7 +528,6 @@ class _StructMetaClass(type):
         else:
             return type.__getattr__(cls, attr)
         
-
 ###
 # Struct
 #
@@ -884,127 +791,6 @@ class ExtStruct(ExtType):
             optelem = elem.new("optionals")
             out(optelem, sorted(opt), self.optional)
 
-    def _typedef_inline(self, stack=[]):
-        if type(self) in stack:
-            # Recursive data type has reached itself.
-            #sys.stderr.write(self.name +' : ['+ ','.join([str(s) for s in stack]) +']\n')
-            #sys.stderr.flush()
-            
-            return '<...>'
-
-        l = []
-        names = self.mandatory.keys()
-        names.sort()
-        for name in names:
-            typ = self.mandatory[name]
-            to = ExtType.instance(typ)
-            l.append('%s = %s' % (name, to._typedef_inline(stack + [type(self)])))
-        names = self.optional.keys()
-        names.sort()
-        for name in names:
-            typ = self.optional[name]
-            to = ExtType.instance(typ)
-            l.append('(%s) = %s' % (name, to._typedef_inline(stack + [type(self)])))
-        return '{' + ', '.join(l) + '}'
-
-    def _typedef(self, stack=[]):
-        if type(self) in stack:
-            # Recursive struct data type that has reached itself.
-            return ('<%s>' % (self.name,), [])
-
-        if not self.name:
-            raise TypeError, "Structs may not be anonymous, set .name in subclass"
-
-        # extras is the subtypes used in the definition, that needs to be
-        # defined afterwards.
-        extras = []
-
-        # defs is the (name, type_def) list for all struct members.
-        defs = []
-
-        names = self.mandatory.keys()
-        names.sort()
-        for name in names:
-            typ = self.mandatory[name]
-            if isinstance(typ, tuple):
-                to, desc = ExtType.instance(typ[0]), typ[1]
-            else:
-                to, desc = ExtType.instance(typ), ""
-
-            (inline, extra) = to._typedef(stack + [type(self)])
-            extras += extra
-            if desc:
-                defs.append( (name, inline + "  # " + desc) )
-            else:
-                defs.append( (name, inline) )
-
-        names = self.optional.keys()
-        names.sort()
-        for name in names:
-            typ = self.optional[name]
-            if isinstance(typ, tuple):
-                to = ExtType.instance(typ[0])
-                desc = typ[1]
-            else:
-                to = ExtType.instance(typ)
-                desc = ''
-            (inline, extra) = to._typedef(stack + [type(self)])
-            extras += extra
-            if desc:
-                defs.append( ('(%s)' % (name,), inline + "  # " + desc) )
-            else:
-                defs.append( ('(%s)' % (name,), inline) )
-
-        if defs:
-            maxlen = max([len(a[0]) for a in defs])
-
-        if self.desc:
-            expl = 'struct {   # %s\n   ' % (self.desc,)
-        else:
-            expl = 'struct {\n   '
-
-        expl += '\n   '.join(['%-*s = %s' % (maxlen, a[0], a[1]) for a in defs]) + '\n  }'
-        extras = [('<%s>' % (self.name), expl)] + extras
-
-        return ('<%s>' % (self.name), extras)
-
-    def _docdict(self, parent_names=[]):
-        if self.name in parent_names:
-            return {'dict_type': 'recursion-marker',
-                    'name': self.name}
-        
-        d = {'dict_type': 'struct-type',
-             'name': self.name,
-             'description': self.desc,
-             'mandatory': [],
-             'optional': []}
-
-        keys = self.mandatory.keys()
-        keys.sort()
-        keylist = [('mandatory', i) for i in keys]
-
-        keys = self.optional.keys()
-        keys.sort()
-        keylist += [('optional', i) for i in keys]
-
-        for (where, key) in keylist:
-            subtyp = getattr(self, where)[key]
-            if isinstance(subtyp, tuple):
-                typobj, desc = ExtType.instance(subtyp[0]), subtyp[1]
-            else:
-                typobj, desc = ExtType.instance(subtyp), None
-                
-            t = {'dict_type': 'struct-item',
-                 'name': key,
-                 'type': typobj._docdict(parent_names + [self.name]),
-                 'description': desc,
-                 'optional': (where == 'optional')}
-            
-            d[where].append(t)
-
-        return d
-             
-
 ###
 # OrNull
 #
@@ -1091,18 +877,6 @@ class ExtOrNull(ExtType):
             return ExtType.instance(self.typ).from_xml(child)
         else:
             raise ExtSOAPUnexpectedElementError(elem, "Only <set> or <notSet> expected.")
-
-    def _typedef_inline(self, dummystack=[]):
-        return '(' + ExtType.instance(self.typ)._typedef_inline() + '|<null>)'
-
-    def _typedef(self, dummystack=[]):
-        inline, extras = ExtType.instance(self.typ)._typedef()
-        return ('(' + inline + '|<null>)', extras)
-
-    def _docdict(self, parent_names=[]):
-        return {'dict_type': 'ornull-type',
-                'otherwise': ExtType.instance(self.typ)._docdict(parent_names+[self.name])}
-    
 
 class ExtList(ExtType):
     typ = None
@@ -1209,32 +983,6 @@ class ExtList(ExtType):
             child = element.new(self.item_tag())
             typ.to_xml(child, subval)
 
-    def _typedef_inline(self, stack=[]):
-        if type(self) in stack:
-            return ('***', [])
-
-        if not self.typ:
-            raise ValueError(str(self))
-        return '[' + ExtType.instance(self.typ)._typedef_inline(stack + [type(self)]) + ', ...]'
-
-    def _typedef(self, stack=[]):
-        # List of type that is already defined.
-        if type(self) in stack:
-            return ("[<%s>, ...]" % (self.typ.name), [])
-
-        if not self.typ:
-            raise ValueError(str(self))
-
-        inline, extra = ExtType.instance(self.typ)._typedef(stack + [type(self.typ)])
-        return ('[' + inline + ', ...]', extra)
-
-    def _docdict(self, parent_names=[]):
-        d = {'dict_type': 'list-type',
-             'name': self.name,
-             'description': self.desc,
-             'value_type': ExtType.instance(self.typ)._docdict(parent_names+[self.name])}
-
-        return d
 
 if __name__ == '__main__':
     class ExtName03(ExtString):

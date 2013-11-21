@@ -136,7 +136,6 @@ class FunServerFunctionDefinition(Function):
     
     def do(self):
         t = self.server.documentation.function_as_struct(self.api.version, self.function)
-        print t
         return t
 
 dummy = """

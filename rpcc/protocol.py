@@ -166,79 +166,15 @@ class FunctionDefinitionProtocol(Protocol):
         if len(pathcomp) == 1 and pathcomp[0] == "api.css":
             s = self.server.documentation.css_for_html()
             return HTTPResponse(s.encode("utf-8"), ctype="text/css", encoding="utf-8")
+
         if len(pathcomp) == 2:
             apivers = int(pathcomp[0])
             funname = pathcomp[1]
             s = self.server.documentation.function_as_html(apivers, funname)
-            print s
             return HTTPResponse(s.encode("utf-8"), ctype="text/html", encoding="utf-8")
+
         print "XXX", pathcomp
         
-
-class XXXFunctionDefinitionProtocol(Protocol):
-    def request(self, httphandler, path, data):
-        # Takes a path of format:
-        #   "" (lists all API versions)
-        #   "/overview" (shows API versions and where every function was changed)
-        #   "/funname" (function documentation of funname, API version 0)
-        #   "/v<int>" (lists all function of API version <int>)
-        #   "/v<int>/funname" (documentation for funname, API version <int>)
-
-        if not path:
-            doc = "<html><head><title>Choose API version</title></head>"
-            doc += "<body><h2>Choose API version</h2><dl>"
-            for (version, comment) in self.server.api_handler.list_all_versions():
-                doc += '<dt><a href="/functions/v%d">Version %d</a></dt>' % (version, version)
-                if comment:
-                    doc += '<dd>%s</dd>' % (comment,)
-            doc += "</body></html>"
-            return HTTPResponse(doc, ctype="text/html")
-
-        components = path.split("/")
-
-        try:
-            if components[0].startswith('v'):
-                api_version_str = components.pop(0)[1:]
-            else:
-                api_version_str = "0"
-
-            api = self.server.api_handler.get_api(int(api_version_str))
-        except:
-            doc = "<html><head><title>Error</title></head><body>"
-            doc += "<h4>No API version %s defined</h4>" % (api_version_str,)
-            doc += "</body></html>"
-            return HTTPResponse(doc, ctype="text/html")
-
-        try:
-            if components:
-                funname = components.pop(0)
-                funobj = api.get_function_object(funname, httphandler)
-            else:
-                funname = None
-                funobj = None
-        except:
-            doc = "<html><head><title>Error</title></head><body>"
-            doc += "<h4>No function %s defined in version %d of the API</h4>" % (funname, api.version)
-            doc += "</body></html>"
-            return HTTPResponse(doc, ctype="text/html")
-
-        if funname:
-            doc = '<html><head><title>Definition of %s for API v%d</title>' % (funname, api.version)
-            doc += '<link rel="stylesheet" type="text/css" href="/xmlrpc.css">'
-            doc += '</head><body>'
-            doc += funobj.html_documentation()
-            doc += '</body></html>'
-        else:
-            doc = '<html><head><title>Listing of available functions for API v%d</title>' % (api.version,)
-            doc += '<link rel="stylesheet" type="text/css" href="/xmlrpc.css">'
-            doc += '</head><body>'
-            doc += '<h1>List of all available functions in API v%d</h1><ul>' % (api.version,)
-            for name in api.get_all_function_names():
-                doc += '<li><a href="/functions/v%d/%s">%s()</a>' % (api.version, name, name)
-            doc += '</ul></body></html>'
-
-        return HTTPResponse(doc, ctype='text/html')
-
 
 class WSDLProtocol(Protocol):
     mscompat = False
