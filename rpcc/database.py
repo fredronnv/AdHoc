@@ -52,8 +52,10 @@ except:
 
 
 class DatabaseError(Exception):
-    pass
-
+    def __init__(self, msg, inner=None):
+        Exception.__init__(self, msg)
+        if inner:
+            self.inner = inner
 
 class LinkClosedError(DatabaseError):
     pass
@@ -66,6 +68,15 @@ class IntegrityError(DatabaseError):
 class ProgrammingError(DatabaseError):
     pass
 
+class InvalidIdentifierError(ProgrammingError):
+    def __init__(self, idf, **kwargs):
+        ProgrammingError.__init__(self, "Invalid identifier: " + idf, **kwargs)
+        self.identifier = idf
+
+class InvalidTableError(ProgrammingError):
+    def __init__(self, tbl, **kwargs):
+        ProgrammingError.__init__(self, "Invalid table name: " + tbl, **kwargs)
+        self.table = tbl
 
 class DatabaseIterator(object):
     """A DatabaseIterator supplies on-the-fly translation of database-
@@ -376,6 +387,20 @@ class OracleIterator(DatabaseIterator):
 class OracleLink(DatabaseLink):
     iterator_class = OracleIterator
     query_class = OracleDynamicQuery
+
+    def exception(self, inner):
+        if isinstance(inner, cx_Oracle.DatabaseError):
+            err = inner.args[0]
+            if err.code == 904:
+                idf = err.message.split('"')[1]
+                raise InvalidIdentifierError(idf, inner=inner)
+            if err.code == 942:
+                raise InvalidTableError("?", inner=inner)
+            print "CODE:", err.code
+            print "CONTEXT:", err.context
+            print "MESSAGE:", err.message
+            print "OFFSET:", err.offset
+        raise
 
     def insert(self, insert_col, query, **kwargs):
         if not self.open:
