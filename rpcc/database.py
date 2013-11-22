@@ -40,6 +40,8 @@ import threading
 import datetime
 import re
 
+import default_tables
+
 try:
     import cx_Oracle
 except:
@@ -57,15 +59,23 @@ class DatabaseError(Exception):
         if inner:
             self.inner = inner
 
-class LinkClosedError(DatabaseError):
-    pass
+class LinkError(DatabaseError):
+    """There is an error with the database link (i.e. no error with
+    the SQL or the data), for example a database that has stopped
+    responding."""
 
 
 class IntegrityError(DatabaseError):
+    """There was an error in the data or the use of it (e.g. referencing
+    a foreign key that doesn't exist or trying to create duplicate keys
+    in unique columns)."""
     pass
 
 
 class ProgrammingError(DatabaseError):
+    """There was an error in the way the programmer uses the database 
+    (e.g. an SQL syntax error, or the attempted use of a non-existant
+    database or column name."""
     pass
 
 class InvalidIdentifierError(ProgrammingError):
@@ -77,6 +87,7 @@ class InvalidTableError(ProgrammingError):
     def __init__(self, tbl, **kwargs):
         ProgrammingError.__init__(self, "Invalid table name: " + tbl, **kwargs)
         self.table = tbl
+
 
 class DatabaseIterator(object):
     """A DatabaseIterator supplies on-the-fly translation of database-
@@ -368,6 +379,7 @@ class OracleDynamicQuery(DynamicQuery):
         self.where("ROWNUM < " + self.var(limit))
         DynamicQuery.limit(self, limit)
 
+
 class OracleIterator(DatabaseIterator):
     def convert(self, row):
         ret = None
@@ -435,6 +447,11 @@ class OracleDatabase(Database):
         self.password = password or self.server.config("DB_PASSWORD")
         self.database = database or self.server.config("DB_DATABASE")
         self.pool = []
+
+    def check_rpcc_tables(self):
+        lnk = self.get_link()
+        default_tables.check_default_oracle_tables(lnk)
+        self.return_link(lnk)
 
     def get_link(self):
         with self.lock:
@@ -527,6 +544,11 @@ class MySQLDatabase(Database):
         if link.intrans:
             link.rollback()
         link.close()
+
+    def check_rpcc_tables(self):
+        lnk = self.get_link()
+        default_tables.check_default_mysql_tables(lnk)
+        self.return_link(lnk)
 
 
 if __name__ == '__main__':

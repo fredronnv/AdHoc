@@ -320,4 +320,11 @@ srv.register_manager(PersonManager)
 #srv.register_model(Account)
 #srv.register_model(Person)
 srv.generate_model_stuff()
+
+import default_tables
+lnk = srv.database.get_link()
+default_tables.create_default_oracle_tables(lnk)
+srv.database.return_link(lnk)
+raise SystemExit()
+
 srv.serve_forever()

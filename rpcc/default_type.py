@@ -146,3 +146,9 @@ class ExtDocFunction(ExtStruct):
     optional = {
         "description": ExtString,
         }
+
+class ExtMutex(ExtString):
+    name = "mutex"
+    desc = "A mutex, identified by its name"
+
+    

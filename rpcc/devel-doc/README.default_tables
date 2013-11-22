@@ -24,13 +24,61 @@ CREATE TABLE rpcc_result (
 CREATE TABLE rpcc_result_string (
   resid INTEGER NOT NULL,
   FOREIGN KEY (resid) REFERENCES rpcc_result(resid),
-  value VARCHAR(128)
+  value VARCHAR2(128)
 );
 
 CREATE TABLE rpcc_result_int (
   resid INTEGER NOT NULL,
   FOREIGN KEY (resid) REFERENCES rpcc_result(resid),
   value INTEGER
+);
+
+CREATE TABLE rpcc_mutex (
+  id INTEGER NOT NULL PRIMARY KEY,
+  name VARCHAR2(64) NOT NULL,
+  holder_session VARCHAR2(40),
+  holder_public CHAR,
+  last_change TIMESTAMP,
+  stolen CHAR
+);
+
+CREATE UNIQUE INDEX rpcc_idx_mutex_name ON rpcc_mutex(name);
+
+CREATE SEQUENCE rpcc_seq_mutex_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_mutex_id
+BEFORE INSERT ON rpcc_mutex
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_mutex_id.nextval INTO :new.id FROM DUAL;
+  SELECT SYSDATE INTO :new.last_change FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_mutex_var (
+  id INTEGER NOT NULL PRIMARY KEY,
+  mutex_id INTEGER NOT NULL,
+    FOREIGN KEY (mutex_id) REFERENCES rpcc_mutex(id),
+  name VARCHAR2(64) NOT NULL,
+  collection CHAR NOT NULL
+);
+
+CREATE UNIQUE INDEX rpcc_idx_mutvar_name ON rpcc_mutex_var(name);
+
+CREATE SEQUENCE rpcc_seq_mutvar_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_mutvar_id
+BEFORE INSERT ON rpcc_mutex_var
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_mutvar_id.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_mutex_var_val (
+  var INTEGER NOT NULL,
+    FOREIGN KEY (var) REFERENCES rpcc_mutex_var(id),
+  value VARCHAR2(256) NOT NULL
 );
 
 

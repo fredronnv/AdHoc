@@ -74,12 +74,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     handler_class = request_handler.RawRequestHandler
 
-    session_store_class = session.SessionStore
-
-    authenticator_class = authenticator.Authenticator
-
-    database_class = None
-
     manager_classes = []
 
     model_classes = []
@@ -127,13 +121,10 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     envvar_prefix = "RPCC_"
 
     def __init__(self, address, port, ssl_config=None, handler_class=None):
-        self.session_store = self.session_store_class(self)
-        self.authenticator = self.authenticator_class(self)
-
-        if self.database_class:
-            self.database = self.database_class(self)
-        else:
-            self.database = None
+        self.session_store = None
+        self.authenticator = None
+        self.database = None
+        self.digs_n_updates = False
 
         self.manager_by_name = {}
         for cls in self.manager_classes:
@@ -179,12 +170,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         self.add_default_protocol_handlers()
         self.register_default_functions()
         self.documentation = documentation.Documentation(self)
-
-    ###
-    # Optional subsystems.
-    ###
-    def enable_static_documents(self, docroot):
-        self.add_protocol_handler('__GET__', protocol.StaticDocumentHandler(docroot))
 
     def config(self, varname, **kwargs):
         envvar = (self.envvar_prefix + varname).upper()
@@ -488,37 +473,52 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         raise LookupError("No protocol handler found for request path " + path)
 
-    def register_default_functions(self):
+    ###
+    # Optional subsystems.
+    ###
+    def enable_static_documents(self, docroot):
+        self.add_protocol_handler('__GET__', protocol.StaticDocumentHandler(docroot))
+
+    def enable_sessions(self, session_store_class):
+        self.session_store = session_store_class(self)
         self.register_function(default_function.FunSessionStart)
         self.register_function(default_function.FunSessionStop)
+        self.register_function(default_function.FunSessionInfo)
+
+    def enable_authentication(self, authenticator_class):
+        if not self.session_store:
+            raise ValueError("Sessions need to be enabled in order to enable authentication")
+
+        self.authenticator = authenticator_class(self)
         self.register_function(default_function.FunSessionAuthLogin)
         self.register_function(default_function.FunSessionDeauth)
-        self.register_function(default_function.FunSessionInfo)
+
+    def enable_mutexes(self, mutex_manager_class):
+        self.register_manager(mutex_manager_class)
+        self.register_function(default_function.FunMutexAcquire)
+        self.register_function(default_function.FunMutexRelease)
+        self.register_function(default_function.FunMutexStatus)
+
+    def enable_database(self, database_class):
+        self.database = database_class(self)
+
+    def enable_documentation(self):
         self.register_function(default_function.FunServerListFunctions)
         self.register_function(default_function.FunServerDocumentation)
         self.register_function(default_function.FunServerFunctionDefinition)
 
-    #def enable_default_sessions(self):
-    #    self.register_class(StartSessionFun)
-    #    self.register_class(StopSessionFun)
-    #    self.register_class(SessionInfoFun)
-
-    #def enable_default_auth(self):
-    #    self.register_class(Sys_Login)
-    #    self.register_class(Sys_Logout)
-
-    def enable_default_introspection(self):
-        self.register_class(Sys_ListFunctions)
-        self.register_class(Sys_Documentation)
-        self.register_class(Sys_Version)
+    def enable_digs_and_updates(self):
+        self.api_handler.generate_model_stuff()
+        self.digs_n_updates = True
 
     ###
     # model.Manager subclasses this server handles. Registered under a
     #    name, which the magic get method in Function uses to create
-    #    singletons (fun.foo_manager will be a singleton of a
-    #    manager class registered under the name 'foo').
+    #    singletons.
     ###
     def register_manager(self, manager_class):
+        if self.digs_n_updates:
+            raise ValueError("You must register all models and managers after digs and updates.")
         self.manager_by_name[manager_class._name()] = manager_class
         modelcls = manager_class.manages
         self.model_by_name[modelcls._name()] = modelcls
@@ -534,10 +534,10 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         return self.manager_by_name.values()
 
     def register_model(self, model_class):
+        if self.digs_n_updates:
+            raise ValueError("You must register all models and managers after digs and updates.")
         self.model_by_name[model_class._name()] = model_class
 
     def get_all_models(self):
         return self.model_by_name.values()
 
-    def generate_model_stuff(self):
-        self.api_handler.generate_model_stuff()
