@@ -307,9 +307,6 @@ class FunDoctest(Function):
 
 
 class MyServer(server.Server):
-    authenticator_class = authenticator.NullAuthenticator
-    database_class = database.OracleDatabase
-    session_store_class = session.DatabaseSessionStore
     envvar_prefix = "XMPL_"
 
 srv = MyServer("venus.ita.chalmers.se", 12121)
@@ -317,14 +314,9 @@ srv.register_function(FunPersonGetName)
 srv.register_function(FunDoctest)
 srv.register_manager(AccountManager)
 srv.register_manager(PersonManager)
-#srv.register_model(Account)
-#srv.register_model(Person)
-srv.generate_model_stuff()
-
-import default_tables
-lnk = srv.database.get_link()
-default_tables.create_default_oracle_tables(lnk)
-srv.database.return_link(lnk)
-raise SystemExit()
-
+srv.enable_database(database.OracleDatabase)
+srv.enable_sessions(session.DatabaseSessionStore)
+srv.enable_authentication(authenticator.NullAuthenticator)
+srv.enable_documentation()
+srv.enable_digs_and_updates()
 srv.serve_forever()

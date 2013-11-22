@@ -168,7 +168,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         self.api_handler = api_handler.APIHandler(self)
 
         self.add_default_protocol_handlers()
-        self.register_default_functions()
         self.documentation = documentation.Documentation(self)
 
     def config(self, varname, **kwargs):
