@@ -1,6 +1,6 @@
 
 
-from exterror import ExtFunctionNotFoundError
+from default_error import ExtNoSuchFunctionError
 from interror import IntAPINotFoundError, IntAPIValidationError
 from function import Function
 from exttype import ExtStruct, ExtList, ExtType, ExtNull

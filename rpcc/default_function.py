@@ -138,124 +138,55 @@ class FunServerFunctionDefinition(Function):
         t = self.server.documentation.function_as_struct(self.api.version, self.function)
         return t
 
-dummy = """
-class ExtStructItemDocdictType(ExtStruct):
-    name = "struct-item-definition"
 
-    mandatory = {
-        "name": (RPCStringType, "Item key/attribute name"),
-        "type": None, # Filled in below due to mutual recursion
-        "description": (RPCStringType, "Item description"),
-        "optional": (RPCBooleanType, "Whether this is an optional type or not")
-        }
+class _MutexFunction(SessionedFunction):
+    params = [("mutex", ExtMutex, "Mutex")]
 
-class Sys_TypeDocdictType(RPCStructType):
-    name = "type-definition"
+class FunMutexAcquire(_MutexFunction):
+    extname = "mutex_acquire"
+    params = [("public_name", ExtString, "This is the name that will be shown as the holder in mutex_info() calls"),
+              ("force", ExtBoolean, "Should the acquisition be forced even if the mutex was already held?")]
+    returns = ExtNull
+    desc = """Attempt to acquire a mutex. 
 
-    mandatory = {
-        "dict_type": (RPCStringType, "Base type of this type definition"),
-        }
+Only one session can hold a particular mutex at any one time. If you pass force=False, the mutex will be acquired by your session only if it was not already held by another session.
 
-    optional = {
-        "name": (RPCStringType, "Type name"),
-        "description": (RPCStringType, "Type description"),
-        "min_value": (RPCIntegerType, "Minimum value (only integer-type)"),
-        "max_value": (RPCIntegerType, "Maximum value (only integer-type)"),
-        "maxlen": (RPCIntegerType, "Maximum length (only string-type)"),
-        "regexp": (RPCStringType, "String regexp pattern (only string-type)"),
-        "values": (RPCListType(RPCStringType), "Permissible values (only enum-type)"),
-        # Filled below due to self-recursion.
-        #"value_type": (Sys_TypeDocdictType, "Element type (only list-type)"),
-        #"otherwise": (Sys_TypeDocdictType, "Value if not null (only ornull-type)"),
-        "mandatory": (RPCListType(Sys_StructItemDocdictType), "List of mandatory items (only struct-type)"),
-        "optional": (RPCListType(Sys_StructItemDocdictType), "List of optional items (only struct-type)"),
-        }
-
-Sys_TypeDocdictType.optional["value_type"] = (Sys_TypeDocdictType, "Element type (only list-type)")
-Sys_TypeDocdictType.optional["otherwise"] = (Sys_TypeDocdictType, "Value if not null (only ornull-type)")
-Sys_StructItemDocdictType.mandatory["type"] = (Sys_TypeDocdictType, "Item type definition")
-
-
-class Sys_ParameterDocdictType(RPCStructType):
-    name = "parameter-definition"
-
-    mandatory = {
-        "name": (RPCStringType, "The parameter name (not used in XMLRPC)"),
-        "desc": (RPCStringType, "Parameter description"),
-        "type": (Sys_TypeDocdictType, "Parameter value definition"),
-        }
-
-class Sys_FunctionDocdictType(RPCStructType):
-    name = "function-definition"
-
-    mandatory = {
-        "name": (RPCStringType, "Public function name"),
-        "description": (RPCStringType, "Function documentation"),
-        "min_api_version": (Sys_APIVersionType, "Minimum API version where this function is available"),
-        "return_type": (Sys_TypeDocdictType, "Return type definition"),
-        "parameters": (RPCListType(Sys_ParameterDocdictType), "Definition of function parameters")
-        }
-
-    optional = {
-        "max_api_version": (Sys_APIVersionType, "Maximum API version where this function is available"),
-        }
-
-class Sys_Documentation(RPCTypedFunction):
-    rpcname = 'server_documentation'
-    desc = "Returns a string containing the documentation of the given function."
-    params = [("function", FunctionNameType, "Function to return documentation for")]
-    rettype = RPCStringType
-    retdesc = "Function documentation as text"
-    grants = None
-    #retdesc = "Documentation of named function as text"
-
-    def typed_do(self):
-        fun = self.api.get_function_object(self.function, self.handler)
-        return fun.documentation()
-    
-
-class Sys_DocumentationStruct(RPCTypedFunction):
-    rpcname = 'server_documentation_struct'
-    desc = "Returns a string containing the documentation of the given function."
-    params = [("function", FunctionNameType, "Function to return documentation for")]
-    rettype = Sys_FunctionDocdictType
-    retdesc = "Function documentation as a structure"
-    grants = None
-
-    def typed_do(self):
-        fun = self.api.get_function_object(self.function, self.handler)
-        return fun.documentation_dict()
-        
-
-class Sys_XmlDocumentation(RPCTypedFunction):
-    rpcname = 'server_xml_documentation'
-    desc = "Returns a XML document containing the documentation of the given function."
-    params = [("function", FunctionNameType, "Function to return documentation for")]
-    rettype = RPCStringType
-    retdesc = "Function documentation as XML"
-    grants = None
-    #retdesc = "Documentation of named function as text"
-
-    def typed_do(self):
-        generator = documentation.DocumentationGenerator()
-        generator.document_function(self.server.functions[self.function])
-        generator.close()
-        return str(generator)
-
-
-class Sys_XmlDocumentationAll(RPCTypedFunction):
-    rpcname = 'server_xml_documentation_all'
-    desc = "Returns a XML document containing the documentation for all functions."
-    params = []
-    rettype = RPCStringType
-    retdesc = "Function documentation as XML"
-    grants = None
-    #retdesc = "Documentation of named function as text"
-
-    def typed_do(self):
-        generator = documentation.DocumentationGenerator()
-        generator.document_functions(self.server.functions)
-        generator.close()
-        return str(generator)
+If the acquisition fails, a MutexHeld error will be returned.
 """
+    def do(self):
+        if not self.mutex.acquire(self.session.id, self.public_name, self.force):
+            raise ExtMutexHeldError()
+
+class FunMutexRelease(_MutexFunction):
+    extname = "mutex_release"
+    params = [("force", ExtBoolean, "Should the acquisition be forced even if the mutex wasn't held by the session calling?")]
+    returns = ExtNull
+    desc = """Attempt to release a mutex. 
+
+If you pass force=False, the mutex will only be released if your session was the current holder of it.
+
+If release fails, a MutexNotHeld error will be returned.
+"""
+    def do(self):
+        if not self.mutex.release(self.session.id, self.force):
+            raise ExtMutexNotHeldError()
+
+class FunMutexInfo(_MutexFunction):
+    extname = "mutex_info"
+    params = []
+    returns = ExtMutexInfo
+    desc = """Get information about a mutex."""
+
+    def do(self):
+        ret = {"mutex": self.mutex,
+               "last_change": self.mutex.last_change,
+               "forced": self.mutex.forced}
+
+        if self.mutex.holder:
+            ret["state"] = "held"
+            ret["holder"] = self.mutex.holder_public or ""
+        else:
+            ret["state"] = "free"
+
+        return ret
 

@@ -232,15 +232,6 @@ class ExtUnknownStructKeyError(ExtMalformedStructError):
 class ExtLookupError(ExtError):
     name = 'LookupError'
 
-class ExtInvalidSessionIDError(ExtLookupError):
-    desc = 'No session by that id is active for this client'
-
-class ExtFunctionNotFoundError(ExtLookupError):
-    desc = 'No function by that name is callable on the server in the api version you selected'
-
-class ExtAPIVersionNotFoundError(ExtLookupError):
-    desc = 'No such API version exists on the server.'
-
 
 
 class ExtTypeError(ExtError):

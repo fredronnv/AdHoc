@@ -122,7 +122,7 @@ class SessionStore(object):
 
     def delete_expired(self, fun):
         for sesnid in self.find_expired(fun):
-            self.destroy_session(sesnid)
+            self.destroy_session(fun, sesnid)
 
     def auth_login(self, fun, sesnid, user, password):
         if self.login(fun, user, password):

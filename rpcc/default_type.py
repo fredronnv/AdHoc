@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.6
 
 from exttype import *
+from default_error import *
 
 class ExtFunctionName(ExtString):
     name = "function-name"
@@ -9,7 +10,7 @@ class ExtFunctionName(ExtString):
     def lookup(self, fun, cval):
         if fun.api.has_function(cval):
             return cval
-        raise ExtValueError("Unknown function", value=cval)
+        raise ExtNoSuchFunctionError(cval)
 
 class ExtSession(ExtString):
     name = "session"
@@ -20,7 +21,7 @@ class ExtSession(ExtString):
         try:
             return fun.server.session_store.get_session(fun, cval)
         except:
-            raise ExtInvalidSessionIDError(value=val)
+            raise ExtNoSuchSessionError(value=val)
 
     def output(self, function, sesn):
         return sesn.id
@@ -151,4 +152,30 @@ class ExtMutex(ExtString):
     name = "mutex"
     desc = "A mutex, identified by its name"
 
-    
+    def lookup(self, fun, cvar):
+        return fun.mutex_manager.model(cvar)
+
+    def output(self, fun, m):
+        return m.name
+
+class ExtMutexState(ExtEnum):
+    name = "mutex-state"
+    desc = "State of a mutex"
+
+    values = ["held", "free"]
+
+class ExtMutexInfo(ExtStruct):
+    name = "mutex-info"
+    desc = "Information about a mutex"
+
+    mandatory = {
+        "mutex": ExtMutex,
+        "last_change": ExtDateTime,
+        "state": ExtMutexState,
+        "forced": ExtBoolean
+        }
+
+    optional = {
+        "holder": ExtString,
+        }
+

@@ -1,15 +1,46 @@
 #!/usr/bin/env python2.6
 # -*- coding: utf-8 -*-
 
+def worked(r):
+    return "result" in r
+
+def failed(r, witherr=None):
+    if "error" not in r:
+        return False
+    if witherr and r["error"]["name"] != witherr:
+        return False
+    return True
+
 import xmlrpclib
 
 s = xmlrpclib.ServerProxy("http://venus.ita.chalmers.se:12121/RPC2", allow_none=True, encoding="UTF-8")
 
+sesn = s.session_start()["result"]
+s.session_auth_login(sesn, "viktor", "viktor")
+
+assert failed(s.mutex_acquire(sesn, "gurka", "Mr. Cucumber", True))
+assert failed(s.mutex_acquire(sesn, "gurka", "Mr. Cucumber", False))
+assert worked(s.mutex_acquire(sesn, "tester", "Mr. Cucumber", True))
+assert failed(s.mutex_acquire(sesn, "tester", "Mr. Cucumber", False))
+
+print s.mutex_info(sesn, "tester")
+
+sesn = s.session_start()["result"]
+s.session_auth_login(sesn, "viktor", "viktor")
+
+assert failed(s.mutex_release(sesn, "tester", False))
+assert worked(s.mutex_release(sesn, "tester", True))
+
+assert worked(s.mutex_acquire(sesn, "tester", "Got it!", False))
+assert s.mutex_info(sesn, "tester")["result"]["state"] == "held"
+assert worked(s.mutex_release(sesn, "tester", False))
+assert s.mutex_info(sesn, "tester")["result"]["state"] == "free"
+
+raise SystemExit()
+
 print s.server_function_definition("server_function_definition")["result"]
 
 print s.server_documentation("server_function_definition")["result"]
-
-raise SystemExit()
 
 sesn = s.session_start()["result"]
 s.session_auth_login(sesn, "mort", "mort")

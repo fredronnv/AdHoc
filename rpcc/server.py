@@ -21,6 +21,7 @@ import api_handler
 import exttype
 import exterror
 import function
+import mutex
 import protocol
 import response
 import documentation
@@ -492,11 +493,11 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         self.register_function(default_function.FunSessionAuthLogin)
         self.register_function(default_function.FunSessionDeauth)
 
-    def enable_mutexes(self, mutex_manager_class):
+    def enable_mutexes(self, mutex_manager_class=mutex.MutexManager):
         self.register_manager(mutex_manager_class)
         self.register_function(default_function.FunMutexAcquire)
         self.register_function(default_function.FunMutexRelease)
-        self.register_function(default_function.FunMutexStatus)
+        self.register_function(default_function.FunMutexInfo)
 
     def enable_database(self, database_class):
         self.database = database_class(self)

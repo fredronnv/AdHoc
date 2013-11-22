@@ -402,6 +402,19 @@ class ExtEnum(ExtString):
         if rawval not in self.values:
             raise ExtStringNotInEnumError(self.values, value=rawval)
 
+class ExtDateTime(ExtString):
+    name = "datetime"
+    desc = "A date and time"
+    regex = "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
+
+    def lookup(self, fun, cval):
+        ymd, hms = cval.split("T")
+        y, mo, d = [int(p) for p in ymd.split("-")]
+        h, mi, s = [int(p) for p in hms.split(":")]
+        return datetime.datetime(y, mo, d, h, mi, s)
+
+    def output(self, fun, val):
+        return val.isoformat()[:19]
 
 ###
 # Integer

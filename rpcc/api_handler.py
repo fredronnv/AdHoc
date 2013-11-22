@@ -1,9 +1,7 @@
+#!/usr/bin/env python
 
 from api import API
-#from category import RPCFunctionCategory
-#from error import ExtAPIVersionNotFoundError
-
-import exterror
+from default_error import ExtNoSuchAPIVersionError
 
 class APIHandler(object):
     def __init__(self, server):
@@ -54,7 +52,7 @@ class APIHandler(object):
         try:
             return self.apis[version]
         except IndexError:
-            raise RPCAPIVersionNotFoundError(str(version))
+            raise ExtNoSuchAPIVersionError(str(version))
 
     def list_all_versions(self):
         all = []

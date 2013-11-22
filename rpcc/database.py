@@ -286,7 +286,9 @@ class DatabaseLink(object):
                 curs.execute(q, **v)
                 return self.iterator(curs)
             except Exception as e:
-                print "ERROR IN QUERY:", q
+                print "ERROR", e
+                print "ERROR ARGUMENTS", e.args
+                print "IN QUERY:", q
                 print "WITH ARGUMENTS:", v
                 self.exception(e)
         finally:
