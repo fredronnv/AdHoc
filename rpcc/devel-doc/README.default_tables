@@ -85,8 +85,6 @@ CREATE TABLE rpcc_mutex_var_val (
 Default tables fpr RPCC using MySQL:
 ====================================
 
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
-
 -- Server version: 5.0.95
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
