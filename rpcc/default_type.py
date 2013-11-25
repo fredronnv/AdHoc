@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.6
 
-from exttype import *
-from default_error import *
+from exttype import *   # @UnusedWildImport
+from default_error import *  # @UnusedWildImport
 
 
 class ExtFunctionName(ExtString):
