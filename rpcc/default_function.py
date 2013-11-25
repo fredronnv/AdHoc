@@ -1,9 +1,9 @@
 
-import datetime
-
-from exttype import *
-from default_type import *
+from exttype import *  # @UnusedWildImport
+from default_type import *  # @UnusedWildImport
+from default_error import *  # @UnusedWildImport
 from function import Function, SessionedFunction
+
 
 class FunServerURLAPI(Function):
     extname = 'server_url_api'
@@ -19,14 +19,15 @@ class FunServerURLAPI(Function):
                 'major': self.server.major_version,
                 'minor': self.server.minor_version}
 
+
 class FunSessionStart(Function):
     """Default function to create a new session."""
-    
+
     extname = 'session_start'
     params = []
     desc = "Creates a new session (execution context) for further calling. Returns an ID valid for a limited time for the current client address only."
     returns = (ExtSession, "A string that must be the first argument of any furter calls to perform in the context of this session.")
-    
+
     def do(self):
         remote_ip = self.http_handler.client_address[0]
         sesnid = self.server.session_store.create_session(self, remote_ip)
@@ -34,26 +35,28 @@ class FunSessionStart(Function):
         # session_start() call in the call log.
         self.session = self.server.session_store.get_session(self, sesnid)
         return self.session
-    
+
+
 class FunSessionStop(SessionedFunction):
     extname = 'session_stop'
     params = []
     desc = "Invalidates a session (execution context), making it unavailable for any furhter calls."
     returns = ExtNull
-    
+
     def typed_do(self):
         self.server.kill_session(self.session)
-        
+
+
 class FunSessionInfo(SessionedFunction):
     extname = 'session_info'
     returns = (ExtSessionInfo, "Information about the supplied session")
-    
     desc = "Returns information about the session (execution context)."
 
     def do(self):
         return {'session': self.session,
                 'expires': self.session.expires,
                 'authuser': self.session.authuser}
+
 
 class FunSessionAuthLogin(SessionedFunction):
     extname = 'session_auth_login'
@@ -66,11 +69,12 @@ class FunSessionAuthLogin(SessionedFunction):
 
     def log_arguments(self, args):
         return ('*', args[1], '****')
-    
+
     def do(self):
         ath = self.server.authenticator
         ath.login(self, self.session.id, self.username, self.password)
         return True
+
 
 class FunSessionStartWithLogin(Function):
     extname = 'session_start_with_login'
@@ -97,14 +101,15 @@ class FunSessionStartWithLogin(Function):
         except:
             self.server.authenticator.delete_session(self, self.session.id)
             raise
-        
+
+
 class FunSessionDeauth(SessionedFunction):
     extname = 'session_deauth'
     params = []
     returns = ExtNull
 
     desc = "De-authenticate, leavning the session unauthenticated."
-    
+
     def do(self):
         self.server.authenticator.logout(self, self.session.id)
 
@@ -115,25 +120,27 @@ class FunServerListFunctions(Function):
     returns = ExtList(ExtString)
     desc = 'Return a list of function names available on this server.'
     grants = None
-    
+
     def do(self):
         return self.api.get_all_function_names()
+
 
 class FunServerDocumentation(Function):
     extname = "server_documentation"
     params = [("function", ExtFunctionName, "Name of function to document")]
     returns = ExtString
     desc = "Returns a text-version of the documentation for a function."
-    
+
     def do(self):
         return self.server.documentation.function_as_text(self.api.version, self.function)
+
 
 class FunServerFunctionDefinition(Function):
     extname = "server_function_definition"
     params = [("function", ExtFunctionName, "Name of function to document")]
     returns = ExtDocFunction
     desc = "Returns a structured definition of the named function"
-    
+
     def do(self):
         t = self.server.documentation.function_as_struct(self.api.version, self.function)
         return t
@@ -142,34 +149,39 @@ class FunServerFunctionDefinition(Function):
 class _MutexFunction(SessionedFunction):
     params = [("mutex", ExtMutex, "Mutex")]
 
+
 class FunMutexAcquire(_MutexFunction):
     extname = "mutex_acquire"
     params = [("public_name", ExtString, "This is the name that will be shown as the holder in mutex_info() calls"),
               ("force", ExtBoolean, "Should the acquisition be forced even if the mutex was already held?")]
     returns = ExtNull
-    desc = """Attempt to acquire a mutex. 
+    desc = """Attempt to acquire a mutex.
 
 Only one session can hold a particular mutex at any one time. If you pass force=False, the mutex will be acquired by your session only if it was not already held by another session.
 
 If the acquisition fails, a MutexHeld error will be returned.
 """
+
     def do(self):
         if not self.mutex.acquire(self.session.id, self.public_name, self.force):
             raise ExtMutexHeldError()
+
 
 class FunMutexRelease(_MutexFunction):
     extname = "mutex_release"
     params = [("force", ExtBoolean, "Should the acquisition be forced even if the mutex wasn't held by the session calling?")]
     returns = ExtNull
-    desc = """Attempt to release a mutex. 
+    desc = """Attempt to release a mutex.
 
 If you pass force=False, the mutex will only be released if your session was the current holder of it.
 
 If release fails, a MutexNotHeld error will be returned.
 """
+
     def do(self):
         if not self.mutex.release(self.session.id, self.force):
             raise ExtMutexNotHeldError()
+
 
 class FunMutexInfo(_MutexFunction):
     extname = "mutex_info"
@@ -189,4 +201,3 @@ class FunMutexInfo(_MutexFunction):
             ret["state"] = "free"
 
         return ret
-
