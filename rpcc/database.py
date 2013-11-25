@@ -48,7 +48,7 @@ except:
     pass
 
 try:
-    import MySQLdb
+    import oursql
 except:
     pass
 
@@ -524,9 +524,9 @@ class MySQLDatabase(Database):
         user = user or self.server.config("DB_USER")
         password = password or self.server.config("DB_PASSWORD")
         database = database or self.server.config("DB_DATABASE")
-        host = host or self.server.config("DB_HOST", None)
-        port = port or self.server.config("DB_PORT", None)
-        socket = port or self.server.config("DB_SOCKET", None)
+        host = host or self.server.config("DB_HOST")
+        port = port or self.server.config("DB_PORT")
+        socket = port or self.server.config("DB_SOCKET")
 
         self.connect_args = {"user": user, "passwd": password, "db": database}
         if host:
@@ -539,7 +539,7 @@ class MySQLDatabase(Database):
             raise ValueError()
 
     def get_link(self):
-        raw_link = MySQLdb.connect(**self.connect_args)
+        raw_link = oursql.connect(**self.connect_args)
         return self.link_class(self, raw_link)
 
     def return_link(self, link):
