@@ -9,6 +9,7 @@ from xmlnode import XMLNode
 import model
 import function
 
+
 class API(object):
     """Encapsulates an API version.
 
@@ -37,14 +38,14 @@ class API(object):
         from this version which should be valid there as well with the
         new object."""
 
-        next = self.__class__(self.handler, self.version + 1)
+        nxt = self.__class__(self.handler, self.version + 1)
         for funclass in self.functions.values():
             if funclass.to_version > self.version:
-                next.add_function(funclass)
+                nxt.add_function(funclass)
         for catclass in self.categories.values():
             if catclass.to_version > self.version:
-                next.add_category(catclass)
-        return next
+                nxt.add_category(catclass)
+        return nxt
 
     def add_function(self, funclass):
         if funclass.from_version > self.version or \
@@ -60,12 +61,12 @@ class API(object):
 
         if funname in self.functions:
             if self.functions[funname] == funclass:
-                return            
+                return
             raise IntAPIValidationError("Both %s and %s implement public name %s for version %d" % (funclass, self.functions[funname], funname, self.version))
 
         self.functions[funname] = funclass
 
-        for (pname, ptype, pdesc) in funclass.get_parameters():
+        for (pname, ptype, pdesc) in funclass.get_parameters():  # @UnusedVariable
             try:
                 self.add_type(ptype)
             except IntAPIValidationError as e:
@@ -83,7 +84,7 @@ class API(object):
         try:
             return self.functions[ExtType.capsify(funname)]
         except KeyError:
-            raise ExtFunctionNotFoundError(funname)
+            raise ExtNoSuchFunctionError(funname)
 
     def get_function_object(self, funname, httphandler, db):
         cls = self.get_function(funname)
@@ -95,7 +96,7 @@ class API(object):
 
     def get_visible_function_names(self):
         return sorted([cls._name() for cls in self.get_visible_functions()])
-        
+
     def get_visible_functions(self):
         return [cls for cls in self.functions.values() if cls.extvisible]
 
@@ -111,7 +112,7 @@ class API(object):
             if self.types[typename] == typ:
                 return
             raise IntAPIValidationError("Both %s and %s implement public name %s for version %d" % (typething, self.types[typename], typename, self.version))
-        
+
         self.types[typename] = typ
 
         for (key, subtype) in typ._subtypes():
@@ -126,14 +127,14 @@ class API(object):
     def add_category(self, catclass):
         """Registers a category class, making it available for
         e.g. <:category:name:> includes in the HTML documentation.
-    
+
         The first time the API is asked about functions for a category
         or categories for a function, all registered category classes
         are instantiated and passed all registered RPCTypedFunctions
         to determine the mappings.
-        
+
         """
-        
+
         if catclass.from_version > self.version or \
                catclass.to_version < self.version:
             raise IntAPIValidationError()
@@ -143,15 +144,15 @@ class API(object):
         if catname in self.categories:
             if isinstance(self.categories[catname], catclass):
                 return
-            
-            raise IntAPIValidationError("API version mismatch adding %s - %s already implements public name %s for version %d" % (typething, self.types[typename], typename, self.version))
+
+            raise IntAPIValidationError("API version mismatch adding %s - %s already implements public name %s for version %d" % (catclass, self.types[catclass], catclass, self.version))
 
         self.categories[catname] = catclass(self)
 
     def calculate_category_mappings(self, force=False):
         if self.cat_by_fun and not force:
             return
-        
+
         for cat in self.categories.values():
             for funclass in self.functions.values():
                 if cat.contains(funclass):
@@ -183,7 +184,7 @@ class API(object):
 
     def function_for_element_name(self, elemname):
         return self.fun_by_elemname[elemname]
-    
+
     def get_version_string(self, with_dashes=True):
         if with_dashes:
             return "-V%d" % (self.version,)
@@ -196,7 +197,7 @@ class API(object):
         else:
             base = self.server.get_server_url() + self.server.service_name + "_"
         base += self.get_version_string(with_dashes=False)
-        
+
         if mscompat:
             return base + "_mscompat.xsd"
         else:
@@ -204,7 +205,7 @@ class API(object):
 
     def get_all_schema_urls(self):
         return [self.get_schema_url(False), self.get_schema_url(True)]
-        
+
     def get_wsdl_path(self, mscompat=False):
         url = self.server.service_name
         if self.version > 0:
@@ -222,7 +223,7 @@ class API(object):
         url += "WSDL/"
         url += self.get_wsdl_path(mscompat)
         return url
-            
+
     def get_all_wsdl_urls(self):
         return [self.get_wsdl_url(False), self.get_wsdl_url(True)]
 
@@ -250,10 +251,10 @@ class API(object):
     ###
 
     def get_wsdl(self, path):
-        """If incoming path matches .get_wsdl_url(True), output a WSDL 
-        which is bug-compatible with the Microsoft svcutil toolchain, 
-        accomplished by renaming all input parameters to <name> + '_in'. 
-        The WSDL/SOAP URI:s reflect the compatability mode 
+        """If incoming path matches .get_wsdl_url(True), output a WSDL
+        which is bug-compatible with the Microsoft svcutil toolchain,
+        accomplished by renaming all input parameters to <name> + '_in'.
+        The WSDL/SOAP URI:s reflect the compatability mode
         (/SOAP_mscompat rather than /SOAP for example).
         """
 
@@ -276,7 +277,7 @@ class API(object):
 
         wsdl_ns = self.get_wsdl_url(mscompat)
         schema_ns = self.get_schema_url(mscompat)
-        
+
         defattrs = {
             'xmlns:self': wsdl_ns,
             'xmlns:myxsd': schema_ns,
@@ -300,7 +301,7 @@ class API(object):
                                  xmlns="http://www.w3.org/2001/XMLSchema",
                                  elementFormDefault="qualified",
                                  _space_children=True)
-        
+
         # Note that the dashes in the version will be removed by
         # capsification later
         p = self.server.service_name
@@ -314,20 +315,20 @@ class API(object):
         # last, since the <message> elements should come before them, but
         # we want to generate the contents of these three nodes at the
         # same time as the <message> elements.
-        
+
         wsdl_porttype_root = XMLNode('portType', name=ptname,
                                      _space_children=True)
-        
+
         wsdl_binding_root = XMLNode('binding', name=bndname,
-                                    type="self:"+ptname,
+                                    type="self:" + ptname,
                                     _space_children=True)
-        
+
         wsdl_binding_root.new('soap:binding', style='document',
                               transport="http://schemas.xmlsoap.org/soap/http")
 
         wsdl_service_root = XMLNode('service', name=srvname)
-        prt = wsdl_service_root.new('port', name=srvname+'Port',
-                                    binding="self:"+bndname)
+        prt = wsdl_service_root.new('port', name=srvname + 'Port',
+                                    binding="self:" + bndname)
         prt.new('soap:address', location=self.server.get_server_url() + 'SOAP')
 
         ### TODO ###
@@ -343,7 +344,7 @@ class API(object):
             already_added.add(typ._name())
             schemaelem.add(typ.xsd())
 
-            for (key, subtyp) in typ._subtypes():
+            for (key, subtyp) in typ._subtypes():  # @UnusedVariable
                 add_type(schemaelem, already_added, subtyp)
 
         added_types = set()
@@ -352,19 +353,19 @@ class API(object):
             wsdl_schema_root.add(funcls.xsd_request(mscompat))
             wsdl_schema_root.add(funcls.xsd_response())
 
-            for (name, typ, desc) in funcls.get_parameters():
+            for (name, typ, desc) in funcls.get_parameters():  # @UnusedVariable
                 add_type(wsdl_schema_root, added_types, typ)
 
-            (typ, desc) = funcls._returns()
+            (typ, desc) = funcls._returns()  # @UnusedVariable
             add_type(wsdl_schema_root, added_types, typ)
 
             # Doc/lit-wrap input message
             msg = wsdl_root.new('message', name=funcls.input_message_name())
-            msg.new('part', name='parameters', element="myxsd:"+funcls.request_element_name())
+            msg.new('part', name='parameters', element="myxsd:" + funcls.request_element_name())
 
             # Doc/lit-wrap output message
             msg = wsdl_root.new('message', name=funcls.output_message_name())
-            msg.new('part', name='parameters', element="myxsd:"+funcls.response_element_name())
+            msg.new('part', name='parameters', element="myxsd:" + funcls.response_element_name())
 
             # PortType operation
             op = wsdl_porttype_root.new('operation', name=funcls.soap_name())
@@ -450,7 +451,6 @@ class API(object):
             for (key, (typ, desc)) in srch.optional.items():
                 if isinstance(typ, model._TmpReference):
                     srch.optional[key] = (self._search_by_manager[typ.name], desc)
-                
 
     def generate_fetch_functions(self):
         for modelcls in self.server.get_all_models():
@@ -469,23 +469,21 @@ class API(object):
             fetchcls = type("Fun" + capsname + "Fetch", (function.FetchFunction,), clsattrs)
             self.add_function(fetchcls)
 
-
     def generate_update_functions(self):
         for modelcls in self.server.get_all_models():
             name = modelcls._name()
             capsname = name[0].upper() + name[1:]
 
-            clsattrs = dict(from_version = self.version,
-                            to_version = self.version,
-                            extname = name + "_update",
-                            returns = ExtNull)
+            clsattrs = dict(from_version=self.version,
+                            to_version=self.version,
+                            extname=name + "_update",
+                            returns=ExtNull)
             clsattrs["params"] = [(name, modelcls.exttype, "The %s to update" % (name,)),
                                   ("updates", self._update_by_model[name], "Fields and updates")]
             clsattrs["desc"] = "Update one or more fields atomically."
 
             upcls = type("Fun" + capsname + "Update", (function.UpdateFunction,), clsattrs)
             self.add_function(upcls)
-
 
     def generate_dig_functions(self):
         for mgrcls in self.server.get_all_managers():
@@ -507,4 +505,3 @@ class API(object):
 
             digcls = type("Fun" + capsname + "Dig", (function.DigFunction,), clsattrs)
             self.add_function(digcls)
-
