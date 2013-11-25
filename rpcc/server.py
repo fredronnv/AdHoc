@@ -49,13 +49,14 @@ class SSLConfig(object):
     def wrap_socket(self, server, raw_socket):
         return SSL.Connection(self.ctx, raw_socket)
 
+
 class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     """An RPCC server class with session handling and thread-locks.
 
-    The server listens on a host/port and handles HTTP/HTTPS 
-    connections coming in on that port. For each connection, a new 
-    thread is created, and a handler is created depending on the 
-    request URL. 
+    The server listens on a host/port and handles HTTP/HTTPS
+    connections coming in on that port. For each connection, a new
+    thread is created, and a handler is created depending on the
+    request URL.
 
     There are a few default handlers installed - see code comments
     for a list and an explanation.
@@ -78,7 +79,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     manager_classes = []
 
     model_classes = []
-    
+
     # If docroot is set, a default "GET" HTTP-method handler will be
     # enabled, and serve documents from docroot.
 
@@ -97,7 +98,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     # Default protocol handlers, added on startup by automatic calls to
     # .add_protocol_handler(). You can add your own by calling that
     # method yourself.
-    
+
     default_protocol_handlers = [
         ('/RPC2', protocol.XMLRPCProtocol),
         ('/xmlrpc', protocol.XMLRPCProtocol),
@@ -161,7 +162,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         else:
             self.ssl_enabled = False
             self.socket = rawsocket
-            
+
         self.server_bind()
         self.server_activate()
 
@@ -177,7 +178,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             return os.environ.get(envvar, kwargs["default"])
         else:
             return os.environ[envvar]
-    
+
     ##
     # Function handling.
     ##
@@ -192,7 +193,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         instance's .do()-method raised an exception.
         """
         print "ERROR (%.2fs) %s%s => %s" % (call_time, function_name, params, result)
-
 
     def get_running_functions(self):
         with self.thread_lock:
@@ -231,12 +231,12 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             The HTTPRequestHandler compatible object that this call
             originated in. It is intended to get at the client address.
 
-            The Protocol object is intentionally _not_ avaialble to the 
+            The Protocol object is intentionally _not_ avaialble to the
             Function, which has a Protcol-agnostic interface to the
             rest of the system.
 
         function
-            The function to call, identified by its name and api_version. 
+            The function to call, identified by its name and api_version.
 
         params
             The call parameters, as a list of native Python data types.
@@ -320,7 +320,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         attributes values inclusive.
 
         It is an error to register two classes that have the same
-        externally visible name and overlapping API versions.        
+        externally visible name and overlapping API versions.
         """
 
         if not issubclass(cls, Function):
@@ -342,8 +342,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         """
 
         import types
-        
-        for (key, value) in mod.__dict__.items():
+
+        for (key, value) in mod.__dict__.items():  # @UnusedVariable
             if type(value) != types.TypeType:
                 continue
             if not issubclass(value, Function):
@@ -354,7 +354,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                 continue
             if getattr(value, 'rpcdisabled', False):
                 continue
-            
+
             self.register_function(value)
 
     def register_categories_from_module(self, mod):
@@ -392,7 +392,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         if hasattr(self, "server_public_url") and self.server_public_url:
             return self.server_public_url
-            
+
         return "http://%s:%d/" % (self.instance_address, self.instance_port)
 
     ###
@@ -410,7 +410,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         If the prefix is None, then all requests not matched by
         another prefix will be sent to that handler.
         """
-        
+
         try:
             if issubclass(handler, protocol.Protocol):
                 handler = handler()
@@ -419,7 +419,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         if prefix[0] == '/':
             prefix = prefix[1:]
-            
+
         handler.set_server(self)
         self.protocol_handlers[prefix] = handler
 
@@ -477,7 +477,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     # Optional subsystems.
     ###
     def enable_static_documents(self, docroot):
-        self.add_protocol_handler('__GET__', protocol.StaticDocumentHandler(docroot))
+        self.add_protocol_handler('__GET__', protocol.StaticDocumentProtocol(docroot))
 
     def enable_sessions(self, session_store_class):
         self.session_store = session_store_class(self)
@@ -540,4 +540,3 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     def get_all_models(self):
         return self.model_by_name.values()
-
