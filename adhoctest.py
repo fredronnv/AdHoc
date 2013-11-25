@@ -1,19 +1,16 @@
 #!/usr/bin/env python2.6
 import inspect
 import os
-
-
 import sys
 
 env_prefix = "ADHOC_"
 
+# Automagic way to find out the home of adhoc.
 adhoc_home = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home
+os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home  # Export as env variable ADHOC_RUNTIME_HOME if needed outside server
 
-sys.path.append(env_prefix + "RUNTIME_HOME")
-sys.path.append(os.path.join(os.environ[env_prefix + "RUNTIME_HOME"], 'rpcc'))
-print adhoc_home
-print sys.path
+sys.path.append(adhoc_home)
+sys.path.append(os.path.join(adhoc_home, 'rpcc'))
 
 import server
 import authenticator
