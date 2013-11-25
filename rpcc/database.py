@@ -34,8 +34,6 @@ The DatabaseLink subclass implements actual database interaction.
 
 """
 
-import os
-import sys
 import threading
 import datetime
 import re
@@ -59,10 +57,15 @@ class DatabaseError(Exception):
         if inner:
             self.inner = inner
 
+
 class LinkError(DatabaseError):
     """There is an error with the database link (i.e. no error with
     the SQL or the data), for example a database that has stopped
     responding."""
+
+
+class LinkClosedError(LinkError):
+    """ The database link was closed"""
 
 
 class IntegrityError(DatabaseError):
@@ -73,15 +76,17 @@ class IntegrityError(DatabaseError):
 
 
 class ProgrammingError(DatabaseError):
-    """There was an error in the way the programmer uses the database 
+    """There was an error in the way the programmer uses the database
     (e.g. an SQL syntax error, or the attempted use of a non-existant
     database or column name."""
     pass
+
 
 class InvalidIdentifierError(ProgrammingError):
     def __init__(self, idf, **kwargs):
         ProgrammingError.__init__(self, "Invalid identifier: " + idf, **kwargs)
         self.identifier = idf
+
 
 class InvalidTableError(ProgrammingError):
     def __init__(self, tbl, **kwargs):
@@ -113,7 +118,7 @@ class DatabaseIterator(object):
     def next(self):
         try:
             return self.convert(self.iter.next())
-        except StopIteration, GeneratorExit:
+        except (StopIteration, GeneratorExit):
             self.curs.close()
             raise
 
@@ -138,7 +143,7 @@ class DynamicQuery(object):
 
     def __init__(self, link, master_query=None):
         self.link = link
-        self.master_query = master_query 
+        self.master_query = master_query
         if not master_query:
             self.varid = 0
 
@@ -226,7 +231,7 @@ class DynamicQuery(object):
     def dbvar(self, name):
         raise NotImplementedError()
 
-    def dblimit(self, limit):
+    def dblimit(self, limit):   # @UnusedVariable
         return ""
 
 
@@ -520,7 +525,7 @@ class MySQLDatabase(Database):
     query_class = MySQLDynamicQuery
     link_class = MySQLLink
 
-    def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):
+    def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):  # @UnusedVariable
         user = user or self.server.config("DB_USER")
         password = password or self.server.config("DB_PASSWORD")
         database = database or self.server.config("DB_DATABASE")
@@ -606,4 +611,3 @@ if __name__ == '__main__':
 
         if not checked:
             raise ValueError("Test failed to return any rows")
-
