@@ -3,6 +3,7 @@
 from exttype import *
 from default_error import *
 
+
 class ExtFunctionName(ExtString):
     name = "function-name"
     desc = "A string containing the name of a function this server exposes."
@@ -11,6 +12,7 @@ class ExtFunctionName(ExtString):
         if fun.api.has_function(cval):
             return cval
         raise ExtNoSuchFunctionError(cval)
+
 
 class ExtSession(ExtString):
     name = "session"
@@ -21,47 +23,52 @@ class ExtSession(ExtString):
         try:
             return fun.server.session_store.get_session(fun, cval)
         except:
-            raise ExtNoSuchSessionError(value=val)
+            raise ExtNoSuchSessionError(value=cval)
 
-    def output(self, function, sesn):
+    def output(self, function, sesn):  # @UnusedVariable
         return sesn.id
+
 
 class ExtDateTime(ExtString):
     name = 'datetime'
     regexp = '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$'
     desc = 'A date and time in YYYY-MM-DDTHH:MM:SS format, e.g. 2007-04-14T13:54:22'
-    
-    def convert(self, function, rawval):
+
+    def convert(self, function, rawval):  # @UnusedVariable
         import datetime
-        
+
         try:
-            date, tm = val.split('T')
+            date, tm = rawval.split('T')
             y, mo, d = [int(i) for i in date.split('-')]
             h, mi, s = [int(i) for i in tm.split(':')]
             return datetime.datetime(y, mo, d, h, mi, s)
         except:
             raise ExtValueError("Not a valid datetime")
 
-    def output(self, fun, value):
+    def output(self, fun, value):  # @UnusedVariable
         return value.isoformat()[:19]
+
 
 class ExtLikePattern(ExtString):
     name = "like-pattern"
     desc = "A pattern where % is 0, 1 or more characters and _ is exactly one character."
 
+
 class ExtGlobPattern(ExtString):
     name = "glob-pattern"
     desc = "A pattern where * is 0, 1 or more characters and ? is exactly one character."
+
 
 class ExtRegexpMatch(ExtString):
     name = "regexp-pattern"
     desc = "A regexp."
 
-    def check(self, fun, rawval):
+    def check(self, fun, rawval):  # @UnusedVariable
         try:
             re.compile(rawval)
         except:
             raise ExtValueError("Invalid regexp pattern")
+
 
 class ExtSessionInfo(ExtStruct):
     name = 'session-info'
@@ -70,14 +77,16 @@ class ExtSessionInfo(ExtStruct):
                  'authuser': ExtOrNull(ExtString),
                  'expires': ExtDateTime}
 
+
 class ExtServerVersion(ExtStruct):
     name = "server-version-type"
-    
+
     mandatory = {
         'service': ExtString,
         'major': ExtString,
         'minor': ExtString
         }
+
 
 class ExtAPIVersion(ExtStruct):
     name = "api-version"
@@ -88,22 +97,26 @@ class ExtAPIVersion(ExtStruct):
         "minor": ExtInteger
         }
 
+
 class ExtDocTypename(ExtString):
     name = "doc-typename"
     regexp = "[-a-z_]+"
 
+
 class ExtDocParamname(ExtDocTypename):
     name = "doc-parameter-name"
 
+
 class ExtDocBasetype(ExtEnum):
     name = "doc-basetype"
-    values = ("string", "enum", "integer", "null", "boolean", "list", 
+    values = ("string", "enum", "integer", "null", "boolean", "list",
               "struct", "nullable")
+
 
 class ExtDocParameter(ExtStruct):
     name = "doc-parameter"
     desc = "A (name, type, description) tuple, also used for the single (type, description) case of return values."
-    
+
     mandatory = {
         "type_name": ExtDocTypename
         }
@@ -112,6 +125,7 @@ class ExtDocParameter(ExtStruct):
         "name": ExtDocParamname,
         "description": ExtString
         }
+
 
 class ExtDocTypedef(ExtStruct):
     name = "doc-typedef"
@@ -133,6 +147,7 @@ class ExtDocTypedef(ExtStruct):
         "optional": (ExtList(ExtDocParameter), "For structs: list of optional members")
         }
 
+
 class ExtDocFunction(ExtStruct):
     name = "doc-function"
     desc = "Top-level struct for documenting a function"
@@ -148,6 +163,7 @@ class ExtDocFunction(ExtStruct):
         "description": ExtString,
         }
 
+
 class ExtMutex(ExtString):
     name = "mutex"
     desc = "A mutex, identified by its name"
@@ -155,14 +171,16 @@ class ExtMutex(ExtString):
     def lookup(self, fun, cvar):
         return fun.mutex_manager.model(cvar)
 
-    def output(self, fun, m):
+    def output(self, fun, m):  # @UnusedVariable
         return m.name
+
 
 class ExtMutexState(ExtEnum):
     name = "mutex-state"
     desc = "State of a mutex"
 
     values = ["held", "free"]
+
 
 class ExtMutexInfo(ExtStruct):
     name = "mutex-info"
@@ -178,4 +196,3 @@ class ExtMutexInfo(ExtStruct):
     optional = {
         "holder": ExtString,
         }
-
