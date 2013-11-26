@@ -597,6 +597,7 @@ class Manager(object):
 
     def __init__(self, function, *args, **kwargs):
         self.function = function
+        self.server = function.server
         self.db = function.db
 
         # Dict of Model instances already created, indexed by Model id.

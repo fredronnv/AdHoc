@@ -30,10 +30,10 @@ class FunSessionStart(Function):
 
     def do(self):
         remote_ip = self.http_handler.client_address[0]
-        sesnid = self.server.session_store.create_session(self, remote_ip)
+        sesnid = self.session_manager.create_session(remote_ip)
         # Below makes the session id be logged together with the
         # session_start() call in the call log.
-        self.session = self.server.session_store.get_session(self, sesnid)
+        self.session = self.session_manager.model(sesnid)
         return self.session
 
 
@@ -43,8 +43,8 @@ class FunSessionStop(SessionedFunction):
     desc = "Invalidates a session (execution context), making it unavailable for any furhter calls."
     returns = ExtNull
 
-    def typed_do(self):
-        self.server.kill_session(self.session)
+    def do(self):
+        self.session_manager.destroy_session(self.session)
 
 
 class FunSessionInfo(SessionedFunction):
@@ -71,8 +71,8 @@ class FunSessionAuthLogin(SessionedFunction):
         return ('*', args[1], '****')
 
     def do(self):
-        ath = self.server.authenticator
-        ath.login(self, self.session.id, self.username, self.password)
+        ath = self.authentication_manager
+        ath.login(self.session, self.username, self.password)
         return True
 
 
@@ -89,17 +89,15 @@ class FunSessionStartWithLogin(Function):
 
     def do(self):
         remote_ip = self.handler.client_address[0]
-        sesnid = self.server.session_store.create_session(self, remote_ip)
-        # Below makes the session id be logged together with the
-        # session_start() call in the call log.
-        self.session = self.server.session_store.get_session(self, sesnid)
+        sesnid = self.session_manager.create_session(remote_ip)
+        self.session = self.session_manager.model(sesnid)
 
         try:
-            ath = self.server.authenticator
-            ath.login(self, self.session.id, self.username, self.password)
+            ath = self.authentication_manager
+            ath.login(self.session, self.username, self.password)
             return self.session
         except:
-            self.server.authenticator.delete_session(self, self.session.id)
+            self.session_manager.destroy_session(self.session)
             raise
 
 
@@ -111,7 +109,7 @@ class FunSessionDeauth(SessionedFunction):
     desc = "De-authenticate, leavning the session unauthenticated."
 
     def do(self):
-        self.server.authenticator.logout(self, self.session.id)
+        self.authentication_manager.logout(self.session)
 
 
 class FunServerListFunctions(Function):

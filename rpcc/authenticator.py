@@ -10,34 +10,41 @@ normally call .auth_session() and .deauth_session() respectively.
 """
 
 import exterror
+import model
 
-class Authenticator(object):
-    def __init__(self, server):
-        self.server = server
-        self.init()
+class AuthenticationManager(model.Manager):
+    """Supplies two default methods: 
+       .login(session, username, password)
+       .logout(session)
 
-    def init(self):
-        pass
+    Implementations MUST set the 'authuser' attribute of the sessions
+    if authentication succeeds, but are allowed to set other attributes 
+    as well."""
 
-    def auth_session(self, fun, session_id, username):
-        self.server.session_store.set_session_attribute(fun, session_id, "authuser", username)
+    name = "authentication_manager"
+    models = None
 
-    def deauth_session(self, fun, session_id):
-        self.server.session_store.set_session_attribute(fun, session_id, "authuser", None)
-
-    def login(self, fun, session_id, username, password):
+    def model(self, oid):
+        # DO NOT IMPLEMENT THIS - it is a model-less manager.
         raise NotImplementedError()
 
-    def logout(self, fun, session_id):
-        self.deauth_session(fun, session_id)
+    def login(self, session, username, password):
+        raise NotImplementedError()
+
+    def logout(self, session):
+        raise NotImplementedError()
 
 
-class NullAuthenticator(Authenticator):
-    def login(self, fun, session_id, username, password):
+class NullAuthenticationManager(AuthenticationManager):
+    def login(self, session, username, password):
         if username == password:
-            self.auth_session(fun, session_id, username)
+            session.set("authuser", username)
         else:
             raise exterror.ExtAuthenticationFailedError("Supplied username or password was invalid")
+
+    def logout(self, session):
+        session.unset("authuser")
+
 
 
 

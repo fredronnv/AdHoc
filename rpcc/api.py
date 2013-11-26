@@ -409,6 +409,9 @@ class API(object):
             self._update_by_model[name] = update
 
         for mgrcls in self.server.get_all_managers():
+            if mgrcls.manages is None:
+                continue
+
             search = mgrcls._search_type(self.version)
             self._search_by_manager[mgrcls._name()] = search
 
@@ -487,6 +490,9 @@ class API(object):
 
     def generate_dig_functions(self):
         for mgrcls in self.server.get_all_managers():
+            if mgrcls.manages is None:
+                continue
+
             mgrname = mgrcls._name()
             modelname = mgrcls.manages._name()
 

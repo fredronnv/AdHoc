@@ -7,6 +7,10 @@ import datetime
 import threading
 
 import function
+import model
+import exttype
+import default_error
+import default_type
 
 """
 The session mechanism is used to give clients a call context that
@@ -43,7 +47,7 @@ in a database.
 
 """
 
-class Session(object):
+class Session(model.Model):
     """Class used for stateful interactions with an RPC client.
 
     HTTP is stateless, and a session mechanism therefore needs to be
@@ -54,38 +58,41 @@ class Session(object):
     through the SessionStore (session.store).
     """
 
-    def __init__(self, store, sesn, attrs):
-        self.store = store
-        self.id = sesn
-        self.load(attrs)
+    exttype = default_type.ExtSession
+    name = "session"
 
-    def init(self, attrs):
-        for (key, value) in attrs.items():
+    def init(self, sid, expires):
+        self.oid = sid
+        self.expires = expires
+        for (key, value) in self.manager.get_session_values(sid):
             setattr(self, key, value)
-
-    def load(self, attrs):
-        self.locked = False
-        self.init(attrs)
         self.locked = True
 
     def __setattr__(self, attr, newval):
         if hasattr(self, "locked") and self.locked and attr != "locked":
             raise ValueError("Cannot write to session instances - use the session store")
         object.__setattr__(self, attr, newval)
-            
 
-class SessionStore(object):
+    def set(self, var, val):
+        self.manager.set_session_attribute(self.oid, var, val)
+        self.locked = False
+        self.reload()
+
+    def unset(self, var):
+        self.manager.unset_session_attribute(self.oid, var)
+        self.locked = False
+        self.reload()
+
+class SessionManager(model.Manager):
+    name = "session_manager"
+    manages = Session
+    model_lookup_error = default_error.ExtNoSuchSessionError
+
     session_id_length = 40
     session_lifetime = datetime.timedelta(hours=8)
-    session_class = Session
+
     # "id" and "expires" are implicit.
     default_attrs = {"authuser": None}
-
-    def __init__(self, server):
-        self.server = server
-        self.cache = {}
-        self.cache_list = []
-        self.init()
 
     def new_session_id(self):
         chars = string.ascii_letters + string.digits
@@ -93,138 +100,180 @@ class SessionStore(object):
         newid = "".join([random.choice(chars) for a in [0,]*l])
         return newid
 
-    def init(self):
-        pass
+    def get_session_values(self, sid):
+        raise NotImplementedError()
 
-    def get_default_attributes(self, fun):
-        return self.default_attrs
+    def create_session(self):
+        raise NotImplementedError()
 
-    def create_session(self, fun, remote_ip):
-        self.delete_expired(fun)
+    def destroy_session(self, sid):
+        raise NotImplementedError()
+
+    def set_session_attribute(self, sid, attr, value):
+        raise NotImplementedError()
+
+    def unset_session_attribute(self, sid, attr):
+        raise NotImplementedError()
+
+    def delete_expired(self):
+        raise NotImplementedError()
+
+
+class DatabaseBackedSessionManager(SessionManager):
+    def base_query(self, dq):
+        dq.select("id", "expires")
+        dq.table("rpcc_session")
+
+    def model(self, sid):
+        # Wrap base class call to first remove expired sessions, fetch
+        # the session, then update expiry time.
+        self.delete_expired()
+        session = SessionManager.model(self, sid)
+        session.set("expires", self.function.started_at() + self.session_lifetime)
+        return session
+
+    def get_session_values(self, sid):
+        q = "SELECT name, value "
+        q += " FROM rpcc_session_string "
+        q += "WHERE session_id=:sesn "
+        # If values come from the select, Session.init() will overwrite
+        # the default, which are first in the list.
+        return self.default_attrs.items() + list(self.db.get(q, sesn=sid))
+
+    def create_session(self, remote_ip):
+        self.delete_expired()
         newid = self.new_session_id()
-        newattrs = self.default_attrs.copy()
-        newattrs["expires"] = fun.started_at() + self.session_lifetime
-        self.store_create(fun, newid, newattrs)
+        expires = self.function.started_at() + self.session_lifetime
+        q = "INSERT INTO rpcc_session (id, expires) "
+        q += " VALUES (:sesn, :exp) "
+        self.db.put(q, sesn=newid, exp=expires)
+        self.db.commit()
         return newid
 
-    def destroy_session(self, fun, sesnid):
-        self.store_delete(fun, sesnid)
+    def destroy_session(self, sesnid):
+        # When destroying a session, all mutexes held by it are first
+        # released, if mutexes are enabled in the server. This counts
+        # as a forced release (the sesssion should have released the
+        # mutex explicitly).
+        if isinstance(sesnid, Session):
+            sesnid = sesnid.oid
 
-    def set_session_attribute(self, fun, sesnid, attr, value):
-        self.store_update(fun, sesnid, attr, value)
+        if self.server.mutexes_enabled:
+            q = "UPDATE rpcc_mutex "
+            q += "  SET holder_session=NULL, "
+            q += "      holder_public=NULL, "
+            q += "      forced='Y' "
+            q += "WHERE holder_session=:sesn "
+            self.db.put(q, sesn=sesnid)
 
-    def get_session(self, fun, sesnid):
-        if not isinstance(fun, function.Function):
-            raise ValueError(fun)
-        self.set_session_attribute(fun, sesnid, "expires", fun.started_at() + datetime.timedelta(hours=8))
-        data = self.load(fun, sesnid)
-        return self.session_class(self, sesnid, data)
+        # Remove session variables.
+        q = "DELETE FROM rpcc_session_string "
+        q += " WHERE session_id=:sesn "
+        self.db.put(q, sesn=sesnid)
 
-    def delete_expired(self, fun):
-        for sesnid in self.find_expired(fun):
-            self.destroy_session(fun, sesnid)
+        # Remove the session itself.
+        q = "DELETE FROM rpcc_session "
+        q += " WHERE id=:sesn "
+        self.db.put(q, sesn=sesnid)
+        self.db.commit()
 
-    def auth_login(self, fun, sesnid, user, password):
-        if self.login(fun, user, password):
-            self.set_session_attribute(fun, sesnid, "authuser", user)
+    def set_session_attribute(self, sesnid, attr, value):
+        if attr == 'oid':
+            raise ValueError("Cannot change the ID of a session")
 
-    def deauth(self, fun, sesnid):
-        self.set_session_attribute(fun, sesnid, "authuser", None)
+        if attr == 'expires':
+            q = "UPDATE rpcc_session "
+            q += "  SET expires=:value "
+            q += "WHERE id=:sesn "
+            self.db.put(q, sesn=sesnid, value=value)
+            self.db.commit()
+            return
+
+        q = "UPDATE rpcc_session_string "
+        q += "  SET value=:value "
+        q += "WHERE name=:attr "
+        q += "  AND session_id=:sesn "
+
+        affected = self.db.put(q, sesn=sesnid, attr=attr, value=value)
+        if affected == 0:
+            q = "INSERT INTO rpcc_session_string (session_id, name, value) "
+            q += " VALUES (:sesn, :attr, :value) "
+            self.db.put(q, sesn=sesnid, attr=attr, value=value)
+
+        self.db.commit()
+
+    def unset_session_attribute(self, sesnid, attr):
+        if attr in ('expires', 'oid'):
+            raise ValueError("Cannot remove the 'expires' or 'id' attributes of sessions")
+
+        q = "DELETE FROM rpcc_session_string "
+        q += "WHERE session_id=:sesn "
+        q += "  AND name=:attr "
+        self.db.put(q, sesn=sesnid, attr=attr)
+        self.db.commit()
+
+    def delete_expired(self):
+        q = "SELECT id "
+        q += " FROM rpcc_session "
+        q += "WHERE expires < :now "
+        for (sid,) in self.db.get(q, now=self.function.started_at()):
+            self.destroy_session(sid)
 
 
-class MemorySessionStore(SessionStore):
+class MemoryBackedSessionManager(SessionManager):
     def init(self):
         self.session_data = {}
         self.lock = threading.Lock()
 
-    def store_create(self, fun, sesnid, attrs):
+    def model(self, sid):
+        try:
+            return Session(sid, self.session_data[sid][expires])
+        except:
+            raise self.model_lookup_error(sid)
+
+    def get_session_values(self, sid):
         with self.lock:
-            self.session_data[sesnid] = attrs.copy()
-            print self.session_data
+            return self.default_attrs.items() + self.session_data[sid].items()
+
+    def create_session(self, remote_ip):
+        self.delete_expired()
+        newid = self.new_session_id()
+        expires = self.function.started_at() + self.session_lifetime
+        with self.lock:
+            self.session_data[newid] = {"oid": newid, "expires": expires}
+        return newid
         
-    def store_update(self, fun, sesnid, key, newval):
-        with self.lock:
-            self.session_data[sesnid][key] = newval
+    def destroy_session(self, sid):
+        if isinstance(sid, Session):
+            sid = sid.oid
 
-    def store_delete(self, fun, sesnid):
         with self.lock:
-            del self.session_data[sesnid]
+            del self.session_data[sid]
 
-    def load(self, fun, sesnid):
-        with self.lock:
-            print "URHJ", self.session_data[sesnid]
-            return self.session_data[sesnid]
+    def set_session_attribute(self, sid, attr, value):
+        if attr == "oid":
+            raise ValueError("Cannot change ID of a session")
 
-    def find_expired(self, fun):
         with self.lock:
+            self.session_data[sid][attr] = value
+
+    def unset_session_attribute(self, sid, attr, value):
+        if attr in ("oid", "expires"):
+            raise ValueError("Cannot remove 'id' or 'expires' attributes of a session")
+
+        with self.lock:
+            del self.session_data[sid][attr]
+
+    def delete_expired(self):
+        with self.lock:
+            now = self.function.started_at()
             todel = []
-            for (sesnid, data) in self.session_data.items():
-                if data["expires"] > fun.started_at():
-                    todel.append(sesnid)
-            return todel
+            for (sid, data) in self.session_data.items():
+                if data["expires"] < now:
+                    todel.append(sid)
+            for sid in todel:
+                del self.session_data[sid]
 
 
-class DatabaseSessionStore(SessionStore):
-    """Required tables:
 
-    CREATE TABLE rpcc_session (
-      id VARCHAR(40) NOT NULL PRIMARY KEY,
-      expires TIMESTAMP
-    );
-
-    CREATE TABLE rpcc_session_string (
-      session_id VARCHAR(40) NOT NULL,
-        FOREIGN KEY (session_id) REFERENCES rpcc_session(id),
-      name VARCHAR(30) NOT NULL,
-      value VARCHAR(30)
-    )
-
-    No thread locking needed - the SQL queries are against one Function's
-    db link and that link's transaction.
-
-    """
-
-    def store_create(self, fun, sesnid, attrs):
-        q = "INSERT INTO rpcc_session (id, expires) VALUES (:i, :e)"
-        fun.db.put(q, i=sesnid, e=attrs["expires"])
-
-        for (key, value) in attrs.items():
-            if key == "expires":
-                continue
-            q = "INSERT INTO rpcc_session_string (session_id, name, value) "
-            q += "VALUES (:s, :k, :v) "
-            fun.db.put(q, s=sesnid, k=key, v=value)
-
-    def store_update(self, fun, sesnid, key, value):
-        if key == "expires":
-            q = "UPDATE rpcc_session SET expires=:e WHERE id=:i"
-            fun.db.put(q, e=value, i=sesnid)
-        elif key == "id":
-            raise ValueError()
-        else:
-            q = "UPDATE rpcc_session_string SET value=:v "
-            q += "WHERE session_id=:i AND name=:k "
-            fun.db.put(q, v=value, i=sesnid, k=key)
-
-    def store_delete(self, fun, sesnid):
-        q = "DELETE FROM rpcc_session_string WHERE session_id=:i"
-        fun.db.put(q, i=sesnid)
-
-        q = "DELETE FROM rpcc_session WHERE id=:i"
-        fun.db.put(q, i=sesnid)
-
-    def load(self, fun, sesnid):
-        ret = {'id': sesnid}
-        q = "SELECT expires FROM rpcc_session WHERE id=:i"
-        ((expires,),) = fun.db.get(q, i=sesnid)
-        ret["expires"] = expires
-        q = "SELECT name, value FROM rpcc_session_string WHERE session_id=:i"
-        for (key, value) in fun.db.get(q, i=sesnid):
-            ret[key] = value
-
-        return ret
-
-    def find_expired(self, fun):
-        q = "SELECT id FROM rpcc_session WHERE expires > :n"
-        return [s for (s,) in fun.db.get(q, n=fun.started_at())]
 

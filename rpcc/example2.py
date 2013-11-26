@@ -310,14 +310,18 @@ class MyServer(server.Server):
     envvar_prefix = "XMPL_"
 
 srv = MyServer("venus.ita.chalmers.se", 12121)
-srv.register_function(FunPersonGetName)
-srv.register_function(FunDoctest)
+srv.enable_database(database.OracleDatabase)
+srv.register_manager(authenticator.NullAuthenticationManager)
+srv.register_manager(session.DatabaseBackedSessionManager)
+
 srv.register_manager(AccountManager)
 srv.register_manager(PersonManager)
-srv.enable_database(database.OracleDatabase)
-srv.enable_sessions(session.DatabaseSessionStore)
-srv.enable_authentication(authenticator.NullAuthenticator)
+
+srv.register_function(FunPersonGetName)
+srv.register_function(FunDoctest)
+
 srv.enable_documentation()
 srv.enable_mutexes()
 srv.enable_digs_and_updates()
+
 srv.serve_forever()

@@ -77,7 +77,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     handler_class = request_handler.RawRequestHandler
 
     manager_classes = []
-
     model_classes = []
 
     # If docroot is set, a default "GET" HTTP-method handler will be
@@ -123,10 +122,9 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     envvar_prefix = "RPCC_"
 
     def __init__(self, address, port, ssl_config=None, handler_class=None):
-        self.session_store = None
-        self.authenticator = None
         self.database = None
         self.digs_n_updates = False
+        self.mutexes_enabled = False
 
         self.manager_by_name = {}
         for cls in self.manager_classes:
@@ -479,21 +477,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     def enable_static_documents(self, docroot):
         self.add_protocol_handler('__GET__', protocol.StaticDocumentProtocol(docroot))
 
-    def enable_sessions(self, session_store_class):
-        self.session_store = session_store_class(self)
-        self.register_function(default_function.FunSessionStart)
-        self.register_function(default_function.FunSessionStop)
-        self.register_function(default_function.FunSessionInfo)
-
-    def enable_authentication(self, authenticator_class):
-        if not self.session_store:
-            raise ValueError("Sessions need to be enabled in order to enable authentication")
-
-        self.authenticator = authenticator_class(self)
-        self.register_function(default_function.FunSessionAuthLogin)
-        self.register_function(default_function.FunSessionDeauth)
-
     def enable_mutexes(self, mutex_manager_class=mutex.MutexManager):
+        self.mutexes_enabled = True
         self.register_manager(mutex_manager_class)
         self.register_function(default_function.FunMutexAcquire)
         self.register_function(default_function.FunMutexRelease)
@@ -520,8 +505,20 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         if self.digs_n_updates:
             raise ValueError("You must register all models and managers after digs and updates.")
         self.manager_by_name[manager_class._name()] = manager_class
+
         modelcls = manager_class.manages
-        self.model_by_name[modelcls._name()] = modelcls
+        if modelcls is not None:
+            self.model_by_name[modelcls._name()] = modelcls
+
+        if issubclass(manager_class, session.SessionManager):
+            self.register_function(default_function.FunSessionStart)
+            self.register_function(default_function.FunSessionStop)
+            self.register_function(default_function.FunSessionInfo)
+
+        elif issubclass(manager_class, authenticator.AuthenticationManager):
+            self.register_function(default_function.FunSessionAuthLogin)
+            self.register_function(default_function.FunSessionStartWithLogin)
+            self.register_function(default_function.FunSessionDeauth)
 
     def create_manager(self, mgrname, function):
         if mgrname in self.manager_by_name:
@@ -535,7 +532,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     def register_model(self, model_class):
         if self.digs_n_updates:
-            raise ValueError("You must register all models and managers after digs and updates.")
+            raise ValueError("You must register all models and managers before enabling digs and updates.")
         self.model_by_name[model_class._name()] = model_class
 
     def get_all_models(self):
