@@ -46,7 +46,9 @@ except:
     pass
 
 try:
-    import oursql
+    import mysql.connector
+    #from mysql.connector.conversion import MySQLConverter
+    #from mysql.connector.cursor import MySQLCursor
 except:
     pass
 
@@ -274,6 +276,9 @@ class DatabaseLink(object):
     def convert(self, query):
         return query
 
+    def execute(self, curs, query, values):
+        raise NotImplementedError()
+
     def get(self, query, **kwargs):
         if not self.open:
             raise LinkClosedError()
@@ -288,7 +293,7 @@ class DatabaseLink(object):
                     q = self.convert(query)
                     v = kwargs
 
-                curs.execute(q, **v)
+                self.execute(curs, q, v)
                 return self.iterator(curs)
             except Exception as e:
                 print "ERROR", e
@@ -317,7 +322,7 @@ class DatabaseLink(object):
                 else:
                     q = self.convert(query)
                     v = kwargs
-                curs.execute(q, **v)
+                self.execute(curs, q, v)
                 return curs.rowcount
             except Exception as e:
                 print "ERROR IN QUERY:", q
@@ -421,6 +426,9 @@ class OracleLink(DatabaseLink):
             print "OFFSET:", err.offset
         raise
 
+    def execute(self, curs, query, values):
+        curs.execute(query, **values)
+
     def insert(self, insert_col, query, **kwargs):
         if not self.open:
             raise LinkClosedError()
@@ -503,6 +511,9 @@ class MySQLLink(DatabaseLink):
     def convert(self, query):
         return self.re.sub("\\1", query)
 
+    def execute(self, curs, query, values):
+        curs.execute(query, values)
+
     def insert(self, dummy, query, **kwargs):
         if not self.open:
             raise LinkClosedError()
@@ -511,9 +522,9 @@ class MySQLLink(DatabaseLink):
         try:
             try:
                 if isinstance(query, DynamicQuery):
-                    curs.execute(query.query(), **query.values)
+                    curs.execute(query.query(), query.values)
                 else:
-                    curs.execute(self.convert(query), **kwargs)
+                    curs.execute(self.convert(query), kwargs)
                 return curs.lastrowid
             except Exception as e:
                 self.exception(e)
@@ -533,7 +544,7 @@ class MySQLDatabase(Database):
         port = port or self.server.config("DB_PORT")
         socket = port or self.server.config("DB_SOCKET")
 
-        self.connect_args = {"user": user, "passwd": password, "db": database}
+        self.connect_args = {"user": user, "password": password, "db": database}
         if host:
             self.connect_args["host"] = host
             if port:
@@ -544,7 +555,7 @@ class MySQLDatabase(Database):
             raise ValueError()
 
     def get_link(self):
-        raw_link = oursql.connect(**self.connect_args)
+        raw_link = mysql.connector.connect(**self.connect_args)
         return self.link_class(self, raw_link)
 
     def return_link(self, link):
