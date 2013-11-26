@@ -8,24 +8,20 @@ import threading
 import SocketServer
 import BaseHTTPServer
 
-#__all__ = ["RPCServer"]
-
-from function import Function
-
-import default_function
-import session
-import authenticator
-import request_handler
-import api_handler
-
+import mutex
 import exttype
+import session
 import exterror
 import function
-import mutex
 import protocol
 import response
+import api_handler
 import documentation
+import authentication
+import request_handler
+import default_function
 
+from function import Function
 
 class SSLConfig(object):
     keyfile = None
@@ -515,7 +511,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             self.register_function(default_function.FunSessionStop)
             self.register_function(default_function.FunSessionInfo)
 
-        elif issubclass(manager_class, authenticator.AuthenticationManager):
+        elif issubclass(manager_class, authentication.AuthenticationManager):
             self.register_function(default_function.FunSessionAuthLogin)
             self.register_function(default_function.FunSessionStartWithLogin)
             self.register_function(default_function.FunSessionDeauth)

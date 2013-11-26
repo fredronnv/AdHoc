@@ -311,7 +311,7 @@ class MyServer(server.Server):
 
 srv = MyServer("venus.ita.chalmers.se", 12121)
 srv.enable_database(database.OracleDatabase)
-srv.register_manager(authenticator.NullAuthenticationManager)
+srv.register_manager(authentication.NullAuthenticationManager)
 srv.register_manager(session.DatabaseBackedSessionManager)
 
 srv.register_manager(AccountManager)

@@ -15,6 +15,10 @@ import xmlrpclib
 
 s = xmlrpclib.ServerProxy("http://venus.ita.chalmers.se:12121/RPC2", allow_none=True, encoding="UTF-8")
 
+
+
+raise SystemExit()
+
 sesn = s.session_start()['result']
 print s.session_info(sesn)['result']['authuser']
 assert failed(s.session_auth_login(sesn, "viktor", "2viktor"))
@@ -25,7 +29,7 @@ print s.session_info(sesn)['result']["authuser"]
 assert worked(s.session_stop(sesn))
 assert failed(s.session_info(sesn))
 
-raise SystemExit()
+print s.server_list_functions()["result"]
 
 sesn = s.session_start()["result"]
 s.session_auth_login(sesn, "viktor", "viktor")
