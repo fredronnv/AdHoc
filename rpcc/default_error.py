@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from exterror import *  # @UnusedWildImport
+from exterror import *
 
 
 class ExtNoSuchSessionError(ExtLookupError):

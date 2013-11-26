@@ -233,7 +233,7 @@ class DynamicQuery(object):
     def dbvar(self, name):
         raise NotImplementedError()
 
-    def dblimit(self, limit):   # @UnusedVariable
+    def dblimit(self, limit):
         return ""
 
 
@@ -536,7 +536,7 @@ class MySQLDatabase(Database):
     query_class = MySQLDynamicQuery
     link_class = MySQLLink
 
-    def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):  # @UnusedVariable
+    def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):
         user = user or self.server.config("DB_USER")
         password = password or self.server.config("DB_PASSWORD")
         database = database or self.server.config("DB_DATABASE")

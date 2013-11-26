@@ -66,7 +66,7 @@ class API(object):
 
         self.functions[funname] = funclass
 
-        for (pname, ptype, pdesc) in funclass.get_parameters():  # @UnusedVariable
+        for (pname, ptype, pdesc) in funclass.get_parameters():
             try:
                 self.add_type(ptype)
             except IntAPIValidationError as e:
@@ -344,7 +344,7 @@ class API(object):
             already_added.add(typ._name())
             schemaelem.add(typ.xsd())
 
-            for (key, subtyp) in typ._subtypes():  # @UnusedVariable
+            for (key, subtyp) in typ._subtypes():
                 add_type(schemaelem, already_added, subtyp)
 
         added_types = set()
@@ -353,10 +353,10 @@ class API(object):
             wsdl_schema_root.add(funcls.xsd_request(mscompat))
             wsdl_schema_root.add(funcls.xsd_response())
 
-            for (name, typ, desc) in funcls.get_parameters():  # @UnusedVariable
+            for (name, typ, desc) in funcls.get_parameters():
                 add_type(wsdl_schema_root, added_types, typ)
 
-            (typ, desc) = funcls._returns()  # @UnusedVariable
+            (typ, desc) = funcls._returns()
             add_type(wsdl_schema_root, added_types, typ)
 
             # Doc/lit-wrap input message
