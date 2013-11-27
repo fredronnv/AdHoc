@@ -11,7 +11,7 @@ import database
 import session
 
 
-class DHCPConfManager(Manager):
+class DHCPManager(Manager):
 
     entry_statuses = {}
 
@@ -51,18 +51,18 @@ class DHCPConfManager(Manager):
         return option_value
 
     def dhcp_group(self, host):
-        q = "SELECT `group` from hosts where id=%(host) limit 1"
+        q = "SELECT `group` FROM hosts WHERE id=%(host) limit 1"
         dhcp_group = self.db.get(q, host=host)
         return dhcp_group
     
     def dhcp_parent_group(self, dhcp_group):
-        q = "SELECT parent_group from groups WHERE groupname = %(dhcp_group) LIMIT 1"
+        q = "SELECT parent_group FROM groups WHERE groupname = %(dhcp_group) LIMIT 1"
         parent_group = self.db.get(q, dhcp_group=dhcp_group)[0][0]
         return parent_group
     
     def lookup(self, table, key, where):
         q = "SELECT %(key) FROM %(table) WHERE %(where) LIMIT 1"
-        row = self.db.get(q, dhcp_group=dhcp_group)[0]
+        row = self.db.get(q, key=key, table=table, where=where)[0]
         return row
 
     def make_dhcpd_conf(self):
@@ -72,7 +72,7 @@ class DHCPConfManager(Manager):
         self.emit("# dhcpd.conf - automatically generated")
         self.emit("")
         
-        q = "SELECT value from global_options WHERE name='domain_name_servers'"
+        q = "SELECT value FROM global_options WHERE name='domain_name_servers'"
         iparr = []
         for ip in self.db.get(q):
             if ip:
@@ -82,7 +82,7 @@ class DHCPConfManager(Manager):
             s += ', '.join(iparr)
             self.emit(s)
 
-        q = "SELECT value from global_options WHERE name='routers'"
+        q = "SELECT value FROM global_options WHERE name='routers'"
         iparr = []
         for ip in self.db.get(q):
             if ip:
@@ -96,255 +96,130 @@ class DHCPConfManager(Manager):
         
         for (cmd, arg) in self.db.get(q):
             if cmd:
-                emit(cmd+" "+arg+";")
+                self.emit("%s %s;" % (cmd, arg))
 
 #M =item option definitions
 #M
-    my @spacearr;
-    my $space;
-    $sth=sqlexec("select value from optionspaces");
-    while (my ($space) = $sth->fetchrow)
-    {
-        if( $space)
-        {
-            push @spacearr, $space;
-        }
-    }
-    if (scalar(@spacearr))
-    {
-        my $sth=sqlexec("select name,code,qualifier,type from $Conf::dhcp_option_defs where optionspace is null and code is not null and scope='dhcp'");
-        while (my ($name, $code, $qual, $type)  =  $sth->fetchrow)
-        {
-        next if ($code == 43); ## NOTE This prevents us from overloading the vendor-encapsulated-options option If this is to be used
-                   ## Define vendor-encapsulated-options with code 43 in the database and use that option. If anyone
-                   ## defines another option with code 43, that one won't make it into the options definitoons and any
-                   ## use of that option will cause a syntax error, which is a feature compared to the bug that will otherwise be
-                   ## triggered.
-#    trace("Option $name, qualifier=$qual\n",4);
-            if($qual eq 'array' )
-            {
-                emit("option $name code $code = array of $type;");
-            }
-            else
-            {n
-                emit("option $name code $code = $type;");
-            }
-        }
+        spacearr = []
+        q ="SELECT value FROM optionspaces"
+        
+        for space in self.db.get(q):
+            if space:
+                spacearr.append(space)
+                
+        if spacearr:
+            q = "SELECT name,code,qualifier,type FROM option_defs WHERE optionspace IS NULL AND code IS NOT NULL"
+            for (name, code, qual, option_type) in self.db.get(q):
+                """ NOTE The following prevents us from overloading the vendor-encapsulated-options option.
+                     If this is to be used define vendor-encapsulated-options with code 43 in the database and use that option. 
+                     If anyone defines another option with code 43, that one won't make it into the options definitions and any
+                     use of that option will cause a syntax error, which could be cosidered feature compared 
+                     to the bug that will otherwise be triggered.
+                """
+                if code == 43: 
+                    continue
+                if qual == 'array':
+                    self.emit("option %s code %s = array of %s;" % (name, code, option_type));
+                else:
+                    self.emit("option %s code %s = %s;" % (name, code, option_type));
 
-        while ($space = shift @spacearr)
-        {
-            emit("option space $space;");
+            for space in spacearr:
+                self.emit("option space %s;" % space)
+                
+                q = "SELECT name, code, qualifier, type FROM option_defs WHERE optionspace=%(space)"
+                for (name, code, qual, option_type) in self.db.get(q):
+                    if qual == 'array':
+                        self.emit("option %s.%s code %s = array of %s;" % (space, name, code, option_type));
+                    else:
+                        self.emit("option %s.%s code %s = %s;" % (space, name, code, option_type));
+       
+        self.emit_classes();
+        self.emit_networks();
+        self.emit_groups();
 
-            my $sth=sqlexec("select name,code,qualifier,type from $Conf::dhcp_option_defs where optionspace='$space' and scope='dhcp'");
-            while (my ($name, $code, $qual, $type) =  $sth->fetchrow)
-            {
-                if($qual eq 'array' )
-                {
-                    emit("option $space.$name code $code = array of $type;");
-                }
-                else
-                {
-                    emit("option $space.$name code $code = $type;");
-                }
-            }
-        }
-    }
+    def emit_classes(self):
+        q = "SELECT classname, optionspace, vendor_class_id FROM classes"
 
-#M =item classes
-#M
-    emit_classes();
+        for (classname, optionspace, vendorclass) in self.db.get(q):
+            if classname:
+                self.emit_class(classname, optionspace, vendorclass)
 
-#M =item networks possibly containing pools
-#M
-    emit_networks();
+    def emit_networks(self):
+        q = "SELECT id, authoritative, info FROM networks"
+        for (netid, authoritative, info) in self.db.get(q):
+            if info:
+                self.emit("# " + info)
+            q = "SELECT id, network, info FROM subnetworks WHERE network=%(network)"
+            if self.db.get(q, network=netid) or self.has_pools(netid):
+                for poolname in self.get_network_pools(netid):
+                    self.emit_allowed_classes(poolname, 0);
+                self.emit("shared-network %s {" % netid);
+                if authoritative:
+                    self.emit("    authoritative;")
+                self.emit_option_list(netid, '', 1, 'network')
+                self.emit_subnetworks(netid, 0)
+                self.emit_pools(netid, 0)
+                self.emit("}");
+            else:
+                self.emit("#shared-network %s {} # Empty, no pools or subnetworks" % id)
 
-#M =item groups, possibly containing fixed-address hosts
-#M
-#M There are no global hosts as those are contained in a pseudo group internally named 'plain'. This group is generated
-#M only as a comment.
-#M
-#M =back
-#M
-    emit_groups('NULL', 0);
+    def emit_groups(self, parent=None, indent=0):
+        if not parent:
+            q = "SELECT groupname, parent, optionspace FROM groups WHERE parent_group IS NULL"
+            rows = self.db.get(q)
+        else:
+            q = "SELECT groupname, parent, optionspace FROM groups WHERE parent_group=%(parent)"
+            rows = self.db.get(q, parent=parent)
+        for (groupname, parent, optionspace) in rows:
+            if not groupname:
+                continue
+            self.emit_group_header(groupname, parent, optionspace, indent)
+            self.emit_literal_options(groupname,  'group', indent+1)
+            self.emit_groups(groupname, indent+1);
+            self.emit_group_hosts(groupname, indent+1);
+            self.emit_group_trailer(indent, parent);
+ 
 
-}
-
-sub
-emit_classes()
-{
-    my $sth;
-
-    $sth=sqlexec("select * from classes");
-
-    while(my ($classname, $filename, $optionspace, $next_server, $server_name, $server_id, $vendorclass) = $sth->fetchrow())
-    {
-        if($classname)
-        {
-            emit_class($classname, $filename, $optionspace, $next_server, $server_name, $server_id, $vendorclass);
-        }
-    }
-}
-
-sub
-emit_networks()
-{
-
-    my $sth=sqlexec("select * from networks");
-    while(my ($id, $subnet_mask, $next_server, $server_name, $authoritative, $pools, $info) = $sth->fetchrow)
-    {
-        emit("# $info") if $info;
-        my $sts=sqlexec("select * from subnetworks where `network`='$id'");
-        my $haspools=has_pools($id);
-        if($sts->fetchrow() || $haspools )
-        {
-        foreach my $poolname (get_network_pools($id))
-            {
-            emit_allowed_classes($poolname, 0);
-        }
-            emit("shared-network $id {");
-            emit("    authoritative;") if $authoritative;
-            emit("    option subnet-mask $subnet_mask;") if $subnet_mask;
-            emit("    next-server $next_server;") if $next_server;
-            emit("    server-name \"$server_name\";") if $server_name;
-            emit_option_list($id, '', 1, 'network');
-            emit_subnetworks($id, 0);
-            emit_pools($id, 0);
-
-            emit("}");
-        }
-        else
-        {
-            emit("#shared-network $id {} # Empty, no pools or subnetworks");
-        }
-    }
-}
-
-sub
-emit_groups($$)
-{
-    my $parent= shift;
-    my $rec_level= shift;
-    my $sth;
-
-    if($parent eq 'NULL')
-    {
-        $sth=sqlexec("select * from groups where parent_group is NULL");
-    } 
-    else
-    {
-        $sth=sqlexec("select * from groups where parent_group='$parent'");
-    } 
-
-    while(my ($groupname,$parent,$filename, $optionspace, $next_server, $server_name, $server_id) = $sth->fetchrow())
-    {
-        if($groupname)
-        {
-            emit_group_header($groupname, $parent, $filename, $optionspace, $rec_level, $next_server, $server_name, $server_id);
-            emit_literal_options($groupname,  'group', $rec_level+1);
-#        if ($groupname eq 'bat' || $groupname eq 'bat-test')
-#        {
-#        emit ('');
-#        emit ('        # B-hack 2006-01-04:');
-#        emit ('        if exists dhcp-parameter-request-list {');
-#        emit ('            option dhcp-parameter-request-list = concat(option dhcp-parameter-request-list,d0,d1,d2,d3);');
-#        emit ('        }');
-#        emit ('');
-#            }
-            emit_groups($groupname, $rec_level+1);
-            emit_group_hosts($groupname, $rec_level+1);
-            emit_group_trailer($rec_level, $parent);
-        }
-    }
-}
-
-sub
-emit_literal_options($$$)
-{
-    my $ownername = shift;
-    my $ownertype = shift;
-    my $rec_level = shift;
-
-    my $sth;
-
-    $sth=sqlexec("select owner,value from literal_options where `owner`='$ownername' and owner_type='$ownertype'");
-
-    while( my ($owner,$value) = $sth->fetchrow())
-    {
-        emit($value,4*$rec_level);
-    }
-}
-
-sub
-emit_group_hosts($$)
-{
-    my $groupname = shift;
-    my $rec_level = shift;
-
-    my $sth;
-
-    $sth=sqlexec("select id,mac,owner_CID,room,unix_timestamp(`expdate`),optionspace,entry_status from hostlist where `group`='$groupname'");
-
-    while( my ($id,$mac,$owner,$room,$expdate,$optionspace,$entry_status) = $sth->fetchrow())
-    {
-        emit_host($id,$mac,$owner,$room,$expdate,$entry_status,$optionspace,$rec_level);
-    }
-}
-
-sub
-emit_host($$$$$$$)
-{
-    my $id = shift;
-    my $mac = shift;
-    my $owner = shift;
-    my $room = shift;
-    my $expdate = shift;
-    my $entry_status = shift;
-    my $optionspace = shift;
-    my $rec_level = shift;
-    my $comment;
-
-    if ( $owner || $room )
-    {
-        $comment .= "# ";
-        $comment .= "$owner " if $owner;
-        $comment .= "$room " if $room;
-    }
-
-    if ( $entry_statuses{$entry_status} eq "entry" )
-    {
-        if (($expdate != 0) && (time() gt $expdate) )
-        {
-            $entry_status="Expired";
-        }
-    }
-
-    if ( $entry_statuses{$entry_status} eq "entry" )
-    {
-        my $sth=sqlexec("select name,value from optionlist where `group` = '$id' and gtype = 'host'");
-        my($name, $value) = $sth->fetchrow;
-        if(length($name) == 0)
-        {
-            emit ("host $id { hardware ethernet $mac; fixed-address $id;} $comment", 4*$rec_level);
-        }
-        else
-        {
-            emit("host $id $comment", 4*$rec_level);
-            emit("{",4*$rec_level);
-            emit("hardware ethernet $mac;",4*($rec_level+1));
-            emit("fixed-address $id;",4*($rec_level+1));
-            emit_option_space($optionspace,(4*($rec_level+1)));
-            emit_option_list($id, $optionspace, $rec_level+1, 'host');
-            emit("}",4*$rec_level);
-        }
-        next;
-    }
-
-    if ( $entry_statuses{$entry_status} eq "commented_entry" )
-    {
-        emit ("#host $id { hardware ethernet $mac; fixed-address $id;} # $entry_status.  $comment",  4*$rec_level-1);
-        next;
-    }
-}
+    def emit_literal_options(self, ownername, ownertype, indent):
+    
+        q = "SELECT owner, value FROM literal_options WHERE `owner`=%(ownername) AND owner_type=%(ownertype)"
+        
+        for (dummy_owner, value) in self.db.get(q, ownername=ownername, ownertype=ownertype):
+            self.emit(value, 4*indent)
+    
+    def emit_group_hosts(self, groupname, indent):
+        q = "SELECT id, dns, mac, room, optionspace, entry_status FROM hosts WHERE `group`=%(groupname)"
+    
+        for (id, dns, mac, room, optionspace, entry_status) in self.db.get(q, groupname=groupname):
+            self.emit_host(id, dns, mac, room, entry_status, optionspace, indent)
+        
+    def emit_host(self, hostid, dns, mac, room, entry_status, optionspace, indent):
+        
+        comment = ""
+        
+        if room:
+            comment += "# Room %s" % room
+            
+        if entry_status == 'Active':
+            q = "SELECT name, value FROM host_options WHERE `for` = %(hostid) "
+            if not self.db.get(q, hostid=hostid):
+                self.emit("host %s { hardware ethernet %s; fixed-address %s;} %s" % (hostid, mac, dns), 4*indent)
+            
+            else:
+                self.emit("host %s %s" % (hostid, comment), 4*indent)
+                self.emit("{", 4*indent)
+                self.emit("hardware ethernet %s" % mac, 4*(indent+1))
+                self.emit("fixed-address %s;" % dns, 4*(indent+1))
+                self.emit_option_space(optionspace, (4*(indent+1)));
+                self.emit_option_list(hostid, optionspace, indent+1, 'host');
+                self.emit("}",4*indent);
+            continue
+    
+    
+        if entry_status == "Inactive":
+            self.emit("#host %s { hardware ethernet %s; fixed-address %s;} # %s,  %s" % (hostid, mac, dns, entry_status, comment), 4*indent-1);
+            continue
+ 
 
 sub
 emit_pool($$)
@@ -355,7 +230,7 @@ emit_pool($$)
     my $sth;
 
 
-    $sth=sqlexec("select poolname,max_lease_time,members,optionspace,info from pools where poolname='$pool'");
+    $sth=sqlexec("SELECT poolname,max_lease_time,members,optionspace,info FROM pools WHERE poolname='$pool'");
 
     while( my ($id,$maxlease,$members,$optionspace,$info) = $sth->fetchrow())
     {
@@ -364,7 +239,7 @@ emit_pool($$)
         if($maxlease || $members || has_allowed_group($id) || has_allowed_host($id))
         {
             emit("$info", 4*($rec_level+1)) if $info;
-            my $stj=sqlexec("select start_ip from pool_ranges where pool='$id' and (served_by='$Conf::ServerID' or served_by IS NULL ) order by start_ip asc");
+            my $stj=sqlexec("SELECT start_ip FROM pool_ranges WHERE pool='$id' AND (served_by='$Conf::ServerID' OR served_by IS NULL ) ORDER BY start_ip asc");
             if(! $stj->fetchrow())  # only if there are any IP ranges.
             {
                 emit("# Not generated as there are no defined IP ranges",4*($rec_level+1)) if $info;
@@ -399,7 +274,7 @@ emit_allow_classes($$)
     
     if(has_allowed_group($pool))
     {
-        $sth=sqlexec("select groupname from pool_allow_group where poolname='$pool' order by groupname asc");
+        $sth=sqlexec("SELECT groupname FROM pool_allow_group WHERE poolname='$pool' ORDER BY groupname asc");
     
     while( my ($groupname) = $sth->fetchrow())
     {
@@ -409,7 +284,7 @@ emit_allow_classes($$)
     }
     if(has_allowed_host($pool))
     {
-        $sth=sqlexec("select host_id from pool_allow_host where poolname ='$pool' order by host_id asc");
+        $sth=sqlexec("SELECT host_id FROM pool_allow_host WHERE poolname ='$pool' ORDER BY host_id asc");
     while( my ($hostname) = $sth->fetchrow())
     {
         my $hostclass = "allocation-class-host-$hostname";
@@ -418,7 +293,7 @@ emit_allow_classes($$)
     }
 }
 
-# This routine emits the classes used to store the mac addresses for the groups and hosts that are to
+# This routine emits the classes used to store the mac addresses for the groups AND hosts that are to
 # be allowed into a pool
 
 sub
@@ -443,7 +318,7 @@ emit_allowed_classes($$)
 #subclass "allocation-class-2" 1:0:1c:c0:06:7e:84;
     if(has_allowed_group($pool))
     {
-        $sth=sqlexec("select groupname from pool_allow_group where poolname='$pool' order by groupname asc");
+        $sth=sqlexec("SELECT groupname FROM pool_allow_group WHERE poolname='$pool' ORDER BY groupname asc");
     
     while( my ($groupname) = $sth->fetchrow())
     {
@@ -454,7 +329,7 @@ emit_allowed_classes($$)
         emit("match pick-first-value (option dhcp-client-identifier, hardware);", 4*($rec_level+1));
         emit("}", 4*($rec_level));
 
-        my $sti=sqlexec("select id,mac from hostlist where `group`='$groupname'");
+        my $sti=sqlexec("SELECT id,mac FROM hostlist WHERE `group`='$groupname'");
 
             while( my ($id,$mac) = $sti->fetchrow())
             {
@@ -465,7 +340,7 @@ emit_allowed_classes($$)
     }
     if(has_allowed_host($pool))
     {
-        $sth=sqlexec("select host_id from pool_allow_host where poolname='$pool' order by host_id asc");
+        $sth=sqlexec("SELECT host_id FROM pool_allow_host WHERE poolname='$pool' ORDER BY host_id asc");
     while( my ($hostname) = $sth->fetchrow())
     {
         my $hostclass = "allocation-class-host-$hostname";
@@ -475,7 +350,7 @@ emit_allowed_classes($$)
         emit("match pick-first-value (option dhcp-client-identifier, hardware);", 4*($rec_level+1));
         emit("}", 4*($rec_level));
 
-        my $sti=sqlexec("select id, mac from hostlist where id='$hostname'");
+        my $sti=sqlexec("SELECT id, mac FROM hostlist WHERE id='$hostname'");
 
             while( my ($id,$mac) = $sti->fetchrow())
             {
@@ -494,7 +369,7 @@ emit_pools($$)
 
     my $sth;
 
-    $sth=sqlexec("select poolname from pools where network='$network'");
+    $sth=sqlexec("SELECT poolname FROM pools WHERE network='$network'");
 
     while( my($poolname) = $sth->fetchrow())
     {
@@ -510,7 +385,7 @@ get_network_pools($)
     my $sth;
     my @pools;
 
-    $sth=sqlexec("select poolname from pools where network='$network'");
+    $sth=sqlexec("SELECT poolname FROM pools WHERE network='$network'");
 
     while( my($poolname) = $sth->fetchrow())
     {
@@ -527,7 +402,7 @@ emit_ranges($$)
 
     my $sth;
 
-    $sth=sqlexec("select start_ip,end_ip from pool_ranges where pool='$pool' and (served_by='$Conf::ServerID' or served_by IS NULL ) order by start_ip asc");
+    $sth=sqlexec("SELECT start_ip,end_ip FROM pool_ranges WHERE pool='$pool' AND (served_by='$Conf::ServerID' OR served_by IS NULL ) ORDER BY start_ip asc");
 
 
     while( my($start,$end) = $sth->fetchrow())
@@ -544,7 +419,7 @@ emit_subnetworks($$)
 
     my $sth;
 
-    $sth=sqlexec("select * from subnetworks where `network`='$network'");
+    $sth=sqlexec("SELECT * FROM subnetworks WHERE `network`='$network'");
 
     while( my ($id,$netmask,$subnet_mask,$next_server,$server_name,$server_id,$network,$info) = $sth->fetchrow())
     {
@@ -606,7 +481,7 @@ sub emit_option_space($$)
 
     if(length($optionspace))
     {
-        my $sth=sqlexec("select type from optionspaces where `value` = '$optionspace'");
+        my $sth=sqlexec("SELECT type FROM optionspaces WHERE `value` = '$optionspace'");
         if( my($type) = $sth->fetchrow)
         {
             if($type eq 'site')
@@ -670,7 +545,7 @@ has_pools($)
         return 0;
     }
 
-    my $sth=sqlexec("select poolname from pools where `network` = '$network'");
+    my $sth=sqlexec("SELECT poolname FROM pools WHERE `network` = '$network'");
 
     if( my($name) = $sth->fetchrow)
     {
@@ -689,7 +564,7 @@ has_allowed_group($)
         return 0;
     }
 
-    my $sth=sqlexec("select groupname from pool_allow_group where `poolname` = '$poolname'");
+    my $sth=sqlexec("SELECT groupname FROM pool_allow_group WHERE `poolname` = '$poolname'");
 
     if( my($name) = $sth->fetchrow)
     {
@@ -708,7 +583,7 @@ has_allowed_host($)
         return 0;
     }
 
-    my $sth=sqlexec("select host_id from pool_allow_host where `poolname` = '$poolname'");
+    my $sth=sqlexec("SELECT host_id FROM pool_allow_host WHERE `poolname` = '$poolname'");
 
     if( my($name) = $sth->fetchrow)
     {
@@ -736,7 +611,7 @@ has_option_list($$$$)
         $spaceprefix .= $optionspace.'.';
     }
 
-    my $sth=sqlexec("select name from optionlist where `group` = '$optionlist' and gtype = '$gtype'");
+    my $sth=sqlexec("SELECT name FROM optionlist WHERE `group` = '$optionlist' AND gtype = '$gtype'");
 
     if( my($name) = $sth->fetchrow)
     {
@@ -763,11 +638,11 @@ emit_option_list($$$$)
         $spaceprefix .= $optionspace.'.';
     }
 
-    my $sth=sqlexec("select name,value from optionlist where `group` = '$optionlist' and gtype = '$gtype'");
+    my $sth=sqlexec("SELECT name,value FROM optionlist WHERE `group` = '$optionlist' AND gtype = '$gtype'");
 
     while( my($name, $value) = $sth->fetchrow)
     {
-        my $sti = sqlexec("select optionspace,type,qualifier,scope from $Conf::dhcp_option_defs where name = '$name'");
+        my $sti = sqlexec("SELECT optionspace,type,qualifier,scope FROM $Conf::dhcp_option_defs WHERE name = '$name'");
         my ($space,$type,$qual,$scope)=$sti->fetchrow;
     next if ($scope ne 'dhcp');
     my $opt;
@@ -804,7 +679,7 @@ db_changed()
     my @tables;
     my $table;
 
-    my $sti = sqlexec("select `mtime` from `timestamp` where `id` = 'reconf.$Conf::ServerID'");
+    my $sti = sqlexec("SELECT `mtime` FROM `timestamp` WHERE `id` = 'reconf.$Conf::ServerID'");
     my ($lastread) = $sti->fetchrow();
     if (!length($lastread))
     {
@@ -830,7 +705,7 @@ db_changed()
     foreach $table (@tables)
     {
         next if $table eq 'timestamp';
-        $sti=sqlexec("select mtime from $table where `mtime` > '$lastread' ");
+        $sti=sqlexec("SELECT mtime FROM $table WHERE `mtime` > '$lastread' ");
         while( my ($id) = $sti->fetchrow() )
         {
             trace("Database table $table was changed since $lastread\n",1);
