@@ -1,6 +1,25 @@
 #!/usr/bin/env python2.6
 # -*- coding: utf-8 -*-
 
+import rpcc_client
+
+rpcc = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121")
+print rpcc.server_function_definition("session_auth_login")
+try:
+    rpcc.login("viktor", "nisse")
+except RuntimeError as e:
+    pass
+
+rpcc.login("viktor", "viktor")
+assert rpcc._auth == "viktor"
+#print rpcc.reset()
+
+print rpcc.person_dig("firstname:Viktor")
+
+raise SystemExit()
+
+
+
 def worked(r):
     return "result" in r
 
@@ -14,10 +33,6 @@ def failed(r, witherr=None):
 import xmlrpclib
 
 s = xmlrpclib.ServerProxy("http://venus.ita.chalmers.se:12121/RPC2", allow_none=True, encoding="UTF-8")
-
-
-
-raise SystemExit()
 
 sesn = s.session_start()['result']
 print s.session_info(sesn)['result']['authuser']

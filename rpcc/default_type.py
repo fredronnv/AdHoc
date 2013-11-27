@@ -24,6 +24,7 @@ class ExtSession(exttype.ExtString):
         try:
             return fun.session_manager.model(cval)
         except:
+            raise
             raise default_error.ExtNoSuchSessionError(value=cval)
 
     def output(self, function, sesn):

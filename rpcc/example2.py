@@ -6,9 +6,9 @@ from function import Function
 
 import server
 import access
-import authenticator
-import database
 import session
+import database
+import authentication
 
 class AllowCertainUser(access.Guard):
     def __init__(self, uname):
@@ -103,11 +103,11 @@ class Person(Model):
     g_owner = AllowOwner()
     g_viktor = AllowCertainUser("viktor")
 
-    @template("person", ExtPerson)
+    @template("person", ExtPerson, default=True)
     def get_person(self):
         return self
 
-    @template("firstname", ExtString)
+    @template("firstname", ExtString, default=True)
     def get_firstname(self):
         return self.fname
 

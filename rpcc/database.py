@@ -415,6 +415,9 @@ class OracleLink(DatabaseLink):
     def exception(self, inner):
         if isinstance(inner, cx_Oracle.DatabaseError):
             err = inner.args[0]
+            if isinstance(err, str):
+                raise
+
             if err.code == 904:
                 idf = err.message.split('"')[1]
                 raise InvalidIdentifierError(idf, inner=inner)

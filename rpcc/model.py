@@ -55,14 +55,13 @@ class _TmpReference(object):
 
 class ExternalAttribute(object):
     # Valid for one particular API version.
-    def __init__(self, name, type=None, method=None, desc=None, model=None, args=[], kwargs={}):
+    def __init__(self, name, type=None, method=None, desc=None, model=None, default=False):
         self.extname = name
         self.exttype = type
         self.method = method
         self.extdesc = desc
         self.model = model
-        self.args = args
-        self.kwargs = kwargs
+        self.default = default
 
     def __repr__(self):
         return "%s attr=%s type=%s method=%s" % (self.__class__.__name__, self.extname, self.exttype, self.method)
@@ -110,9 +109,10 @@ class ExternalWriteAttribute(ExternalAttribute):
 # NOTE! In order for @entry and @template to be stackable in arbitrary
 # order, @entry needs to know about (and copy) the _template method
 # attribute.
-def template(name, exttype, minv=0, maxv=10000, desc=None, model=None, args=[], kwargs={}):
+def template(name, exttype, minv=0, maxv=10000, desc=None, model=None, default=False):
     def decorate(decorated):
-        data = dict(name=name, type=exttype, desc=desc, model=model, args=args, kwargs=kwargs)
+        data = dict(name=name, type=exttype, desc=desc, model=model, 
+                    default=default)
         if hasattr(decorated, "_update"):
             raise IntAPIValidationError("Both @template and @update cannot be applied to the same method, but are for %s" % (decorated,))
 
@@ -169,8 +169,8 @@ class Model(object):
     name = ""
 
     # The ID type determines, among other things, which result set
-    # table will be used. Valid values are str/int (the Python types).
-    id_type = str
+    # table will be used. Valid values are basestring/int (the Python types).
+    id_type = basestring
 
     def __init__(self, manager, *args, **kwargs):
         if not isinstance(manager, Manager):
@@ -299,6 +299,8 @@ class Model(object):
 
         for attr in cls._read_attributes(api_version).values():
             attr.fill_template_type(tmpl)
+        tmpl.optional["_"] = (ExtBoolean, "A default set of attributes will be returned. This set changes over time, so only use this key interactively. Be explicit in your scripts!")
+
         return tmpl
 
     @classmethod
@@ -340,6 +342,13 @@ class Model(object):
         if (api_version, tmplidx) in self._templated:
             return self._templated[(api_version, tmplidx)]
 
+        if "_" in tmpl and tmpl["_"]:
+            tmpl = tmpl.copy()
+            dummy = tmpl.pop("_")
+            for (name, attr) in self._read_attributes(api_version).items():
+                if attr.default and name not in tmpl:
+                    tmpl[name] = True
+
         out = {}
         readattrs = self._read_attributes(api_version)
         for (name, tmpl_value) in tmpl.items():
@@ -351,7 +360,7 @@ class Model(object):
             # to pass self explicitly) and any parameters to
             # it.
             attr = readattrs[name]
-            value = attr.method(self, *attr.args, **attr.kwargs)
+            value = attr.method(self)
 
             if value is None:
                 if "_remove_nulls" in tmpl and tmpl["_remove_nulls"]:
@@ -669,7 +678,7 @@ class Manager(object):
 
     def new_result_set(self):
         q = "SELECT resid FROM rpcc_result WHERE expires > :now"
-        for expired in self.db.get(q, now=self.function.started_at()):
+        for (expired,) in self.db.get(q, now=self.function.started_at()):
             q = "DELETE FROM rpcc_result_string WHERE resid=:r"
             self.db.put(q, r=expired)
             q = "DELETE FROM rpcc_result_int WHERE resid=:r"

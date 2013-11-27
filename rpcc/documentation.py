@@ -312,7 +312,7 @@ class Documentation(object):
             elif isinstance(t, ExtNull):
                 tps["base"] = "null"
             elif isinstance(t, ExtBoolean):
-                tps["base"] = "bool"
+                tps["base"] = "boolean"
             elif isinstance(t, ExtOrNull):
                 tps["base"] = "nullable"
                 tps["subtype"] = t._name()

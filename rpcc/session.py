@@ -83,6 +83,7 @@ class Session(model.Model):
         self.locked = False
         self.reload()
 
+
 class SessionManager(model.Manager):
     name = "session_manager"
     manages = Session
