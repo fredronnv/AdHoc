@@ -366,17 +366,17 @@ CREATE TABLE IF NOT EXISTS `pool_literal_options` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `pool_host_map`
+-- Table structure for table `pool_group_map`
 --
 
-CREATE TABLE IF NOT EXISTS `pool_host_map` (
-  `pool` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool where the host may live',
-  `host` varchar(64) collate utf8_bin NOT NULL COMMENT 'Host id',
+CREATE TABLE IF NOT EXISTS `pool_group_map` (
+  `poolname` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool where the group may live',
+  `groupname` varchar(64) collate utf8_bin NOT NULL COMMENT 'Group name',
   `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
-  KEY `value` (`host`),
-  KEY `host` (`pool`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Defines which hosts may live in which pools';
+  KEY `groupname` (`groupname`),
+  KEY `poolname` (`poolname`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Defines which groups that may live in which pools';
 
 
 
@@ -387,13 +387,13 @@ CREATE TABLE IF NOT EXISTS `pool_host_map` (
 -- Table structure for table `pool_class_map`
 --
 
-CREATE TABLE IF NOT EXISTS `pool_clas_map` (
-  `pool` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool where the host may live',
-  `class` varchar(64) collate utf8_bin NOT NULL COMMENT 'Host id',
+CREATE TABLE IF NOT EXISTS `pool_class_map` (
+  `poolname` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool where the host may live',
+  `classname` varchar(64) collate utf8_bin NOT NULL COMMENT 'Class name',
   `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
-  KEY `value` (`class`),
-  KEY `host` (`pool`)
+  KEY `classname` (`classname`),
+  KEY `poolname` (`poolname`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Defines which classes may live in which pools';
 
 
@@ -579,18 +579,18 @@ ALTER TABLE `pool_literal_options`
   ADD CONSTRAINT `pool_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
 
 --
--- Constraints for table `pool_host_map`
+-- Constraints for table `pool_group_map`
 --
-ALTER TABLE `pool_host_map`
-  ADD CONSTRAINT `pool_host_map_ibfk_2` FOREIGN KEY (`host`) REFERENCES `hosts` (`id`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `pool_host_map_ibfk_1` FOREIGN KEY (`pool`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
+ALTER TABLE `pool_group_map`
+  ADD CONSTRAINT `pool_group_map_ibfk_2` FOREIGN KEY (`groupname`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE ON DELETE CASCADE,
+  ADD CONSTRAINT `pool_group_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE ON DELETE CASCADE;
   
 --
 -- Constraints for table `pool_class_map`
 --
 ALTER TABLE `pool_class_map`
-  ADD CONSTRAINT `pool_class_map_ibfk_2` FOREIGN KEY (`class`) REFERENCES `classes` (`classname`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `pool_class_map_ibfk_1` FOREIGN KEY (`pool`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `pool_class_map_ibfk_2` FOREIGN KEY (`classname`) REFERENCES `classes` (`classname`) ON UPDATE CASCADE ON DELETE CASCADE,
+  ADD CONSTRAINT `pool_class_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE ON DELETE CASCADE;
 
 --
 -- Constraints for table `pool_options`
