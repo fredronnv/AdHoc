@@ -366,10 +366,10 @@ CREATE TABLE IF NOT EXISTS `pool_literal_options` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `pool_map`
+-- Table structure for table `pool_host_map`
 --
 
-CREATE TABLE IF NOT EXISTS `pool_map` (
+CREATE TABLE IF NOT EXISTS `pool_host_map` (
   `pool` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool where the host may live',
   `host` varchar(64) collate utf8_bin NOT NULL COMMENT 'Host id',
   `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
@@ -378,6 +378,23 @@ CREATE TABLE IF NOT EXISTS `pool_map` (
   KEY `host` (`pool`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Defines which hosts may live in which pools';
 
+
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pool_class_map`
+--
+
+CREATE TABLE IF NOT EXISTS `pool_clas_map` (
+  `pool` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool where the host may live',
+  `class` varchar(64) collate utf8_bin NOT NULL COMMENT 'Host id',
+  `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
+  `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
+  KEY `value` (`class`),
+  KEY `host` (`pool`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Defines which classes may live in which pools';
 
 
 -- --------------------------------------------------------
@@ -562,11 +579,18 @@ ALTER TABLE `pool_literal_options`
   ADD CONSTRAINT `pool_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
 
 --
--- Constraints for table `pool_map`
+-- Constraints for table `pool_host_map`
 --
-ALTER TABLE `pool_map`
-  ADD CONSTRAINT `pool_map_ibfk_2` FOREIGN KEY (`host`) REFERENCES `hosts` (`id`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `pool_map_ibfk_1` FOREIGN KEY (`pool`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
+ALTER TABLE `pool_host_map`
+  ADD CONSTRAINT `pool_host_map_ibfk_2` FOREIGN KEY (`host`) REFERENCES `hosts` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `pool_host_map_ibfk_1` FOREIGN KEY (`pool`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
+  
+--
+-- Constraints for table `pool_class_map`
+--
+ALTER TABLE `pool_class_map`
+  ADD CONSTRAINT `pool_class_map_ibfk_2` FOREIGN KEY (`class`) REFERENCES `classes` (`classname`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `pool_class_map_ibfk_1` FOREIGN KEY (`pool`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `pool_options`
