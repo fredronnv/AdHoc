@@ -308,7 +308,7 @@ class RPCC(object):
             else:
                 return "Restarted with new session to %s, but login for %s failed" % (self._purl, self._auth)
             
-        for i in range(3):
+        for dummy in range(3):
             try:
                 self.session_auth_login(oldauth, getpass.getpass("Reconnect %s@%s, password: " % (oldauth, self._purl)))
                 return "Reconnected to %s as %s" % (self._purl, self._auth)
@@ -337,7 +337,7 @@ class RPCC(object):
         if user is None:
             user = getpass.getuser()
         if password is None:
-            password = getpass.getpass("Password for %s@%s: " % (authuser, self._url))
+            password = getpass.getpass("Password for %s@%s: " % (user, self._url))
         return self.session_auth_login(user, password)
 
 
@@ -369,17 +369,17 @@ class XXXRPCC_Krb5(RPCC):
     
 def pp(d, ind=0):
     for (k, v) in d.iteritems():
-        print ' '*ind + k + ':',
+        print ' ' * ind + k + ':',
         if type(v) == type({}):
             print '{'
-            pp(v, ind+4)
-            print ' '*ind + '}'
+            pp(v, ind + 4)
+            print ' ' * ind + '}'
         elif type(v) == type([]):
             print '['
             for sv in v:
-                pp(sv, ind+4)
-                print ' '*ind + ','
-            print ' '*ind + ']'
+                pp(sv, ind + 4)
+                print ' ' * ind + ','
+            print ' ' * ind + ']'
         else:
             print v
-                
+
