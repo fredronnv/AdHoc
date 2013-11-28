@@ -1,20 +1,15 @@
 #!/usr/bin/env python2.6
-
 from model import *
 from exttype import *
-from function import Function
-
-import server
-import access
-import authenticator
-import database
-import session
 
 import socket
 import struct
 
 
 class DHCPManager(Manager):
+    
+    name = "dhcp_manager"
+    models = None
 
     generated_allocation_group_classes = {}
     generated_allocation_host_classes = {}
@@ -29,12 +24,10 @@ class DHCPManager(Manager):
         if self.LogFile:
             self.LogFile.close()
 
-    def __init__(self, serverID):
-        # TODO: Call superclass
+    def init(self, serverID):
         self.serverID = serverID
         self.generated_allocation_group_classes = set()
-        
-        
+              
     def resolve_option_host(self, option_value, host, option_key):
         return option_value or self.resolve_option_group(self.dhcp_group(host), option_key)
     
@@ -104,7 +97,7 @@ class DHCPManager(Manager):
 #M =item option definitions
 #M
         spacearr = []
-        q ="SELECT value FROM optionspaces"
+        q = "SELECT value FROM optionspaces"
         
         for space in self.db.get(q):
             if space:
@@ -122,9 +115,9 @@ class DHCPManager(Manager):
                 if code == 43: 
                     continue
                 if qual == 'array':
-                    self.emit("option %s code %s = array of %s;" % (name, code, option_type));
+                    self.emit("option %s code %s = array of %s;" % (name, code, option_type))
                 else:
-                    self.emit("option %s code %s = %s;" % (name, code, option_type));
+                    self.emit("option %s code %s = %s;" % (name, code, option_type))
 
             for space in spacearr:
                 self.emit("option space %s;" % space)
@@ -132,13 +125,13 @@ class DHCPManager(Manager):
                 q = "SELECT name, code, qualifier, type FROM option_defs WHERE optionspace=%(space)"
                 for (name, code, qual, option_type) in self.db.get(q):
                     if qual == 'array':
-                        self.emit("option %s.%s code %s = array of %s;" % (space, name, code, option_type));
+                        self.emit("option %s.%s code %s = array of %s;" % (space, name, code, option_type))
                     else:
-                        self.emit("option %s.%s code %s = %s;" % (space, name, code, option_type));
+                        self.emit("option %s.%s code %s = %s;" % (space, name, code, option_type))
        
-        self.emit_classes();
-        self.emit_networks();
-        self.emit_groups();
+        self.emit_classes()
+        self.emit_networks()
+        self.emit_groups()
 
     def emit_classes(self):
         q = "SELECT classname, optionspace, vendor_class_id FROM classes"
@@ -155,14 +148,14 @@ class DHCPManager(Manager):
             q = "SELECT id, network, info FROM subnetworks WHERE network=%(network)"
             if self.db.get(q, network=netid) or self.has_pools(netid):
                 for poolname in self.get_network_pools(netid):
-                    self.emit_allowed_classes(poolname, 0);
-                self.emit("shared-network %s {" % netid);
+                    self.emit_allowed_classes(poolname, 0)
+                self.emit("shared-network %s {" % netid)
                 if authoritative:
                     self.emit("    authoritative;")
                 self.emit_option_list(netid, '', 1, 'network')
                 self.emit_subnetworks(netid, 0)
                 self.emit_pools(netid, 0)
-                self.emit("}");
+                self.emit("}")
             else:
                 self.emit("#shared-network %s {} # Empty, no pools or subnetworks" % id)
 
@@ -211,24 +204,22 @@ class DHCPManager(Manager):
                 self.emit("{", 4 * indent)
                 self.emit("hardware ethernet %s" % mac, 4 * (indent + 1))
                 self.emit("fixed-address %s;" % dns, 4 * (indent + 1))
-                self.emit_option_space(optionspace, (4 * (indent + 1)));
-                self.emit_option_list(hostid, optionspace, indent + 1, 'host');
-                self.emit("}",4 * indent);
-            continue
-    
+                self.emit_option_space(optionspace, (4 * (indent + 1)))
+                self.emit_option_list(hostid, optionspace, indent + 1, 'host')
+                self.emit("}", 4 * indent)
+            return
     
         if entry_status == "Inactive":
-            self.emit("#host %s { hardware ethernet %s; fixed-address %s;} # %s,  %s" % (hostid, mac, dns, entry_status, comment), 4 * indent-1);
-            continue
+            self.emit("#host %s { hardware ethernet %s; fixed-address %s;} # %s,  %s" % (hostid, mac, dns, entry_status, comment), 4 * indent - 1)
+            return
  
-
     def emit_pool(self, poolid, indent):
         
-        q ="SELECT poolname, optionspace, info FROM pools WHERE poolname=%(poolid)"
+        q = "SELECT poolname, optionspace, info FROM pools WHERE poolname=%(poolid)"
     
         (poolname, optionspace, poolinfo) = self.db.get(q, poolid=poolid)[0]
         
-        info = "# Pool: $id. $info" %(poolname, poolinfo)
+        info = "# Pool: $id. $info" % (poolname, poolinfo)
         
         maxlease = self.db.get("SELECT value FROM pool_options WHERE `for`= %(poolid) AND name = 'max-lease-time'", 
                                poolid=poolid)
@@ -241,17 +232,17 @@ class DHCPManager(Manager):
             q = "SELECT start_ip FROM pool_ranges WHERE pool=%(poolid) AND (served_by=%(served_by) OR served_by IS NULL ) ORDER BY start_ip asc"
             if not self.db.get(q, poolid=poolid, served_by=self.serverID):
                 if info:
-                    self.emit("# Not generated as there are no defined IP ranges", 4 * (indent + 1));
+                    self.emit("# Not generated as there are no defined IP ranges", 4 * (indent + 1))
                 return
              
-            self.emit("pool", 4 * (indent + 1));
-            self.emit("{", 4 * (indent + 1));
+            self.emit("pool", 4 * (indent + 1))
+            self.emit("{", 4 * (indent + 1))
             #if maxlease: self.emit("max-lease-time %s;" % maxlease[0] ,4 * (indent+2))
-            self.emit_option_space(optionspace, 4 * (indent+2));
-            self.emit_option_list(poolid, optionspace, indent+2, 'pool');
-            self.emit_ranges(poolid, 4 * (indent + 2));
-            self.emit_allow_classes(poolid, 4 * (indent + 2));
-            self.emit("}", 4 * (indent + 1));
+            self.emit_option_space(optionspace, 4 * (indent + 2))
+            self.emit_option_list(poolid, optionspace, indent + 2, 'pool')
+            self.emit_ranges(poolid, 4 * (indent + 2))
+            self.emit_allow_classes(poolid, 4 * (indent + 2))
+            self.emit("}", 4 * (indent + 1))
 
     def emit_allow_classes(self, poolid, indent):
         if self.has_allowed_group(poolid):
@@ -316,23 +307,23 @@ class DHCPManager(Manager):
         q = "SELECT if, network, info FROM subnetworks WHERE `network`=%(network)"
     
         for (subnet_id, network, info) in self.db.get(q, network=network):
-            network_id="%-15s" % subnet_id;
+            network_id = "%-15s" % subnet_id
             if info:
                 info = "# " + info
             else:
                 info = ""
             (subnet_addr, mask_length) = subnet_id.split('/')
-            subnet_mask = socket.inet_ntoa(struct.pack(">L", (1<<32) - (1<<32>>mask_length)))
+            subnet_mask = socket.inet_ntoa(struct.pack(">L", (1 << 32) - (1 << 32 >> mask_length)))
             
             if self.has_option_list(subnet_id, '', 1, 'subnetwork'):
-                self.emit("subnet %s netmask %s     %s" % (subnet_addr, subnet_mask, info), 4 * (indent + 1));
-                self.emit("{", 4 * (indent + 1));
-                self.emit("option subnet-mask %s;" % subnet_mask, 4 * (indent+2))
-                self.emit_option_list(subnet_id, '', indent+2, 'subnetwork')
-                self.emit("}",4 * (indent + 1));
+                self.emit("subnet %s netmask %s     %s" % (subnet_addr, subnet_mask, info), 4 * (indent + 1))
+                self.emit("{", 4 * (indent + 1))
+                self.emit("option subnet-mask %s;" % subnet_mask, 4 * (indent + 2))
+                self.emit_option_list(subnet_id, '', indent + 2, 'subnetwork')
+                self.emit("}", 4 * (indent + 1))
             
             else:
-                self.emit("subnet %s netmask %s { } %s" % (subnet_addr, subnet_mask,info), 4 * (indent + 1));
+                self.emit("subnet %s netmask %s { } %s" % (subnet_addr, subnet_mask, info), 4 * (indent + 1))
 
     def emit_class(self, classname, optionspace, vendor_class_id):
 
@@ -340,14 +331,13 @@ class DHCPManager(Manager):
         self.emit("{", 0)
         
         if vendor_class_id:
-            length = len(vendor_class_id);
+            length = len(vendor_class_id)
             self.emit("match if substring (option vendor-class-identifier, 0, %d) = \"%s\";" % (length, vendor_class_id), 4)
         
         self.emit_option_space(optionspace, 4)
         self.emit_literal_options(classname, 'class', 1)
         self.emit_option_list(classname, optionspace, 1, 'class')
         self.emit("}", 0)
-
 
     def emit_option_space(self, optionspace, indent):
     
@@ -381,41 +371,38 @@ class DHCPManager(Manager):
         q = "SELECT poolname FROM pools WHERE `network` = %(network)"
         return bool(self.db.get(q, network=network))
 
-    
     def has_allowed_group(self, poolname):
         if not poolname:
             return False
         return bool(self.db.get("SELECT groupname FROM pool_group_map WHERE `poolname` = %(poolname)", poolname=poolname))
 
-    
     def has_option_list(self, optionlist, optionspace, indent, gtype, spaceprefix):
 
         if not optionlist:
             return False
     
         if optionspace:
-            spaceprefix += optionspace+'.'
+            spaceprefix += optionspace + '.'
     
-        table = gtype+"_options"
+        table = gtype + "_options"
             
         return bool(self.db.get("SELECT name FROM %(table) WHERE `for` = %(optionlist)", table=table, optionlist=optionlist))
     
     def emit_option_list(self, optionlist, optionspace, indent, gtype, spaceprefix):
 
-    
         if not optionlist:
             return False
     
         if optionspace:
-            spaceprefix += optionspace+'.'
+            spaceprefix += optionspace + '.'
     
-        table = gtype+"_options"
+        table = gtype + "_options"
     
         rows = self.db.get("SELECT name, value FROM %(table) WHERE `for` = %(optionlist)", table=table, optionlist=optionlist)
     
         for (name, value) in rows:
         
-            (space, type, qual) = self.db.get("SELECT optionspace,type,qualifier FROM option_defs WHERE name = %(name)", name=name)[0]
+            (space, dummy_type, qual) = self.db.get("SELECT optionspace,type,qualifier FROM option_defs WHERE name = %(name)", name=name)[0]
             
             opt = ""
             if qual != "parameter" and qual != "parameter-array":
@@ -424,13 +411,11 @@ class DHCPManager(Manager):
                 space += "."
                 
             if type == 'text':
-                self.emit ("%s%s%s \"%s\";" % (opt, space, name, value), 4 * indent);
+                self.emit("%s%s%s \"%s\";" % (opt, space, name, value), 4 * indent)
             
             else:
-                self.emit ("%s%s%s %s;" % (opt, space, name, value), 4 * indent);
+                self.emit("%s%s%s %s;" % (opt, space, name, value), 4 * indent)
             
-
-
     def emit(self, msg, indent):
         msg = msg.rstrip() + "\n"
         self.dhcpd_conf += ' ' * indent + msg
