@@ -500,19 +500,29 @@ class OracleDatabase(Database):
 ###
 class MySQLDynamicQuery(DynamicQuery):
     def dbvar(self, name):
-        return "%(" + name + ")"
+        return "%(" + name + ")s"
 
     def dblimit(self, limit):
         return "LIMIT %d" % (limit,)
 
 
+class MySQLIterator(DatabaseIterator):
+    def convert(self, row):
+        # TODO: Check if ant data types need special treatment like in OracleIterator
+        return row
+
+
 class MySQLLink(DatabaseLink):
+    
+    iterator_class = MySQLIterator
+    query_class = MySQLDynamicQuery
+    
     def __init__(self, *args, **kwargs):
         DatabaseLink.__init__(self, *args, **kwargs)
-        self.re = re.compile(":([a-z])")
+        self.re = re.compile(":([a-z0-9]+)")
 
     def convert(self, query):
-        return self.re.sub("\\1", query)
+        return self.re.sub("%(\\1)s", query)
 
     def execute(self, curs, query, values):
         curs.execute(query, values)
