@@ -278,6 +278,14 @@ class DatabaseLink(object):
 
     def execute(self, curs, query, values):
         raise NotImplementedError()
+    
+    def get_all(self, query, **kwargs):
+        """ Executes the query and returns the result as a list instead of an iterator.
+        
+            This is needed when looping over a result and the loop body is doing writes
+            to the database.
+        """
+        return list(self.get(query, **kwargs))
 
     def get(self, query, **kwargs):
         if not self.open:
@@ -508,7 +516,7 @@ class MySQLDynamicQuery(DynamicQuery):
 
 class MySQLIterator(DatabaseIterator):
     def convert(self, row):
-        # TODO: Check if ant data types need special treatment like in OracleIterator
+        # TODO: Check if any data types need special treatment like in OracleIterator
         return row
 
 
