@@ -9,6 +9,8 @@ import SocketServer
 import BaseHTTPServer
 
 import mutex
+import event
+import access
 import exttype
 import session
 import exterror
@@ -117,10 +119,20 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     # the default Databases have config in RPCC_DB_USER and so on.
     envvar_prefix = "RPCC_"
 
+    # Sensitive information such as session id:s are protected by this
+    # guard. Set a guard specific for your application's authorization
+    # model (use access.DefaultSuperuserGuard and
+    # authentication.DefaultSuperuserOnlyAuthenticator) if you want to
+    # be able to read this information but don't have an authorization
+    # model of your own.
+    
+    superuser_guard = access.NeverAllowGuard()
+
     def __init__(self, address, port, ssl_config=None, handler_class=None):
         self.database = None
         self.digs_n_updates = False
         self.mutexes_enabled = False
+        self.events_enabled = False
 
         self.manager_by_name = {}
         for cls in self.manager_classes:
@@ -239,70 +251,44 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         'result' with the value of the function call (as internal
         Python objects), or the key 'error' with the value an error
         dictionary.
+
         """
 
-        fun = None
         start_time = time.time()
-
+        funobj = None
         db = None
-        try:
-            try:
-                api = self.api_handler.get_api(api_version)
-                if self.database:
-                    db = self.database.get_link()
-                else:
-                    db = None
-                fun = api.get_function_object(function, httphandler, db)
-                self.function_start(fun, params, start_time, api_version)
-                result = fun.call(params)
-                self.function_stop(fun)
-            except exterror.ExtOutputError as e:
-                print "OutputError (sent as InternalError with ID %s" % (e.id,)
-                e.print_trace()
-                raise
-            except exterror.ExtInternalError as e:
-                print "InternalError with ID %s" % (e.id,)
-                traceback.print_exc()
-                raise
-            except exterror.ExtError as e:
-                # Pass ExtError:s to the outer except for conversion.
-                raise
-            except:
-                # All other errors should be converted to ExtInternalError.
-                e = exterror.ExtInternalError()
-                print "Uncaught exception converted to InternalError with ID %s" % (e.id,)
-                traceback.print_exc()
-                raise e
 
-            self.log_success(httphandler,
-                             "%s#%d" % (function, api_version),
-                             fun, fun.log_arguments(params), result,
-                             time.time() - start_time)
+        try:
+            api = self.api_handler.get_api(api_version)
+            if self.database:
+                db = self.database.get_link()
+            else:
+                db = None
+            funobj = api.get_function_object(function, httphandler, db)
+            self.function_start(funobj, params, start_time, api_version)
+            result = funobj.call(params)
             ret = {'result': result}
         except exterror.ExtError as e:
-            if fun:
-                params = fun.log_arguments(params)
-                self.function_stop(fun)
-            else:
-                params = ()
-
-            self.log_error(httphandler,
-                           "%s#%d" % (function, api_version),
-                           fun, params, e,
-                           traceback.extract_tb(sys.exc_info()[2]),
-                           time.time() - start_time)
-
             s = e.struct()
-            s['api_version'] = api_version
             ret = {'error': s}
-        finally:
-            if db:
-                self.database.return_link(db)
+        except Exception as e:
+            # funobj.call() may only return a result or raise an
+            # ExtError instance, but in very rare circumstances other
+            # errors may bubble up.
+            traceback.print_exc()
+            e = exterror.ExtInternalError()
+            s = e.struct()
+            ret = {'error': s}
+                
+        if funobj:
+            self.function_stop(funobj)
 
-        if api_version > 0:
-            ret['api_version'] = api_version
+        if db:
+            self.database.return_link(db)
 
-        print "RETURN", ret
+        ret['api_version'] = api_version
+
+        #print "RETURN", ret
         return ret
 
     def register_function(self, cls):
@@ -506,6 +492,17 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         if modelcls is not None:
             self.model_by_name[modelcls._name()] = modelcls
 
+        if self.database:
+            db = self.database.get_link()
+        else:
+            db = None
+
+        try:
+            manager_class.on_register(self, db)
+        finally:
+            if db:
+                self.database.return_link(db)
+
         if issubclass(manager_class, session.SessionManager):
             self.register_function(default_function.FunSessionStart)
             self.register_function(default_function.FunSessionStop)
@@ -513,8 +510,11 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         elif issubclass(manager_class, authentication.AuthenticationManager):
             self.register_function(default_function.FunSessionAuthLogin)
-            self.register_function(default_function.FunSessionStartWithLogin)
             self.register_function(default_function.FunSessionDeauth)
+
+        elif issubclass(manager_class, event.EventManager):
+            self.events_enabled = True
+        
 
     def create_manager(self, mgrname, function):
         if mgrname in self.manager_by_name:
@@ -533,3 +533,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     def get_all_models(self):
         return self.model_by_name.values()
+
+    def is_superuser(self, obj, fun):
+        return self.superuser_guard.check(obj, fun)

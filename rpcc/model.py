@@ -555,7 +555,7 @@ class Manager(object):
 
     # The table to insert search results into ("rpcc_result_string" or
     # "rpcc_result_int" depending on data type of the models ID)
-    result_table = "rpcc_result_string"
+    #result_table = "rpcc_result_string"
 
     model_lookup_error = ExtLookupError
 
@@ -604,6 +604,19 @@ class Manager(object):
 
         return styp
 
+    @classmethod
+    def on_register(cls, srv, db):
+        """When the manager is registered with the Server, this method
+        will be run and passed a database link.
+
+        It can perform startup tasks such as checking/setting up
+        tables in the database.
+
+        If the database has not yet been enabled in the server,
+        the db argument will be None.
+        """
+        pass
+
     def __init__(self, function, *args, **kwargs):
         self.function = function
         self.server = function.server
@@ -630,6 +643,10 @@ class Manager(object):
         """
         raise NotImplementedError()
 
+    def kwargs_for_model(self, mid):
+        """Return the **kwargs to send on Model instantiation."""
+        return None
+
     def args_for_model(self, mid):
         dq = self.db.dynamic_query()
         self.base_query(dq)
@@ -648,22 +665,50 @@ class Manager(object):
             if not isinstance(oid, self.manages.id_type):
                 raise ValueError("%s id must be of type %s - supplied value %s isn't" % (self.manages.__name__, self.manages.id_type, oid))
             args = self.args_for_model(oid)
-            self._model_cache[oid] = self.manages(self, *args)
+            kwargs = self.kwargs_for_model(oid) or {}
+            self._model_cache[oid] = self.manages(self, *args, **kwargs)
         return self._model_cache[oid]
 
+    def result_table(self):
+        if issubclass(self.manages.id_type, basestring):
+            return "rpcc_result_string"
+        elif self.manages.id_type == int:
+            return "rpcc_result_int"
+        else:
+            raise ValueError()
+
+    def kwargs_for_result(self, rid):
+        """Return a dict of dicts. The outer dict is indexed by
+        model id, and the inner dicts are the **kwargs to send
+        to the Model instantation for the respective model id.
+
+        Although the 'empty' result should be a dictionary with all
+        model id:s from the result mapping to empty dictionaries,
+        None is accepted as meaning no kwargs for any model.
+        """
+
+        return None
+
     def models_by_result_id(self, rid):
+        rtbl = self.result_table()
         dq = self.db.dynamic_query()
         self.base_query(dq)
-        dq.table("rpcc_result", "rpcc_result_string")
+        dq.table("rpcc_result", rtbl)
         dq.where("rpcc_result.resid = " + dq.var(rid))
         dq.where("rpcc_result.manager = " + dq.var(self._shortname()))
-        dq.where(self.result_table + ".resid = " + dq.var(rid))
-        dq.where(self.result_table + ".value = " + dq.get_select_at(0))
+        dq.where(rtbl + ".resid = " + dq.var(rid))
+        dq.where(rtbl + ".value = " + dq.get_select_at(0))
         res = []
+        allargs = dq.run()
+        extras = self.kwargs_for_result(rid)
         for args in dq.run():
             oid = args[0]
             if not oid in self._model_cache:
-                self._model_cache[oid] = self.manages(self, *args)
+                if extras:
+                    kwargs = extras.get(oid, {})
+                else:
+                    kwargs = {}
+                self._model_cache[oid] = self.manages(self, *args, **kwargs)
             res.append(self._model_cache[oid])
         return res
 
@@ -702,7 +747,7 @@ class Manager(object):
     def perform_search(self, opts):
         dq = self.db.dynamic_query()
         rid = self.new_result_set()
-        dq.store_result("INSERT INTO " + self.result_table + " (resid, value)")
+        dq.store_result("INSERT INTO " + self.result_table() + " (resid, value)")
         dq.select(dq.var(rid))
         self.inner_search(dq, opts)
         dq.run()

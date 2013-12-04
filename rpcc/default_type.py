@@ -198,3 +198,26 @@ class ExtMutexInfo(exttype.ExtStruct):
     optional = {
         "holder": exttype.ExtString,
         }
+
+class ExtWatchdog(exttype.ExtString):
+    name = "watchdog"
+    desc = "The name of a watchdog, belonging to a mutex and only visible to the current holder of that mutex"
+
+    def lookup(self, fun, cvar):
+        ### TODO
+        pass
+
+class ExtWatchdogState(exttype.ExtString):
+    name = "watchdog-state"
+    desc = "The state of a watchdog"
+
+    values = ["stopped", "running", "warning", "error"]
+
+
+class ExtEvent(exttype.ExtInteger):
+    pass
+
+#class ExtEventType(exttype.ExtEnum):
+#    values = ["create", "update", "destroy", "call", "watchdog", "marker"]
+
+

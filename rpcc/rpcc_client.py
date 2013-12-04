@@ -130,6 +130,10 @@ class RPCC(object):
             self._session_id = self._rawcall("session_start")["result"]
         return self._session_id
 
+    def stop(self):
+        if self._session_id is not None:
+            self._rawcall("session_stop", self._session_id)
+
     def _call(self, fun, *args):
         if self._function_is_sessioned(fun):
             args = [self._get_session()] + list(args)

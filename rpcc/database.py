@@ -143,6 +143,8 @@ class DynamicQuery(object):
     q.run() (OR db.get(q) / db.put(q))
     """
 
+    onre = re.compile("[^a-z]*([a-z]+[.][a-z]+)")
+
     def __init__(self, link, master_query=None):
         self.link = link
         self.master_query = master_query
@@ -151,7 +153,9 @@ class DynamicQuery(object):
 
         self.store_prefix = ""
         self.selects = []
+        self.aliases = set()
         self.tables = set()
+        self.outers = set()
         self.conditions = set()
         self.subqueries = []
         self.groups = []
@@ -159,6 +163,8 @@ class DynamicQuery(object):
         self.orders = []
         self.values = {}
         self.limit = None
+        self.outer_join_leftside = None
+        self.outer_join_alias = None
 
     def subquery(self, onexpr):
         """Return a DynamicQuery which uses the same database values and
@@ -167,6 +173,12 @@ class DynamicQuery(object):
         subq = self.__class__(self.link, self)
         self.subqueries.append((onexpr, subq))
         return subq
+
+    def _alias(self, tbldef):
+        if " " in tbldef:
+            return tbldef.split()[1]
+        else:
+            return tbldef
 
     def store_result(self, expr):
         self.store_prefix = expr
@@ -181,6 +193,48 @@ class DynamicQuery(object):
         for tbl in tbls:
             if tbl not in self.tables:
                 self.tables.add(tbl)
+                self.aliases.add(self._alias(tbl))
+
+    def outer(self, tblalias, onexpr):
+        """Limited OUTER JOIN functionality.
+
+        One defined table alias must be used on the left side of the first
+        comparison in the ON statemement. The same alias must be used
+        in _all_ OUTER JOIN:s in the same DynamicQuery
+
+        dquery.table('rpcc_event e')
+        dquery.outer('rpcc_event_string es1', 'e.id=es1.event')
+        # WRONG (e.id needs to be first in the ON statement):
+        dquery.outer('rpcc_event_string es2', 'es2.event=e.id')
+        # WRONG (e.id has been used for a previous OUTER and all must 
+        #        use the same alias):
+        dquery.outer('rpcc_event_string es2', 'es1.event=es2.event')
+
+        """
+        try:
+            tbl, alias = tblalias.split(" ")
+        except:
+            raise ValueError("OUTER JOIN table needs to be aliased like 'tblname al', which '%s' is not" % (tblalias,))
+
+        mo = self.onre.match(onexpr)
+        if not mo:
+            raise ValueError("OUTER JOIN on-expression needs to have a leftside of the a.b format, '%s' does not" % (onexpr,))
+
+        leftside = self.onre.match(onexpr).group(1)
+
+        if self.outer_join_leftside is None:
+            self.outer_join_leftside = leftside
+            try:
+                alias, col = leftside.split(".")
+            except:
+                raise ValueError("OUTER JOIN on-expression's first leftside needs to be an alias.column value, '%s' is not." % (leftside,))
+            if alias not in self.aliases:
+                raise ValueError("OUTER JOIN on-expressions's first leftside needs to use an alias that is already defined, '%s' is not." % (alias,))
+            self.outer_join_alias = alias
+        elif self.outer_join_leftside != leftside:
+            raise ValueError("All OUTER JOIN on-expressions need to use the same initial leftside, but '%s' is different from previously used '%s'" % (leftside, self.outer_join_leftside))
+
+        self.outers.add( (tblalias, onexpr) )
 
     def where(self, cond):
         if cond not in self.conditions:
@@ -210,7 +264,17 @@ class DynamicQuery(object):
     def query(self):
         q = self.store_prefix or ""
         q += " SELECT " + ",".join(self.selects)
-        q += " FROM " + ",".join(self.tables)
+
+        tbls, last = [], []
+        for t in self.tables:
+            if self._alias(t) == self.outer_join_alias:
+                last = [t]
+            else:
+                tbls.append(t)
+
+        q += " FROM " + ",".join(tbls + last)
+        for (a, x) in self.outers:
+            q += " LEFT OUTER JOIN %s ON %s" % (a, x)
         for (onexpr, subq) in self.subqueries:
             self.where(onexpr + " IN (" + subq.query() + ")")
         if self.conditions:
@@ -266,7 +330,7 @@ class DatabaseLink(object):
         self.open = False
         self.link.close()
 
-    def exception(self, inner):
+    def exception(self, inner, query, args):
         print "Unhandled error: %s" % (inner,)
         raise inner
 
@@ -291,6 +355,10 @@ class DatabaseLink(object):
         if not self.open:
             raise LinkClosedError()
 
+        if self.database.debug:
+            print id(self), "QUERY:", query
+            print id(self), "ARGS: ", kwargs
+
         curs = self.link.cursor()
         try:
             try:
@@ -306,9 +374,7 @@ class DatabaseLink(object):
             except Exception as e:
                 print "ERROR", e
                 print "ERROR ARGUMENTS", e.args
-                print "IN QUERY:", q
-                print "WITH ARGUMENTS:", v
-                self.exception(e)
+                self.exception(e, q, v)
         finally:
             pass
             #curs.close()
@@ -320,6 +386,10 @@ class DatabaseLink(object):
     def put(self, query, **kwargs):
         if not self.open:
             raise LinkClosedError()
+
+        if self.database.debug:
+            print id(self), "QUERY:", query
+            print id(self), "ARGS: ", kwargs
 
         curs = self.link.cursor()
         try:
@@ -333,9 +403,7 @@ class DatabaseLink(object):
                 self.execute(curs, q, v)
                 return curs.rowcount
             except Exception as e:
-                print "ERROR IN QUERY:", q
-                print "WITH ARGUMENTS:", v
-                self.exception(e)
+                self.exception(e, q, v)
         finally:
             curs.close()
 
@@ -346,6 +414,9 @@ class DatabaseLink(object):
         if not self.open:
             raise LinkClosedError()
 
+        if self.database.debug:
+            print id(self), "BEGIN"
+
         self.link.begin()
         self.intrans = True
 
@@ -353,12 +424,18 @@ class DatabaseLink(object):
         if not self.open:
             raise LinkClosedError()
 
+        if self.database.debug:
+            print id(self), "COMMIT"
+
         self.link.commit()
         self.intrans = False
 
     def rollback(self):
         if not self.open:
             raise LinkClosedError()
+
+        if self.database.debug:
+            print id(self), "ROLLBACK"
 
         self.link.rollback()
         self.intrans = False
@@ -377,6 +454,7 @@ class Database(object):
         self.server = server
         self.lock = threading.Lock()
         self.init(**args)
+        self.debug = server.config("DEBUG_SQL", default=False)
 
     def get_link(self):
         raise NotImplementedError()
@@ -420,7 +498,11 @@ class OracleLink(DatabaseLink):
     iterator_class = OracleIterator
     query_class = OracleDynamicQuery
 
-    def exception(self, inner):
+    def exception(self, inner, query, args):
+        if self.database.server.config("DEBUG_SQL", default=False):
+            print "ERROR IN QUERY: ", query
+            print "WITH ARGUMENTS: ", args
+
         if isinstance(inner, cx_Oracle.DatabaseError):
             err = inner.args[0]
             if isinstance(err, str):
@@ -433,7 +515,7 @@ class OracleLink(DatabaseLink):
                 raise InvalidTableError("?", inner=inner)
             print "CODE:", err.code
             print "CONTEXT:", err.context
-            print "MESSAGE:", err.message
+            print "MESSAGE:", err.message.strip()
             print "OFFSET:", err.offset
         raise
 
@@ -443,6 +525,10 @@ class OracleLink(DatabaseLink):
     def insert(self, insert_col, query, **kwargs):
         if not self.open:
             raise LinkClosedError()
+
+        if self.database.debug:
+            print id(self), "QUERY:", query
+            print id(self), "ARGS: ", kwargs
 
         curs = self.link.cursor()
         try:
@@ -460,6 +546,8 @@ class OracleLink(DatabaseLink):
                 curs.execute(q, **kw)
                 return var.getvalue()
             except Exception as e:
+                print q
+                print kw
                 self.exception(e)
         finally:
             curs.close()
@@ -538,6 +626,10 @@ class MySQLLink(DatabaseLink):
     def insert(self, dummy, query, **kwargs):
         if not self.open:
             raise LinkClosedError()
+
+        if self.database.debug:
+            print id(self), "QUERY:", query
+            print id(self), "ARGS: ", kwargs
 
         curs = self.link.cursor()
         try:

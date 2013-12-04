@@ -25,7 +25,7 @@ class AuthenticationManager(model.Manager):
     models = None
 
     def model(self, oid):
-        # DO NOT IMPLEMENT THIS - it is a model-less manager.
+        # DO NOT IMPLEMENT THIS - it is a model-less manager!
         raise NotImplementedError()
 
     def login(self, session, username, password):
@@ -40,7 +40,18 @@ class NullAuthenticationManager(AuthenticationManager):
         if username == password:
             session.set("authuser", username)
         else:
-            raise exterror.ExtAuthenticationFailedError("Supplied username or password was invalid")
+            raise exterror.ExtAuthenticationFailedError()
+
+    def logout(self, session):
+        session.unset("authuser")
+
+
+class SuperuserOnlyAuthenticationManager(AuthenticationManager):
+    def login(self, session, username, password):
+        if username == '#root#' and password == self.server.config("SUPERUSER_PASSWORD"):
+            session.set("authuser", "#root#")
+        else:
+            raise exterror.ExtAuthenticationFailedError()
 
     def logout(self, session):
         session.unset("authuser")

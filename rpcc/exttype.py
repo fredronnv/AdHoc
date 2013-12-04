@@ -78,6 +78,7 @@ class ExtType(object):
     # CLASS-level caching for the class-method .instance().
     _instance_cache = dict()
     _list_cache = dict()
+    _ornull_cache = dict()
 
     def parse(self, function, rawval):
         self.check(function, rawval)
@@ -131,17 +132,36 @@ class ExtType(object):
 
     @classmethod
     def instance(cls, typ):
+        """Return a unified instance of the ExtType class or object 'typ'.
+
+        If 'typ' is a class an instance of 'typ' is returned - the same
+        instance if this method is called several times.
+
+        If 'typ' is an ExtList or ExtOrNull instance, the wrapped type
+        is looked up, and the _same_ ExtList or ExtOrNull instance (which
+        may be another one) is always returned. One list-of-foo and another
+        list-of-foo are always the same thing.
+
+        Otherwise if 'typ' is an ExtType instance, it is just returned
+        as-is.
+        """
+
         # Both struct keys and return types may be tuples (typ, desc),
         # simplify other code by unpacking here.
         if isinstance(typ, tuple):
             typ = typ[0]
 
-        # Two different ExtList instances covering the same underlying
-        # type should return the same instance.
+        # Two different ExtList or ExtOrNull instances covering the
+        # same underlying type should return the same instance.
         if isinstance(typ, ExtList):
             if typ.typ not in cls._list_cache:
                 cls._list_cache[typ.typ] = typ
             return cls._list_cache[typ.typ]
+
+        if isinstance(typ, ExtOrNull):
+            if typ.typ not in cls._ornull_cache:
+                cls._ornull_cache[typ.typ] = typ
+            return cls._ornull_cache[typ.typ]
 
         if isinstance(typ, ExtType):
             return typ
@@ -682,7 +702,8 @@ class ExtStruct(ExtType):
             try:
                 converted[key] = typ.output(function, subval)
             except ExtOutputError as e:
-                raise ExtOutputError(self, "While converting key '%s'" % (key,), e)
+                e.add_trace(self, "While converting key '%s'" % (key,))
+                raise
 
         for (key, subval) in inval.items():
             try:
@@ -694,7 +715,8 @@ class ExtStruct(ExtType):
             try:
                 converted[key] = typ.output(function, subval)
             except ExtOutputError as e:
-                raise ExtOutputError(self, "While converting key '%s'" % (key,), e)
+                e.add_trace(self, "While converting key '%s'" % (key,))
+                raise
 
         return converted
             
@@ -864,7 +886,8 @@ class ExtOrNull(ExtType):
                 return None
             return ExtType.instance(self.typ).output(function, value)
         except ExtOutputError as e:
-            raise ExtOutputError(self, "Non-null value")
+            e.add_trace(self, "The non-null alternative")
+            raise
 
     # SOAP
     def xsd(self):
@@ -934,7 +957,7 @@ class ExtList(ExtType):
             try:
                 out.append(typ.output(function, subval))
             except ExtOutputError as e:
-                raise ExtOutputError(self, "List element at index %d" % (subidx,), e)
+                e.add_trace(self, "List element at index %d" % (subidx,))
             
         return out
             

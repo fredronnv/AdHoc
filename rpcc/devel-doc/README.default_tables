@@ -82,6 +82,90 @@ CREATE TABLE rpcc_mutex_var_val (
 );
 
 
+CREATE TABLE rpcc_event_type (
+  id INTEGER NOT NULL PRIMARY KEY,
+  name VARCHAR(32) NOT NULL,
+  CONSTRAINT rpcc_cst_evtype_uniq UNIQUE (name)
+);
+
+CREATE SEQUENCE rpcc_seq_evtype_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_evtype_id
+BEFORE INSERT ON rpcc_event_type
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_evtype_id.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_event (
+  id INTEGER NOT NULL PRIMARY KEY,
+  typ INTEGER NOT NULL REFERENCES rpcc_event_type(id),
+  created TIMESTAMP NOT NULL,
+  parent REFERENCES rpcc_event(id)
+);
+
+CREATE SEQUENCE rpcc_seq_evid;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_evid
+BEFORE INSERT ON rpcc_event
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_evid.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_event_str_attr (
+  id INTEGER NOT NULL PRIMARY KEY,
+  name VARCHAR(32) NOT NULL,
+  CONSTRAINT rpcc_cst_evstrattr_uniq UNIQUE (name)
+);
+
+CREATE SEQUENCE rpcc_seq_evstrattr_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_evstrattr_id
+BEFORE INSERT ON rpcc_event_str_attr
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_evstrattr_id.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_event_str (
+  event INTEGER NOT NULL REFERENCES rpcc_event(id),
+  attr INTEGER NOT NULL REFERENCES rpcc_event_str_attr(id),
+  value VARCHAR(2000)
+);
+
+CREATE UNIQUE INDEX rpcc_idx_evstr ON rpcc_event_str(event, attr);
+
+CREATE TABLE rpcc_event_int_attr (
+  id INTEGER NOT NULL PRIMARY KEY,
+  name VARCHAR(32) NOT NULL,
+  CONSTRAINT rpcc_cst_evintattr_uniq UNIQUE (name)
+);
+
+CREATE SEQUENCE rpcc_seq_evintattr_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_evintattr_id
+BEFORE INSERT ON rpcc_event_int_attr
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_evintattr_id.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_event_int (
+  event INTEGER NOT NULL REFERENCES rpcc_event(id),
+  attr INTEGER NOT NULL REFERENCES rpcc_event_int_attr(id),
+  value INTEGER
+);
+
+CREATE UNIQUE INDEX rpcc_idx_evint ON rpcc_event_int(event, attr);
+
+
+
+
 Default tables fpr RPCC using MySQL:
 ====================================
 

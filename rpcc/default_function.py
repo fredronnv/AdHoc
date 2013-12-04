@@ -69,37 +69,12 @@ class FunSessionAuthLogin(SessionedFunction):
     desc = "Authenticates a session (execution context). If successful, further calls done in that context count as being made by the user whose username was given as argument to this call."
 
     def log_arguments(self, args):
-        return ('*', args[1], '****')
+        return (args[0], args[1], '****')
 
     def do(self):
         ath = self.authentication_manager
         ath.login(self.session, self.username, self.password)
         return True
-
-
-class FunSessionStartWithLogin(Function):
-    extname = 'session_start_with_login'
-    params = [('username', exttype.ExtString, 'Username to authenticate as'),
-              ('password', exttype.ExtString, 'Password to authenticate with')]
-    returns = (default_type.ExtSession, "Authenticated call context")
-
-    desc = "Create a session and attempt to authenticate it returning the session if authentication succeeded."
-
-    def log_arguments(self, args):
-        return (args[0], '****')
-
-    def do(self):
-        remote_ip = self.handler.client_address[0]
-        sesnid = self.session_manager.create_session(remote_ip)
-        self.session = self.session_manager.model(sesnid)
-
-        try:
-            ath = self.authentication_manager
-            ath.login(self.session, self.username, self.password)
-            return self.session
-        except:
-            self.session_manager.destroy_session(self.session)
-            raise
 
 
 class FunSessionDeauth(SessionedFunction):
@@ -142,6 +117,7 @@ class FunServerFunctionDefinition(Function):
 
     def do(self):
         t = self.server.documentation.function_as_struct(self.api.version, self.function)
+        print t
         return t
 
 

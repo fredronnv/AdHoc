@@ -10,14 +10,20 @@ try:
 except RuntimeError as e:
     pass
 
-rpcc.login("viktor", "viktor")
-assert rpcc._auth == "viktor"
-#print rpcc.reset()
+rpcc.login("#root#", "#root#")
+assert rpcc._auth == "#root#"
 
-print rpcc.person_dig("firstname:Viktor")
+print rpcc.event_dig("min_event:#0,function:session_start#0", "event,created,function,params")
+
+rpcc.login("viktor", "viktor")
+
+print rpcc.event_dig("min_event:#0,function:session_start#0", "event,created,function,params")
 
 raise SystemExit()
 
+
+print rpcc.person_dig("firstname:Viktor")
+rpcc.stop()
 
 
 def worked(r):

@@ -99,7 +99,7 @@ class Documentation(object):
     def typename_as_text(self, t):
         tinst = ExtType.instance(t)
         if isinstance(tinst, ExtOrNull):
-            return "<%s> or <null>" % (self.typename_as_text(tinst.typ),)
+            return "%s or <null>" % (self.typename_as_text(tinst.typ),)
         elif isinstance(tinst, ExtList):
             return "[%s, ...]" % (self.typename_as_text(tinst.typ),)
         else:

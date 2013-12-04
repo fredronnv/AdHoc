@@ -113,13 +113,17 @@ class Guard(object):
     DecisionReferred (let someone else decide).
     """
 
+    _instance_cache = {}
+
     @classmethod
     def instance(cls, other):
         try:
             if isinstance(other, Guard):
                 return other
             elif issubclass(other, Guard):
-                return other()
+                if other not in cls._instance_cache:
+                    cls._instance_cache[other] = other()
+                return cls._instance_cache[other]
         except:
             pass
 
@@ -132,6 +136,30 @@ class Guard(object):
 class AlwaysAllowGuard(Guard):
     def check(self, obj, function):
         return AccessGranted(CacheInFunction)
+
+
+class NeverAllowGuard(Guard):
+    def check(self, obj, function):
+        return AccessDenied(CacheInFunction)
+
+
+class DefaultSuperuserGuard(Guard):
+    """This guard says yes if session.authuser == '#root#', don't-know
+    otherwise.
+
+    You can use authentication.SuperuserOnlyAuthenticator to allow access 
+    to protected information if you have no authorization model in your 
+    application."""
+
+    def check(self, obj, function):
+        if function.session.authuser == "#root#":
+            return AccessGranted(CacheInFunction)
+        return DecisionReferred(CacheInFunction)
+
+
+class SuperuserProxy(Guard):
+    def check(self, obj, function):
+        return Guard.instance(function.server.superuser_guard).check(obj, function)
 
 # Chain types: 
 
@@ -262,6 +290,7 @@ def entry(guard):
     will allow access. When the decorated method returns control, either by
     a return or by an unhandled Exception, the flag is reset.
     """
+    guard = Guard.instance(guard)
 
     def checked_method_maker(wrapped_method):
         def actually_called(obj, *args, **kwargs):

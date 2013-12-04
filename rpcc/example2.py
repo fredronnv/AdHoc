@@ -4,6 +4,7 @@ from model import *
 from exttype import *
 from function import Function
 
+import event
 import server
 import access
 import session
@@ -164,7 +165,6 @@ class PersonManager(Manager):
     name = "person_manager"
     manages = Person
 
-    result_table = "rpcc_result_string"
     model_lookup_error = ExtNoSuchPersonError
 
     def init(self):
@@ -226,7 +226,6 @@ class AccountManager(Manager):
     name = "account_manager"
     manages = Account
 
-    result_table = "rpcc_result_string"
     model_lookup_error = ExtNoSuchAccountError
 
     def init(self):
@@ -308,11 +307,14 @@ class FunDoctest(Function):
 
 class MyServer(server.Server):
     envvar_prefix = "XMPL_"
+    superuser_guard = access.DefaultSuperuserGuard
 
 srv = MyServer("venus.ita.chalmers.se", 12121)
 srv.enable_database(database.OracleDatabase)
+
 srv.register_manager(authentication.NullAuthenticationManager)
 srv.register_manager(session.DatabaseBackedSessionManager)
+srv.register_manager(event.EventManager)
 
 srv.register_manager(AccountManager)
 srv.register_manager(PersonManager)

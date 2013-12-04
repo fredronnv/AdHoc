@@ -1,6 +1,7 @@
 
 import re
 import datetime
+import traceback
 
 from exttype import *
 import default_type
@@ -305,20 +306,47 @@ class Function(object):
         """Called by the rpc server for call handling."""
 
         self.call_time = datetime.datetime.now()
-        marker_id = None
+        call_success = False
+        evattrs = {}
+
         try:
-            if self.creates_event:
-                marker_id = self.server.create_marker_event()
-                
+            funname = "%s#%d" % (self._name(), self.api.version)
+            if self.server.events_enabled:
+                self.event_manager.start("call", function=funname,
+                                         params=str(self.log_arguments(args)))
+
+                if self.creates_event:
+                    self.event_manager.create_marker()
+                    self.db.commit()
+
             self.parse_args(args)
             self.check_access()
             ret = self.do()
-
-            #return ret
-            return ExtType.instance(self.returns).output(self, ret)
+            response = ExtType.instance(self.returns).output(self, ret)
+            call_success = True
+            return response
+        except Exception as e:
+            if isinstance(e, exterror.ExtOutputError):
+                print "ExtOutputError"
+                e.print_trace()
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exc()
+            tb = traceback.extract_tb(exc_traceback)
+            evattrs["error"] = exc_type.__name__
+            evattrs["errline"] = "%s:%d" % (tb[-1][0], tb[-1][1])
+            evattrs["errval"] = str(exc_value)
+            if not isinstance(e, ExtError):
+                e = exterror.ExtInternalError()
+            evattrs["errid"] = e.id
+            if isinstance(e, ExtInternalError):
+                evattrs["stack"] = traceback.format_exc()
+            raise e
         finally:
-            if marker_id:
-                self.server.destroy_marker_event(marker_id)
+            if self.server.events_enabled:
+                elapsed = datetime.datetime.now() - self.call_time
+                evattrs["elapsed"] = int(1000 * elapsed.seconds)
+                self.event_manager.stop(call_success, **evattrs)
+                self.db.commit()
 
     def do(self):
         """Implement in subclasses for actual functionality."""
