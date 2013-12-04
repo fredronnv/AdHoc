@@ -507,7 +507,7 @@ class StringMatch(EqualityMatchMixin, Match):
         q.where("LOWER(" + expr + ") <> LOWER(" + q.var(val) + ") ")
 
 
-class IntegerMatch(Match):
+class IntegerMatch(EqualityMatchMixin, Match):
     @prefix("max", ExtInteger)
     def max(self, fun, q, expr, val):
         q.where(expr + "<=" + q.var(val))
