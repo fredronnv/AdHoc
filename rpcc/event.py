@@ -274,6 +274,30 @@ class EventManager(Manager):
             # dynamically created and @template-wrapped function.
             setattr(cls.manages, "get_" + name, new_getter(name, typ))
 
+        def new_searcher(attr, tbl, attrid):
+            def _search(self, dq):
+                alias = "ss_" + attr
+                dq.outer("%(t)s %(a)s", "(e.id=%(a)s.event AND %(a)s.attr=%(i)d)" % {'t': tbl, 'a': alias, 'o': attrid})
+                return alias + ".value"
+            _search.__name__ = "search_" + attr
+            _search.__doc__ = "auto-generated searcher for %s" % (attr,)
+            if tbl == 'rpcc_event_str':
+                return search(attr, StringMatch)(_search)
+            elif tbl == 'rpcc_event_int':
+                return search(attr, IntegerMatch)(_search)
+            else:
+                raise ValueError()
+
+        for (attr, (tbl, attrid)) in cls.event_attributes.items():
+            if cls._has_search_attr(attr):
+                continue
+
+            if hasattr(cls, "search_" + attr):
+                continue
+
+            setattr(cls, "search_" + attr, new_searcher(attr, tbl, attrid))
+
+
     def base_query(self, dq):
         dq.select("ev.id")
         dq.select("evt.name", "ev.created", "ev.parent")

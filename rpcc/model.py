@@ -387,6 +387,66 @@ class Model(object):
         return
 
 
+# Search system.
+
+# From the external viewpoint, search keys are exposed that can be fed
+# to the system. Each search key represents a combination of a search
+# method (which sets up a DynamicQuery to include a particular
+# attribute) and a match method (which adds a comparison to the
+# DynamicQuery involving the external value and the attribute set up
+# by the search method).
+
+# Internally, Managers expose methods, called search methods, that
+# when called set up a DynamicQuery to contain a particular attribute
+# and return the SQL for that attribute.
+
+# Search methods are decorated with one or more @search() decorators,
+# each belonging to non-overlapping API version ranges. In the
+# decorator, the external name of the attribute is specified, as is
+# the Match subclass that implements all matching mechanisms
+# (comparisons and such) that should be usable with the attribute. The
+# data from the decorator(s) is stored on the method as a list of
+# _SearchSpec instances.
+
+# A Match subclass implements different matching methods, each
+# decorated with a @prefix() or @suffix() decorator. When a matching
+# method is called because of external stimuli, it adds a comparison
+# to a DynamicQuery, containing the attribute SQL returned by the
+# search method. The decorator contains the string to prepend/append
+# to the attribute name to form a search key.
+
+# For each search method, a Match instance is created. Each
+# combination of a search method and a match method is then
+# represented by a _SearchKey. A _SearchKey contains the manager
+# method to call for setting up the attribute, the Match object and
+# method on it to call to add the comparison.
+
+
+class _SearchKey(object):
+    def __init__(self, key, manager_method, match_callable, exttype, desc):
+        self.key = key
+        self.manager_method = manager_method
+        self.match_callable = match_callable
+        self.exttype = exttype
+        self.desc = desc
+
+    def get_key(self):
+        return self.key
+
+    def get_exttype(self):
+        return self.exttype
+
+    def use(self, dynamic_query, manager, searchval):
+        # The manager modifies the dynamic query as needed to define
+        # the match expression and then returns it (e.g. "p.firstname").
+        match_expr = self.manager_method(manager, dynamic_query)
+
+        # The matcher modifies the dynamic query by adding the match
+        # operation with the match expression returned above and the
+        # value from the search (e.g. "p.firstname = <searchval>").
+        self.match_callable(manager.function, dynamic_query, match_expr,
+                            searchval)
+
 
 # NOTE! In order for @entry and @suffix to be stackable in arbitrary
 # order, @entry needs to know about (and copy) the _matchers method
@@ -435,8 +495,30 @@ class Match(object):
     searchopt) adds the condition 'p.fname LIKE searchopt'.
     """
 
-    def _keys_for(self, api_version, name, desc):
-        # [ (key, clsmeth, exttype, desc) ]
+    _instance_cache = {}
+
+    # NOTE! The Match.instance() method creates singletons which are
+    # cached in the Match base class in the below attribute. Since
+    # they are cached in the class, they are shared across Functions
+    # and threads and this means that:
+
+    # * ALL MATCH METHODS MUST BE RE-ENTRANT.
+
+    # * They must never, under any circumstance, change state when
+    #   being invoked.
+
+    @classmethod
+    def instance(cls, thing):
+        if isinstance(thing, Match):
+            return thing        
+        elif type(thing) == type(type) and issubclass(thing, Match):
+            if thing not in cls._instance_cache:
+                cls._instance_cache[thing] = thing()
+            return cls._instance_cache[thing]
+        else:
+            raise ValueError("%s is neither a Match instance nor a Match subclass" % (thing,))
+
+    def keys_for_attribute(self, manager_method, api_version, name, desc):
         ret = []
         prefixes = {}
         suffixes = {}
@@ -470,8 +552,9 @@ class Match(object):
 
                 if m["desc"]:
                     desc = desc + "(" + m["desc"] + ")"
-                    
-                ret.append( (key, candidate, m["exttype"], desc) )
+
+                ret.append(_SearchKey(key, manager_method, candidate, m["exttype"], desc))
+                #ret.append( (key, candidate, m["exttype"], desc) )
         return ret
 
     def __init__(self):
@@ -517,19 +600,64 @@ class IntegerMatch(EqualityMatchMixin, Match):
         q.where(expr + ">=" + q.var(val))
 
 
+
+
+class _SearchSpec(object):
+    """Represents one @search decorator and the data in it."""
+
+    def __init__(self, minv, maxv, name, matcher, desc, manager_name):
+        self.minv = minv
+        self.maxv = maxv
+        self.name = name
+        self.matcher = matcher
+        self.desc = desc
+        self.manager_name = manager_name
+
+    def covers_api_version(self, api_version):
+        return (api_version >= self.minv and api_version <= self.maxv)
+    
+    def overlaps_api_range(self, other):
+        return (self.minv < other.maxv and self.maxv > other.minv)
+
+    def search_keys(self, manager_method, api_version):
+        """Return the _SearchKey instances representing each
+        combination of manager_method and the matchers match 
+        methods, for a particular api version.
+
+        """
+
+        if not self.covers_api_version(api_version):
+            raise ValueError("This cannot happen, but anyways...")
+        
+        matcher = Match.instance(self.matcher)
+        keys = matcher.keys_for_attribute(manager_method, api_version, self.name, self.desc)
+
+        if self.manager_name:
+            subsearcher = _Subsearch(self.manager_name)
+            subkeyname = self.name + "_in"
+            
+            keys.append(_SearchKey(subkeyname, manager_method, subsearcher.subsearch, _TmpReference(self.manager_name, nullable=False), self.desc))
+
+            #ss = _Subsearch(srch["manager"])
+            #cls._search_lookup[srch["name"] + "_in"] = (candidate, (ss, ss.subsearch), _TmpReference(srch["manager"], nullable=False), desc)
+
+        #print "QBHD", self, [k.key for k in keys]
+        return keys
+
+
 # NOTE! In order for @entry and @search to be stackable in arbitrary
 # order, @entry needs to know about (and copy) the _searches method
 # attribute.
-def search(name, matchcls, minv=0, maxv=10000, desc=None, manager=None):
+def search(name, matchcls, minv=0, maxv=10000, desc=None, manager_name=None):
     def decorate(decorated):
-        data = dict(name=name, matchcls=matchcls, desc=desc, manager=manager)
+        newsobj = _SearchSpec(minv, maxv, name, matchcls, desc, manager_name)
         if hasattr(decorated, "_searches"):
-            for (submin, submax, subdata) in decorated._searches:
-                if submin < maxv and submax > minv:
+            for oldsobj in decorated._searches:
+                if oldsobj.overlaps_api_range(newsobj):
                     raise IntAPIValidationError("Two @template directives have overlapping API versions for %s" % (decorated,))
-            decorated._searches.append((minv, maxv, data))
+            decorated._searches.append(newsobj)
         else:
-            decorated._searches = [(minv, maxv, data)]
+            decorated._searches = [newsobj]
         return decorated
     return decorate
 
@@ -542,6 +670,7 @@ class _Subsearch(object):
         mgr = getattr(fun, self.manager_name)
         subq = dq.subquery(expr)
         mgr.inner_search(subq, val)
+
 
 class Manager(object):
     # If name="foo_manager", then <function>.foo_manager,
@@ -569,41 +698,72 @@ class Manager(object):
         return cls._name()[:-8]
 
     @classmethod
-    def _search_type(cls, api_version):
-        cls._search_lookup = {}
+    def _search_methods(cls):
+        """Return all methods on cls which was decorated by at least one
+        @search() decorator.
+        """
+
+        meths = []
         for candname in dir(cls):
             candidate = getattr(cls, candname)
             if not hasattr(candidate, "_searches"):
                 continue
+            meths.append(candidate)
+        return meths
 
-            for (minv, maxv, srch) in candidate._searches:
-                if api_version >= minv and api_version <= maxv:
+    @classmethod
+    def _has_search_attr(cls, attr, api=None):
+        for meth in cls._search_methods():
+            for sobj in meth._searches:
+                if api is not None and not sobj.covers_api_version(api):
+                    continue
+                if sobj.name == attr:
+                    return True
+        return False
+
+    @classmethod
+    def _make_search_keys(cls, api_version):
+        if hasattr(cls, "_search_lookup"):
+            if api_version in cls._search_lookup:
+                return
+            else:
+                cls._search_lookup[api_version] = {}
+        else:
+            cls._search_lookup = {api_version: {}}
+
+        for meth in cls._search_methods():
+            for searchspec in meth._searches:
+                if searchspec.covers_api_version(api_version):
                     break
             else:
                 continue
 
-            mo = srch["matchcls"]()
-            for (key, meth, exttype, desc) in mo._keys_for(api_version, srch["name"], srch["desc"]):
-                if key in cls._search_lookup:
-                    raise ValueError("Double search key spec error for %s" % (candidate,))
-                cls._search_lookup[key] = (candidate, (mo, meth), exttype, desc)
+            for skey in searchspec.search_keys(meth, api_version):
+                if skey.key in cls._search_lookup[api_version]:
+                    raise ValueError("Search key %s defined twice, second time for %s" % (skey.key, meth))
+                cls._search_lookup[api_version][skey.key] = skey
 
-            if srch["manager"]:
-                # When performing searches, the method that is item
-                # two of the tuple is called. It needn't be a Match
-                # method, really.
-                ss = _Subsearch(srch["manager"])
-                cls._search_lookup[srch["name"] + "_in"] = (candidate, (ss, ss.subsearch), _TmpReference(srch["manager"], nullable=False), desc)
+    @classmethod
+    def _get_search_key(cls, api_version, key):
+        return cls._search_lookup[api_version][key]
 
+    @classmethod
+    def _all_search_keys(cls, api_version):
+        return cls._search_lookup[api_version].values()
+
+    @classmethod
+    def _search_type(cls, api_version):
+        cls._make_search_keys(api_version)
+        
         styp = ExtStruct()
         styp.from_version = api_version
         styp.to_version = api_version
         styp.name = cls._name()[:-8] + "-search-options"
-        for (key, (x, x, exttype, desc)) in cls._search_lookup.items():
-            styp.optional[key] = (exttype, desc)
+        for skey in cls._all_search_keys(api_version):
+            styp.optional[skey.key] = (skey.exttype, skey.desc)
 
         return styp
-
+        
     @classmethod
     def on_register(cls, srv, db):
         """When the manager is registered with the Server, this method
@@ -755,10 +915,9 @@ class Manager(object):
 
     def inner_search(self, dq, opts):
         self.search_select(dq)
-        for (key, opt) in opts.items():
-            (mymeth, (mo, matchmeth), x, x) = self._search_lookup[key]
-            expr = mymeth(self, dq)
-            matchmeth(self.function, dq, expr, opt)
+        for (key, search_val) in opts.items():
+            skey = self._get_search_key(self.function.api.version, key)
+            skey.use(dq, self, search_val)
     
 if __name__ == "__main__":
     from exttype import *

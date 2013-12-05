@@ -330,7 +330,7 @@ def entry(guard):
                 finally:
                     function._entry_granted = False
             elif isinstance(decision, AccessDenied) or isinstance(decision, DecisionReferred):
-                raise ExtAccessDeniedError()
+                raise ExtAccessDeniedError(str(guard))
             else:
                 raise ValueError("Rugbyboll" + str(decision))
             

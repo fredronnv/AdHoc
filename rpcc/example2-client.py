@@ -4,12 +4,6 @@
 import rpcc_client
 
 rpcc = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121")
-print rpcc.server_function_definition("session_auth_login")
-try:
-    rpcc.login("viktor", "nisse")
-except RuntimeError as e:
-    pass
-
 rpcc.login("#root#", "#root#")
 assert rpcc._auth == "#root#"
 
@@ -17,10 +11,10 @@ print rpcc.event_dig("min_event:#0,function:session_start#0", "event,created,fun
 
 rpcc.login("viktor", "viktor")
 
-print rpcc.event_dig("min_event:#0,function:session_start#0", "event,created,function,params")
+#print rpcc.event_dig("min_event:#0,function:session_start#0", "event,created,function,params")
+
 
 raise SystemExit()
-
 
 print rpcc.person_dig("firstname:Viktor")
 rpcc.stop()

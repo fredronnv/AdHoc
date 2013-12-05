@@ -193,7 +193,7 @@ class PersonManager(Manager):
         q.table("person p")
         return "p.lname"
 
-    @search("account", StringMatch, manager="account_manager")
+    @search("account", StringMatch, manager_name="account_manager")
     def s_account(self, q):
         q.table("account a")
         q.where("a.ucid_owner = p.ucid")
@@ -253,7 +253,7 @@ class AccountManager(Manager):
         dq.table("account a")
         return "a.ucid"
 
-    @search("owner", StringMatch, manager="person_manager")
+    @search("owner", StringMatch, manager_name="person_manager")
     def s_own(self, q):
         q.table("account a")
         return "a.ucid_owner"
