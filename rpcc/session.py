@@ -104,7 +104,7 @@ class SessionManager(model.Manager):
     def get_session_values(self, sid):
         raise NotImplementedError()
 
-    def create_session(self):
+    def create_session(self, remote_ip):
         raise NotImplementedError()
 
     def destroy_session(self, sid):
@@ -217,7 +217,7 @@ class DatabaseBackedSessionManager(SessionManager):
         q = "SELECT id "
         q += " FROM rpcc_session "
         q += "WHERE expires < :now "
-        for (sid,) in self.db.get(q, now=self.function.started_at()):
+        for (sid,) in self.db.get_all(q, now=self.function.started_at()):
             self.destroy_session(sid)
 
 
