@@ -1,5 +1,5 @@
 
-* SSL has been made an optin feature rather than an optout one.
+* SSL has been made an opt-in feature rather than an opt-out one.
 
 * Defaulting to XMLRPC on post to / has been removed (you must
   explicitly request a particular protocol).
