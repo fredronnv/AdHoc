@@ -615,7 +615,7 @@ class MySQLLink(DatabaseLink):
     
     def __init__(self, *args, **kwargs):
         DatabaseLink.__init__(self, *args, **kwargs)
-        self.re = re.compile(":([a-z0-9]+)")
+        self.re = re.compile(":([a-z0-9_]+)")
 
     def convert(self, query):
         return self.re.sub("%(\\1)s", query)
