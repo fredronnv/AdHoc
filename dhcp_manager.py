@@ -101,7 +101,7 @@ class DHCPManager(Manager):
         for table in ["option_defs", "pools", "classes", "subnetworks"]:
             self.db.put("TRUNCATE TABLE %s" % table)
             
-        for table in ["optionspaces", "networks", "dhcp_servers", "global_options", "buildings", "rooms", "basic_commands"]:
+        for table in ["optionspaces", "networks", "dhcp_servers", "global_options", "buildings", "rooms"]:
             self.db.put("TRUNCATE TABLE %s" % table)
         #
         # Now build the tables in normal stratum order
