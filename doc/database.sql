@@ -1,6 +1,6 @@
-
--- Generation Time: Nov 21, 2013 at 03:14 PM
+-- Generation Time: Dec 05, 2013 at 02:56 PM
 -- Server version: 5.0.95
+-- PHP Version: 5.1.4
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 
@@ -23,7 +23,6 @@ CREATE TABLE IF NOT EXISTS `buildings` (
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Buildings table';
 
-
 -- --------------------------------------------------------
 
 --
@@ -41,7 +40,6 @@ CREATE TABLE IF NOT EXISTS `classes` (
   KEY `optionspace` (`optionspace`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of classes';
 
-
 -- --------------------------------------------------------
 
 --
@@ -55,7 +53,6 @@ CREATE TABLE IF NOT EXISTS `class_literal_options` (
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
   KEY `for` (`for`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Literal options for classes';
-
 
 -- --------------------------------------------------------
 
@@ -73,9 +70,7 @@ CREATE TABLE IF NOT EXISTS `class_options` (
   PRIMARY KEY  (`id`),
   KEY `for` (`for`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for classes' AUTO_INCREMENT=1 ;
-
-
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for classes' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -90,9 +85,7 @@ CREATE TABLE IF NOT EXISTS `dhcp_servers` (
   `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
   PRIMARY KEY  (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of classes';
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='List of dhcp servers';
 
 -- --------------------------------------------------------
 
@@ -108,10 +101,7 @@ CREATE TABLE IF NOT EXISTS `global_options` (
   `id` int(10) unsigned NOT NULL auto_increment,
   PRIMARY KEY  (`id`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table holding options global to the servers' AUTO_INCREMENT=1 ;
-
-
-
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table holding options global to the servers' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -129,13 +119,7 @@ CREATE TABLE IF NOT EXISTS `groups` (
   PRIMARY KEY  (`groupname`),
   KEY `optionspace` (`optionspace`),
   KEY `parent_group` (`parent_group`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of classes';
-
---
--- Dumping data for table `groups`
---
-
-INSERT INTO `groups` (`groupname`, `optionspace`, `parent_group`, `info`, `changed_by`, `mtime`) VALUES('plain', NULL, 'plain', 'This is the root of all groups', 'bernerus', '2013-11-21 11:14:45');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of host groups';
 
 -- --------------------------------------------------------
 
@@ -150,8 +134,6 @@ CREATE TABLE IF NOT EXISTS `group_literal_options` (
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
   KEY `for` (`for`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Literal options for groups';
-
-
 
 -- --------------------------------------------------------
 
@@ -169,9 +151,7 @@ CREATE TABLE IF NOT EXISTS `group_options` (
   PRIMARY KEY  (`id`),
   KEY `for` (`for`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for groups' AUTO_INCREMENT=1 ;
-
-
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for groups' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -199,9 +179,6 @@ CREATE TABLE IF NOT EXISTS `hosts` (
   KEY `optionspace` (`optionspace`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='List of hosts';
 
-
-
-
 -- --------------------------------------------------------
 
 --
@@ -216,9 +193,6 @@ CREATE TABLE IF NOT EXISTS `host_literal_options` (
   KEY `for` (`for`),
   KEY `value` (`value`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Literal options for hosts';
-
-
-
 
 -- --------------------------------------------------------
 
@@ -236,10 +210,7 @@ CREATE TABLE IF NOT EXISTS `host_options` (
   PRIMARY KEY  (`id`),
   KEY `for` (`for`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for hosts' AUTO_INCREMENT=1 ;
-
-
-
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for hosts' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -255,10 +226,7 @@ CREATE TABLE IF NOT EXISTS `networks` (
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
   PRIMARY KEY  (`id`),
   KEY `optionspace` (`authoritative`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of classes';
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of shared networks';
 
 -- --------------------------------------------------------
 
@@ -276,10 +244,7 @@ CREATE TABLE IF NOT EXISTS `network_options` (
   PRIMARY KEY  (`id`),
   KEY `for` (`for`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for networks' AUTO_INCREMENT=1 ;
-
-
-
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for networks' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -296,10 +261,7 @@ CREATE TABLE IF NOT EXISTS `optionspaces` (
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
   PRIMARY KEY  (`id`),
   KEY `value` (`value`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of classes' AUTO_INCREMENT=1 ;
-
-
-
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Definitions of option spaces' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -310,7 +272,7 @@ CREATE TABLE IF NOT EXISTS `optionspaces` (
 CREATE TABLE IF NOT EXISTS `option_defs` (
   `id` int(11) NOT NULL auto_increment COMMENT 'Id of option space',
   `name` varchar(32) character set ascii collate ascii_bin NOT NULL COMMENT 'Option name',
-  `code` int(3) NOT NULL COMMENT 'Numeric code in DHCP protocol',
+  `code` int(3) default NULL COMMENT 'Numeric code in DHCP protocol',
   `qualifier` enum('array','parameter','parameter-array') character set ascii collate ascii_bin default NULL COMMENT 'Adjustments to the option. Array and/or parameter. A parameter is a standard DHSP option defined here.',
   `type` enum('ip-address','text','unsigned integer 8','unsigned integer 16','unsigned integer 32','integer 8','integer 16','integer 32','string','boolean') character set ascii collate ascii_bin NOT NULL default 'text' COMMENT 'Option''s basic type',
   `optionspace` varchar(16) character set ascii collate ascii_bin default NULL COMMENT 'Optionspace that has to be defined to use this option, if any.',
@@ -322,9 +284,7 @@ CREATE TABLE IF NOT EXISTS `option_defs` (
   PRIMARY KEY  (`id`),
   UNIQUE KEY `name` (`name`),
   KEY `optionspace` (`optionspace`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of classes' AUTO_INCREMENT=1 ;
-
-
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option definitions' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -342,44 +302,7 @@ CREATE TABLE IF NOT EXISTS `pools` (
   PRIMARY KEY  (`poolname`),
   KEY `optionspace` (`optionspace`),
   KEY `network` (`network`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of classes';
-
-
-
--- --------------------------------------------------------
-
---
--- Table structure for table `pool_literal_options`
---
-
-CREATE TABLE IF NOT EXISTS `pool_literal_options` (
-  `for` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool on which to apply this option',
-  `value` varchar(256) collate utf8_bin NOT NULL COMMENT 'Option value',
-  `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
-  `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
-  KEY `for` (`for`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Literal options for pools';
-
-
-
-
--- --------------------------------------------------------
-
---
--- Table structure for table `pool_group_map`
---
-
-CREATE TABLE IF NOT EXISTS `pool_group_map` (
-  `poolname` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool where the group may live',
-  `groupname` varchar(64) collate utf8_bin NOT NULL COMMENT 'Group name',
-  `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
-  `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
-  KEY `groupname` (`groupname`),
-  KEY `poolname` (`poolname`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Defines which groups that may live in which pools';
-
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of pools';
 
 -- --------------------------------------------------------
 
@@ -396,6 +319,34 @@ CREATE TABLE IF NOT EXISTS `pool_class_map` (
   KEY `poolname` (`poolname`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Defines which classes may live in which pools';
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pool_group_map`
+--
+
+CREATE TABLE IF NOT EXISTS `pool_group_map` (
+  `poolname` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool where the group may live',
+  `groupname` varchar(64) collate utf8_bin NOT NULL COMMENT 'Group name',
+  `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
+  `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
+  KEY `groupname` (`groupname`),
+  KEY `poolname` (`poolname`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Defines which groups that may live in which pools';
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pool_literal_options`
+--
+
+CREATE TABLE IF NOT EXISTS `pool_literal_options` (
+  `for` varchar(64) collate utf8_bin NOT NULL COMMENT 'Pool on which to apply this option',
+  `value` varchar(256) collate utf8_bin NOT NULL COMMENT 'Option value',
+  `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
+  `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
+  KEY `for` (`for`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Literal options for pools';
 
 -- --------------------------------------------------------
 
@@ -413,8 +364,7 @@ CREATE TABLE IF NOT EXISTS `pool_options` (
   PRIMARY KEY  (`id`),
   KEY `for` (`for`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for pools' AUTO_INCREMENT=1 ;
-
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for pools' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -434,9 +384,7 @@ CREATE TABLE IF NOT EXISTS `pool_ranges` (
   UNIQUE KEY `start_ip_2` (`start_ip`,`end_ip`),
   KEY `pool` (`pool`),
   KEY `served_by` (`served_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of classes';
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table IP ranges for pools';
 
 -- --------------------------------------------------------
 
@@ -445,15 +393,13 @@ CREATE TABLE IF NOT EXISTS `pool_ranges` (
 --
 
 CREATE TABLE IF NOT EXISTS `rooms` (
-  `id` varchar(8) collate utf8_bin NOT NULL COMMENT 'Room ID',
+  `id` varchar(10) collate utf8_bin NOT NULL COMMENT 'Room ID',
   `info` varchar(80) collate utf8_bin default NULL COMMENT 'Room description',
-  `printer` varchar(1024) collate utf8_bin default NULL COMMENT 'Printer list, if any',
+  `printers` varchar(1024) collate utf8_bin default NULL COMMENT 'Printer list, if any',
   `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'cid of last changer',
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'time of last change',
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='List of defined rooms';
-
-
 
 -- --------------------------------------------------------
 
@@ -462,16 +408,14 @@ CREATE TABLE IF NOT EXISTS `rooms` (
 --
 
 CREATE TABLE IF NOT EXISTS `subnetworks` (
-  `id` varchar(15) character set ascii collate ascii_bin NOT NULL default '129.16.' COMMENT 'First IP of subnetwork',
+  `id` varchar(18) character set ascii collate ascii_bin NOT NULL default '129.16/16' COMMENT 'First IP of subnetwork',
   `network` varchar(64) collate utf8_bin default NULL COMMENT 'Network the subnetwork belongs to',
   `info` varchar(80) collate utf8_bin default NULL COMMENT 'Subnetwork description',
   `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
   PRIMARY KEY  (`id`),
   KEY `network` (`network`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of classes';
-
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table of sub-networks';
 
 -- --------------------------------------------------------
 
@@ -480,7 +424,7 @@ CREATE TABLE IF NOT EXISTS `subnetworks` (
 --
 
 CREATE TABLE IF NOT EXISTS `subnetwork_options` (
-  `for` varchar(15) character set ascii collate ascii_bin NOT NULL COMMENT 'Subnetwork on which to apply the option',
+  `for` varchar(18) character set ascii collate ascii_bin NOT NULL COMMENT 'Subnetwork on which to apply the option',
   `name` varchar(32) character set ascii collate ascii_bin NOT NULL COMMENT 'Option name',
   `value` varchar(640) collate utf8_bin NOT NULL COMMENT 'The value of the option',
   `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
@@ -489,8 +433,11 @@ CREATE TABLE IF NOT EXISTS `subnetwork_options` (
   PRIMARY KEY  (`id`),
   KEY `for` (`for`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for subnetworks' AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Option list for subnetworks' AUTO_INCREMENT=1 ;
 
+--
+-- Constraints for dumped tables
+--
 
 --
 -- Constraints for table `classes`
@@ -508,15 +455,15 @@ ALTER TABLE `class_literal_options`
 -- Constraints for table `class_options`
 --
 ALTER TABLE `class_options`
-  ADD CONSTRAINT `class_options_ibfk_2` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`),
-  ADD CONSTRAINT `class_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `classes` (`classname`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `class_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `classes` (`classname`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `class_options_ibfk_2` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`);
 
 --
 -- Constraints for table `groups`
 --
 ALTER TABLE `groups`
-  ADD CONSTRAINT `groups_ibfk_3` FOREIGN KEY (`parent_group`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `groups_ibfk_2` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `groups_ibfk_2` FOREIGN KEY (`parent_group`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `groups_ibfk_1` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `group_literal_options`
@@ -528,16 +475,15 @@ ALTER TABLE `group_literal_options`
 -- Constraints for table `group_options`
 --
 ALTER TABLE `group_options`
-  ADD CONSTRAINT `group_options_ibfk_2` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `group_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `group_options_ibfk_2` FOREIGN KEY (`for`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `group_options_ibfk_3` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `hosts`
 --
 ALTER TABLE `hosts`
-  ADD CONSTRAINT `hosts_ibfk_8` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `hosts_ibfk_6` FOREIGN KEY (`group`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `hosts_ibfk_7` FOREIGN KEY (`room`) REFERENCES `rooms` (`id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `hosts_ibfk_10` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `hosts_ibfk_9` FOREIGN KEY (`room`) REFERENCES `rooms` (`id`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `host_literal_options`
@@ -549,15 +495,15 @@ ALTER TABLE `host_literal_options`
 -- Constraints for table `host_options`
 --
 ALTER TABLE `host_options`
-  ADD CONSTRAINT `host_options_ibfk_2` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `host_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `hosts` (`id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `host_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `hosts` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `host_options_ibfk_2` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `network_options`
 --
 ALTER TABLE `network_options`
-  ADD CONSTRAINT `network_options_ibfk_4` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `network_options_ibfk_3` FOREIGN KEY (`for`) REFERENCES `networks` (`id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `network_options_ibfk_3` FOREIGN KEY (`for`) REFERENCES `networks` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `network_options_ibfk_4` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `option_defs`
@@ -569,8 +515,22 @@ ALTER TABLE `option_defs`
 -- Constraints for table `pools`
 --
 ALTER TABLE `pools`
-  ADD CONSTRAINT `pools_ibfk_2` FOREIGN KEY (`network`) REFERENCES `networks` (`id`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `pools_ibfk_1` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `pools_ibfk_1` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `pools_ibfk_2` FOREIGN KEY (`network`) REFERENCES `networks` (`id`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `pool_class_map`
+--
+ALTER TABLE `pool_class_map`
+  ADD CONSTRAINT `pool_class_map_ibfk_2` FOREIGN KEY (`classname`) REFERENCES `classes` (`classname`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `pool_class_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `pool_group_map`
+--
+ALTER TABLE `pool_group_map`
+  ADD CONSTRAINT `pool_group_map_ibfk_2` FOREIGN KEY (`groupname`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `pool_group_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `pool_literal_options`
@@ -579,32 +539,48 @@ ALTER TABLE `pool_literal_options`
   ADD CONSTRAINT `pool_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
 
 --
--- Constraints for table `pool_group_map`
---
-ALTER TABLE `pool_group_map`
-  ADD CONSTRAINT `pool_group_map_ibfk_2` FOREIGN KEY (`groupname`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE ON DELETE CASCADE,
-  ADD CONSTRAINT `pool_group_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE ON DELETE CASCADE;
-  
---
--- Constraints for table `pool_class_map`
---
-ALTER TABLE `pool_class_map`
-  ADD CONSTRAINT `pool_class_map_ibfk_2` FOREIGN KEY (`classname`) REFERENCES `classes` (`classname`) ON UPDATE CASCADE ON DELETE CASCADE,
-  ADD CONSTRAINT `pool_class_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE ON DELETE CASCADE;
-
---
 -- Constraints for table `pool_options`
 --
 ALTER TABLE `pool_options`
-  ADD CONSTRAINT `pool_options_ibfk_2` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `pool_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `pool_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `pool_options_ibfk_2` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `pool_ranges`
 --
 ALTER TABLE `pool_ranges`
-  ADD CONSTRAINT `pool_ranges_ibfk_2` FOREIGN KEY (`served_by`) REFERENCES `dhcp_servers` (`id`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `pool_ranges_ibfk_1` FOREIGN KEY (`pool`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `pool_ranges_ibfk_1` FOREIGN KEY (`pool`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `pool_ranges_ibfk_2` FOREIGN KEY (`served_by`) REFERENCES `dhcp_servers` (`id`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `rpcc_mutex_var`
+--
+ALTER TABLE `rpcc_mutex_var`
+  ADD CONSTRAINT `rpcc_mutex_var_ibfk_1` FOREIGN KEY (`mutex_id`) REFERENCES `rpcc_mutex` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `rpcc_mutex_var_val`
+--
+ALTER TABLE `rpcc_mutex_var_val`
+  ADD CONSTRAINT `rpcc_mutex_var_val_ibfk_1` FOREIGN KEY (`var`) REFERENCES `rpcc_mutex_var` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `rpcc_result_int`
+--
+ALTER TABLE `rpcc_result_int`
+  ADD CONSTRAINT `rpcc_result_int_ibfk_1` FOREIGN KEY (`resid`) REFERENCES `rpcc_result` (`resid`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `rpcc_result_string`
+--
+ALTER TABLE `rpcc_result_string`
+  ADD CONSTRAINT `rpcc_result_string_ibfk_1` FOREIGN KEY (`resid`) REFERENCES `rpcc_result` (`resid`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `rpcc_session_string`
+--
+ALTER TABLE `rpcc_session_string`
+  ADD CONSTRAINT `rpcc_session_string_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `rpcc_session` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `subnetworks`
@@ -616,5 +592,5 @@ ALTER TABLE `subnetworks`
 -- Constraints for table `subnetwork_options`
 --
 ALTER TABLE `subnetwork_options`
-  ADD CONSTRAINT `subnetwork_options_ibfk_3` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `subnetwork_options_ibfk_2` FOREIGN KEY (`for`) REFERENCES `subnetworks` (`id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `subnetwork_options_ibfk_2` FOREIGN KEY (`for`) REFERENCES `subnetworks` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `subnetwork_options_ibfk_3` FOREIGN KEY (`name`) REFERENCES `option_defs` (`name`) ON UPDATE CASCADE;
