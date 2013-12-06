@@ -3,6 +3,7 @@
 import model
 import default_type
 import default_error
+import datetime
 
 class Mutex(model.Model):
     name = "mutex"
@@ -233,7 +234,7 @@ class Mutex(model.Model):
         else:
             raise PDBNoSuchMutexVariableError()
         
-    def add_collection_value(self, session_id, setvar, value):
+    def add_collection_value(self, session_id, name, value):
         # Possible outcomes:
         # (a) Mutex not held
         # (b) Mutex held, variable does not exist
@@ -252,7 +253,7 @@ class Mutex(model.Model):
         
         try:
             affected = self.db.put(q, mutex=self.my_id, sesn=session_id,
-                                     name=setvar, val=value)
+                                     name=name, val=value)
         except DBUniqueConstraintViolatedError:
             # It is explicitly allowed to add the same value more than
             # once.
