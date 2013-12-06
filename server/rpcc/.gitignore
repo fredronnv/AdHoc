@@ -2,3 +2,6 @@
 /mutex.pyc
 /authentication.pyc
 /rpcc_client.pyc
+/__init__.pyc
+/category.pyc
+/event.pyc

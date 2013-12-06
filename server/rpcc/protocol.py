@@ -2,14 +2,11 @@
 import os
 import re
 import sys
-import time
 import traceback
 import mimetypes
 import xmlrpclib
 import json
 
-import xml
-import xml.dom
 import xml.dom.minidom
 
 from response import HTTPResponse
@@ -94,11 +91,11 @@ class StaticDocumentProtocol(Protocol):
 
         #for suff in ['.py', '.pm', '.patch']:
         #    if path.endswith(suff):
-        #        type, enc = ('text/plain', 'UTF-8')
+        #        mime_type, enc = ('text/plain', 'UTF-8')
         #        break
         #else:
 
-        type, enc = mimetypes.guess_type(path)
+        mime_type, enc = mimetypes.guess_type(path)
 
         #if path.startswith("client/"):
         #    path = '../../' + path
@@ -110,11 +107,11 @@ class StaticDocumentProtocol(Protocol):
             if os.path.exists(path):
                 data = file(os.path.join(self.docroot, path)).read()
             else:
-                type, enc, data = error404
+                mime_type, enc, data = error404
         except:
-            type, enc, data = error404
+            mime_type, enc, data = error404
 
-        if type == 'text/html' and not enc:
+        if mime_type == 'text/html' and not enc:
             # HTML documents can contain special <:fun:> tags which
             # are automatically expanded.
             ls = re.split('<:([^>]+):>', data)
@@ -147,7 +144,7 @@ class StaticDocumentProtocol(Protocol):
                 else:
                     data += "INVALID COLON FUNCTION"
             
-        return HTTPResponse(ctype=type, encoding=enc, data=data)
+        return HTTPResponse(ctype=mime_type, encoding=enc, data=data)
         
     def html_function_definition(self, funname):
         try:
@@ -161,6 +158,7 @@ class StaticDocumentProtocol(Protocol):
 class FunctionDefinitionProtocol(Protocol):
     def request(self, httphandler, path, data):
         # [/api/]3/funname
+        print "PATH=", path, " DATA=", data
         pathcomp = path.split("/")
         
         if len(pathcomp) == 1 and pathcomp[0] == "api.css":
@@ -172,12 +170,16 @@ class FunctionDefinitionProtocol(Protocol):
             funname = pathcomp[1]
             s = self.server.documentation.function_as_html(apivers, funname)
             return HTTPResponse(s.encode("utf-8"), ctype="text/html", encoding="utf-8")
+        # Geterate function list
+        apivers = int(pathcomp[0])
+        s = self.server.documentation.function_list_as_html(apivers)
 
-        print "XXX", pathcomp
-        
+        return HTTPResponse(s.encode("utf-8"), ctype="text/html", encoding="utf-8")
+
 
 class WSDLProtocol(Protocol):
     mscompat = False
+    
     def request(self, httphandler, path, data):
         if not path:
             data = "<html><body><h1>Available WSDL:s</h1><ul>"
@@ -226,7 +228,6 @@ class MicrosoftWorkaroundWSDLProtocol(WSDLProtocol):
 # Authorization: Negotiate header is present and just calls the request handler
 # below otherwise.
 #
-
 def od(s):
     chunks = [""]
     for char in s:
@@ -239,6 +240,7 @@ def od(s):
         print "   " * (16 - len(chunk)),
         print chunk.replace("\n", " ").replace("\r", " ").replace("\t", " ")
     print
+
 
 class XMLRPCProtocol(Protocol):
     def request(self, httphandler, path, data):
@@ -275,6 +277,7 @@ class XMLRPCProtocol(Protocol):
         return HTTPResponse(data=retdata, encoding='iso-8859-1',
                                ctype='application/xml+rpc')
 
+
 class ApacheXMLRPCProtocol(XMLRPCProtocol):
     def request(self, httphandler, path, data):
         data = data.replace('<ex:nil', '<nil')
@@ -286,6 +289,7 @@ class ApacheXMLRPCProtocol(XMLRPCProtocol):
 
         return resp
 
+
 class KRB5XMLRPCProtocol(XMLRPCProtocol):
     def request(self, httphandler, path, data):
         if not httphandler.headers.has_key('authorization'):
@@ -295,6 +299,7 @@ class KRB5XMLRPCProtocol(XMLRPCProtocol):
 
         return XMLRPCProtocol.request(self, httphandler, path, data)
 
+
 class KRB5ApacheXMLRPCProtocol(ApacheXMLRPCProtocol):
     def request(self, httphandler, path, data):
         if not httphandler.headers.has_key('authorization'):
@@ -303,6 +308,7 @@ class KRB5ApacheXMLRPCProtocol(ApacheXMLRPCProtocol):
                                    ctype="text/html")
 
         return ApacheXMLRPCProtocol.request(self, httphandler, path, data)
+
 
 # JSON is a QUITE much smaller encoding format with the same
 # properties as XMLRPC (undeclared encoding of strings, numbers,
@@ -325,7 +331,6 @@ class KRB5ApacheXMLRPCProtocol(ApacheXMLRPCProtocol):
 # {"function": "funname", "params": ["abced", ...]}
 # This eases development with PHP, where prepending a session argument
 # leads to ugly code.
-
 class JSONProtocol(Protocol):
     def request(self, httphandler, path, data):
         response = None
