@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import re
-import sys
 import traceback
+import datetime
 
 from exterror import *
 from error import IntAPIValidationError
@@ -35,6 +35,7 @@ ExtType bases, you needn't worry about more than implementing .lookup()
 and .output().
 """
 
+
 # .parse() now calls three methods:
 #
 # .check()
@@ -50,8 +51,6 @@ and .output().
 #    The final value from .convert() can be converted to an internal
 #    object here (integers converted to some object type with an
 #    integer-ID etc.)
-
-
 class ExtType(object):
     """Base class for all types used in RPCTypedFunctions."""
 
@@ -172,9 +171,7 @@ class ExtType(object):
         else:
             raise TypeError("Not an ExtType subclass or object: %s" % (typ,))
 
-
     # SOAP helpers
-
     @classmethod
     def get_element_string(cls, elem):
         stringdata = ''
@@ -210,14 +207,14 @@ class ExtType(object):
                 continue
 
             if idx < namelen - 2:
-                if name[idx].isupper() and name[idx+1].isupper() \
-                       and name[idx+2].islower():
+                if name[idx].isupper() and name[idx + 1].isupper() \
+                       and name[idx + 2].islower():
                     parts[-1].append(name[idx].lower())
                     parts.append([])
                     continue
 
             if idx < namelen - 1:
-                if name[idx].islower() and name[idx+1].isupper():
+                if name[idx].islower() and name[idx + 1].isupper():
                     parts[-1].append(name[idx])
                     parts.append([])
                     continue
@@ -307,6 +304,7 @@ class ExtType(object):
         if hasattr(cls, "verify_subtypes_api_version"):
             cls.verify_subtypes_api_version(minv, maxv, typenames)
 
+
 ###
 # String
 #
@@ -344,7 +342,7 @@ class ExtString(ExtType):
         return None
 
     def check(self, function, rawval):
-        import codecs
+        #import codecs
 
         if not isinstance(rawval, unicode):
             if isinstance(rawval, str):
@@ -391,7 +389,6 @@ class ExtString(ExtType):
         element.cdata(value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
 
-
 ###
 # Enumeration
 #
@@ -422,6 +419,7 @@ class ExtEnum(ExtString):
         if rawval not in self.values:
             raise ExtStringNotInEnumError(self.values, value=rawval)
 
+
 class ExtDateTime(ExtString):
     name = "datetime"
     desc = "A date and time"
@@ -435,6 +433,7 @@ class ExtDateTime(ExtString):
 
     def output(self, fun, val):
         return val.isoformat()[:19]
+
 
 ###
 # Integer
@@ -477,6 +476,7 @@ class ExtInteger(ExtType):
     def to_xml(self, element, value):
         element.cdata('%d' % (value,))
 
+
 ###
 # Boolean
 #
@@ -515,6 +515,7 @@ class ExtBoolean(ExtType):
         else:
             element.cdata("false")
 
+
 class ExtNull(ExtType):
     name = 'null'
     #desc = 'Null type'
@@ -545,13 +546,14 @@ class ExtNull(ExtType):
             raise ExtInternalError("Expected None, got %s instead" % (value,))
         element.new("null")
 
+
 class _StructMetaClass(type):
     """By having ExtStructType be a class of this meta-class, a
     class-attribute "optional" or "mandatory" is created upon first
     access in a ExtStructType subclass, if one does not exist.
     """    
     
-    def __getattr__(cls, attr):
+    def __getattr__(cls, attr): 
         if attr == 'mandatory':
             cls.mandatory = {}
             return cls.mandatory
@@ -560,6 +562,7 @@ class _StructMetaClass(type):
             return cls.optional
         else:
             return type.__getattr__(cls, attr)
+  
         
 ###
 # Struct
@@ -609,7 +612,7 @@ class ExtStruct(ExtType):
             raise AttributeError(name)
 
     def _subtypes(self):
-        return [(k, t) for (o, k, t, c) in self._all_items()]
+        return [(k, t) for (_o, k, t, _c) in self._all_items()]
 
     def _all_items(self):
         """List of (optional, key, type, comment)."""
@@ -720,7 +723,6 @@ class ExtStruct(ExtType):
 
         return converted
             
-
     @classmethod
     def verify_subtypes_api_version(cls, minv, maxv, typenames):
         for (key, spec) in cls.mandatory.items() + cls.optional.items():
@@ -746,7 +748,7 @@ class ExtStruct(ExtType):
             else:
                 typ, desc = ExtType.instance(sub), None
 
-            x = seq.new("element", name=key, type="myxsd:"+typ.xsd_name())
+            x = seq.new("element", name=key, type="myxsd:" + typ.xsd_name())
             if desc:
                 x.new('annotation').new('documentation').cdata(XMLNode.escape(desc))
 
@@ -760,7 +762,7 @@ class ExtStruct(ExtType):
 
             elemname = self.capsify(key)
             x = optseq.new("element", name=key, 
-                           type="myxsd:"+typ.xsd_name(),
+                           type="myxsd:" + typ.xsd_name(),
                            maxOccurs="1", minOccurs="0")
             if desc:
                 x.new('annotation').new('documentation').cdata(XMLNode.escape(desc))
@@ -825,6 +827,7 @@ class ExtStruct(ExtType):
         if opt:
             optelem = elem.new("optionals")
             out(optelem, sorted(opt), self.optional)
+
 
 ###
 # OrNull
@@ -899,7 +902,6 @@ class ExtOrNull(ExtType):
         return xsd
 
     def from_xml(self, elem):
-        found = False
         children = self.child_elements(elem)
         try:
             (child,) = children
@@ -913,6 +915,7 @@ class ExtOrNull(ExtType):
             return ExtType.instance(self.typ).from_xml(child)
         else:
             raise ExtSOAPUnexpectedElementError(elem, "Only <set> or <notSet> expected.")
+
 
 class ExtList(ExtType):
     typ = None
@@ -961,14 +964,13 @@ class ExtList(ExtType):
             
         return out
             
-
     @classmethod
     def verify_subtypes_api_version(cls, minv, maxv, typenames):
         try:
             cls.typ.verify_api_version(cls, minv, maxv, typenames)
         except ValueError, e:
-            raise ValueError("%s for item type of %s" % (e.args[0],
-                                                         cls._namevers()))
+            raise ValueError("%s for item type of %s" % (e.args[0], cls._namevers()))
+            
     def _subtypes(self):
         return [(None, self.typ)]
 
@@ -1008,7 +1010,7 @@ class ExtList(ExtType):
 
         for child in self.child_elements(elem):
             if child.tagName.split(":")[-1] != tag:
-                raise ExtSOAPUnexpectedElementError(child, "Expected <%s>." % (elemname,))
+                raise ExtSOAPUnexpectedElementError(child, "Expected <%s>." % (elem,))
 
             ret.append(typ.from_xml(child))
         return ret
@@ -1098,8 +1100,6 @@ if __name__ == '__main__':
     except IntAPIValidationError:
         pass
 
-
-
     class Person(object):
         def __init__(self, myid):
             self.id = myid
@@ -1167,6 +1167,3 @@ if __name__ == '__main__':
     tmp = ExtPersonData().from_xml(dom.documentElement)
     print tmp
     print ExtPersonData().parse(0, tmp)
-
-
-
