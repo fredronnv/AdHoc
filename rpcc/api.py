@@ -3,7 +3,7 @@
 from default_error import ExtNoSuchFunctionError
 from interror import IntAPINotFoundError, IntAPIValidationError
 from function import Function
-from exttype import ExtList, ExtType, ExtNull
+from exttype import ExtList, ExtType, ExtNull, ExtOrNull
 from xmlnode import XMLNode
 
 import model
