@@ -1,14 +1,9 @@
 
-import re
-import datetime
-import traceback
-
 from exttype import *
 import default_type
-from session import Session
-from xmlnode import XMLNode
 
 import exterror
+import sys
 
 class Function(object):
     """Base class for functions exposed via the RPC server.
@@ -124,6 +119,7 @@ class Function(object):
         depth-first order."""
 
         types = {}
+        
         def add_type(typedict, t):
             t = ExtType.instance(t)
             n = t._name()
@@ -133,7 +129,7 @@ class Function(object):
             for (name, subt) in t._subtypes():
                 add_type(typedict, subt)
 
-        for (p, t, d) in cls.get_parameters():
+        for (p, t, _d) in cls.get_parameters():
             add_type(types, t)
 
         add_type(types, cls._returns()[0])
@@ -367,6 +363,7 @@ class FetchFunction(SessionedFunction):
         tmpl = getattr(self, params[-1][0])
         return obj.apply_template(self.api.version, tmpl)
 
+
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
 class UpdateFunction(SessionedFunction):
@@ -376,6 +373,7 @@ class UpdateFunction(SessionedFunction):
         upd = getattr(self, params[-1][0])
         obj.apply_update(self.api.version, upd)
 
+
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
 class DigFunction(SessionedFunction):
@@ -384,7 +382,3 @@ class DigFunction(SessionedFunction):
         resid = mgr.perform_search(self.search)
         objs = mgr.models_by_result_id(resid)
         return [o.apply_template(self.api.version, self.template) for o in objs]
-
-
-
-
