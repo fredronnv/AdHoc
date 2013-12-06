@@ -1,7 +1,6 @@
 #!/usr/bin/env python2.6
 # -*- coding: utf-8 -*-
 
-import sys
 import random
 
 """
@@ -42,6 +41,7 @@ Base classes for your own errors:
     The incoming call could not be interpreted as the protocol it was
     expected to be, an example would be XMLRPC sent to the JSON URL.
 """
+
 
 class ExtError(Exception):
     # Explicit external error name for this particular subclass, if
@@ -99,9 +99,6 @@ class ExtError(Exception):
         if cls == ExtError:
             return []
 
-        ext_found = False
-        base_path = []
-
         errbases = [b for b in cls.__bases__ if issubclass(b, ExtError)]
 
         if not errbases:
@@ -156,6 +153,7 @@ class ExtInternalError(ExtError):
         self.intdesc = desc
         ExtError.__init__(self)
 
+
 class ExtOutputError(ExtInternalError):
     name = "InternalError"
 
@@ -171,14 +169,18 @@ class ExtOutputError(ExtInternalError):
             print "  In %s" % (typething,)
             print "    ", msg
 
+
 class ExtValueError(ExtError):
     name = "ValueError"
+
 
 class ExtMalformedStringError(ExtValueError):
     pass
 
-class ExtUnhandledCharatersError(ExtMalformedStringError):
+
+class ExtUnhandledCharactersError(ExtMalformedStringError):
     desc = "The string contained characters that this call can't handle."
+
 
 class ExtStringTooLongError(ExtMalformedStringError):
     desc = "The string exceeds the maximum length for this type, which is %d characters."
@@ -186,6 +188,7 @@ class ExtStringTooLongError(ExtMalformedStringError):
     def __init__(self, maxlen, **kwargs):
         self.desc = self.desc % (maxlen,)
         ExtMalformedStringError.__init__(self, **kwargs)
+    
         
 class ExtRegexpMismatchError(ExtMalformedStringError):
     desc = "The string did not match the regexp for this type, which is '%s'."
@@ -206,13 +209,14 @@ class ExtStringNotInEnumError(ExtValueError):
 class ExtIntegerOutOfRangeError(ExtValueError):
     desc = "Integer out of range for this type, which is %d-%d"
 
-    def __init__(self, range, **kwargs):
-        self.desc = self.desc % range
+    def __init__(self, integer_range, **kwargs):
+        self.desc = self.desc % integer_range
         ExtValueError.__init__(self, **kwargs)
 
 
 class ExtMalformedStructError(ExtValueError):
     pass
+
 
 class ExtIncompleteStructError(ExtMalformedStructError):
     desc = "Struct is incomplete, the mandatory key %s is missing"
@@ -221,48 +225,54 @@ class ExtIncompleteStructError(ExtMalformedStructError):
         self.desc = self.desc % (key,)
         ExtMalformedStructError.__init__(self, **kwargs)
 
+
 class ExtUnknownStructKeyError(ExtMalformedStructError):
     desc = "The struct has a key which is not defined for this type."
-
-
 
 
 class ExtLookupError(ExtError):
     name = 'LookupError'
 
 
-
 class ExtTypeError(ExtError):
     name = 'TypeError'
+
 
 class ExtArgumentCountError(ExtTypeError):
     pass
 
+
 class ExtExpectedStringError(ExtTypeError):
     pass
+
 
 class ExtExpectedIntegerError(ExtTypeError):
     pass
 
+
 class ExtExpectedBooleanError(ExtTypeError):
     pass
+
 
 class ExtExpectedNullError(ExtTypeError):
     pass
 
+
 class ExtExpectedStructError(ExtTypeError):
     pass
+
 
 class ExtExpectedListError(ExtTypeError):
     pass
 
 
-
 class ExtRuntimeError(ExtError):
     name = "RuntimeError"
 
+
 class ExtAuthenticationFailedError(ExtRuntimeError):
     desc = "Authentication failed."
+
 
 class ExtAccessDeniedError(ExtRuntimeError):
     desc = "Access not allowed."
@@ -271,8 +281,10 @@ class ExtAccessDeniedError(ExtRuntimeError):
 class ExtTransportError(ExtError):
     name = "TransportError"
 
+
 class ExtMalformedXMLRPCError(ExtTransportError):
     desc = 'The data you sent could not be parsed as an XMLRPC request. Perhaps the XML is malformed, or i sent in another encoding than the <?xml?>-tag claims?'
+
 
 class ExtMalformedJSONError(ExtTransportError):
     desc = "The data you sent could not be parsed as a JSON request. Perhaps you sent malformed JSON, or it wasn't a struct with the 'function' and 'params' keys?"
@@ -280,6 +292,7 @@ class ExtMalformedJSONError(ExtTransportError):
 
 class ExtSOAPError(ExtTransportError):
     desc = "An error occured in the SOAP subsystem"
+
 
 class ExtSOAPParseError(ExtSOAPError):
     desc = "The input could not be parsed as a SOAP call"
@@ -303,17 +316,23 @@ class ExtSOAPParseError(ExtSOAPError):
         self.desc += " Backtrace: " + "".join(reversed(epath))
         print self.desc
 
+
 class ExtSOAPNonTextNodeError(ExtSOAPParseError):
     desc = "A non-text node was found where only text or cdata is expected."
+
 
 class ExtSOAPMalformedTextNodeError(ExtSOAPParseError):
     desc = "Text node content did not conform to expected format."
 
+
 class ExtSOAPUnexpectedNodeTypeError(ExtSOAPParseError):
     desc = "An unexpected node type was found."
 
+
 class ExtSOAPUnexpectedElementError(ExtSOAPParseError):
+    
     desc = "An unexpected element was found."
+
 
 class ExtSOAPMissingElementError(ExtSOAPParseError):
     desc = "An element that was expected is missing."
