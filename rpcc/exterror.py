@@ -294,6 +294,14 @@ class ExtSOAPError(ExtTransportError):
     desc = "An error occured in the SOAP subsystem"
 
 
+class ExtSOAPServerError(ExtSOAPError):
+    desc = "A SOAP server error occured"
+
+
+class ExtSOAPClientError(ExtSOAPError):
+    desc = "A SOAP server error occured"
+
+
 class ExtSOAPParseError(ExtSOAPError):
     desc = "The input could not be parsed as a SOAP call"
 

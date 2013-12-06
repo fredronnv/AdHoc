@@ -273,7 +273,7 @@ class API(object):
             mscompat = False
         else:
             print "VOLVO"
-            raise IntInternalError()
+            raise ExtInternalError()
 
         wsdl_ns = self.get_wsdl_url(mscompat)
         schema_ns = self.get_schema_url(mscompat)

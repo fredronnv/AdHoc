@@ -25,6 +25,11 @@ import default_function
 
 from function import Function
 
+try:
+    import ssl
+except:
+    pass
+
 class SSLConfig(object):
     keyfile = None
     certfile = None

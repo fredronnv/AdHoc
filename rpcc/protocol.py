@@ -382,7 +382,7 @@ class SOAPProtocol(Protocol):
                 raise ValueError("1")
 
             if top.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/':
-                raise SOAPVersionMismatchError()
+                raise exterror.ExtSOAPVersionMismatchError()
 
             header = None
             body = None
@@ -395,10 +395,10 @@ class SOAPProtocol(Protocol):
                 body = c.pop(0)
             
             if c:
-                raise SOAPServerError("Too many children of envelope")
+                raise exterror.ExtSOAPServerError("Too many children of envelope")
 
             if not body:
-                raise SOAPServerError("No body")
+                raise exterror.ExtSOAPServerError("No body")
 
             if header:
                 for hdrelem in self.cleancopy(header.childNodes):
@@ -408,7 +408,7 @@ class SOAPProtocol(Protocol):
                         must = 0
 
                     if must == '1' or must == 'true':
-                        raise SOAPMustUnderstandError()
+                        raise exterror.ExtSOAPMustUnderstandError()
 
                     try:
                         enc = hdrelem.getAttribute("encodingStyle")
@@ -416,11 +416,11 @@ class SOAPProtocol(Protocol):
                         enc = None
                     
                     if enc:
-                        raise SOAPDataEncodingUnknownError()
+                        raise exterror.ExtSOAPDataEncodingUnknownError()
                 
             bodylist = self.cleancopy(body.childNodes)
             if len(bodylist) != 1:
-                raise SOAPClientError("Wrong number of body children")
+                raise exterror.ExtSOAPClientError("Wrong number of body children")
             
             msgelem = bodylist[0]
 
@@ -444,9 +444,9 @@ class SOAPProtocol(Protocol):
             ret = self.server.call_rpc(httphandler, fun._name(), params, api.version)
             if ret.has_key('error'):
                 if ret['error']['name'] == 'InternalError':
-                    raise ExtSOAPServerError(ret['error'])
+                    raise exterror.ExtSOAPServerError(ret['error'])
                 else:
-                    raise ExtSOAPClientError(ret['error']['name'])
+                    raise exterror.ExtSOAPClientError(ret['error']['name'])
             retelem = funcls.to_xml_node(retval)
             retelem.set_namespace("m", namespace)
 
@@ -456,12 +456,12 @@ class SOAPProtocol(Protocol):
             env.set_namespace("env", "http://schemas.xmlsoap.org/soap/envelope/")
 
             body.add(retelem)
-        except SOAPError, e:
+        except exterror.ExtSOAPError, e:
             env = e.get_envelope(namespace)
         except Exception, e:
             import traceback
             traceback.print_exc()
-            srverr = SOAPServerError("Internal server error, contact developer")
+            srverr = exterror.ExtSOAPServerError("Internal server error, contact developer")
             env = srverr.get_envelope(namespace)
 
         retxml = "<?xml version='1.0' encoding='UTF-8'?>\n" + env.xml()

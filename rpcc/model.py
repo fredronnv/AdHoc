@@ -383,8 +383,6 @@ class Model(object):
         self._templated[(api_version, tmplidx)] = out
         return out
 
-    def init(self, *args, **kwargs):
-        return
 
 
 # Search system.

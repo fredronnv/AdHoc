@@ -282,7 +282,7 @@ class Function(object):
                 ao.check()
                 break
             except exterror.ExtAccessDeniedError as e:
-                if denied_by is None and e.__class__ != errors.AccessError:
+                if denied_by is None and e.__class__ != exterror.ExtAccessDeniedError:
                     denied_by = ao
         else:
             if denied_by:

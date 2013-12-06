@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from exterror import ExtAccessDeniedError
-from model import Model, Manager
+from model import Model, Manager, Match
 
 """
 Access control.

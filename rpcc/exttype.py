@@ -761,7 +761,7 @@ class ExtStruct(ExtType):
                 typ, desc = ExtType.instance(sub), None
 
             elemname = self.capsify(key)
-            x = optseq.new("element", name=key, 
+            x = optseq.new("element", name=elemname, 
                            type="myxsd:" + typ.xsd_name(),
                            maxOccurs="1", minOccurs="0")
             if desc:

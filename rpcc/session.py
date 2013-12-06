@@ -228,7 +228,7 @@ class MemoryBackedSessionManager(SessionManager):
 
     def model(self, sid):
         try:
-            return Session(sid, self.session_data[sid][expires])
+            return Session(sid, self.session_data[sid]["expires"])
         except:
             raise self.model_lookup_error(sid)
 
