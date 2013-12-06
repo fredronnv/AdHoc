@@ -3,6 +3,7 @@
 import exttype
 import exterror
 import default_error
+import re
 
 
 class ExtFunctionName(exttype.ExtString):
@@ -199,6 +200,7 @@ class ExtMutexInfo(exttype.ExtStruct):
         "holder": exttype.ExtString,
         }
 
+
 class ExtWatchdog(exttype.ExtString):
     name = "watchdog"
     desc = "The name of a watchdog, belonging to a mutex and only visible to the current holder of that mutex"
@@ -206,6 +208,7 @@ class ExtWatchdog(exttype.ExtString):
     def lookup(self, fun, cvar):
         ### TODO
         pass
+
 
 class ExtWatchdogState(exttype.ExtString):
     name = "watchdog-state"
@@ -219,5 +222,3 @@ class ExtEvent(exttype.ExtInteger):
 
 #class ExtEventType(exttype.ExtEnum):
 #    values = ["create", "update", "destroy", "call", "watchdog", "marker"]
-
-
