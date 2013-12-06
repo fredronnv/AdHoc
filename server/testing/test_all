@@ -1,7 +1,9 @@
 export ADHOC_RUNTIME_HOME=/Users/bernerus/work/proj/workspace/AdHoc
 . $ADHOC_RUNTIME_HOME/server/testing/.server_conf
 cd $ADHOC_RUNTIME_HOME
-(/usr/bin/python -u adhoctest.py $port >~/tmp/adhoctest.out 2>&1 &)
+
+#/usr/bin/python -u bin/adhocserv.py $port
+(/usr/bin/python -u bin/adhocserv.py $port >~/tmp/adhoctest.out 2>&1 &)
 
 sleep 1
 
@@ -19,4 +21,4 @@ sleep 1
 #./testing/register.py
 #./testing/mutex.py
 
-kill `ps -ef| grep $port | grep adhoctest | awk '{print $2}'`
+kill `ps -ef| grep $port | grep adhocserv | awk '{print $2}'`

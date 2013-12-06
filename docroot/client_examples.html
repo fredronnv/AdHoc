@@ -1,0 +1,276 @@
+<html>
+<head>
+  <title>PDB - Exempel</title>
+  <link rel="stylesheet" type="text/css" href="pdb.css"/>
+</head>
+
+<body>
+<div class="shading">
+<div class="content">
+
+<h1>PDB - Exempel</h1>
+
+<ul>
+  <li><a href="#ex1">Hämta information om ett konto</a> [Python]
+  <li><a href="#ex2">H�mta information om ett konto</a> [Python/pdbclient.py]
+  <li><a href="#ex3">F�rs�k k�ra en funktion som inte finns</a> [Python]
+  <li><a href="#ex4">F�rs�k k�ra en funktion som inte finns</a> [Python/pdbclient.py]
+  <li><a href="#ex5">H�mta online-dokumentation f�r en funktion</a> [Python/pdbclient.py]
+  <li><a href="#ex6"/>Perl: H�mta information om ett konto</a> [Perl/PDB.pm]
+</ul>
+
+<h2><a name="ex1"/>Python: H�mta information om ett konto.</h2>
+
+<p>F�ljande kodsnutt kopplar upp sig till PDB, och h�mtar en struct
+med information om kontot <tt>viktor</tt>. <tt>&gt;&gt;&gt;</tt>
+�r Python:s kommandoradsprompt. Exemplet har extra whitespace f�r
+formattering.
+
+<pre class="example">
+[01] >>> import xmlrpclib
+[02] >>> import getpass
+[03] >>> proxy = xmlrpclib.ServerProxy("https://pdbserver:pdbport/")
+[04] >>> proxy.session_start()
+[05] {'result': 'e2reaUuzm0Xxc6Qib0a71utlUVKITkJCJrISzX6t'}
+[06] >>> sid = 'e2reaUuzm0Xxc6Qib0a71utlUVKITkJCJrISzX6t'
+[07] >>> proxy.session_auth_login(sid, "principal", getpass.getpass())
+[08] Password: 
+[09] {'result': True}
+[10] >>> proxy.account_get(sid, 'viktor')
+[11] {'result': {'status': 'open', 
+[12]             'unix_uid': 4926, 
+[13]		 'account': 'viktor', 
+[14]		 'unix_gid': 4926, 
+[15]		 'primary': True, 
+[16]		 'owner': 'viktor', 
+[17]		 'attributes': {'UNIX_SHELL': '/bin/tcsh', 
+[18]		                'UNIX_HOME':
+[19]				'/chalmers/users/viktor'}, 
+[20]		 'scratchcard_number': None, 
+[21]		 'scratchcard_changed': '', 
+[22]		 'type': 'pers'}}
+</pre>
+
+<p>Rad 1-2: Importera <tt>xmlrpclib</tt> som hanterar
+XMLRPC-f�rbindelsen och <tt>getpass</tt> som kan h�mta l�senord fr�n
+prompten.
+
+<p>Rad 3: Konstruera ett proxyobjekt. Metodanrop p� proxyobjektet
+�vers�tts till funktionsanrop mot XMLRPC-servern, och svaret d�rifr�n
+�vers�tts till ett returv�rde fr�n anropet.
+
+<p>Rad 4: Anropa <tt>session_start()</tt> p�
+XMLRPC-servern. Proxy-objektet �vers�tter till XMLRPC, skickar �ver
+n�tet, och avkodar XMLRPC-svaret.
+
+<p>Rad 5: Svaret �r en struct med en enda nyckel, "result". V�rdet �r
+ett sessions-id.
+
+<p>Rad 6: Spara sessions-id:t s� att vi kan anv�nda det i
+efterf�ljande anrop.
+
+<p>Rad 7-8: Autenticera sessionen. <tt>getpass.getpass()</tt> �r en
+funktion som l�gger upp en l�senordsprompt och returnerar det som
+skrivs in.
+
+<p>Rad 9: Svaret f�r en lyckad autenticering �r det boolska v�rdet
+"True".
+
+<p>Rad 10: Anropa <tt>account_get()</tt> p� XMLRPC-servern.
+
+<p>Rad 11-22: Svaret fr�n XMLRPC-servern, formatterat s� att det syns
+tydligare (i utdatan i Python-tolken finns inte radmatningarna med
+mellan nycklarna).
+
+<h2><a name="ex2"/>Python: H�mta information om ett konto (pdbclient.py)</h2>
+
+<p>G�r samma sak som exemplet ovan, men med <tt>pdbclient.py</tt>. Som man
+ser i j�mf�relsen mellan de tv� exemplen, s� g�mmer <tt>pdbclient.py</tt>
+hanteringen av sessions-id och {'result'}.
+
+<pre class="example">
+[01] >>> import pdbclient 
+[02] >>> import getpass
+[03] >>> proxy = pdb.PDB("https://pdbhost:pbdport/")
+[04] >>> proxy.session_auth_login("principal", getpass.getpass())
+[05] Password: 
+[06] True
+[07] >>> proxy.account_get("viktor")
+[08] {'status': 'open',  
+[09]  'unix_uid': 4926, 
+[10]  'account': 'viktor', 
+[11]  'unix_gid': 4926, 
+[12]  'primary': True, 
+[13]  'owner': 'viktor', 
+[14]  'attributes': {'UNIX_SHELL': '/bin/tcsh', 
+[15]                 'UNIX_HOME': '/chalmers/users/viktor'},
+[16]  'scratchcard_number': None, 
+[17]  'scratchcard_changed': '', 
+[18]  'type': 'pers'}
+</pre>
+
+<p>Rad 1-2: Importera <tt>pdbclient.py</tt> och getpass.
+
+<p>Rad 3: Konstruera ett PDB-proxy objekt. Det fungerar som
+XMLRPC-proxy objektet i f�rra exemplet, men hanterar sessions-id
+automatiskt och g�mmer de argumenten.
+
+<p>Rad 4-5: Autenticera sessionen. En sessions har skapats automatiskt
+(PDB-objektet g�r ett anrop till <tt>session_start()</tt> n�r du
+skapar det). Sessions-id:t l�ggs automatiskt till som f�rsta argument.
+
+<p>Rad 6: Structen i XMLRPC-svaret packas upp automatiskt av
+PDB-objektet.
+
+<p>Rad 7: Anropa <tt>account_get()</tt>. Sessions-id:t l�ggs som
+tidigare automatiskt till som f�rsta argument.
+
+<p>Rad 8: Returv�rdet �r inte inpackat i en struct (som p� rad 6).
+
+<h2><a name="ex3"/>Python: F�rs�k k�ra en funktion som inte finns</h2>
+
+<pre class="example">
+[01] >>> import xmlrpclib
+[02] >>> proxy = xmlrpclib.ServerProxy("http://localhost:4433/")
+[03] >>> proxy.non_existant_function()
+[04] {'error': {'name': 'LookupError::FunctionNotFound', 
+[05]            'traceback': [],
+[06] 	        'value': 'non_existant_function', 
+[07] 	        'argno': None, 
+[08] 	        'desc': 'No function by that name is callable on the server'}}
+</pre>
+
+<p>Rad 1-2: Importera modulen och skapa proxy-objekt.
+
+<p>Rad 3: Anropa en funktion som inte finns p� servern.
+
+<p>Rad 4-8: Svaret kommer inuti en struct med en nyckel
+"error". V�rdet �r en error-struct.
+
+<h2><a name="ex4"/>Python: F�rs�k k�ra en funktion som inte finns (pdbclient.py)</h2>
+
+<pre class="example">
+[01] >>> import pdbclient
+[02] >>> proxy = pdb.PDB("http://localhost:4433/")
+[03] >>> proxy.non_existant_function()
+[04] Traceback (most recent call last):
+[05]   File "<stdin>", line 1, in ?
+[06]   File "pdbclient.py", line 30, in __call__
+[07]     raise LookupError(err)
+[08] LookupError: {'name': 'LookupError::FunctionNotFound', 
+[09]                    'traceback': [], 
+[10] 		   'value': 'non_existant_function', 
+[11] 		   'argno': None, 
+[12] 		   'desc': 'No function by that name is callable on \
+[13] the server' }
+</pre>
+
+<p>Rad 1-2: Importera <tt>pdbclient.py</tt> och skapa ett PDB-objekt.
+
+<p>Rad 3: F�rs�k anropa en funktion som inte finns p� servern.
+
+<p>Rad 4-13: Svaret blir inte en struct, utan en
+Python-exception. V�rdet f�r denna exception �r error-structen fr�n
+XMLRPC-servern.
+
+<h2><a name="ex5"/>Python: H�mta dokumentationen f�r en server-funktion (pdbclient.py)</h2>
+
+<pre class="example">
+>>> proxy = pdbclient.PDB("http://localhost:4433/")
+>>> print proxy.server_documentation("account_get")
+Function definition:
+  account_get(session, account)
+
+Returns:
+  &lt;account-data&gt;
+
+Parameters:
+  session  &lt;session-id&gt;  Execution context
+  account  &lt;account&gt;     Target account
+
+Types:
+  &lt;account-data&gt; ::= struct {   # Data for an account
+   account               = &lt;account&gt;
+   type                  = &lt;string&gt;
+   (owner)               = &lt;person&gt;
+   (primary)             = &lt;boolean&gt;
+   (scratchcard_changed) = &lt;datetime&gt;
+   (scratchcard_number)  = &lt;integer&gt;
+   (status)              = &lt;string&gt;
+   (unix_gid)            = &lt;integer&gt;
+   (unix_uid)            = &lt;integer&gt;
+  }
+  &lt;person&gt;       ::= &lt;string regexp ^[a-z][-a-z0-9_]{0,8}$&gt;   # A
+  person, identified by an internal ID.
+  &lt;boolean&gt;      ::= &lt;boolean&gt;   # True or False
+  &lt;datetime&gt;     ::= &lt;string regexp
+  ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$&gt;   # A date
+  and time in YYYY-MM-DDTHH:MM:SS format, e.g. 2007-04-12T13:04:22
+  &lt;string&gt;       ::= &lt;string&gt;   # A string
+  &lt;integer&gt;      ::= &lt;integer&gt;   # Signed Integer
+  &lt;session-id&gt;   ::= &lt;string regexp [a-zA-Z0-9]+&gt;   # A return-value
+  from a previous call to RPC:session_start(), identifing the
+  execution context of a following call.
+  &lt;account&gt;      ::= &lt;string regexp ^[a-z][-a-z0-9_]{0,8}$&gt;   # The
+  account name of an existing account.
+
+Function signature:
+  {account = &lt;string regexp ^[a-z][-a-z0-9_]{0,8}$&gt;, type = &lt;string&gt;,
+  (owner) = &lt;string regexp ^[a-z][-a-z0-9_]{0,8}$&gt;, (primary) =
+  &lt;boolean&gt;, (scratchcard_changed) = &lt;string regexp
+  ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$&gt;,
+  (scratchcard_number) = &lt;integer&gt;, (status) = &lt;string&gt;, (unix_gid) =
+  &lt;integer&gt;, (unix_uid) = &lt;integer&gt;} account_get(&lt;string regexp
+  [a-zA-Z0-9]+&gt;, &lt;string regexp ^[a-z][-a-z0-9_]{0,8}$&gt;)
+
+Access allowed for:
+  Anyone that is authenticated.
+
+Description:
+  Retrieves properties (such as primary, ucid_owner, type and status)
+  for the specified account.
+</pre>
+
+<p>Server-funktionen <tt>server_documentation()</tt> h�mtar
+dokumentation f�r en funktion direkt fr�n servern. Dokumentationen
+skapas run-time utifr�n den kod som faktiskt k�r, och �r d�rmed mycket
+sannolikt aktuell.
+
+<h2><a name="ex6"/>Perl: H�mta information om ett konto</h2>
+
+<p>F�ljande kodsnutt g�r samma sak som exempel 1 och exempel 2 ovan,
+fast i perl.
+
+
+<pre class="example">
+[01] #!/usr/bin/env perl
+[02] use PDB;
+[03] use Term::ReadKey;
+[04] 
+[05] my $pdb = PDB->new({ url => "https://pdbhost:pbdport/" });
+[06] my $res = $pdb->session_auth_login('principal', 'password');
+[07] $res = $pdb->account_get('viktor');
+[08] my $email = $res->{result}->{email};
+</pre>
+
+<p>Rad 1: Starta perl-tolken.
+
+<p>Rad 2-3: Importera <a href="PDB.pm"><tt>PDB.pm</tt></a> och Term::ReadKey.
+
+<p>Rad 5: Konstruera ett PDB-objekt.
+
+<p>Rad 6: Autenticera sessionen. En sessions har skapats automatiskt
+(PDB-objektet g�r ett anrop till <tt>session_start()</tt> n�r du
+skapar det). Sessions-id:t l�ggs automatiskt till som f�rsta argument.
+I ett riktigt program l�gger man in felkontroll h�r
+
+<p>Rad 7: Anropa <tt>account_get()</tt>. Svaret l�ggs i <tt>$res->{result}</tt> vid ett
+lyckat anrop, annars i <tt>$res->{error}</tt>.
+
+<p>Rad 8: H�mta ut email-v�rdet ur result-hashen.
+
+</div>
+<div class="bottom">Viktor Fougstedt, 2008-01-30</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,19 @@
+export PYTHONPATH=${INSTALL_HOME}/lib/python2.6
+
+if [ x"$CHALMERS_DEPLOY_LEVEL" = x"devel" ]; then
+    export ADHOC_DB_URL=mysql://dconf.ita.chalmers.se:3306
+    export ADHOC_DB_USER=adhoc_server
+    export ADHOC_DB_PASSWORD=XXX # Overridden in other bashrc
+fi
+
+if [ x"$CHALMERS_DEPLOY_LEVEL" = x"uat" ]; then
+    export ADHOC_DB_URL=mysql://dconf.ita.chalmers.se:3306
+    export ADHOC_DB_USER=adhoc_server
+    export ADHOC_DB_PASSWORD=XXX # Overridden in other bashrc
+fi
+
+if [ x"$CHALMERS_DEPLOY_LEVEL" = x"prod" ]; then
+    export ADHOC_DB_URL=mysql://dconf.ita.chalmers.se:3306
+    export ADHOC_DB_USER=adhoc_server
+    export ADHOC_DB_PASSWORD=XXX # Overridden in other bashrc
+fi

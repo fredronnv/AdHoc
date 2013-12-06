@@ -79,115 +79,16 @@ DEBUG = True
 
 from error import *
 from access import *
-from rpctype import *
+from exttype import *
 from category import *
 from session import *
 from function import *
 from default_function import *
 from response import *
 from request_handler import *
-from protocol_handler import *
-from soap import *
+from protocol import *
 from api import *
 from api_handler import *
 from server import *
-
-if __name__ == '__main__':
-    import sys
-    import traceback
-
-    class UsernameType(RPCStringType):
-        name = 'username'
-        regexp = '[a-z][a-z0-9-]'
-        desc = 'The account name of a user currently in the system'
-
-        def lookup(self, server, function, val):
-            if val[0] == 'a':
-                return 'id_for_' + val
-            raise ValueError, "Username %s not found" % (val,)
-
-    class UIDType(RPCIntegerType):
-        name = 'uid'
-        range = (100, 65534)
-        desc = 'The UID of an account currently in the system'
-
-    class ShoeSizeType(RPCIntegerType):
-        name = 'shoesize'
-        range = (20, 55)
-        desc = 'An ISO Shoesize'
-
-    class UsernameListType(RPCListType):
-        typ = UsernameType
-
-    class PersonDataType(RPCStructType):
-        name = 'person-data'
-
-        mandatory = {
-            'firstname': RPCStringType,
-            'lastname': RPCStringType
-            }
-
-        optional = {
-            'shoesize': ShoeSizeType,
-            'sex': RPCBooleanType,
-            'accounts': UsernameListType
-            }
-
-    class AccountDataType(RPCStructType):
-        name = 'account-data'
-        desc = "Data about an account"
-
-        mandatory = {
-            'person': PersonDataType,
-            'uid': UIDType,
-            'username': UsernameType,
-            'owner': UsernameType
-            }
-
-    class PersonDataList(RPCListType):
-        typ = PersonDataType
-
-    class AccountDataOrNullType(RPCOrNullType):
-        typ = AccountDataType
-
-    l = [
-        (RPCStringType, (12, 'apa')),
-        (UsernameType, (12, 'APA', 'bepa', 'apa')),
-        (RPCIntegerType, ('apa', None, 123)),
-        (UIDType, ('apa', None, 23, 123)),
-        (RPCBooleanType, (None, 123, 'apa', True)),
-        (RPCNullType, (123, 'apa', False, None)),
-        (PersonDataType, ({'lastname':123},
-                          {'lastname':'fou', 'sex':'yes'},
-                          {'lastname':'fou', 'sex':True},
-                          {'lastname':'fou', 'firstname':'vik'})),
-        (AccountDataType, ()),
-        (PersonDataList, ()),
-        (RPCListType(PersonDataType), ()),
-        (AccountDataOrNullType, ()),
-        ]
-
-    for (typ, tests) in l:
-        s = RPCType()._typeobj(typ)
-        print s
-        # print s._typedef_inline()
-        # print s._typedef()
-        name, defs = s._typedef_doc()
-        print 's is:', name
-        print defs
-        print
-        for test in tests:
-            try:
-                res = s.parse(None, None, test)
-            except:
-                res = "".join(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]))[:-1]
-            print "Test value:", test, "=>", res
-
-        print '\n- - - -\n'
-    raise SystemExit
-
-
-    
-    
 
 

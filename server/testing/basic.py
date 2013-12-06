@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 class T0000_PingTest(UnAuthTests):
     """ Test server responsiveness"""
 
-    def do(self):
+    def dont(self):
         with AssertAccessError(self):
             self.proxy.server_ping()
 

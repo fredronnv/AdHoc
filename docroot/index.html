@@ -1,0 +1,195 @@
+<head>
+  <title>RPCC Server</title>
+  <link rel="stylesheet" type="text/css" href="xmlrpc.css"/>
+</head>
+
+<body>
+<h1 style="margin-top: 60px">Welcome to the AdHoc RPCC Server</h1>
+
+<div class="lvl1">
+<p>This is the front page from an RPCC Server running the
+<i>rpcc.py</i> framework.
+
+<p>This page, served from the RPCC server itself, is proof that you
+can reach the server. It contains documentation mostly dynamically
+generated from the RPCC server, guaranteeing up-to-date information.
+</div>
+
+<h2>Documentation</h2>
+
+<div class="lvl2">
+
+<p>This server serves the Advanced DHCP online configuration system (ADHoc). 
+
+</div>
+
+<h2>Server primer</h2>
+
+<div class="lvl2">
+
+<p>This is a very quick technical look at how to use this server. No
+information is included about data types or processes, you need to
+read the above document as well as function definitions.
+
+</div>
+
+<h2>Client modules</h2>
+
+<div class="lvl2">
+
+<p>This server speaks plain and simple XMLRPC with the NULL
+extension, JSON-RPC or SOAP. It has a session concept (see below) which it is nice
+to have automated, and therefore we have client modules that does just
+that.
+</div>
+
+<h3>Python</h3>
+
+<div class="lvl3">
+<p>Download <a href="../lib/python2.6/rpcc_client.py">rpccclient.py</a> and add
+it to your <tt>site-packages</tt> or keep it in the same directory as
+your code.
+</div>
+
+<h3>Perl</h3>
+
+<div class="lvl3">
+  <ol>
+    <li>Install <tt>Frontier::Client</tt> using CPAN</li>
+    <li>Download and install the patches <a
+  href="../lib/perl5/Client.pm.patch">Client.pm.patch</a> and <a 
+  href="../lib/perl5/RPC2.pm.patch">RPC2.pm.patch</a></dd>
+    <li>Download and install <a href="../lib/perl5//RPCC.pm">RPCC.pm</a>
+  </ol>
+</div>
+
+<div class="lvl2">
+
+<p>For examples, see <a
+href="client_examples.html">client_examples.html</a> (in swedish).
+
+</div>
+
+<h2>Talking XMLRPC or JSON to the server - </h2>
+
+<div class="lvl2">
+
+<p>This server speaks JSON or XMLRPC with the common NULL extension. If your
+client expects NULL:s (undef, NIL, None, ...) to be encoded using a
+<tt>&lt;nil/&gt;</tt> tag (as Python's xmlrpc module does), contact
+this server on <tt>https://host:port/</tt>. If your client expects
+<tt>&lt;ex:nil/&gt;</tt>, as defined by Apache, contact this server on
+<tt>https://host:port/apache-xmlrpc</tt>.
+
+</div>
+
+<h2>Differentiating between documentation requests and RPC calls</h2>
+
+<div class="lvl2">
+
+<p>This server expects every HTTP POST request to be a SOAP, JSON or an XMLRPC request,
+and every HTTP GET request to fetch documentation.
+
+<p>The XMLRPC specification says that only HTTP POST may be used with
+XMLRPC, but if your client somehow uses GET anyways, make sure you
+turn such a mis-feature off.
+
+</div>
+
+<h2>Return values</h2>
+
+<div class="lvl2">
+
+<p>All functions on this server return a struct. For succesful calls,
+that struct contains the key "result" (with the return value as
+value), and for unsuccesful calls it has the key "error" with an error
+struct as value instead. Those two keys can never appear at the same
+time - a call either succeeded or it did not.
+
+<p>The error struct contains, among others, the keys 
+<dl>
+  <dt>name</dt>
+  <dd>the error name, for example "LookupError::NoSuchAccount"
+
+  <dt>desc</dt>
+  <dd>A more verbose error description <b>for programmers</b>. You
+  must <b>never</b> show this message to an end user, but instead
+  handle the error in a way appropriate for you application.
+
+  <dt>traceback</dt>
+  <dd>A list noting where in the argument list an errorenous argument
+  appeared. The first list item is the argument number, and following
+  items note parts of a possible composite argument, integers for
+  lists and keys for dictionaries.
+
+  <dt>id</dt>
+  <dd>A random number unique to this call and error. If the server
+  generates an InternalError, this number is logged together with the
+  underlying problem on the server.
+</dl>
+</div>
+
+<h2>Session handling and authentication</h2>
+
+<div class="lvl2">
+
+<p>Most functions are only callable inside a session, or execution
+context. This is necesarry since XMLRPC (like HTTP on which it is
+built) is in itself stateless.
+
+<p>The client modules available from this server has builtin
+functionality to handle the sessions (it's almost all they do).
+
+<p>To use your own XMLRPC module, start by calling the
+<tt>session_start()</tt> function. The return value is a session-id,
+which you include as first parameter to all functions that require a
+session context.
+
+<p>Most functions also require the session to be
+authenticated. Currently there is only one call for this,
+<tt>session_auth_login(session_id, username, password)</tt>. The
+<i>username</i> parameter accepts any Kerberos principals, including
+e.g. <tt>/admin</tt>-principals, but the part of the principal name
+before any slash needs to be an existing PDB account.
+
+</div>
+
+<h2>Authorization</h2>
+
+<div class="lvl2">
+
+<p>Different functions require different privileges on the
+server. Some older functions also filter input or output depending on
+whether the caller has a particular privilege or not.
+
+<p>The online documentation contains information about which
+privileges are required for a function. It is the owner of the
+authenticated account whose privileges count.
+
+<p>Note that in order to make use of most higher-level privileges, the
+session must have been authenticated with a <tt>/admin</tt>-principal
+belonging to the privileged owner.
+
+</div>
+
+<h2>Online documentation</h2>
+
+<div class="lvl2">
+
+<p>You can get the online documentation for every function via XMLRPC
+using the <tt>server_documentation(function_name)</tt> function
+(returns a formatted string) or
+<tt>server_documentation_struct(function_name)</tt> function (returns
+a structure with the same information), and list all available
+functions using <tt>server_list_functions()</tt>.
+
+<p>You can also use your web browser to contact the XMLRPC server, and
+go to the <tt>http://host:port/api/0/<i>function_name</i></tt>
+page.
+
+<p>A list of all functions is available from <a
+href="/api/0">http://host:port/api/0</a>.
+
+</div>
+
+</body>

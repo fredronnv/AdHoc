@@ -1,13 +1,12 @@
 #!/usr/bin/env python2.6
-from model import *
-from exttype import *
 
-from function import Function
+from rpcc.function import Function
 
 import socket
 import struct
-import database
-from pickle import NONE
+from rpcc.exttype import *
+from rpcc.model import *
+import rpcc.database
 
 
 class DhcpdConf(Function):
@@ -72,7 +71,7 @@ class DHCPManager(Manager):
         host = self.server.config("ODB_HOST")
         port = self.server.config("ODB_PORT")
         
-        self.odbase = database.MySQLDatabase(self.server, user=user, password=password, database=db, host=host, port=port)
+        self.odbase = rpcc.database.MySQLDatabase(self.server, user=user, password=password, database=db, host=host, port=port)
         
         self.odb = self.odbase.get_link()
         # Beacuse of the interdependencies between the tables,the ytansfer is divided into four strata.

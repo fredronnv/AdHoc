@@ -1,0 +1,12 @@
+AdHoc - Advanced DHCP Online Configuration
+
+This system makes it possible to configure an enterprise level DHCP system using on-line network tools.
+
+There are four levels of this system: The DHCP servers, An RPC server, A configuration database and configuration clients.
+
+The RPC server and database are supposed to work together in a way that the RPC server isolates the database from
+the surrounding world.
+
+The DHCP servers continuously polls the RPC server for new condiguration data, and the configuration tools operate on the 
+configuration data through the RPC server.
+
