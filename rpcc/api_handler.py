@@ -2,6 +2,8 @@
 
 from api import API
 from default_error import ExtNoSuchAPIVersionError
+from category import FunctionCategory
+
 
 class APIHandler(object):
     def __init__(self, server):
@@ -22,12 +24,12 @@ class APIHandler(object):
             self.api_by_schema_url[url] = api
 
     def add_function(self, funclass):
-        while len(self.apis) < funclass.from_version+1:
+        while len(self.apis) < funclass.from_version + 1:
             newapi = self.apis[-1].next_version()
             self.apis.append(newapi)
             self.store_soap_data(newapi)
 
-        for api in self.apis[funclass.from_version:funclass.to_version+1]:
+        for api in self.apis[funclass.from_version:funclass.to_version + 1]:
             try:
                 api.add_function(funclass)
             except:
@@ -55,13 +57,13 @@ class APIHandler(object):
             raise ExtNoSuchAPIVersionError(str(version))
 
     def list_all_versions(self):
-        all = []
+        all_versions = []
         for i in range(len(self.apis)):
             try:
-                all.append((i, self.server.api_version_comments[i]))
+                all_versions.append((i, self.server.api_version_comments[i]))
             except KeyError:
-                all.append((i, None))
-        return all            
+                all_versions.append((i, None))
+        return all_versions           
 
     def add_category(self, catclass):
         """Adds an RPCFunctionCategory subclass to all API versions
@@ -70,10 +72,10 @@ class APIHandler(object):
         appropriate.
         """
 
-        while len(self.apis) < catclass.from_version+1:
+        while len(self.apis) < catclass.from_version + 1:
             self.apis.append(self.apis[-1].next_version())
 
-        for api in self.apis[catclass.from_version:catclass.to_version+1]:
+        for api in self.apis[catclass.from_version:catclass.to_version + 1]:
             api.add_category(catclass)
 
     def add_categories_from_module(self, mod):
@@ -86,9 +88,9 @@ class APIHandler(object):
         for (key, value) in mod.__dict__.items():
             if type(value) != types.TypeType:
                 continue
-            if not issubclass(value, RPCFunctionCategory):
+            if not issubclass(value, FunctionCategory):
                 continue
-            if value == RPCFunctionCategory:
+            if value == FunctionCategory:
                 continue
             
             self.add_category(value)
@@ -97,13 +99,13 @@ class APIHandler(object):
         try:
             return self.api_by_wsdl_path[path].get_wsdl(path)
         except LookupError:
-            raise LookupError("Unknown WSDL URL %s" % (url,))
+            raise LookupError("Unknown WSDL URL %s" % (path,))
 
     def get_all_wsdl_urls(self):
-        all = []
+        all_urls = []
         for api in self.apis:
-            all.extend(api.get_all_wsdl_urls())
-        return sorted(all)
+            all_urls.extend(api.get_all_wsdl_urls())
+        return sorted(all_urls)
 
     def lookup_soap_namespace(self, namespace):
         if not self.schema_urls:
