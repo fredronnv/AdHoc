@@ -92,6 +92,7 @@ HTML documentation:
 from exttype import *
 from xmlnode import HTMLNode
 
+
 class Documentation(object):
     def __init__(self, server):
         self.server = server
@@ -110,8 +111,8 @@ class Documentation(object):
         for phrase in s.split("\n\n"):
             out.append([" " * ind])
             for token in phrase.split():
-                if len(out[-1][-1]) + len(token) > 78-ind:
-                    out[-1].append(" "*ind)
+                if len(out[-1][-1]) + len(token) > 78 - ind:
+                    out[-1].append(" " * ind)
                 out[-1][-1] = out[-1][-1] + " " + token
         return "\n\n".join(["\n".join(r) for r in out])
 
@@ -123,7 +124,195 @@ class Documentation(object):
         s += "body {font-family: sans-serif; font-size: 10pt;} "
         s += "span.function_name {font-family: monospace} "
         s += "span.enum_value {background: #dbb} "
-        return s
+        
+        t = """body {
+  background-color: #fff;
+}
+
+h1 {
+  background-color: #eeb;
+  border: solid 1px #dda;
+  border-bottom-color: #aa8;
+  border-right-color: #aa8;
+  font-family: sans-serif;
+  color: #430;
+  text-align: center;
+}
+
+h2 {
+  background-color: #eeb;
+  border: solid 1px #dda;
+  border-bottom-color: #aa8;
+  border-right-color: #aa8;
+  font-family: sans-serif;
+  margin-left: 20px;
+  margin-right: 20px;
+  font-weight: normal;
+  padding-left: 5px;
+}
+
+h3 {
+  background-color: #dda;
+  border: solid 1px #bb9;
+  border-bottom-color: #aa8;
+  border-right-color: #aa8;
+  font-family: sans-serif;
+  margin-left: 40px;
+  margin-right: 40px;
+  font-weight: normal;
+  padding-left: 5px;
+}
+
+div.lvl1 {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+div.lvl2 {
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+div.lvl3 {
+  padding-left: 60px;
+  padding-right: 60px;
+}
+
+span.api_version {
+  font-family: sans-serif;
+  font-size: 14pt;
+  font-weight: bold;
+}
+
+span.fundef {
+  font-family: monospace;
+  font-size: 11pt;
+}
+
+div.function div.head {
+  background: #ffc;
+  border: solid 1px #dda;
+  border-bottom-color: #885;
+  border-right-color: #885;
+  padding: 3px;
+}
+
+th {
+  text-align: left;
+  font-weight: normal;
+}
+
+span.paramname {
+  font-family: monospace;
+  font-size: 11pt;
+  font-style: italic;
+}
+
+span.typename {
+  font-family: monospace;
+  font-size: 10pt;
+  color: #068
+}
+
+span.typename a {
+  text-decoration: none;
+  color: #068;
+}
+
+table.function td.attribute {
+  padding-right: 10px;
+  font-family: sans-serif;
+  font-size: 11pt;
+}
+
+table.function td.definition {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+table.function td.attribute {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+table.parameters {
+  border-collapse: collapse;
+  background-color: #ffe;
+}
+
+table.parameters th {
+  border: solid 1px #888;
+}
+
+table.parameters td {
+  padding-right: 10px;
+}
+
+table.typedef {
+  margin-bottom: 20px;
+  border-collapse: collapse;
+}
+
+table.typedef tr.head td {
+  background-color: #cdd;
+  border-bottom: solid 1px #888;
+}
+
+table.typedef tr td.attribute {
+  font-size: 10pt;
+  padding-bottom: 1px;
+}
+
+table.typedef tr td.definition {
+  padding-bottom: 1px;
+}
+
+table.structparams {
+  margin-right: 20px;
+}
+
+table.structparams th {
+  background: #fff;
+  border: solid 1px #888;
+}
+
+th.keyname {
+  border-bottom: solid 1px #888;
+  border-top: solid 1px #888;
+}
+
+td.keyname {
+  font-family: monospace;
+  font-size: 10pt;
+  padding-right: 10px;
+}
+
+th.keytype {
+  border-bottom: solid 1px #888;
+  border-top: solid 1px #888;
+}
+
+td.keytype {
+  padding-right: 10px;
+}
+
+th.keydesc {
+  border-bottom: solid 1px #888;
+  border-top: solid 1px #888;
+}
+
+span.regexp {
+  font-family: courier;
+  font-size: 11pt;
+}
+
+a.funlink {
+  font-size: 10pt;
+  text-decoration: none;
+}
+"""
+        return t
+        #return s
 
     def function_as_html(self, apivers, funname):
         api = self.server.api_handler.get_api(apivers)
@@ -394,7 +583,7 @@ class Documentation(object):
             elif isinstance(tinst, ExtStruct):
                 doc += "Struct with keys (optional in parenthesis)"
                 items = sorted(tinst._all_items())
-                keylen = max([len(k) + 2 for (o, k, t, d) in items])
+                keylen = max([len(k) + 2 for (_o, k, t, d) in items])
                 for (opt, key, typ, desc) in items:
                     if desc:
                         doc += "\n      # " + desc
@@ -410,14 +599,8 @@ class Documentation(object):
         return doc
 
     def text_table(self, rows):
-        cw = [0,] * len(rows[0])
+        cw = [0, ] * len(rows[0])
         for colidx in range(len(rows[0])):
             cw[colidx] = max([len(r[colidx]) for r in rows])
 
         return "\n".join(["".join(["%-*s" % (l, c) for (l, c) in zip(cw, r)]) for r in rows])
-
-        
-            
-
-        
-        

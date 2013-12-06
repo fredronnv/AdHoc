@@ -1,12 +1,15 @@
 
 from rpctype import *
 from xmlnode import XMLNode
+from exttype import *
+
 
 def xml_escape(desc):
     desc = desc.replace("&", "&amp;")
     desc = desc.replace("<", "&lt;")
     desc = desc.replace(">", "&gt;")
     return desc
+
 
 class SOAPError(Exception):
     soapcode = None
@@ -63,6 +66,7 @@ class SOAPError(Exception):
             err.set_namespace("e", server.get_schema_url(mssuffix))
 
         return env
+   
     
 class SOAPVersionMismatchError(SOAPError):
     soapcode = "VersionMismatch"
@@ -72,26 +76,31 @@ class SOAPVersionMismatchError(SOAPError):
                                   {"xmlns:ns1": "http://scemas.xmlsoap.org/soap/envelope"},
                                   qname="ns1:Envelope")
 
+
 class SOAPMustUnderstandError(SOAPError):
     soapcode = "MustUnderstand"
     soaptext = "Client sent mustUnderstand header which was not understood"
 
+
 class SOAPDataEncodingUnknownError(SOAPError):
     soapcode = "DataEncodingUnknown"
+
 
 class SOAPServerError(SOAPError):
     soapcode = "Server"
 
+
 class SOAPClientError(SOAPError):
     soapcode = "Client"
 
-class SOAPFaultDetailType(ExtStructType):
+
+class SOAPFaultDetailType(ExtStruct):
     name = 'soap-fault-detail'
     desc = "The detail element of a SOAP Fault message"
 
     mandatory = {
-        'errorName': RPCStringType,
-        'errorID': RPCIntegerType,
+        'errorName': ExtString,
+        'errorID': ExtInteger,
         }
 
 
@@ -99,9 +108,11 @@ class SOAPParseError(SOAPClientError):
     name = 'SOAPParseError'
     desc = 'The received SOAP request does not conform to the WSDL.'
 
+
 class SOAPGenerationError(SOAPServerError):
     name = 'SOAPGenerationError'
     desc = 'The return value cannot be converted to the correct SOAP response.'
+
 
 class SOAPTypeDef(object):
     visible = True
@@ -177,6 +188,7 @@ class SOAPTypeDef(object):
     def XXXsoap_encode_as_string(self, value):
         raise NotImplementedError()
 
+
 class SOAPStringTypeDef(SOAPTypeDef):
     def init_specials(self):
         self.regexp = self.docdict.get('regexp', None)
@@ -195,6 +207,7 @@ class SOAPStringTypeDef(SOAPTypeDef):
     def XXXsoap_encode_as_string(self, value):
         return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
+
 class SOAPEnumTypeDef(SOAPTypeDef):
     def init_specials(self):
         self.values = self.docdict['values']
@@ -209,6 +222,7 @@ class SOAPEnumTypeDef(SOAPTypeDef):
 
     def XXXsoap_encode_as_string(self, value):
         return value
+
 
 class SOAPIntegerTypeDef(SOAPTypeDef):
     def init_specials(self):
@@ -232,6 +246,7 @@ class SOAPIntegerTypeDef(SOAPTypeDef):
             print value
             raise
 
+
 class SOAPBoolTypeDef(SOAPTypeDef):
     def XXXwsdl_add_restriction(self, base):
         base.new('restriction', base='boolean')
@@ -247,6 +262,7 @@ class SOAPBoolTypeDef(SOAPTypeDef):
         if value:
             return "true"
         return "false"
+
 
 class SOAPListTypeDef(SOAPTypeDef):
     def init_specials(self):
@@ -284,6 +300,7 @@ class SOAPListTypeDef(SOAPTypeDef):
                 print subval
                 raise
 
+
 class SOAPStructItemTypeDef(SOAPTypeDef):
     visible = False
 
@@ -313,6 +330,7 @@ class SOAPStructItemTypeDef(SOAPTypeDef):
     def soap_encode(self, element, value):
         child = element.new(self.get_element_name())
         self.type.soap_encode(child, value)
+  
         
 class SOAPStructTypeDef(SOAPTypeDef):
     def init_specials(self):
@@ -323,7 +341,7 @@ class SOAPStructTypeDef(SOAPTypeDef):
         self.mandatory_order = []
 
         mand_dd = self.docdict['mandatory']
-        mand_dd.sort(lambda a,b: cmp(a['name'], b['name']))
+        mand_dd.sort(lambda a, b: cmp(a['name'], b['name']))
         for d in mand_dd:
             itemdef = SOAPStructItemTypeDef(self.server, d)
             elemname = itemdef.get_element_name()
@@ -336,7 +354,7 @@ class SOAPStructTypeDef(SOAPTypeDef):
         self.optional_order = []
 
         opt_dd = self.docdict['optional']
-        opt_dd.sort(lambda a,b: cmp(a['name'], b['name']))
+        opt_dd.sort(lambda a, b: cmp(a['name'], b['name']))
         for d in opt_dd:
             itemdef = SOAPStructItemTypeDef(self.server, d)
             elemname = itemdef.get_element_name()
@@ -470,6 +488,7 @@ class SOAPOrNullTypeDef(SOAPTypeDef):
             child = element.new('set')
             self.value_type.soap_encode(child, value)
 
+
 class SOAPNullTypeDef(SOAPTypeDef):
     def wsdl_element(self):
         elem = XMLNode('complexType', name=self.wsdlname)
@@ -482,6 +501,7 @@ class SOAPNullTypeDef(SOAPTypeDef):
     def soap_encode_as_string(self, value):
         return ""
 
+
 class SOAPRecursionMarkerTypeDef(SOAPTypeDef):
     visible = False
 
@@ -493,7 +513,7 @@ class SOAPTypeDefFactory(object):
     def typedef(self, docdict):
         type = docdict['dict_type']
         
-        map = {
+        typemap = {
             'integer-type': SOAPIntegerTypeDef,
             'string-type': SOAPStringTypeDef,
             'boolean-type': SOAPBoolTypeDef,
@@ -505,8 +525,9 @@ class SOAPTypeDefFactory(object):
             'recursion-marker': SOAPRecursionMarkerTypeDef
             }
 
-        typedef = map[type](self.server, docdict)
+        typedef = typemap[type](self.server, docdict)
         return typedef
+
 
 class SOAPParameterDefinition(object):
     def __init__(self, function, index, docdict):
@@ -538,6 +559,7 @@ class SOAPParameterDefinition(object):
 
     def soap_parse(self, elem):
         return self.type.soap_parse(elem)
+
 
 class SOAPFunctionDefiniton(object):
     """A class which represents a function definition, with
@@ -617,7 +639,7 @@ class SOAPFunctionDefiniton(object):
 
     def parse_dom_parameters(self, elemlist_in, mscompat):
         elemlist = [elem for elem in elemlist_in if elem.nodeType == elem.ELEMENT_NODE]
-        parsed_params = [None,]*len(self.params)
+        parsed_params = [None, ] * len(self.params)
         numparsed = 0
 
         for elem in elemlist:
@@ -656,4 +678,3 @@ class SOAPFunctionDefiniton(object):
 
         self.return_type.soap_encode(top, value)
         return ret
-

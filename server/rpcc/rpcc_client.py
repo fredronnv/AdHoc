@@ -93,6 +93,7 @@ class RPCC(object):
         self._url = url + "json?v%d" % (api_version,)
         self._purl = url.replace("http://", "").replace("https://", "") + "#%d" % (api_version,)
         self._api = api_version
+        self._auth = None
         self.reset()
 
     def __getattr__(self, name):

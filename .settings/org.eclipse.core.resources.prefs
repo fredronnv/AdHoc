@@ -1,9 +1,9 @@
 eclipse.preferences.version=1
 encoding//client/rpcc_client.py=utf-8
-encoding//rpcc/database.py=utf-8
-encoding//rpcc/example2-client.py=utf-8
-encoding//rpcc/exterror.py=utf-8
-encoding//rpcc/exttype.py=utf-8
-encoding//rpcc/rpcc_client.py=utf-8
+encoding//server/rpcc/database.py=utf-8
+encoding//server/rpcc/example2-client.py=utf-8
+encoding//server/rpcc/exterror.py=utf-8
+encoding//server/rpcc/exttype.py=utf-8
+encoding//server/rpcc/rpcc_client.py=utf-8
 encoding//server/testing/mutex.py=utf-8
 encoding//server/testing/util.py=utf-8
