@@ -33,7 +33,7 @@ import datetime
 import default_type
 import access
 
-from model import Model, Manager, template, update, search, IntegerMatch, StringMatch
+from model import Model, Manager, template, search, IntegerMatch, StringMatch
 from access import entry
 from exttype import ExtOrNull, ExtString, ExtInteger, ExtDateTime, ExtEnum
 
@@ -42,7 +42,7 @@ class _TEST_ViktorGuard(access.Guard):
     def check(self, obj, fun):
         if fun.session.authuser == 'viktor':
             return access.AccessGranted(access.CacheInFunction)
-        return access.DecisionDeferred(access.CacheInFunction)
+        return access.DecisionReferred(access.CacheInFunction)
 
 
 class Event(Model):
@@ -160,7 +160,6 @@ class Event(Model):
 # that.
 
 
-
 class EventManager(Manager):
     name = "event_manager"
     manages = Event
@@ -259,7 +258,7 @@ class EventManager(Manager):
             _get.__doc__ = "auto-generated getter for %s" % (attr,)
             return template(attr, typ)(_get)
 
-        for (name, (tbl, id)) in cls.event_attributes.items():
+        for (name, (tbl, _id)) in cls.event_attributes.items():
             if hasattr(cls.manages, "get_" + name):
                 continue
             
@@ -296,7 +295,6 @@ class EventManager(Manager):
                 continue
 
             setattr(cls, "search_" + attr, new_searcher(attr, tbl, attrid))
-
 
     def base_query(self, dq):
         dq.select("ev.id")
@@ -438,7 +436,6 @@ class EventManager(Manager):
 
     @search("function", StringMatch)
     def s_function(self, dq):
-        (tbl, attrid) = self.event_attributes["function"]
+        (_tbl, attrid) = self.event_attributes["function"]
         dq.outer("rpcc_event_str es1", "(e.id=es1.event AND es1.attr=%d)" % (attrid,))
         return "es1.value"
-
