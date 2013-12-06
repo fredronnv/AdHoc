@@ -77,7 +77,7 @@ class RawRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         response."""
 
         if isinstance(resp, str):
-            resp = RPCHTTPResponse(resp, "text/plain")
+            resp = HTTPResponse(resp, "text/plain")
         
         if resp.code is None:
             self.send_response(200)
