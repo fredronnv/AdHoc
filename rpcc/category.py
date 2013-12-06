@@ -1,16 +1,16 @@
-class RPCFunctionCategory(object):
+class FunctionCategory(object):
     """Subclasses of this class are used to identify functions that
     are somehow related.
 
     Used to auto-generate links in the HTML documentation's "See also"
     section.
 
-    It is an RPCFunctionCategory object's responsibility to determine
-    which RPCTypedFunctions belong to it. RPCTypedFunctions have a
+    It is an FunctionCategory object's responsibility to determine
+    which TypedFunctions belong to it. ExtTypedFunctions have a
     .categories attribute which can assist the category in this
     decision.
 
-    One instance of every registered RPCFunctionCategory subclass will
+    One instance of every registered FunctionCategory subclass will
     be created for every API version the category is visible in
     (determined through it's .from_version and .to_version
     attributes). Every such instance will have all RPCTypedFunction:s
