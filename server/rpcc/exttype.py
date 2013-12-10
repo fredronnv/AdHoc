@@ -492,8 +492,14 @@ class ExtBoolean(ExtType):
     #desc = "True or False"
     
     def check(self, function, rawval):
-        if not isinstance(rawval, bool):
-            raise ExtExpectedBooleanError(value=rawval)
+        """ The checking for Booleans is made complicated by the fact that MySQL does not have a  boolean type.
+            instead, booleans are implemented using tinyint(1) which is returned as an integer, so
+            strictly checking the type vill fail."""
+        if isinstance(rawval, bool):
+            return
+        if isinstance(rawval, int) and rawval in [0, 1]:
+            return  
+        raise ExtExpectedBooleanError(value=rawval)
 
     # SOAP
     def xsd(self):

@@ -146,7 +146,6 @@ def update(name, exttype, minv=0, maxv=10000, desc=None):
     return decorate
 
 
-
 class Model(object):
     # The name attribute is used when cross-referencing between
     # templates, and in auto-generation by the server. 
@@ -384,20 +383,19 @@ class Model(object):
         return out
 
 
-
 # Search system.
-
+#
 # From the external viewpoint, search keys are exposed that can be fed
 # to the system. Each search key represents a combination of a search
 # method (which sets up a DynamicQuery to include a particular
 # attribute) and a match method (which adds a comparison to the
 # DynamicQuery involving the external value and the attribute set up
 # by the search method).
-
+#
 # Internally, Managers expose methods, called search methods, that
 # when called set up a DynamicQuery to contain a particular attribute
 # and return the SQL for that attribute.
-
+#
 # Search methods are decorated with one or more @search() decorators,
 # each belonging to non-overlapping API version ranges. In the
 # decorator, the external name of the attribute is specified, as is
@@ -405,21 +403,19 @@ class Model(object):
 # (comparisons and such) that should be usable with the attribute. The
 # data from the decorator(s) is stored on the method as a list of
 # _SearchSpec instances.
-
+#
 # A Match subclass implements different matching methods, each
 # decorated with a @prefix() or @suffix() decorator. When a matching
 # method is called because of external stimuli, it adds a comparison
 # to a DynamicQuery, containing the attribute SQL returned by the
 # search method. The decorator contains the string to prepend/append
 # to the attribute name to form a search key.
-
+#
 # For each search method, a Match instance is created. Each
 # combination of a search method and a match method is then
 # represented by a _SearchKey. A _SearchKey contains the manager
 # method to call for setting up the attribute, the Match object and
 # method on it to call to add the comparison.
-
-
 class _SearchKey(object):
     def __init__(self, key, manager_method, match_callable, exttype, desc):
         self.key = key
@@ -596,8 +592,6 @@ class IntegerMatch(EqualityMatchMixin, Match):
     @prefix("min", ExtInteger)
     def min(self, fun, q, expr, val):
         q.where(expr + ">=" + q.var(val))
-
-
 
 
 class _SearchSpec(object):
@@ -857,7 +851,7 @@ class Manager(object):
         dq.where(rtbl + ".resid = " + dq.var(rid))
         dq.where(rtbl + ".value = " + dq.get_select_at(0))
         res = []
-        allargs = dq.run()
+        #allargs = dq.run()
         extras = self.kwargs_for_result(rid)
         for args in dq.run():
             oid = args[0]
@@ -888,7 +882,7 @@ class Manager(object):
             self.db.put(q, r=expired)
 
         while 1:
-            rid = random.randint(0, 1<<31)
+            rid = random.randint(0, 1 << 31)
             q = "SELECT COUNT(*) FROM rpcc_result WHERE resid=:rid"
             if self.db.get_value(q, rid=rid) == 0:
                 break
@@ -958,14 +952,12 @@ if __name__ == "__main__":
         def get_account(self):
             pass
 
-
     class Account(Model):
         name = "account"
 
         @template(ExtString, model="person")
         def get_owner(self):
             pass
-
 
     for v in range(0, 5):
         print
@@ -976,8 +968,3 @@ if __name__ == "__main__":
         print "tmpl", Account._template_type(v).optional
         print "data", Account._data_type(v).optional
         print "update", Account._update_type(v).optional
-
-        
-
-
-    
