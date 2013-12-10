@@ -162,13 +162,13 @@ class ExtOutputError(ExtInternalError):
         ExtInternalError.__init__(self)
 
     def add_trace(self, typething, msg):
-        self.output_trace += (typething, msg)
+        self.output_trace.append((typething, msg))
 
     def print_trace(self):
         for (typething, msg) in self.output_trace:
             print "  In %s" % (typething,)
             print "    ", msg
-
+     
 
 class ExtValueError(ExtError):
     name = "ValueError"
