@@ -330,7 +330,7 @@ class Model(object):
             attr = writeattrs[name]
             if not hasattr(attr, "args"):
                 attr.args = []
-            if hasattr(attr, "kwargs"):
+            if not hasattr(attr, "kwargs"):
                 attr.kwargs = {}
             # TODO: What should be in args or kwargs ???
             
