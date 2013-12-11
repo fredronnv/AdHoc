@@ -635,12 +635,15 @@ class MySQLLink(DatabaseLink):
         try:
             try:
                 if isinstance(query, DynamicQuery):
-                    curs.execute(query.query(), query.values)
+                    q = query.query()
+                    v = query.values
                 else:
-                    curs.execute(self.convert(query), kwargs)
+                    v = kwargs
+                    q = self.convert(query)
+                curs.execute(q, v)
                 return curs.lastrowid
             except Exception as e:
-                self.exception(e)
+                self.exception(e, q, v)
         finally:
             curs.close()
 
