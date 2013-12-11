@@ -185,7 +185,7 @@ class Model(object):
         if len(args) == 0:
             raise ValueError("There must be a second argument to a Model instance  - the object id - but none was received by %s." % (self.__class__.__name__,))
         if not isinstance(args[0], self.id_type):
-            raise ValueError("The object id %s is not of type %s, which %s.id_type says it should be." % (args[0], self.id_type, self.__class__.__name__))
+            raise ValueError("The object id %s is of type %s, not of type %s, which %s.id_type says it should be." % (args[0], type(args[0]), self.id_type, self.__class__.__name__))
 
         self.init(*args, **kwargs)
         if not hasattr(self, "oid"):
