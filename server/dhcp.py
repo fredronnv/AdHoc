@@ -123,6 +123,7 @@ class DHCPManager(Manager):
         qp = "INSERT INTO rooms (id, info, printers, changed_by, mtime) VALUES(:id, :info, :printers, :changedby, :mtime)"
         for (my_id, info, printers, changed_by, mtime) in self.odb.get(qf):
             #print my_id, info, printers, changed_by, mtime
+            my_id = my_id.upper()
             rooms.add(my_id)
             self.db.insert(id, qp, id=my_id, info=info, printers=printers, changedby=changed_by, mtime=mtime)
     
@@ -312,6 +313,8 @@ class DHCPManager(Manager):
             # Handle room value quirks such as zero length rooms or rooms being just blanks
             if not room or not bool(room.strip()):
                 room = None
+            else:
+                room = room.upper()
             # Add yet unseen rooms into the rooms table    
             if room and room not in rooms:
                 self.db.insert(id, "INSERT INTO rooms (id, info, changed_by) VALUES (:id, :info, :changed_by)",
