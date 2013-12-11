@@ -328,6 +328,12 @@ class Model(object):
         writeattrs = self._write_attributes(api_version)
         for (name, newval) in updates.items():
             attr = writeattrs[name]
+            if not hasattr(attr, "args"):
+                attr.args = []
+            if hasattr(attr, "kwargs"):
+                attr.kwargs = {}
+            # TODO: What should be in args or kwargs ???
+            
             attr.method(self, newval, *attr.args, **attr.kwargs)
 
     def apply_template(self, api_version, tmpl):
