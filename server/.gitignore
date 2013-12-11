@@ -1,3 +1,5 @@
 /dhcp.pyc
 /util.pyc
 /network.pyc
+/dhcp_servers.pyc
+/shared_network.pyc

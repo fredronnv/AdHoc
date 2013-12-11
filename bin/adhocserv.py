@@ -29,7 +29,8 @@ from rpcc.server import Server
 from rpcc.database import MySQLDatabase
 import dhcp 
 import util
-import network
+import shared_network
+import dhcp_servers
 
 import rpcc
 
@@ -46,10 +47,11 @@ srv.database.check_rpcc_tables()
 srv.register_manager(rpcc.session.DatabaseBackedSessionManager)
 srv.register_manager(rpcc.authentication.NullAuthenticationManager)
 srv.register_manager(dhcp.DHCPManager)
-srv.register_manager(network.NetworkManager)
+srv.register_manager(shared_network.NetworkManager)
+srv.register_manager(dhcp_servers.DHCPServerManager)
 srv.register_functions_from_module(dhcp)
 srv.register_functions_from_module(util)
-srv.register_functions_from_module(network)
+srv.register_functions_from_module(shared_network)
 
 srv.enable_documentation()
 srv.enable_static_documents(os.path.join(adhoc_home, 'docroot'))
