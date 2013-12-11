@@ -4,7 +4,8 @@
 
 from framework import *
 from basic import *
-from dhcpd import *
+#from dhcpd import *
+from network import *
 #from mutex import *
 
 if __name__ == "__main__":
