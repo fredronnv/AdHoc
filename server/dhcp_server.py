@@ -27,7 +27,7 @@ class ExtDHCPServer(ExtDHCPServerID):
     
     
 class DHCPServerFunBase(SessionedFunction):  
-    params = [("dhsp_server_id", ExtDHCPServerID, "DHCPServer ID to create")]
+    params = [("dhcp_server_id", ExtDHCPServerID, "DHCPServer ID to create")]
     
     
 class DHCPServerCreate(DHCPServerFunBase):
@@ -38,7 +38,7 @@ class DHCPServerCreate(DHCPServerFunBase):
     returns = (ExtNull)
 
     def do(self):
-        self.dhcp_server_manager.create_dhcp_server(self, self.netid, self.authoritative, self.info)
+        self.dhcp_server_manager.create_dhcp_server(self, self.dhcp_server_id, self.name, self.info)
 
 
 class DHCPServerDestroy(DHCPServerFunBase):
@@ -47,7 +47,7 @@ class DHCPServerDestroy(DHCPServerFunBase):
     returns = (ExtNull)
 
     def do(self):
-        self.dhcp_server_manager.destroy_dhcp_server(self, self.netid)
+        self.dhcp_server_manager.destroy_dhcp_server(self, self.dhcp_server_id)
 
 
 class DHCPServer(Model):
@@ -55,17 +55,17 @@ class DHCPServer(Model):
     exttype = ExtDHCPServer
     id_type = unicode
 
-    def init(self, dhcp_id, name, info):
+    def init(self, dhcp_server_id, name, info):
         #print "DHCPServer.init", dhcp_id, name, info
-        self.oid = dhcp_id
+        self.oid = dhcp_server_id
         self.name = name
         self.info = info
 
-    @template("dhcp_server", ExtDHCPServer)
-    def get_dhcp_server(self):
+    @template("dhcp_server_id", ExtDHCPServer)
+    def get_dhcp_server_id(self):
         return self
 
-    @template("name", ExtBoolean)
+    @template("name", ExtString)
     def get_name(self):
         return self.name
 
@@ -81,8 +81,8 @@ class DHCPServer(Model):
         
     @update("info", ExtString)
     def set_info(self, newinfo):
-        q = "UPDATE dhcp_servers SET info=:info WHERE id=:netid"
-        self.db.put(q, netid=self.oid, info=newinfo)
+        q = "UPDATE dhcp_servers SET info=:info WHERE id=:dhcp_id"
+        self.db.put(q, dhcp_id=self.oid, info=newinfo)
         self.db.commit()
 
 
@@ -100,8 +100,8 @@ class DHCPServerManager(Manager):
         dq.table("dhcp_servers ds")
         return dq
 
-    def get_dhcp_server(self, netid):
-        return self.model(netid)
+    def get_dhcp_server(self, dhcp_server_id):
+        return self.model(dhcp_server_id)
 
     def search_select(self, dq):
         dq.table("dhcp_servers ds")
@@ -112,14 +112,14 @@ class DHCPServerManager(Manager):
         dq.table("dhcp_servers ds")
         return "ds.id"
     
-    def create_dhcp_server(self, fun, netid, name, info):
+    def create_dhcp_server(self, fun, dhcp_server_id, name, info):
         q = "INSERT INTO dhcp_servers (id, name, info, changed_by) VALUES (:id, :name, :info, :changed_by)"
-        self.db.put(q, id=netid, name=name, info=info, changed_by=fun.session.authuser)
-        print "DHCPServer created, id=", netid
+        self.db.put(q, id=dhcp_server_id, name=name, info=info, changed_by=fun.session.authuser)
+        print "DHCPServer created, id=", dhcp_server_id
         self.db.commit()
         
-    def destroy_dhcp_server(self, fun, netid):
+    def destroy_dhcp_server(self, fun, dhcp_server_id):
         q = "DELETE FROM dhcp_servers WHERE id=:id LIMIT 1"
-        self.db.put(q, id=netid)
-        print "DHCPServer destroyed, id=", netid
+        self.db.put(q, id=dhcp_server_id)
+        print "DHCPServer destroyed, id=", dhcp_server_id
         self.db.commit()

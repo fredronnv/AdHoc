@@ -5,7 +5,8 @@
 from framework import *
 from basic import *
 #from dhcpd import *
-from network import *
+from shared_network import *
+from dhcp_server import *
 #from mutex import *
 
 if __name__ == "__main__":

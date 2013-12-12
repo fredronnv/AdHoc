@@ -2,7 +2,7 @@
 
 from rpcc.model import *
 from rpcc.exttype import *
-from rpcc.function import Function, SessionedFunction
+from rpcc.function import SessionedFunction
 
 
 class ExtNoSuchNetworkError(ExtLookupError):
@@ -40,6 +40,7 @@ class NetworkCreate(NetworkFunBase):
     def do(self):
         self.network_manager.create_network(self, self.netid, self.authoritative, self.info)
         
+
 class NetworkDestroy(NetworkFunBase):
     extname = "network_destroy"
     desc = "Destroys a shared network"
