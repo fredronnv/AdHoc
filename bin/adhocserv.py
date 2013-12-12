@@ -31,6 +31,7 @@ import dhcp
 import util
 import shared_network
 import dhcp_server
+import optionspace
 
 import rpcc
 
@@ -49,10 +50,12 @@ srv.register_manager(rpcc.authentication.NullAuthenticationManager)
 srv.register_manager(dhcp.DHCPManager)
 srv.register_manager(shared_network.NetworkManager)
 srv.register_manager(dhcp_server.DHCPServerManager)
+srv.register_manager(optionspace.OptionspaceManager)
 srv.register_functions_from_module(dhcp)
 srv.register_functions_from_module(util)
 srv.register_functions_from_module(shared_network)
 srv.register_functions_from_module(dhcp_server)
+srv.register_functions_from_module(optionspace)
 
 srv.enable_documentation()
 srv.enable_static_documents(os.path.join(adhoc_home, 'docroot'))
