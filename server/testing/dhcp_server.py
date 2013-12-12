@@ -14,8 +14,8 @@ class T0500_DHCPServerList(UnAuthTests):
             ret = self.proxy.dhcp_server_dig({}, {"dhcp_server_id": True, "info": True, "name": True})
             
             #assert len(ret) > 0, "Too few dhcp_servers returned"
-            for ds in ret:
-                print ds.dhcp_server_id, ds.name, ds.info
+            #for ds in ret:
+                #print ds.dhcp_server_id, ds.name, ds.info
   
   
 class T0510_DHCPServerFetch(UnAuthTests):

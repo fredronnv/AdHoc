@@ -14,8 +14,8 @@ class T0500_OptionspaceList(UnAuthTests):
             ret = self.proxy.optionspace_dig({}, {"type": True, "info": True, "name": True})
             
             #assert len(ret) > 0, "Too few optionspaces returned"
-            for ds in ret:
-                print ds.type, ds.name, ds.info
+            #for ds in ret:
+                #print ds.type, ds.name, ds.info
   
   
 class T0510_OptionspaceFetch(UnAuthTests):

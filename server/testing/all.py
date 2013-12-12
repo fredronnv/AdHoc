@@ -8,6 +8,8 @@ from basic import *
 from shared_network import *
 from dhcp_server import *
 from optionspace import *
+from room import *
+from building import *
 #from mutex import *
 
 if __name__ == "__main__":

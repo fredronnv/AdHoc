@@ -6,3 +6,5 @@
 /dhcp_server.pyc
 /shared_network.pyc
 /optionspace.pyc
+/room.pyc
+/building.pyc
