@@ -366,11 +366,12 @@ class Model(object):
             # it.
             attr = readattrs[name]
             value = attr.method(self)
-
             if value is None:
                 if "_remove_nulls" in tmpl and tmpl["_remove_nulls"]:
                     continue
-                out[attr.name] = None
+#TODO: Index on the next line used to be attr.name. Verify that changing this to name is a correct fix.
+                out[name] = None
+
                 continue
 
             if attr.model:
@@ -821,7 +822,7 @@ class Manager(object):
 
         if oid not in self._model_cache:
             if not isinstance(oid, self.manages.id_type):
-                raise ValueError("%s id must be of type %s - supplied value %s isn't" % (self.manages.__name__, self.manages.id_type, oid))
+                raise ValueError("%s id is of type %s, but must be of type %s - supplied value %s isn't" % (self.manages.__name__, type(oid), self.manages.id_type, oid))
             args = self.args_for_model(oid)
             kwargs = self.kwargs_for_model(oid) or {}
             self._model_cache[oid] = self.manages(self, *args, **kwargs)
@@ -881,7 +882,7 @@ class Manager(object):
 
     def new_result_set(self):
         q = "SELECT resid FROM rpcc_result WHERE expires > :now"
-        for (expired,) in self.db.get(q, now=self.function.started_at()):
+        for (expired,) in self.db.get_all(q, now=self.function.started_at()):
             q = "DELETE FROM rpcc_result_string WHERE resid=:r"
             self.db.put(q, r=expired)
             q = "DELETE FROM rpcc_result_int WHERE resid=:r"
