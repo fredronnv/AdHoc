@@ -343,7 +343,7 @@ class ExtString(ExtType):
 
     def check(self, function, rawval):
         #import codecs
-
+        
         if not isinstance(rawval, unicode):
             if isinstance(rawval, str):
                 try:
@@ -961,12 +961,12 @@ class ExtList(ExtType):
         typ = ExtType.instance(self.typ)
         if not isinstance(value, tuple) and not isinstance(value, list):
             raise ExtOutputError("Expected sequence, got %s" % (value,))
-
         for subval, subidx in zip(value, range(len(value))):
             try:
                 out.append(typ.output(function, subval))
             except ExtOutputError as e:
                 e.add_trace(self, "List element at index %d" % (subidx,))
+                raise
             
         return out
             
