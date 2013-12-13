@@ -14,8 +14,8 @@ class T0800_BuildingList(UnAuthTests):
             ret = self.proxy.building_dig({}, {"re": True, "info": True, "id": True})
             
             assert len(ret) > 0, "Too few buildings returned"
-            for ds in ret:
-                print ds.re, ds.id, ds.info
+            #for ds in ret:
+                #print ds.re, ds.id, ds.info
   
   
 class T0810_BuildingFetch(UnAuthTests):

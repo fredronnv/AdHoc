@@ -98,7 +98,7 @@ class T0093_ServerListFunctions(UnAuthTests):
                 assert type(fn) is unicode, "Function name is not unicode"
                 if fn == "sleep":
                     continue
-                assert '_' in fn, "Function name does not contain any underscores (_)"
+                assert '_' in fn, "Function name %s does not contain any underscores (_)"%fn
 
 
 class T0094_ServerNodeName(UnAuthTests):

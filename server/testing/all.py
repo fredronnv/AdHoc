@@ -10,6 +10,7 @@ from dhcp_server import *
 from optionspace import *
 from room import *
 from building import *
+from global_options import *
 #from mutex import *
 
 if __name__ == "__main__":

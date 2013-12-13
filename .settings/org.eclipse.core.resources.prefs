@@ -7,6 +7,7 @@ encoding//server/rpcc/exterror.py=utf-8
 encoding//server/rpcc/exttype.py=utf-8
 encoding//server/testing/building.py=utf8
 encoding//server/testing/dhcp_server.py=utf8
+encoding//server/testing/global_options.py=utf8
 encoding//server/testing/mutex.py=utf-8
 encoding//server/testing/optionspace.py=utf8
 encoding//server/testing/room.py=utf8
