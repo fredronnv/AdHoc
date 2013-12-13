@@ -546,9 +546,7 @@ class OracleLink(DatabaseLink):
                 curs.execute(q, **kw)
                 return var.getvalue()
             except Exception as e:
-                print q
-                print kw
-                self.exception(e)
+                self.exception(e, q, kw)
         finally:
             curs.close()
 

@@ -24,7 +24,7 @@ class T0810_BuildingFetch(UnAuthTests):
     def do(self):
         buildings = [x.id for x in self.superuser.building_dig({}, {"id":True})]
         
-        n=0
+        n = 0
         for building in buildings:
             ret = self.proxy.building_fetch(building, {"re": True, "info": True, "id": True})
             assert "re" in ret, "Key re missing in returned struct from building_fetch"
@@ -42,13 +42,13 @@ class T0820_BuildingCreate(UnAuthTests):
         if self.proxy != self.superuser:
             return
         with AssertAccessError(self):
-            self.proxy.building_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1', "TestBuilding")
+            self.proxy.building_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3', "TestBuilding")
             ret = self.superuser.building_fetch('QZ1243A', {"re": True, "info": True, "id": True})
             assert "re" in ret, "Key re missing in returned struct from building_fetch"
             assert "info" in ret, "Key info missing in returned struct from building_fetch"
             assert "id" in ret, "Key id missing in returned struct from building_fetch" 
             assert ret.id == "QZ1243A", "Bad building, is % should be %s" % (ret.id, "QZ1243A")
-            assert ret.re == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1", "Printers is " + ret.re + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1'"
+            assert ret.re == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3", "Re is " + ret.re + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3'"
             assert ret.info == "TestBuilding", "Info is " + ret.info + "but should be 'TestBuilding'"
         
         
@@ -70,14 +70,14 @@ class T0840_BuildingSetID(UnAuthTests):
     def do(self):
         if self.proxy != self.superuser:
             return
-        self.superuser.building_create('QZ1243A', '.*')
+        self.superuser.building_create('QZ1243A', '.*', "No info")
         with AssertAccessError(self):
             try:
                 self.proxy.building_update('QZ1243A', {"id": 'ZQ1296'})
                 nd = self.superuser.building_fetch('ZQ1296', {"re": True, "info": True, "id": True})
                 assert nd.id == "ZQ1296", "Bad building id"
                 assert nd.re == '.*', "Bad re"
-                assert nd.info == "TestBuilding", "Bad info"
+                assert nd.info == "No info", "Bad info"
             finally:
                 self.superuser.building_destroy('ZQ1296')
                 
@@ -100,13 +100,13 @@ class T0850_BuildingSetInfo(UnAuthTests):
                 self.superuser.building_destroy('QZ1243A')
                 
                 
-class T0850_BuildingSetPrinters(UnAuthTests):
+class T0850_BuildingSetRe(UnAuthTests):
     """ Test setting re on a building"""
     
     def do(self):
         if self.proxy != self.superuser:
             return
-        self.superuser.building_create('.*', "TestBuilding")
+        self.superuser.building_create('QZ1243A', '.*', "TestBuilding")
         with AssertAccessError(self):
             try:
                 self.proxy.building_update('QZ1243A', {"re": ".+"})

@@ -18,7 +18,7 @@ class ExtBuildingID(ExtString):
 class ExtBuildingRe(ExtString):
     name = "building-re"
     desc = "Re. A regular expression"
-    regexp = "^[-a-z0-9_., ]*$"
+    regexp = "^.*$"
 
 
 class ExtBuilding(ExtBuildingID):
@@ -30,7 +30,7 @@ class ExtBuilding(ExtBuildingID):
 
     def output(self, fun, obj):
         return obj.oid
-    
+   
     
 class BuildingFunBase(SessionedFunction):  
     params = [("id", ExtBuildingID, "Building name to create")]

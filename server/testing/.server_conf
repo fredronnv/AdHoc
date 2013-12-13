@@ -9,7 +9,7 @@ export ADHOC_DB_DATABASE=AdHoc
 export ADHOC_DB_HOST=dconf.ita.chalmers.se
 export ADHOC_DB_PORT=3306
 #export RPCC_DEBUG=1
-#export RPCC_SQL_DEBUG=1
+export DEBUG_SQL=1
 export ADHOC_SERVER_URL="http://nile.medic.chalmers.se:$port"
 
 export ADHOC_TEST_MODE=1
