@@ -61,11 +61,14 @@ class Room(Model):
     exttype = ExtRoom
     id_type = unicode
 
-    def init(self, id, printers, info):
-        #print "Room.init", id, printers, info
-        self.oid = id
-        self.printers = printers
-        self.info = info
+    def init(self, *args, **kwargs):
+        a = list(args)
+        #print "Room.init", a
+        self.oid = a.pop(0)
+        self.printers = a.pop(0)
+        self.info = a.pop(0)
+        self.mtime = a.pop(0)
+        self.changed_by = a.pop(0)
 
     @template("id", ExtRoom)
     def get_id(self):
@@ -80,6 +83,14 @@ class Room(Model):
     @template("info", ExtString)
     def get_info(self):
         return self.info
+    
+    @template("mtime", ExtDateTime)
+    def get_mtime(self):
+        return self.mtime
+    
+    @template("changed_by", ExtString)
+    def get_changed_by(self):
+        return self.changed_by
     
     @update("id", ExtString)
     def set_id(self, newid):
@@ -108,12 +119,12 @@ class RoomManager(Manager):
     manages = Room
 
     model_lookup_error = ExtNoSuchRoomError
-
+    
     def init(self):
         self._model_cache = {}
-
+        
     def base_query(self, dq):
-        dq.select("r.id", "r.printers", "r.info")
+        dq.select("r.id", "r.printers", "r.info", "r.mtime", "r.changed_by")
         dq.table("rooms r")
         return dq
 

@@ -55,11 +55,14 @@ class DHCPServer(Model):
     exttype = ExtDHCPServer
     id_type = unicode
 
-    def init(self, dhcp_server_id, name, info):
-        #print "DHCPServer.init", dhcp_id, name, info
-        self.oid = dhcp_server_id
-        self.name = name
-        self.info = info
+    def init(self, *args, **kwargs):
+        a = list(args)
+        #print "DHCPServer.init", a
+        self.oid = a.pop(0)
+        self.name = a.pop(0)
+        self.info = a.pop(0)
+        self.mtime = a.pop(0)
+        self.changed_by = a.pop(0)
 
     @template("dhcp_server_id", ExtDHCPServer)
     def get_dhcp_server_id(self):
@@ -72,6 +75,14 @@ class DHCPServer(Model):
     @template("info", ExtString)
     def get_info(self):
         return self.info
+    
+    @template("mtime", ExtDateTime)
+    def get_mtime(self):
+        return self.mtime
+    
+    @template("changed_by", ExtString)
+    def get_changed_by(self):
+        return self.changed_by
     
     @update("name", ExtString)
     def set_name(self, newname):
@@ -94,9 +105,9 @@ class DHCPServerManager(Manager):
 
     def init(self):
         self._model_cache = {}
-
+        
     def base_query(self, dq):
-        dq.select("ds.id", "ds.name", "ds.info")
+        dq.select("ds.id", "ds.name", "ds.info", "ds.mtime", "ds.changed_by")
         dq.table("dhcp_servers ds")
         return dq
 

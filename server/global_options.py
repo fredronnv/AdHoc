@@ -67,11 +67,14 @@ class GlobalOption(Model):
     exttype = ExtGlobalOption
     id_type = int
 
-    def init(self, id, name, value):
-        #print "GlobalOption.init", name, value
-        self.oid = id
-        self.name = name
-        self.value = value
+    def init(self, *args, **kwargs):
+        a = list(args)
+        #print "GlobalOption.init", a
+        self.oid = a.pop(0)
+        self.name = a.pop(0)
+        self.value = a.pop(0)
+        self.mtime = a.pop(0)
+        self.changed_by = a.pop(0)
 
     @template("id", ExtGlobalOption)
     def get_id(self):
@@ -86,6 +89,14 @@ class GlobalOption(Model):
         if self.value == None:
             return ""
         return self.value
+    
+    @template("mtime", ExtDateTime)
+    def get_mtime(self):
+        return self.mtime
+    
+    @template("changed_by", ExtString)
+    def get_changed_by(self):
+        return self.changed_by
     
     @update("name", ExtString)
     def set_name(self, newname):
@@ -107,12 +118,12 @@ class GlobalOptionManager(Manager):
     manages = GlobalOption
 
     model_lookup_error = ExtNoSuchGlobalOptionError
-
+    
     def init(self):
         self._model_cache = {}
-
+        
     def base_query(self, dq):
-        dq.select("r.id", "r.name", "r.value")
+        dq.select("r.id", "r.name", "r.value", "r.mtime", "r.changed_by")
         dq.table("global_options r")
         return dq
 

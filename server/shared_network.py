@@ -55,11 +55,13 @@ class Network(Model):
     exttype = ExtNetwork
     id_type = unicode
 
-    def init(self, netid, authoritative, info):
-        #print "Network.init", netid, authoritative, info
-        self.oid = netid
-        self.authoritative = authoritative
-        self.info = info
+    def init(self, *args, **kwargs):
+        a = list(args)
+        self.oid = a.pop(0)
+        self.authoritative = a.pop(0)
+        self.info = a.pop(0)
+        self.mtime = a.pop(0)
+        self.changed_by = a.pop(0)
 
     @template("network", ExtNetwork)
     def get_network(self):
@@ -72,6 +74,14 @@ class Network(Model):
     @template("info", ExtString)
     def get_info(self):
         return self.info
+    
+    @template("mtime", ExtDateTime)
+    def get_mtime(self):
+        return self.mtime
+    
+    @template("changed_by", ExtString)
+    def get_changed_by(self):
+        return self.changed_by
     
     @update("authoritative", ExtBoolean)
     def set_authoritative(self, newauthoritative):
@@ -91,13 +101,13 @@ class NetworkManager(Manager):
     manages = Network
 
     model_lookup_error = ExtNoSuchNetworkError
-
+    
     def init(self):
         self._model_cache = {}
-
+        
     def base_query(self, dq):
-        dq.select("nw.id", "nw.authoritative", "nw.info")
         dq.table("networks nw")
+        dq.select("nw.id", "nw.authoritative", "nw.info", "nw.mtime", "nw.changed_by")
         return dq
 
     def get_network(self, netid):

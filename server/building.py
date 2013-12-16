@@ -61,11 +61,14 @@ class Building(Model):
     exttype = ExtBuilding
     id_type = unicode
 
-    def init(self, id, re, info):
-        #print "Building.init", id, re, info
-        self.oid = id
-        self.re = re
-        self.info = info
+    def init(self, *args, **kwargs):
+        a = list(args)
+        #print "Building.init", a
+        self.oid = a.pop(0)
+        self.re = a.pop(0)
+        self.info = a.pop(0)
+        self.mtime = a.pop(0)
+        self.changed_by = a.pop(0)
 
     @template("id", ExtBuilding)
     def get_id(self):
@@ -80,6 +83,14 @@ class Building(Model):
     @template("info", ExtString)
     def get_info(self):
         return self.info
+    
+    @template("mtime", ExtDateTime)
+    def get_mtime(self):
+        return self.mtime
+    
+    @template("changed_by", ExtString)
+    def get_changed_by(self):
+        return self.changed_by
     
     @update("id", ExtString)
     def set_id(self, newid):
@@ -111,9 +122,9 @@ class BuildingManager(Manager):
 
     def init(self):
         self._model_cache = {}
-
+        
     def base_query(self, dq):
-        dq.select("r.id", "r.re", "r.info")
+        dq.select("r.id", "r.re", "r.info", "r.mtime", "r.changed_by")
         dq.table("buildings r")
         return dq
 

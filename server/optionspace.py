@@ -61,12 +61,15 @@ class Optionspace(Model):
     exttype = ExtOptionspace
     id_type = str
 
-    def init(self, name, optionspace_type, info):
-        #print "Optionspace.init", name, optionspace_type, info
-        self.oid = name
-        self.type = optionspace_type
-        self.info = info
-
+    def init(self, *args, **kwargs):
+        a = list(args)
+        #print "Optionspace.init", a
+        self.oid = a.pop(0)
+        self.type = a.pop(0)
+        self.info = a.pop(0)
+        self.mtime = a.pop(0)
+        self.changed_by = a.pop(0)
+        
     @template("name", ExtOptionspace)
     def get_name(self):
         return self
@@ -78,6 +81,14 @@ class Optionspace(Model):
     @template("info", ExtString)
     def get_info(self):
         return self.info
+    
+    @template("mtime", ExtDateTime)
+    def get_mtime(self):
+        return self.mtime
+    
+    @template("changed_by", ExtString)
+    def get_changed_by(self):
+        return self.changed_by
     
     @update("name", ExtString)
     def set_name(self, newname):
@@ -106,12 +117,12 @@ class OptionspaceManager(Manager):
     manages = Optionspace
 
     model_lookup_error = ExtNoSuchOptionspaceError
-
+    
     def init(self):
         self._model_cache = {}
-
+        
     def base_query(self, dq):
-        dq.select("ds.value", "ds.type", "ds.info")
+        dq.select("ds.value", "ds.type", "ds.info", "ds.mtime", "ds.changed_by")
         dq.table("optionspaces ds")
         return dq
 
