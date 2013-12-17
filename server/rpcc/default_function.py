@@ -29,7 +29,7 @@ class FunSessionStart(Function):
     params = []
     desc = "Creates a new session (execution context) for further calling. Returns an ID valid for a limited time for the current client address only."
     returns = (default_type.ExtSession, "A string that must be the first argument of any furter calls to perform in the context of this session.")
-    uses_database = False
+    uses_database = True  # This actaly depends on which session manager we're using.
 
     def do(self):
         remote_ip = self.http_handler.client_address[0]
