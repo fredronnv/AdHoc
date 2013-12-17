@@ -422,8 +422,7 @@ class ExtEnum(ExtString):
 
 class ExtDateTime(ExtString):
     name = "datetime"
-    desc = "A date and time"
-    regex = "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
+    desc = 'A date and time in YYYY-MM-DDTHH:MM:SS format, e.g. 2007-04-14T13:54:22'
 
     def lookup(self, fun, cval):
         ymd, hms = cval.split("T")

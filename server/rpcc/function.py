@@ -82,6 +82,9 @@ class Function(object):
     # link before .call() is called.
     uses_database = True
 
+    # If True, log an event when this function is called.
+    log_call_event = True
+
     @classmethod
     def _name(cls):
         return cls.extname or ""
@@ -231,6 +234,9 @@ class Function(object):
         # (Possibly) set by later call to .set_db_link()
         self.db = None
 
+    def needs_database(self):
+        return self.uses_database or self.log_call_event or self.creates_event
+
     def set_db_link(self, db):
         self.db = db
 
@@ -316,7 +322,7 @@ class Function(object):
 
         try:
             funname = "%s#%d" % (self._name(), self.api.version)
-            if self.server.events_enabled:
+            if self.server.events_enabled and self.log_call_event:
                 self.event_manager.start("call", function=funname,
                                          params=str(self.log_arguments(args)))
 
@@ -348,7 +354,7 @@ class Function(object):
                 evattrs["stack"] = traceback.format_exc()
             raise e
         finally:
-            if self.server.events_enabled:
+            if self.server.events_enabled and self.log_call_event:
                 elapsed = datetime.datetime.now() - self.call_time
                 evattrs["elapsed"] = int(1000 * elapsed.seconds)
                 self.event_manager.stop(call_success, **evattrs)

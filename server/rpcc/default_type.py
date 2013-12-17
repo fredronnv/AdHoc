@@ -32,26 +32,6 @@ class ExtSession(exttype.ExtString):
         return sesn.oid
 
 
-class ExtDateTime(exttype.ExtString):
-    name = 'datetime'
-    regexp = '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$'
-    desc = 'A date and time in YYYY-MM-DDTHH:MM:SS format, e.g. 2007-04-14T13:54:22'
-
-    def convert(self, function, rawval):
-        import datetime
-
-        try:
-            date, tm = rawval.split('T')
-            y, mo, d = [int(i) for i in date.split('-')]
-            h, mi, s = [int(i) for i in tm.split(':')]
-            return datetime.datetime(y, mo, d, h, mi, s)
-        except:
-            raise exterror.ExtValueError("Not a valid datetime")
-
-    def output(self, fun, value):
-        return value.isoformat()[:19]
-
-
 class ExtLikePattern(exttype.ExtString):
     name = "like-pattern"
     desc = "A pattern where % is 0, 1 or more characters and _ is exactly one character."
@@ -167,7 +147,13 @@ class ExtDocFunction(exttype.ExtStruct):
         }
 
 
-class ExtMutex(exttype.ExtString):
+class ExtMutexName(exttype.ExtString):
+    name = "mutex-name"
+    desc = "A string valid for use as the name of a mutex"
+    regexp = "[-_a-z0-9]{1,64}"
+
+
+class ExtMutex(ExtMutexName):
     name = "mutex"
     desc = "A mutex, identified by its name"
 
@@ -175,7 +161,7 @@ class ExtMutex(exttype.ExtString):
         return fun.mutex_manager.model(cvar)
 
     def output(self, fun, m):
-        return m.name
+        return m.oid
 
 
 class ExtMutexState(exttype.ExtEnum):
@@ -201,13 +187,49 @@ class ExtMutexInfo(exttype.ExtStruct):
         }
 
 
-class ExtWatchdog(exttype.ExtString):
+class ExtMutexVarName(exttype.ExtString):
+    name = "mutex-var-name"
+    desc = "A mutex variable name"
+    regexp = "[-_a-z0-9]+"
+
+
+class ExtMutexStringVar(ExtMutexVarName):
+    name = "mutex-string-var"
+    desc = "A mutex string variable"
+
+    # This only works if a mutex has already been set for the Function.
+    def lookup(self, fun, cvar):
+        return fun.mutex.get_string_variable(cvar)
+
+    def output(self, fun, val):
+        return val.name
+
+
+class ExtMutexStringsetVar(ExtMutexVarName):
+    name = "mutex-stringset-var"
+    desc = "A mutex string-set variable"
+
+    # This only works if a mutex has already been set for the Function.
+    def lookup(self, fun, cvar):
+        return fun.mutex.get_stringset_variable(cvar)
+
+    def output(self, fun, val):
+        return val.name
+
+
+class ExtWatchdogName(exttype.ExtString):
+    name = "watchdog-name"
+    desc = "A string valid for use as a name for a watchdog"
+    regexp = "[-_a-z0-9]+{1,64}"
+
+
+class ExtWatchdog(ExtWatchdogName):
     name = "watchdog"
     desc = "The name of a watchdog, belonging to a mutex and only visible to the current holder of that mutex"
 
+    # This only works if a mutex has already been set for the Function.
     def lookup(self, fun, cvar):
-        ### TODO
-        pass
+        return fun.mutex.get_watchdog(cvar)
 
 
 class ExtWatchdogState(exttype.ExtString):
@@ -215,6 +237,17 @@ class ExtWatchdogState(exttype.ExtString):
     desc = "The state of a watchdog"
 
     values = ["stopped", "running", "warning", "error"]
+
+
+class ExtWatchdogInfo(exttype.ExtStruct):
+    name = "watchdog-info"
+    desc = "Information about a watchdog"
+
+    mandatory = {
+        "state": ExtWatchdogState,
+        "warning_at": exttype.ExtOrNull(exttype.ExtDateTime),
+        "error_at": exttype.ExtOrNull(exttype.ExtDateTime)
+        }
 
 
 class ExtEvent(exttype.ExtInteger):

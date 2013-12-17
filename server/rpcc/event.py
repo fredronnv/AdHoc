@@ -104,42 +104,42 @@ class Event(Model):
         return self.other.get("function", None)
 
     @template("params", ExtOrNull(ExtString))
-    @entry(access.SuperuserProxy)
+    @entry(access.SuperuserGuardProxy)
     def get_params(self):
         return self.other.get("params", None)
 
     @template("session", ExtOrNull(default_type.ExtSession))
-    @entry(access.SuperuserProxy)
+    @entry(access.SuperuserGuardProxy)
     def get_session(self):
         return self.other.get("session", None)
 
     @template("elapsed_ms", ExtOrNull(ExtInteger))
-    @entry(access.SuperuserProxy)
+    @entry(access.SuperuserGuardProxy)
     def get_elapsed(self):
         return self.other.get("elapsed", None)
 
     @template("result_len", ExtOrNull(ExtInteger))
-    @entry(access.SuperuserProxy)
+    @entry(access.SuperuserGuardProxy)
     def get_result_len(self):
         return self.other.get("result_len", None)
 
     @template("error", ExtOrNull(ExtString))
-    @entry(access.SuperuserProxy)
+    @entry(access.SuperuserGuardProxy)
     def get_error(self):
         return self.other.get("error", None)
 
     @template("errval", ExtOrNull(ExtString))
-    @entry(access.SuperuserProxy)
+    @entry(access.SuperuserGuardProxy)
     def get_errval(self):
         return self.other.get("errval", None)
 
     @template("where", ExtOrNull(ExtString))
-    @entry(access.SuperuserProxy)
+    @entry(access.SuperuserGuardProxy)
     def get_where(self):
         return self.other.get("where", None)
 
     @template("stack", ExtOrNull(ExtString))
-    @entry(access.SuperuserProxy)
+    @entry(access.SuperuserGuardProxy)
     def get_stack(self):
         return self.other.get("stack", None)
 

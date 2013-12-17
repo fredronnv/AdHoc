@@ -179,7 +179,7 @@ class ExtMalformedStringError(ExtValueError):
 
 
 class ExtUnhandledCharactersError(ExtMalformedStringError):
-    desc = "The string contained characters that this call can't handle."
+    desc = "The string contained characters that this datatype can't handle."
 
 
 class ExtStringTooLongError(ExtMalformedStringError):
@@ -278,6 +278,7 @@ class ExtAccessDeniedError(ExtRuntimeError):
     desc = "Access not allowed."
 
 
+
 class ExtTransportError(ExtError):
     name = "TransportError"
 
@@ -338,9 +339,10 @@ class ExtSOAPUnexpectedNodeTypeError(ExtSOAPParseError):
 
 
 class ExtSOAPUnexpectedElementError(ExtSOAPParseError):
-    
     desc = "An unexpected element was found."
 
 
 class ExtSOAPMissingElementError(ExtSOAPParseError):
     desc = "An element that was expected is missing."
+
+

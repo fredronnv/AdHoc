@@ -267,7 +267,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         try:
             api = self.api_handler.get_api(api_version)
             funobj = api.get_function_object(function, httphandler)
-            if funobj.uses_database:
+            if funobj.needs_database():
                 if not self.database:
                     raise ExtInternalError("Function %s uses database, but no database is defined" % (funobj,))
 
@@ -478,6 +478,28 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         self.register_function(default_function.FunMutexAcquire)
         self.register_function(default_function.FunMutexRelease)
         self.register_function(default_function.FunMutexInfo)
+        self.register_function(default_function.FunMutexCreate)
+        self.register_function(default_function.FunMutexDestroy)
+        self.register_function(default_function.FunServerListMutexes)
+        self.register_function(default_function.FunMutexListStrings)
+        self.register_function(default_function.FunMutexCreateString)
+        self.register_function(default_function.FunMutexStringGet)
+        self.register_function(default_function.FunMutexStringSet)
+        self.register_function(default_function.FunMutexStringUnset)
+        self.register_function(default_function.FunMutexStringDestroy)
+        self.register_function(default_function.FunMutexListStringsets)
+        self.register_function(default_function.FunMutexCreateStringset)
+        self.register_function(default_function.FunMutexStringsetGet)
+        self.register_function(default_function.FunMutexStringsetAdd)
+        self.register_function(default_function.FunMutexStringsetRemove)
+        self.register_function(default_function.FunMutexStringsetDestroy)
+        self.register_function(default_function.FunMutexListWatchdogs)
+        self.register_function(default_function.FunMutexCreateWatchdog)
+        self.register_function(default_function.FunMutexWatchdogState)
+        self.register_function(default_function.FunMutexWatchdogInfo)
+        self.register_function(default_function.FunMutexWatchdogStart)
+        self.register_function(default_function.FunMutexWatchdogStop)
+        self.register_function(default_function.FunMutexWatchdogDestroy)
 
     def enable_database(self, database_class):
         self.database = database_class(self)

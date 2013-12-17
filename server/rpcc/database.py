@@ -514,6 +514,9 @@ class OracleLink(DatabaseLink):
                 raise InvalidIdentifierError(idf, inner=inner)
             if err.code == 942:
                 raise InvalidTableError("?", inner=inner)
+            if err.code == 1:
+                const = err.message.split("(")[1].split(")")[0]
+                raise IntegrityError(const, inner=inner)
             print "CODE:", err.code
             print "CONTEXT:", err.context
             print "MESSAGE:", err.message.strip()

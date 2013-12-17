@@ -1,11 +1,71 @@
 #!/usr/bin/env python2.6
 # -*- coding: utf-8 -*-
 
+import sys
+sys.path.append("/home/viktor/AdHoc/trunk/client")
+
 import rpcc_client
 
 rpcc = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121")
 rpcc.login("#root#", "#root#")
 assert rpcc._auth == "#root#"
+
+mutex = "test-mutex"
+
+try:
+    rpcc.mutex_create(mutex)
+except ValueError:
+    pass
+
+rpcc2 = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121")
+rpcc.login("viktor", "viktor")
+
+rpcc.mutex_acquire(mutex, "rpcc", True)
+print rpcc.mutex_info(mutex)
+
+try:
+    rpcc2.mutex_acquire(mutex, "rpcc2", False)
+except RuntimeError:
+    pass
+
+print rpcc2.mutex_info(mutex)
+
+try:
+    rpcc.mutex_create_string(mutex, "svar")
+except ValueError:
+    pass
+
+print rpcc.mutex_string_get(mutex, "svar")
+rpcc.mutex_string_set(mutex, "svar", "Value!")
+print rpcc.mutex_string_get(mutex, "svar")
+rpcc.mutex_string_unset(mutex, "svar")
+print rpcc.mutex_string_get(mutex, "svar")
+rpcc.mutex_string_destroy(mutex, "svar")
+
+try:
+    rpcc.mutex_stringset_create(mutex, "sset")
+except ValueError:
+    pass
+
+print rpcc.mutex_stringset_get(mutex, "sset")
+rpcc.mutex_stringset_add(mutex, "sset", "apa")
+print rpcc.mutex_stringset_get(mutex, "sset")
+rpcc.mutex_stringset_add(mutex, "sset", "bepa")
+print rpcc.mutex_stringset_get(mutex, "sset")
+rpcc.mutex_stringset_add(mutex, "sset", "apa")
+print rpcc.mutex_stringset_get(mutex, "sset")
+
+rpcc.mutex_stringset_destroy(mutex, "sset")
+
+try:
+    rpcc2.mutex_release(mutex, False)
+except RuntimeError:
+    pass
+
+rpcc.mutex_release(mutex, False)
+
+raise SystemExit()
+
 
 print rpcc.event_dig("min_event:#0,function:session_start#0", "event,created,function,params")
 
@@ -13,8 +73,6 @@ rpcc.login("viktor", "viktor")
 
 #print rpcc.event_dig("min_event:#0,function:session_start#0", "event,created,function,params")
 
-
-raise SystemExit()
 
 print rpcc.person_dig("firstname:Viktor")
 rpcc.stop()

@@ -157,7 +157,7 @@ class DefaultSuperuserGuard(Guard):
         return DecisionReferred(CacheInFunction)
 
 
-class SuperuserProxy(Guard):
+class SuperuserGuardProxy(Guard):
     def check(self, obj, function):
         return Guard.instance(function.server.superuser_guard).check(obj, function)
 
