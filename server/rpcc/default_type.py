@@ -103,7 +103,7 @@ class ExtAPIVersion(exttype.ExtStruct):
 
 class ExtDocTypename(exttype.ExtString):
     name = "doc-typename"
-    regexp = "[-a-z_]+"
+    regexp = "[-a-z_|]+"
 
 
 class ExtDocParamname(ExtDocTypename):

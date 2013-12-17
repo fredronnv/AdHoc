@@ -22,6 +22,7 @@ import documentation
 import authentication
 import request_handler
 import default_function
+from exterror import ExtInternalError
 
 from function import Function
 
@@ -268,7 +269,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             funobj = api.get_function_object(function, httphandler, db)
             if funobj.uses_database:
                 if not self.database:
-                    raise InternalError("Function %s uses database, but no database is defined" % (funobj,))
+                    raise ExtInternalError("Function %s uses database, but no database is defined" % (funobj,))
 
                 db = self.database.get_link()
                 funobj.set_db_link(db)

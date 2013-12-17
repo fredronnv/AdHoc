@@ -59,7 +59,7 @@ class Function(object):
 
     # Last API version where this function is valid
     to_version = 10000
-
+    
     # If params is set to a [(name, type, description), ...] tuple
     # list, incoming parameters will be passed through the types
     # to be parsed. NOTE: Classes will prepend their parent's .params 
@@ -330,6 +330,7 @@ class Function(object):
             response = ExtType.instance(self.returns).output(self, ret)
             call_success = True
             return response
+        
         except Exception as e:
             if isinstance(e, exterror.ExtOutputError):
                 print "ExtOutputError"

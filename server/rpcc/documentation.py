@@ -498,7 +498,7 @@ a.funlink {
             elif isinstance(t, ExtInteger):
                 tps["base"] = "integer"
                 if t.range:
-                    tps["min"], tps["max"] = t.range[0]
+                    (tps["min"], tps["max"]) = t.range
             elif isinstance(t, ExtNull):
                 tps["base"] = "null"
             elif isinstance(t, ExtBoolean):

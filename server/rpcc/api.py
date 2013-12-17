@@ -2,6 +2,7 @@
 
 from default_error import ExtNoSuchFunctionError
 from interror import IntAPINotFoundError, IntAPIValidationError
+from exterror import ExtInternalError
 from function import Function
 from exttype import ExtList, ExtType, ExtNull, ExtOrNull
 from xmlnode import XMLNode

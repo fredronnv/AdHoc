@@ -858,7 +858,7 @@ class ExtOrNull(ExtType):
                 raise TypeError("When an ExtOrNull subclass has its .typ set, you cannot override it on instantiation. You use an ExtOrNull subclass just like an ExtString or ExtInteger subclass.")
             self.typ = typ
         self.name = ExtType.instance(self.typ)._name() + '|null'
-
+        
     def _subtypes(self):
         return [(None, self.typ)]
 

@@ -584,7 +584,7 @@ class OracleDatabase(Database):
 
                 return self.link_class(self, raw_link)
             except:
-                raise exterror.RuntimeError("Database has gone away")
+                raise exterror.ExtRuntimeError("Database has gone away")
 
     def return_link(self, link):
         with self.lock:
@@ -677,7 +677,7 @@ class MySQLDatabase(Database):
             raw_link = mysql.connector.connect(**self.connect_args)
             return self.link_class(self, raw_link)
         except:
-            raise exterror.RuntimeError("Database has gone away")
+            raise exterror.ExtRuntimeError("Database has gone away")
 
     def return_link(self, link):
         if link.intrans:
