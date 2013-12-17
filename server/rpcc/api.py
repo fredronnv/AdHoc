@@ -86,9 +86,9 @@ class API(object):
         except KeyError:
             raise ExtNoSuchFunctionError(funname)
 
-    def get_function_object(self, funname, httphandler, db):
+    def get_function_object(self, funname, httphandler):
         cls = self.get_function(funname)
-        fun = cls(self.server, httphandler, self, db)
+        fun = cls(self.server, httphandler, self)
         return fun
 
     def has_function(self, funname):

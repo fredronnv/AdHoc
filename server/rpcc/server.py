@@ -265,17 +265,25 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         try:
             api = self.api_handler.get_api(api_version)
-            if self.database:
+            funobj = api.get_function_object(function, httphandler, db)
+            if funobj.uses_database:
+                if not self.database:
+                    raise InternalError("Function %s uses database, but no database is defined" % (funobj,))
+
                 db = self.database.get_link()
+                funobj.set_db_link(db)
             else:
                 db = None
-            funobj = api.get_function_object(function, httphandler, db)
             self.function_start(funobj, params, start_time, api_version)
             result = funobj.call(params)
             ret = {'result': result}
+            if db:
+                db.commit()
         except exterror.ExtError as e:
             s = e.struct()
             ret = {'error': s}
+            if db:
+                db.rollback()
         except Exception as e:
             # funobj.call() may only return a result or raise an
             # ExtError instance, but in very rare circumstances other
@@ -284,6 +292,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             e = exterror.ExtInternalError()
             s = e.struct()
             ret = {'error': s}
+            if db:
+                db.rollback()
                 
         if funobj:
             self.function_stop(funobj)
@@ -292,8 +302,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             self.database.return_link(db)
 
         ret['api_version'] = api_version
-
-        #print "RETURN", ret
         return ret
 
     def register_function(self, cls):

@@ -12,6 +12,7 @@ class FunServerURLAPI(Function):
     desc = "Returns a struct indicating the protocol version of this URL. The version number is increased whenever changes programmatically visible to clients are made."
     params = []
     returns = (default_type.ExtServerVersion, "API version for current URL")
+    uses_database = False
 
     grants = None
 
@@ -28,6 +29,7 @@ class FunSessionStart(Function):
     params = []
     desc = "Creates a new session (execution context) for further calling. Returns an ID valid for a limited time for the current client address only."
     returns = (default_type.ExtSession, "A string that must be the first argument of any furter calls to perform in the context of this session.")
+    uses_database = False
 
     def do(self):
         remote_ip = self.http_handler.client_address[0]
@@ -43,6 +45,7 @@ class FunSessionStop(SessionedFunction):
     params = []
     desc = "Invalidates a session (execution context), making it unavailable for any furhter calls."
     returns = exttype.ExtNull
+    uses_database = False
 
     def do(self):
         self.session_manager.destroy_session(self.session)
@@ -52,6 +55,7 @@ class FunSessionInfo(SessionedFunction):
     extname = 'session_info'
     returns = (default_type.ExtSessionInfo, "Information about the supplied session")
     desc = "Returns information about the session (execution context)."
+    uses_database = False
 
     def do(self):
         return {'session': self.session,
@@ -81,6 +85,7 @@ class FunSessionDeauth(SessionedFunction):
     extname = 'session_deauth'
     params = []
     returns = exttype.ExtNull
+    uses_database = False
 
     desc = "De-authenticate, leavning the session unauthenticated."
 
@@ -94,6 +99,7 @@ class FunServerListFunctions(Function):
     returns = exttype.ExtList(exttype.ExtString)
     desc = 'Return a list of function names available on this server.'
     grants = None
+    uses_database = False
 
     def do(self):
         return self.api.get_visible_function_names()
@@ -104,6 +110,7 @@ class FunServerDocumentation(Function):
     params = [("function", default_type.ExtFunctionName, "Name of function to document")]
     returns = exttype.ExtString
     desc = "Returns a text-version of the documentation for a function."
+    uses_database = False
 
     def do(self):
         return self.server.documentation.function_as_text(self.api.version, self.function)
@@ -114,10 +121,10 @@ class FunServerFunctionDefinition(Function):
     params = [("function", default_type.ExtFunctionName, "Name of function to document")]
     returns = default_type.ExtDocFunction
     desc = "Returns a structured definition of the named function"
+    uses_database = False
 
     def do(self):
         t = self.server.documentation.function_as_struct(self.api.version, self.function)
-        print t
         return t
 
 

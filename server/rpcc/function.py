@@ -78,6 +78,10 @@ class Function(object):
     # marker event should be created/destroyed.
     creates_event = False
 
+    # If True, the Function uses the database, and wants a database
+    # link before .call() is called.
+    uses_database = True
+
     @classmethod
     def _name(cls):
         return cls.extname or ""
@@ -208,9 +212,8 @@ class Function(object):
         typ.to_xml(elem, value)
         return elem
 
-    def __init__(self, server, http_handler, api, db=None):
+    def __init__(self, server, http_handler, api):
         self.server = server
-        self.db = db
         # HTTPRequestHandler that handles this request. Interesting
         # for the .headers and .client attributes.
         self.http_handler = http_handler
@@ -224,6 +227,12 @@ class Function(object):
         # state (set/cleared in a try/finally in the @entry decorator
         # where a Guard has returned AccessGranted).
         self._entry_granted = False
+
+        # (Possibly) set by later call to .set_db_link()
+        self.db = None
+
+    def set_db_link(self, db):
+        self.db = db
 
     def __getattr__(self, attr):
         if attr.endswith("_manager"):

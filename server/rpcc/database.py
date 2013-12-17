@@ -39,6 +39,7 @@ import datetime
 import re
 
 import default_tables
+import exterror
 
 try:
     import cx_Oracle
@@ -575,12 +576,15 @@ class OracleDatabase(Database):
                 except:
                     pass
 
-            raw_link = cx_Oracle.connect(self.user, self.password, self.database, threaded=True)
+            try:
+                raw_link = cx_Oracle.connect(self.user, self.password, self.database, threaded=True)
 
-            # Disable the buggy "cardinality feedback" misfeature.
-            raw_link.cursor().execute('alter session set "_optimizer_use_feedback" = false')
+                # Disable the buggy "cardinality feedback" misfeature.
+                raw_link.cursor().execute('alter session set "_optimizer_use_feedback" = false')
 
-            return self.link_class(self, raw_link)
+                return self.link_class(self, raw_link)
+            except:
+                raise exterror.RuntimeError("Database has gone away")
 
     def return_link(self, link):
         with self.lock:
@@ -669,8 +673,11 @@ class MySQLDatabase(Database):
             raise ValueError()
 
     def get_link(self):
-        raw_link = mysql.connector.connect(**self.connect_args)
-        return self.link_class(self, raw_link)
+        try:
+            raw_link = mysql.connector.connect(**self.connect_args)
+            return self.link_class(self, raw_link)
+        except:
+            raise exterror.RuntimeError("Database has gone away")
 
     def return_link(self, link):
         if link.intrans:
