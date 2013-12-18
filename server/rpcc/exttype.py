@@ -887,7 +887,7 @@ class ExtOrNull(ExtType):
         # another object.
 
         typ = ExtType.instance(self.typ)
-        converted = typ.convert(function, typ)
+        converted = typ.convert(function, rawval)
         return typ.lookup(function, converted)
 
     def output(self, function, value):
