@@ -267,7 +267,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         try:
             api = self.api_handler.get_api(api_version)
             funobj = api.get_function_object(function, httphandler)
-            if funobj.needs_database():
+            if funobj.needs_database:
                 if not self.database:
                     raise ExtInternalError("Function %s uses database, but no database is defined" % (funobj,))
 
