@@ -108,8 +108,8 @@ class NetworkManager(Manager):
         dq.select("nw.id", "nw.authoritative", "nw.info", "nw.mtime", "nw.changed_by")
         return dq
 
-    def get_network(self, network):
-        return self.model(network)
+    def get_network(self, network_name):
+        return self.model(network_name)
 
     def search_select(self, dq):
         dq.table("networks nw")

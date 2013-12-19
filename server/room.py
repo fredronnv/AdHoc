@@ -9,9 +9,9 @@ class ExtNoSuchRoomError(ExtLookupError):
     desc = "No such room exists."
 
 
-class ExtRoomID(ExtString):
+class ExtRoomName(ExtString):
     name = "room-name"
-    desc = "ID of a room"
+    desc = "Name of a room"
     regexp = "^[-a-zA-Z0-9_]+$"
 
 
@@ -21,7 +21,7 @@ class ExtRoomPrinters(ExtString):
     regexp = "^[-a-z0-9_., ]*$"
 
 
-class ExtRoom(ExtRoomID):
+class ExtRoom(ExtRoomName):
     name = "room"
     desc = "A room instance"
 
@@ -33,27 +33,29 @@ class ExtRoom(ExtRoomID):
     
     
 class RoomFunBase(SessionedFunction):  
-    params = [("id", ExtRoomID, "Room name to create")]
+    params = [("id", ExtRoomName, "Room name to create")]
     
     
-class RoomCreate(RoomFunBase):
+class RoomCreate(SessionedFunction):
     extname = "room_create"
-    params = [("printers", ExtRoomPrinters, "The printers located nearby the room"),
+    params = [("room_name", ExtRoomName, "Room name to create"),
+              ("printers", ExtRoomPrinters, "The printers located nearby the room"),
               ("info", ExtString, "Room description")]
     desc = "Creates a room"
     returns = (ExtNull)
 
     def do(self):
-        self.room_manager.create_room(self, self.id, self.printers, self.info)
+        self.room_manager.create_room(self, self.room_name, self.printers, self.info)
 
 
-class RoomDestroy(RoomFunBase):
+class RoomDestroy(SessionedFunction):
     extname = "room_destroy"
+    params = [("room", ExtRoom, "Room to destroy")]
     desc = "Destroys a room"
     returns = (ExtNull)
 
     def do(self):
-        self.room_manager.destroy_room(self, self.id)
+        self.room_manager.destroy_room(self, self.room)
 
 
 class Room(Model):
@@ -70,8 +72,8 @@ class Room(Model):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
-    @template("id", ExtRoom)
-    def get_id(self):
+    @template("room", ExtRoom)
+    def get_room(self):
         return self
 
     @template("printers", ExtRoomPrinters)
@@ -92,7 +94,7 @@ class Room(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @update("id", ExtString)
+    @update("room", ExtString)
     def set_id(self, newid):
         nn = str(newid)
         q = "UPDATE rooms SET id=:newid WHERE id=:id LIMIT 1"
@@ -128,32 +130,32 @@ class RoomManager(Manager):
         dq.table("rooms r")
         return dq
 
-    def get_room(self, id):
-        return self.model(id)
+    def get_room(self, room_name):
+        return self.model(room_name)
 
     def search_select(self, dq):
         dq.table("rooms r")
         dq.select("r.id")
     
-    @search("id", StringMatch)
+    @search("room", StringMatch)
     def s_id(self, dq):
         dq.table("rooms r")
         return "r.id"
     
-    def create_room(self, fun, id, printers, info):
+    def create_room(self, fun, room_name, printers, info):
         q = "INSERT INTO rooms (id, printers, info, changed_by) VALUES (:id, :printers, :info, :changed_by)"
-        self.db.put(q, id=id, printers=printers, info=info, changed_by=fun.session.authuser)
+        self.db.put(q, id=room_name, printers=printers, info=info, changed_by=fun.session.authuser)
         print "Room created, id=", id
         self.db.commit()
         
-    def destroy_room(self, fun, id):
+    def destroy_room(self, fun, room):
         q = "DELETE FROM rooms WHERE id=:id LIMIT 1"
-        self.db.put(q, id=id)
-        print "Room destroyed, id=", id
+        self.db.put(q, id=room.oid)
+        print "Room destroyed, id=", room.oid
         self.db.commit()
         
-    def rename_room(self, obj, newid):
+    def rename_room(self, obj, room_name):
         oid = obj.oid
-        obj.oid = newid
+        obj.oid = room_name
         del(self._model_cache[oid])
-        self._model_cache[newid] = obj
+        self._model_cache[room_name] = obj
