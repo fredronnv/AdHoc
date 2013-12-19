@@ -19,7 +19,13 @@ class ExtOptionspaceType(ExtEnum):
     name = "optionspace-type"
     desc = "Type of an optionspace"
     values = ['vendor', 'site']
-
+    
+  
+class ExtOrNullOptionspace(ExtOrNull):
+    name = "group_option_space"
+    desc = "An option space, or null"
+    typ = ExtOptionspaceName
+    
 
 class ExtOptionspace(ExtOptionspaceName):
     name = "optionspace"

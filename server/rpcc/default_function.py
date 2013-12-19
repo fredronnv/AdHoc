@@ -18,8 +18,45 @@ class FunServerURLAPI(Function):
 
     def do(self):
         return {'service': self.server.service_name,
-                'major': self.server.major_version,
-                'minor': self.server.minor_version}
+                'major': str(self.server.major_version),
+                'minor': str(self.server.minor_version)}
+
+
+class FunServerNodeName(Function):
+    extname = "server_node_name"
+    params = []
+    returns = exttype.ExtString
+    desc = "Returns the host name of the currently connected server."
+    uses_database = False  # Not needed
+
+    def do(self):
+        import socket
+        return socket.gethostname()
+
+
+class FunPing(Function):
+    extname = 'server_ping'
+    params = []
+    rettype = exttype.ExtString
+    uses_database = True  # I'll do it myself
+
+    desc = """Checks that the server is alive.
+
+    This includes for example contacting the database to check that the
+    connection is working."""
+
+    def do(self):
+        db = None
+        try:
+            db = self.server.database.get_link()
+            db.get('SELECT 1')
+            #self.server.db_handler.restart_passive_links()
+        except:
+            raise exttype.ExtRuntimeError("Database link not working")
+        
+        finally:
+            if db:
+                self.server.database.return_link(db)
 
 
 class FunSessionStart(Function):
@@ -126,8 +163,6 @@ class FunServerFunctionDefinition(Function):
     def do(self):
         t = self.server.documentation.function_as_struct(self.api.version, self.function)
         return t
-
-
 
 
 class FunServerListMutexes(SessionedFunction):

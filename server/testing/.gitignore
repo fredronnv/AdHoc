@@ -9,3 +9,6 @@
 /room.pyc
 /building.pyc
 /global_options.pyc
+/option_def.pyc
+/subnetwork.pyc
+/group.pyc

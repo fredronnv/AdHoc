@@ -267,7 +267,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         try:
             api = self.api_handler.get_api(api_version)
             funobj = api.get_function_object(function, httphandler)
-            if funobj.needs_database:
+            if funobj.needs_database():
                 if not self.database:
                     raise ExtInternalError("Function %s uses database, but no database is defined" % (funobj,))
 
@@ -469,6 +469,11 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     ###
     # Optional subsystems.
     ###
+    def enable_global_functions(self):
+        self.register_function(default_function.FunPing)
+        self.register_function(default_function.FunServerURLAPI)
+        self.register_function(default_function.FunServerNodeName)
+        
     def enable_static_documents(self, docroot):
         self.add_protocol_handler('__GET__', protocol.StaticDocumentProtocol(docroot))
 

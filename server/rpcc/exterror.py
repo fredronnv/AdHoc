@@ -278,7 +278,6 @@ class ExtAccessDeniedError(ExtRuntimeError):
     desc = "Access not allowed."
 
 
-
 class ExtTransportError(ExtError):
     name = "TransportError"
 

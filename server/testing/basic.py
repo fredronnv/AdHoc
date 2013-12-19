@@ -17,12 +17,12 @@ class T0000_PingTest(UnAuthTests):
             self.proxy.server_ping()
 
 
-class T0010_ServerVersion(UnAuthTests):
-    """ Test server_version """
+class T0010_ServerURLAPI(UnAuthTests):
+    """ Test server_url_api """
     def do(self):
 
         with AssertAccessError(self):
-            ver = self.proxy.server_version()
+            ver = self.proxy.server_url_api()
         self.assertindict(ver, ["major", "minor", "service"])
 
         # print "Service %s version %s.%s"%(ver["service"],ver["major"],ver["minor"])

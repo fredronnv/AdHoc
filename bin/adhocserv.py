@@ -47,11 +47,17 @@ for file in os.listdir(serverdir):
     for name, obj in inspect.getmembers(module):
         if inspect.isclass(obj):
             if issubclass(obj, rpcc.model.Manager):
-                srv.register_manager(obj)
-                break
+                if hasattr(obj, "name") and obj.name:
+                    try:
+                        srv.register_manager(obj)
+                    except:
+                        print "Failed to register manager ", obj, " in module", mo.group(1)
+                        raise
+                    break
     srv.register_functions_from_module(module)
              
 
+srv.enable_global_functions()
 srv.enable_documentation()
 srv.enable_static_documents(os.path.join(adhoc_home, 'docroot'))
 srv.enable_digs_and_updates()

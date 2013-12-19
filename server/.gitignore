@@ -9,3 +9,6 @@
 /building.pyc
 /global_options.pyc
 /basemodel.pyc
+/option_def.pyc
+/subnetwork.pyc
+/group.pyc
