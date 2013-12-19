@@ -3,7 +3,7 @@
 from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
-from optionspace import ExtOptionspace, ExtOptionspaceName, ExtOrNullOptionspace
+from optionspace import *
 
 
 class ExtNoSuchOptionDefError(ExtLookupError):
@@ -85,14 +85,11 @@ class ExtOptionDefCreateOptions(ExtStruct):
                 "struct": (ExtList(ExtOptionType), "Defines a record type, or structure, that the values of this option should adhere to")
                 }
  
-    
-class OptionDefFunBase(SessionedFunction):  
-    params = [("name", ExtOptionDefName, "OptionDef name to create")]
-    
-    
-class OptionDefCreate(OptionDefFunBase):
+
+class OptionDefCreate(SessionedFunction):
     extname = "option_def_create"
-    params = [("code", ExtOptionDefCode, "DHCP code value, or Null"),
+    params = [("name", ExtOptionDefName, "OptionDef name to create"),
+              ("code", ExtOptionDefCode, "DHCP code value, or Null"),
               ("type", ExtOptionType, "The type of option"),
               ("info", ExtString, "OptionDef description"),
               ("options", ExtOptionDefCreateOptions, "Create options")]
@@ -108,13 +105,14 @@ class OptionDefCreate(OptionDefFunBase):
         self.option_def_manager.create_option_def(self, self.name, self.code, self.type, self.info, self.options)
 
 
-class OptionDefDestroy(OptionDefFunBase):
+class OptionDefDestroy(SessionedFunction):
     extname = "option_def_destroy"
+    params = [("option_def", ExtOptionDef, "OptionDef to destroy")]
     desc = "Destroys an option definition"
     returns = (ExtNull)
 
     def do(self):
-        self.option_def_manager.destroy_option_def(self, self.name)
+        self.option_def_manager.destroy_option_def(self, self.option_def)
 
 
 class OptionDef(Model):
@@ -136,8 +134,8 @@ class OptionDef(Model):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
-    @template("name", ExtOptionDef)
-    def get_name(self):
+    @template("option_def", ExtOptionDef)
+    def get_option_def(self):
         return self
 
     @template("code", ExtOptionDefCode)
@@ -189,8 +187,8 @@ class OptionDef(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @update("name", ExtString)
-    def set_name(self, value):
+    @update("option_def", ExtString)
+    def set_option_def(self, value):
         nn = str(value)
         q = "UPDATE option_defs SET name=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
@@ -263,8 +261,8 @@ class OptionDefManager(Manager):
         dq.table("option_defs r")
         return dq
 
-    def get_option_def(self, name):
-        return self.model(name)
+    def get_option_def(self, option_def_name):
+        return self.model(option_def_name)
 
     def search_select(self, dq):
         dq.table("option_defs r")
@@ -275,7 +273,7 @@ class OptionDefManager(Manager):
         dq.table("option_defs r")
         return "r.name"
     
-    def create_option_def(self, fun, name, code, type, info, options):
+    def create_option_def(self, fun, option_def_name, code, type, info, options):
         if options == None:
             options = {}
         qualifier = options.get("qualifier", None)
@@ -290,17 +288,17 @@ class OptionDefManager(Manager):
             
         q = """INSERT INTO option_defs (name, code, qualifier, type, optionspace, encapsulate, struct, info, changed_by) 
                VALUES (:name, :code, :qualifier, :type, :optionspace, :encapsulate, :struct, :info, :changed_by)"""
-        self.db.insert("id", q, name=name, code=code, 
+        self.db.insert("id", q, name=option_def_name, code=code, 
                        qualifier=qualifier, optionspace=optionspace,
                        encapsulate=encapsulate, struct=struct, type=type,
                        info=info, changed_by=fun.session.authuser)
-        print "OptionDef created, name=", name
+        print "OptionDef created, name=", option_def_name
         self.db.commit()
         
-    def destroy_option_def(self, fun, name):
+    def destroy_option_def(self, fun, option_def):
         q = "DELETE FROM option_defs WHERE name=:name LIMIT 1"
-        self.db.put(q, name=name)
-        print "OptionDef destroyed, name=", name
+        self.db.put(q, name=option_def.oid)
+        print "OptionDef destroyed, name=", option_def.oid
         self.db.commit()
         
     def rename_option_def(self, obj, newname):
