@@ -26,28 +26,26 @@ class ExtDHCPServer(ExtDHCPServerID):
         return obj.oid
     
     
-class DHCPServerFunBase(SessionedFunction):  
-    params = [("dhcp_server_id", ExtDHCPServerID, "DHCPServer ID to create")]
-    
-    
-class DHCPServerCreate(DHCPServerFunBase):
+class DHCPServerCreate(SessionedFunction):
     extname = "dhcp_server_create"
-    params = [("name", ExtString, "The DNS name of the DHCP server"),
+    params = [("dhcp_server_id", ExtDHCPServerID, "DHCPServer ID to create"),
+              ("dns", ExtString, "The DNS name of the DHCP server"),
               ("info", ExtString, "DHCP Server description")]
     desc = "Creates a record for a DHCP server"
     returns = (ExtNull)
 
     def do(self):
-        self.dhcp_server_manager.create_dhcp_server(self, self.dhcp_server_id, self.name, self.info)
+        self.dhcp_server_manager.create_dhcp_server(self, self.dhcp_server_id, self.dns, self.info)
 
 
-class DHCPServerDestroy(DHCPServerFunBase):
+class DHCPServerDestroy(SessionedFunction):
     extname = "dhcp_server_destroy"
+    params = [("dhcp_server", ExtDHCPServer, "DHCPServer to destroy")]
     desc = "Destroys a DHCP server record"
     returns = (ExtNull)
 
     def do(self):
-        self.dhcp_server_manager.destroy_dhcp_server(self, self.dhcp_server_id)
+        self.dhcp_server_manager.destroy_dhcp_server(self, self.dhcp_server)
 
 
 class DHCPServer(Model):
@@ -59,18 +57,18 @@ class DHCPServer(Model):
         a = list(args)
         #print "DHCPServer.init", a
         self.oid = a.pop(0)
-        self.name = a.pop(0)
+        self.dns = a.pop(0)
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
-    @template("dhcp_server_id", ExtDHCPServer)
-    def get_dhcp_server_id(self):
+    @template("dhcp_server", ExtDHCPServer)
+    def get_dhcp_server(self):
         return self
 
-    @template("name", ExtString)
-    def get_name(self):
-        return self.name
+    @template("dns", ExtString)
+    def get_dns(self):
+        return self.dns
 
     @template("info", ExtString)
     def get_info(self):
@@ -84,16 +82,16 @@ class DHCPServer(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @update("name", ExtString)
-    def set_name(self, newname):
+    @update("dns", ExtString)
+    def set_dns(self, dns):
         q = "UPDATE dhcp_servers SET name=:name WHERE id=:dhcp_id"
-        self.db.put(q, dhcp_id=self.oid, name=newname)
+        self.db.put(q, dhcp_id=self.oid, name=dns)
         self.db.commit()
         
     @update("info", ExtString)
-    def set_info(self, newinfo):
+    def set_info(self, info):
         q = "UPDATE dhcp_servers SET info=:info WHERE id=:dhcp_id"
-        self.db.put(q, dhcp_id=self.oid, info=newinfo)
+        self.db.put(q, dhcp_id=self.oid, info=info)
         self.db.commit()
 
 
@@ -123,14 +121,14 @@ class DHCPServerManager(Manager):
         dq.table("dhcp_servers ds")
         return "ds.id"
     
-    def create_dhcp_server(self, fun, dhcp_server_id, name, info):
+    def create_dhcp_server(self, fun, dhcp_server_id, dns, info):
         q = "INSERT INTO dhcp_servers (id, name, info, changed_by) VALUES (:id, :name, :info, :changed_by)"
-        self.db.put(q, id=dhcp_server_id, name=name, info=info, changed_by=fun.session.authuser)
+        self.db.put(q, id=dhcp_server_id, name=dns, info=info, changed_by=fun.session.authuser)
         print "DHCPServer created, id=", dhcp_server_id
         self.db.commit()
         
-    def destroy_dhcp_server(self, fun, dhcp_server_id):
+    def destroy_dhcp_server(self, fun, dhcp_server):
         q = "DELETE FROM dhcp_servers WHERE id=:id LIMIT 1"
-        self.db.put(q, id=dhcp_server_id)
-        print "DHCPServer destroyed, id=", dhcp_server_id
+        self.db.put(q, id=dhcp_server.oid)
+        print "DHCPServer destroyed, id=", dhcp_server.oid
         self.db.commit()
