@@ -69,6 +69,36 @@ class RPCCError(Exception):
         return (self.namelist[-1] == errname)
 
 
+class RPCCErrorMixin(object):
+    def init(self, err):
+        self.path = err["name"].split("::")
+        self.name = self.path[-1]
+        
+
+class RPCCValueError(RPCCErrorMixin, ValueError):
+    def __init__(self, err):
+        ValueError.__init__(self, err)
+        self.init(err)
+
+
+class RPCCLookupError(RPCCErrorMixin, LookupError):
+    def __init__(self, err):
+        LookupError.__init__(self, err)
+        self.init(err)
+
+
+class RPCCTypeError(RPCCErrorMixin, TypeError):
+    def __init__(self, err):
+        TypeError.__init__(self, err)
+        self.init(err)
+
+
+class RPCCRuntimeError(RPCCErrorMixin, RuntimeError):
+    def __init__(self, err):
+        RuntimeError.__init__(self, err)
+        self.init(err)
+
+
 class RPCC(object):
     """RPCC client proxy."""
 
@@ -101,7 +131,6 @@ class RPCC(object):
             return self.FunctionProxy(self, name)
 
     def _rawcall(self, fun, *args):
-        #print "RAWCALL", fun, args
         call = json.dumps({"function": fun, "params": args})
         retstr = urllib2.urlopen(self._url, call.encode("utf-8")).read()
         return json.loads(retstr.decode("utf-8"))
@@ -112,7 +141,7 @@ class RPCC(object):
                 self._fundefs[fun] = self._rawcall("server_function_definition", fun)["result"]
             return self._fundefs[fun]
         except KeyError:
-            raise ValueError("No function %s is defined on the server" % (fun,))
+            raise LookupError("No function %s is defined on the server" % (fun,))
 
     def _function_is_sessioned(self, fun):
         fundef = self._fundef(fun)
@@ -174,13 +203,13 @@ class RPCC(object):
 
             errname = err['name']
             if self._pyexceptions and errname.startswith('ValueError'):
-                raise ValueError(err)
+                raise RPCCValueError(err)
             elif self._pyexceptions and errname.startswith('LookupError'):
-                raise LookupError(err)
+                raise RPCCLookupError(err)
             elif self._pyexceptions and errname.startswith('RuntimeError'):
-                raise RuntimeError(err)
+                raise RPCCRuntimeError(err)
             elif self._pyexceptions and errname.startswith('TypeError'):
-                raise TypeError(err)
+                raise RPCCTypeError(err)
             else:
                 raise RPCCError(err)
 

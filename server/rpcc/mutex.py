@@ -81,7 +81,7 @@ class MutexStringSet(MutexVariable):
             raise default_error.ExtNoSuchMutexVariableValueError()
 
     def get_values(self):
-        q = "SELECT val FROM rpcc_mutex_var_val WHERE var=:var "
+        q = "SELECT value FROM rpcc_mutex_var_val WHERE var=:var "
         return [row[0] for row in self.db.get(q, var=self.varid)]
 
 
@@ -236,7 +236,7 @@ class Mutex(model.Model):
         q += "  AND v.name = :name "
         ret = list(self.db.get(q, mutex=self.mutex_id, name=varname))
         if not ret:
-            return None
+            raise default_error.ExtNoSuchMutexVariableError()
 
         ((varid, typ),) = ret
 

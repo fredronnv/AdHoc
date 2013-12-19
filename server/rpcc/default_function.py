@@ -12,9 +12,10 @@ class FunServerURLAPI(Function):
     desc = "Returns a struct indicating the protocol version of this URL. The version number is increased whenever changes programmatically visible to clients are made."
     params = []
     returns = (default_type.ExtServerVersion, "API version for current URL")
-    uses_database = False
-
     grants = None
+
+    uses_database = False
+    log_call_event = False
 
     def do(self):
         return {'service': self.server.service_name,
@@ -165,8 +166,8 @@ class FunServerFunctionDefinition(Function):
         return t
 
 
-class FunServerListMutexes(SessionedFunction):
-    extname = "server_list_mutexes"
+class FunMutexList(SessionedFunction):
+    extname = "mutex_list"
     params = []
     returns = exttype.ExtList(default_type.ExtMutex)
 
@@ -249,8 +250,8 @@ class FunMutexInfo(_MutexFunction):
         return ret
 
 
-class FunMutexCreateString(_MutexFunction):
-    extname = "mutex_create_string"
+class FunMutexStringCreate(_MutexFunction):
+    extname = "mutex_string_create"
     params = [("varname", default_type.ExtMutexVarName, "Name of mutex string variable to create")]
     returns = exttype.ExtNull
     desc = """Create a new string variable on a mutex. The name must not be in use by any variable on that mutex."""
@@ -259,8 +260,8 @@ class FunMutexCreateString(_MutexFunction):
         self.mutex.create_string_variable(self.varname)
 
 
-class FunMutexListStrings(_MutexFunction):
-    extname = "mutex_list_strings"
+class FunMutexStringList(_MutexFunction):
+    extname = "mutex_string_list"
     params = []
     returns = exttype.ExtList(default_type.ExtMutexVarName)
     desc = """Return the names of all string variables for the mutex."""
@@ -312,8 +313,8 @@ class FunMutexStringDestroy(_MutexStringFunction):
         self.mutex.destroy_string_variable(self.var.name)
 
 
-class FunMutexCreateStringset(_MutexFunction):
-    extname = "mutex_create_stringset"
+class FunMutexStringsetCreate(_MutexFunction):
+    extname = "mutex_stringset_create"
     params = [("varname", default_type.ExtMutexVarName, "Name of mutex stringset variable to create")]
     returns = exttype.ExtNull
     desc = """Create a new stringset variable on a mutex. The name must not be in use by any variable on that mutex."""
@@ -322,8 +323,8 @@ class FunMutexCreateStringset(_MutexFunction):
         self.mutex.create_stringset_variable(self.varname)
 
 
-class FunMutexListStringsets(_MutexFunction):
-    extname = "mutex_list_stringsets"
+class FunMutexStringsetList(_MutexFunction):
+    extname = "mutex_stringset_list"
     params = []
     returns = exttype.ExtList(default_type.ExtMutexVarName)
     desc = """Return the names of all string variables for the mutex."""
@@ -365,6 +366,16 @@ class FunMutexStringsetRemove(_MutexStringsetFunction):
         self.var.remove(self.value)
 
 
+class FunMutexStringsetRemoveAll(_MutexStringsetFunction):
+    extname = "mutex_stringset_remove_all"
+    params = []
+    returns = exttype.ExtNull
+    desc = """Removes all values from a mutex stringset."""
+
+    def do(self):
+        self.var.clear()
+
+
 class FunMutexStringsetDestroy(_MutexStringsetFunction):
     extname = "mutex_stringset_destroy"
     params = []
@@ -375,8 +386,8 @@ class FunMutexStringsetDestroy(_MutexStringsetFunction):
         self.mutex.destroy_stringset_variable(self.var.name)
 
 
-class FunMutexListWatchdogs(_MutexFunction):
-    extname = "mutex_list_watchdogs"
+class FunMutexWatchdogList(_MutexFunction):
+    extname = "mutex_watchdog_list"
     params = []
     returns = exttype.ExtList(default_type.ExtWatchdog)
     desc = """Return all watchdogs belonging to the mutex."""
@@ -385,8 +396,8 @@ class FunMutexListWatchdogs(_MutexFunction):
         self.mutex.get_all_watchdogs()
 
 
-class FunMutexCreateWatchdog(_MutexFunction):
-    extname = "mutex_create_watchdog"
+class FunMutexWatchdogCreate(_MutexFunction):
+    extname = "mutex_watchdog_create"
     params = [("name", default_type.ExtWatchdogName)]
     returns = exttype.ExtNull
 

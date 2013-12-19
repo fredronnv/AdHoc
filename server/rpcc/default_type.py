@@ -13,7 +13,7 @@ class ExtFunctionName(exttype.ExtString):
     def lookup(self, fun, cval):
         if fun.api.has_function(cval):
             return cval
-        raise default_error.ExtNoSuchFunctionError(cval)
+        raise default_error.ExtNoSuchFunctionError(value=cval)
 
 
 class ExtSession(exttype.ExtString):

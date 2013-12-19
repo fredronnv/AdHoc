@@ -5,6 +5,7 @@ import sys
 sys.path.append("/home/viktor/AdHoc/trunk/client")
 
 import rpcc_client
+from rpcc_client import RPCCValueError, RPCCLookupError
 
 rpcc = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121")
 rpcc.login("#root#", "#root#")
@@ -31,7 +32,7 @@ except RuntimeError:
 print rpcc2.mutex_info(mutex)
 
 try:
-    rpcc.mutex_create_string(mutex, "svar")
+    rpcc.mutex_string_create(mutex, "svar")
 except ValueError:
     pass
 
@@ -44,16 +45,31 @@ rpcc.mutex_string_destroy(mutex, "svar")
 
 try:
     rpcc.mutex_stringset_create(mutex, "sset")
-except ValueError:
-    pass
+except RPCCValueError as e:
+    if e.name == 'MutexVariableAlreadyExists':
+        pass
+    else:
+        raise
 
 print rpcc.mutex_stringset_get(mutex, "sset")
 rpcc.mutex_stringset_add(mutex, "sset", "apa")
-print rpcc.mutex_stringset_get(mutex, "sset")
+print ["apa"], "=", rpcc.mutex_stringset_get(mutex, "sset")
 rpcc.mutex_stringset_add(mutex, "sset", "bepa")
-print rpcc.mutex_stringset_get(mutex, "sset")
+print ["apa", "bepa"], "=", rpcc.mutex_stringset_get(mutex, "sset")
 rpcc.mutex_stringset_add(mutex, "sset", "apa")
-print rpcc.mutex_stringset_get(mutex, "sset")
+print ["apa", "bepa"], "=", rpcc.mutex_stringset_get(mutex, "sset")
+rpcc.mutex_stringset_remove(mutex, "sset", "apa")
+print ["bepa"], "=", rpcc.mutex_stringset_get(mutex, "sset")
+try:
+    rpcc.mutex_stringset_remove(mutex, "sset", "cepa")
+except RPCCLookupError as e:
+    if e.name == 'NoSuchMutexVariableValue':
+        pass
+    else:
+        raise
+rpcc.mutex_stringset_remove_all(mutex, "sset")
+print [], "=", rpcc.mutex_stringset_get(mutex, "sset")
+
 
 rpcc.mutex_stringset_destroy(mutex, "sset")
 
