@@ -9,7 +9,7 @@ class ExtNoSuchBuildingError(ExtLookupError):
     desc = "No such building exists."
 
 
-class ExtBuildingID(ExtString):
+class ExtBuildingName(ExtString):
     name = "building-name"
     desc = "ID of a building"
     regexp = "^[-a-zA-Z0-9_]+$"
@@ -21,7 +21,7 @@ class ExtBuildingRe(ExtString):
     regexp = "^.*$"
 
 
-class ExtBuilding(ExtBuildingID):
+class ExtBuilding(ExtBuildingName):
     name = "building"
     desc = "A building instance"
 
@@ -32,13 +32,10 @@ class ExtBuilding(ExtBuildingID):
         return obj.oid
    
     
-class BuildingFunBase(SessionedFunction):  
-    params = [("id", ExtBuildingID, "Building name to create")]
-    
-    
-class BuildingCreate(BuildingFunBase):
+class BuildingCreate(SessionedFunction):
     extname = "building_create"
-    params = [("re", ExtBuildingRe, "The regular expression rooms must match for this building"),
+    params = [("id", ExtBuildingName, "Building name to create"),
+              ("re", ExtBuildingRe, "The regular expression rooms must match for this building"),
               ("info", ExtString, "Building description")]
     desc = "Creates a building"
     returns = (ExtNull)
@@ -47,13 +44,14 @@ class BuildingCreate(BuildingFunBase):
         self.building_manager.create_building(self, self.id, self.re, self.info)
 
 
-class BuildingDestroy(BuildingFunBase):
+class BuildingDestroy(SessionedFunction):
     extname = "building_destroy"
+    params = [("building", ExtBuilding, "Building to destroy")]
     desc = "Destroys a building"
     returns = (ExtNull)
 
     def do(self):
-        self.building_manager.destroy_building(self, self.id)
+        self.building_manager.destroy_building(self, self.building)
 
 
 class Building(Model):
@@ -70,8 +68,8 @@ class Building(Model):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
-    @template("id", ExtBuilding)
-    def get_id(self):
+    @template("building", ExtBuilding)
+    def get_building(self):
         return self
 
     @template("re", ExtBuildingRe)
@@ -92,11 +90,11 @@ class Building(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @update("id", ExtString)
-    def set_id(self, newid):
-        nn = str(newid)
-        q = "UPDATE buildings SET id=:newid WHERE id=:id LIMIT 1"
-        self.db.put(q, id=self.oid, newid=nn)
+    @update("building", ExtString)
+    def set_building(self, newbuilding):
+        nn = str(newbuilding)
+        q = "UPDATE buildings SET id=:newbuilding WHERE id=:id LIMIT 1"
+        self.db.put(q, id=self.oid, newbuilding=nn)
         self.db.commit()
         print "Building %s changed ID to %s" % (self.oid, nn)
         self.manager.rename_building(self, nn)
@@ -128,32 +126,32 @@ class BuildingManager(Manager):
         dq.table("buildings r")
         return dq
 
-    def get_building(self, id):
-        return self.model(id)
+    def get_building(self, building_name):
+        return self.model(building_name)
 
     def search_select(self, dq):
         dq.table("buildings r")
         dq.select("r.id")
     
-    @search("id", StringMatch)
-    def s_id(self, dq):
+    @search("building", StringMatch)
+    def s_building(self, dq):
         dq.table("buildings r")
         return "r.id"
     
-    def create_building(self, fun, id, re, info):
+    def create_building(self, fun, building_name, re, info):
         q = "INSERT INTO buildings (id, re, info, changed_by) VALUES (:id, :re, :info, :changed_by)"
-        self.db.put(q, id=id, re=re, info=info, changed_by=fun.session.authuser)
-        print "Building created, id=", id
+        self.db.put(q, id=building_name, re=re, info=info, changed_by=fun.session.authuser)
+        print "Building created, name=", building_name
         self.db.commit()
         
-    def destroy_building(self, fun, id):
+    def destroy_building(self, fun, building):
         q = "DELETE FROM buildings WHERE id=:id LIMIT 1"
-        self.db.put(q, id=id)
-        print "Building destroyed, id=", id
+        self.db.put(q, id=building.oid)
+        print "Building destroyed, id=", building.oid
         self.db.commit()
         
-    def rename_building(self, obj, newid):
+    def rename_building(self, obj, building_name):
         oid = obj.oid
-        obj.oid = newid
+        obj.oid = building_name
         del(self._model_cache[oid])
-        self._model_cache[newid] = obj
+        self._model_cache[building_name] = obj

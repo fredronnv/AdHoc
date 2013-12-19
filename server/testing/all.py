@@ -10,7 +10,7 @@ from dhcp_server import *
 from optionspace import *
 from room import *
 from building import *
-from global_options import *
+from global_option import *
 from option_def import *
 from subnetwork import *
 #from group import *

@@ -35,31 +35,28 @@ class ExtGlobalOption(ExtGlobalOptionID):
 
     def output(self, fun, obj):
         return obj.oid
-   
-    
-class GlobalOptionFunBase(SessionedFunction):  
-    params = [("id", ExtGlobalOptionID, "GlobalOption ID")]
     
     
 class GlobalOptionCreate(SessionedFunction):
     extname = "global_option_create"
-    params = [("name", ExtGlobalOptionName, "GlobalOption name to create"),
+    params = [("global_option_name", ExtGlobalOptionName, "GlobalOption name to create"),
               ("value", ExtGlobalOptionValue, "The value of this particular option")]
     desc = "Creates a global option"
     returns = (ExtGlobalOptionID)
 
     def do(self):
-        id = self.global_option_manager.create_global_option(self, self.name, self.value)
+        id = self.global_option_manager.create_global_option(self, self.global_option_name, self.value)
         return id
 
 
-class GlobalOptionDestroy(GlobalOptionFunBase):
+class GlobalOptionDestroy(SessionedFunction):
     extname = "global_option_destroy"
+    params = [("global_option", ExtGlobalOption, "GlobalOption")]
     desc = "Destroys a global-option"
     returns = (ExtNull)
 
     def do(self):
-        self.global_option_manager.destroy_global_option(self, self.id)
+        self.global_option_manager.destroy_global_option(self, self.global_option)
 
 
 class GlobalOption(Model):
@@ -76,8 +73,8 @@ class GlobalOption(Model):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
-    @template("id", ExtGlobalOption)
-    def get_id(self):
+    @template("global_option", ExtGlobalOption)
+    def get_global_option(self):
         return self
     
     @template("name", ExtGlobalOptionName)
@@ -156,8 +153,8 @@ class GlobalOptionManager(Manager):
         self.db.commit()
         return id
         
-    def destroy_global_option(self, fun, id):
+    def destroy_global_option(self, fun, global_option):
         q = "DELETE FROM global_options WHERE id=:id LIMIT 1"
-        self.db.put(q, id=id)
+        self.db.put(q, id=global_option.oid)
         print "GlobalOption destroyed, id=", id
         self.db.commit()
