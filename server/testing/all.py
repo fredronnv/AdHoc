@@ -4,7 +4,7 @@
 
 from framework import *
 from basic import *
-from dhcpd import *
+#from dhcpd import *
 from shared_network import *
 from dhcp_server import *
 from optionspace import *
@@ -13,7 +13,7 @@ from building import *
 from global_option import *
 from option_def import *
 from subnetwork import *
-#from group import *
+from group import *
 #from mutex import *
 
 if __name__ == "__main__":
