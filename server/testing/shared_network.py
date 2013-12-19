@@ -38,13 +38,17 @@ class T0420_networkCreate(UnAuthTests):
     def do(self):  
         if self.proxy != self.superuser:
             return
+        try:
+            self.superuser.network_destroy('network_test')
+        except:
+            pass
         with AssertAccessError(self):
             self.proxy.network_create('network_test', False, "Testnätverk")
             ret = self.superuser.network_fetch('network_test', {"network": True, "info": True, "authoritative": True})
             assert "network" in ret, "Key network missing in returned struct from network_fetch"
             assert "info" in ret, "Key authoritative missing in returned struct from network_fetch"
             assert "authoritative" in ret, "Key authoritative missing in returned struct from network_fetch" 
-            assert ret.network == "network_test", "Bad netid, is % should be %s" % (ret.network, "network_test")
+            assert ret.network == "network_test", "Bad network, is % should be %s" % (ret.network, "network_test")
             assert ret.authoritative == False, "Authoritative is " + ret.authoritative + " but should be False"
         
         
@@ -71,7 +75,7 @@ class T0440_networkSetAuthoritative(UnAuthTests):
             try:
                 self.proxy.network_update('network_test', {"authoritative": True})
                 nd = self.superuser.network_fetch('network_test', {"network": True, "info": True, "authoritative": True})
-                assert nd.network == "network_test", "Bad network id"
+                assert nd.network == "network_test", "Bad network"
                 assert nd.authoritative, "Bad autoritativity"
                 assert nd.info == "Testnätverk 2", "Bad info"
             finally:
@@ -89,7 +93,7 @@ class T0450_networkSetInfo(UnAuthTests):
             try:
                 self.proxy.network_update('network_test', {"info": "Provnät 1"})
                 nd = self.superuser.network_fetch('network_test', {"network": True, "info": True, "authoritative": True})
-                assert nd.network == "network_test", "Bad network id"
+                assert nd.network == "network_test", "Bad network"
                 assert not nd.authoritative, "Bad autoritativity"
                 assert nd.info == "Provnät 1", "Bad info"
             finally:

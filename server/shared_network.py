@@ -26,28 +26,26 @@ class ExtNetwork(ExtNetworkName):
         return obj.oid
     
     
-class NetworkFunBase(SessionedFunction):  
-    params = [("netid", ExtNetworkName, "Network ID to create")]
-    
-    
-class NetworkCreate(NetworkFunBase):
+class NetworkCreate(SessionedFunction):
     extname = "network_create"
-    params = [("authoritative", ExtBoolean, "Whether the DHCP servers should claim to be authoritative for the network or not"),
+    params = [("network_name", ExtNetworkName, "Network ID to create"),
+              ("authoritative", ExtBoolean, "Whether the DHCP servers should claim to be authoritative for the network or not"),
               ("info", ExtString, "Network description")]
     desc = "Creates a shared network"
     returns = (ExtNull)
 
     def do(self):
-        self.network_manager.create_network(self, self.netid, self.authoritative, self.info)
+        self.network_manager.create_network(self, self.network_name, self.authoritative, self.info)
         
 
-class NetworkDestroy(NetworkFunBase):
+class NetworkDestroy(SessionedFunction):
     extname = "network_destroy"
+    params = [("network", ExtNetwork, "Shared network to destroy")]
     desc = "Destroys a shared network"
     returns = (ExtNull)
 
     def do(self):
-        self.network_manager.destroy_network(self, self.netid)
+        self.network_manager.destroy_network(self, self.network)
 
 
 class Network(Model):
@@ -85,14 +83,14 @@ class Network(Model):
     
     @update("authoritative", ExtBoolean)
     def set_authoritative(self, newauthoritative):
-        q = "UPDATE networks SET authoritative=:authoritative WHERE id=:netid"
-        self.db.put(q, netid=self.oid, authoritative=newauthoritative)
+        q = "UPDATE networks SET authoritative=:authoritative WHERE id=:id"
+        self.db.put(q, id=self.oid, authoritative=newauthoritative)
         self.db.commit()
         
     @update("info", ExtString)
     def set_info(self, newinfo):
-        q = "UPDATE networks SET info=:info WHERE id=:netid"
-        self.db.put(q, netid=self.oid, info=newinfo)
+        q = "UPDATE networks SET info=:info WHERE id=:id"
+        self.db.put(q, id=self.oid, info=newinfo)
         self.db.commit()
 
 
@@ -110,8 +108,8 @@ class NetworkManager(Manager):
         dq.select("nw.id", "nw.authoritative", "nw.info", "nw.mtime", "nw.changed_by")
         return dq
 
-    def get_network(self, netid):
-        return self.model(netid)
+    def get_network(self, network):
+        return self.model(network)
 
     def search_select(self, dq):
         dq.table("networks nw")
@@ -122,14 +120,14 @@ class NetworkManager(Manager):
         dq.table("networks nw")
         return "nw.id"
     
-    def create_network(self, fun, netid, authoritative, info):
+    def create_network(self, fun, network_name, authoritative, info):
         q = "INSERT INTO networks (id, authoritative, info, changed_by) VALUES (:id, :authoritative, :info, :changed_by)"
-        self.db.put(q, id=netid, authoritative=authoritative, info=info, changed_by=fun.session.authuser)
-        print "Network created, id=", netid
+        self.db.put(q, id=network_name, authoritative=authoritative, info=info, changed_by=fun.session.authuser)
+        print "Network created, network_name=", network_name
         self.db.commit()
         
-    def destroy_network(self, fun, netid):
+    def destroy_network(self, fun, network):
         q = "DELETE FROM networks WHERE id=:id LIMIT 1"
-        self.db.put(q, id=netid)
-        print "Network destroyed, id=", netid
+        self.db.put(q, id=network.oid)
+        print "Network destroyed, name=", network.oid
         self.db.commit()
