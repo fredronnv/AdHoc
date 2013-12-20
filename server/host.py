@@ -188,10 +188,10 @@ class Host(Model):
         self.db.commit()
         print "Host %s changed Info to %s" % (self.oid, value)
     
-    @update("parent", ExtString)
+    @update("group", ExtGroup)
     def set_parent(self, value):
-        q = "UPDATE hosts SET parent_host=:value WHERE id=:name"
-        self.db.put(q, name=self.oid, value=value)
+        q = "UPDATE hosts SET `group`=:value WHERE id=:name"
+        self.db.put(q, name=self.oid, value=value.oid)
         self.db.commit()
         
     @update("optionspace", ExtOrNullOptionspace)
@@ -240,12 +240,12 @@ class HostManager(Manager):
             
         optionspace = options.get("optionspace", None)
         dns = options.get("dns", None)
-        group = options.get("group", "plain")
+        group = options.get("group", self.group_manager.get_group(u"plain"))
         room = options.get("room", None)
         info = options.get("info", None)
             
         q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, changed_by) 
-               VALUES (:host_name, :dns, :group_name, :mac, :optionspace, :info, :changed_by)"""
+               VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :changed_by)"""
         try:
             self.db.put(q, host_name=host_name, dns=dns, group=group.oid, mac=mac, room=room, optionspace=optionspace,
                        info=info, changed_by=fun.session.authuser)

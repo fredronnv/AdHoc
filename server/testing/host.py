@@ -63,8 +63,8 @@ class T1320_HostCreate(UnAuthTests):
                 self.assertindict(ret, data_template.keys(), exact=True)
                 
                 assert ret.host == "QZ1243A", "Bad host, is % should be %s" % (ret.host, "QZ1243A")
-                assert ret.info == "TestHost", "Info is " + ret.info + "but should be 'TestHost'"
-                assert ret.group == "altiris", "Bad group %s, should be 'altiris'" % ret.group
+                assert ret.group == "plain", "Bad group %s, should be 'plain'" % ret.group
+                assert ret.mac == '00:01:02:03:04:05', "BAd mac %s, should be '00:01:02:03:04:05'"%(ret.mac)
             finally:
                 try:
                     self.superuser.host_destroy('QZ1243A')
@@ -78,7 +78,7 @@ class T1330_HostDestroy(UnAuthTests):
     def do(self):
         if self.proxy != self.superuser:
             return
-        self.superuser.host_create('QZ1243A', 'altiris', "TestHost", {})
+        self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         try:
             with AssertAccessError(self):
                 self.proxy.host_destroy('QZ1243A')
@@ -97,14 +97,14 @@ class T1340_HostSetName(UnAuthTests):
     def do(self):
         if self.proxy != self.superuser:
             return
-        self.superuser.host_create('QZ1243A', 'altiris', "TestHost", {})
+        self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
                 self.proxy.host_update('QZ1243A', {"host": 'ZQ1296'})
                 nd = self.superuser.host_fetch('ZQ1296', data_template)
                 assert nd.host == "ZQ1296", "Bad host"
-                assert nd.info == "TestHost", "Bad info"
-                assert nd.group == "altiris", "Bad group %s, should be 'altiris'" % nd.group
+                assert nd.mac == "00:01:02:03:04:05", "Bad mac"
+                assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
             finally:
                 try:
                     self.superuser.host_destroy('ZQ1296')
@@ -118,14 +118,14 @@ class T1350_HostSetInfo(UnAuthTests):
     def do(self):
         if self.proxy != self.superuser:
             return
-        self.superuser.host_create('QZ1243A', 'altiris', "TestHost", {})
+        self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
                 self.proxy.host_update('QZ1243A', {"info": "ZQ1296 option"})
                 nd = self.superuser.host_fetch('QZ1243A', data_template)
                 assert nd.host == "QZ1243A", "Bad host"
                 assert nd.info == "ZQ1296 option", "Bad info"
-                assert nd.group == "altiris", "Bad group %s, should be 'altiris'" % nd.group
+                assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
             finally:
                 try:
                     self.superuser.host_destroy('QZ1243A')
@@ -133,20 +133,20 @@ class T1350_HostSetInfo(UnAuthTests):
                     pass
                 
                 
-class T1350_HostSetParent(UnAuthTests):
+class T1350_HostSetGroup(UnAuthTests):
     """ Test setting group on a host"""
     
     def do(self):
         if self.proxy != self.superuser:
             return
-        self.superuser.host_create('QZ1243A', 'altiris', "TestHost", {})
+        self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
-                self.proxy.host_update('QZ1243A', {"group": "plain"})
+                self.proxy.host_update('QZ1243A', {"group": "altiris"})
                 nd = self.superuser.host_fetch('QZ1243A', data_template)
                 assert nd.host == "QZ1243A", "Bad host"
-                assert nd.info == "TestHost", "Bad info"
-                assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
+                assert nd.mac == "00:01:02:03:04:05", "Bad mac"
+                assert nd.group == "altiris", "Bad group %s, should be 'altiris'" % nd.group
             finally:
                 try:
                     self.superuser.host_destroy('QZ1243A')
