@@ -648,9 +648,42 @@ class MySQLLink(DatabaseLink):
                 curs.execute(q, v)
                 return curs.lastrowid
             except Exception as e:
+                print "DBEXCEPTION:", e, type(e)
                 self.exception(e, q, v)
         finally:
             curs.close()
+            
+    def exception(self, inner, query, args):
+        if self.database.server.config("DEBUG_SQL", default=False):
+            print "ERROR IN QUERY: ", query
+            print "WITH ARGUMENTS: ", args
+            print "INNER ERROR: ", inner
+        if isinstance(inner, mysql.connector.errors.IntegrityError):
+            errno = inner.errno
+            message = inner.msg
+            if errno == 1452:
+                message = "Cannot add or update a child row: a foreign key constraint fails"
+            raise IntegrityError(message, inner=inner)
+            
+            
+#         if isinstance(inner, cx_Oracle.DatabaseError):
+#             err = inner.args[0]
+#             if isinstance(err, str):
+#                 raise
+# 
+#             if err.code == 904:
+#                 idf = err.message.split('"')[1]
+#                 raise InvalidIdentifierError(idf, inner=inner)
+#             if err.code == 942:
+#                 raise InvalidTableError("?", inner=inner)
+#             if err.code == 1:
+#                 const = err.message.split("(")[1].split(")")[0]
+#                 raise IntegrityError(const, inner=inner)
+#             print "CODE:", err.code
+#             print "CONTEXT:", err.context
+#             print "MESSAGE:", err.message.strip()
+#             print "OFFSET:", err.offset
+        raise
 
 
 class MySQLDatabase(Database):
