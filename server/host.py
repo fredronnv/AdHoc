@@ -2,11 +2,15 @@
 
 from rpcc.model import *
 from rpcc.exttype import *
+from rpcc.exterror import *
+from rpcc.interror import *
 from rpcc.function import SessionedFunction
 from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
 from group import ExtGroup
 from room import ExtRoomName
+
+import socket
 
 
 class ExtNoSuchHostError(ExtLookupError):
@@ -15,6 +19,10 @@ class ExtNoSuchHostError(ExtLookupError):
 
 class ExtHostError(ExtValueError):
     desc = "The host name is invalid or in use"
+    
+    
+class ExtNoSuchDNSNameError(ExtLookupError):
+    desc = "The DNS name cannot be looked up"
 
 
 class ExtHostName(ExtString):
@@ -32,9 +40,18 @@ class ExtHostStatus(ExtEnum):
 
 class ExtDNSName(ExtString):
     name = "fqdn"
-    desc = "A fully qualified DNS name"
+    desc = "A fully qualified and defined DNS name"
     regexp = r'^([0-9a-zA-Z][-0-9a-zA-Z]+\.)+[a-z0-9\-]{2,15}$'
     maxlen = 255
+    
+    def lookup(self, fun, cval):
+        try:
+            dummy = socket.gethostbyname(cval)
+            
+        except socket.gaierror:
+            raise ExtNoSuchDNSNameError()
+        return cval
+        
     
     
 class ExtHostDns(ExtOrNull):
@@ -71,7 +88,7 @@ class ExtHostCreateOptions(ExtStruct):
                 "optionspace": (ExtOptionspace, "Whether the host should declare an option space"),
                 "dns": (ExtDNSName, "A DNS name to be used as a fixed address"),
                 "group": (ExtGroup, "A Host group to which the host will belong. Default is the group 'plain'"),
-                "room": (ExtRoomName, "A room name signinfying the location of the host"),
+                "room": (ExtRoomName, "A room name signifying the location of the host"),
                 "info": (ExtString, "Information about the host"),
                 }
     
@@ -86,7 +103,6 @@ class ExtHostRoom(ExtOrNull):
     name = "host_room"
     desc = "Location of a host"
     typ = ExtString
-
 
 
 class HostCreate(SessionedFunction):
@@ -199,7 +215,30 @@ class Host(Model):
         q = "UPDATE hosts SET optionspace=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         self.db.commit()
-
+        
+    @update("mac", ExtMacAddress)
+    def set_mac(self, value):
+        q = "UPDATE hosts SET mac=:value WHERE id=:name"
+        self.db.put(q, name=self.oid, value=value)
+        self.db.commit()
+    
+    @update("room", ExtRoomName)
+    def set_room(self, value):
+        try:
+            q = "UPDATE hosts SET room=:value WHERE id=:name"
+            self.db.put(q, name=self.oid, value=value)
+            self.db.commit()
+        except IntegrityError as e:
+            self.room_manager.create_room(self.function, value, None, "Auto-created by host_set_room")
+            self.db.put(q, name=self.oid, value=value)
+            self.db.commit()
+            
+    @update("dns", ExtDNSName)
+    def set_dns(self, value):
+        q = "UPDATE hosts SET dns=:value WHERE id=:name"
+        self.db.put(q, name=self.oid, value=value)
+        self.db.commit()
+            
 
 class HostManager(Manager):
     name = "host_manager"

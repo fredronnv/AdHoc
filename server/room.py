@@ -2,17 +2,29 @@
 
 from rpcc.model import *
 from rpcc.exttype import *
-from rpcc.function import Function, SessionedFunction
+from rpcc.function import SessionedFunction
 
 
 class ExtNoSuchRoomError(ExtLookupError):
     desc = "No such room exists."
+    
+    
+class ExtNoMatchingBuildingError(ExtLookupError):
+    desc = "There is no building defined that matches the room name"
 
 
 class ExtRoomName(ExtString):
     name = "room-name"
     desc = "Name of a room"
     regexp = "^[-a-zA-Z0-9_]+$"
+    
+    def lookup(self, fun, cval):
+        q = "SELECT re FROM buildings"
+        for rexp in fun.db.get_all(q):
+            print rexp[0]
+            if re.match(rexp[0], cval):
+                return cval
+        raise ExtNoMatchingBuildingError()
 
 
 class ExtRoomPrinters(ExtString):
