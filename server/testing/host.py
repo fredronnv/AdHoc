@@ -254,6 +254,43 @@ class T1391_HostSetBadDNS(UnAuthTests):
         except:
             pass              
 
-        
+
+class T1390_HostSetStstus(UnAuthTests):
+    """ Test setting status on a host"""
+    
+    def do(self):
+        if self.proxy != self.superuser:
+            return
+        self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
+        with AssertAccessError(self):
+            try:
+                toset = "Inactive"
+                self.proxy.host_update('QZ1243A', {"status": toset})
+                nd = self.superuser.host_fetch('QZ1243A', data_template)
+                assert nd.host == "QZ1243A", "Bad host"
+                assert nd.mac == "00:01:02:03:04:05", "Bad mac"
+                assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
+                assert nd.status == toset, "Bad status %s, should be '%s'" % (nd.status, toset)
+                
+                toset = "Active"
+                self.proxy.host_update('QZ1243A', {"status": toset})
+                nd = self.superuser.host_fetch('QZ1243A', data_template)
+                assert nd.host == "QZ1243A", "Bad host"
+                assert nd.mac == "00:01:02:03:04:05", "Bad mac"
+                assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
+                assert nd.status == toset, "Bad status %s, should be '%s'" % (nd.status, toset)
+                
+                toset = "Dead"
+                self.proxy.host_update('QZ1243A', {"status": toset})
+                nd = self.superuser.host_fetch('QZ1243A', data_template)
+                assert nd.host == "QZ1243A", "Bad host"
+                assert nd.mac == "00:01:02:03:04:05", "Bad mac"
+                assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
+                assert nd.status == toset, "Bad status %s, should be '%s'" % (nd.status, toset)
+            finally:
+                try:
+                    self.superuser.host_destroy('QZ1243A')
+                except:
+                    pass
 if __name__ == "__main__":
     sys.exit(main())

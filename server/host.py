@@ -238,6 +238,12 @@ class Host(Model):
         q = "UPDATE hosts SET dns=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         self.db.commit()
+        
+    @update("status", ExtHostStatus)
+    def set_status(self, value):
+        q = "UPDATE hosts SET entry_status=:value WHERE id=:name"
+        self.db.put(q, name=self.oid, value=value)
+        self.db.commit()
             
 
 class HostManager(Manager):
