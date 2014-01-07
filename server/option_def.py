@@ -12,6 +12,10 @@ class ExtNoSuchOptionDefError(ExtLookupError):
     
 class ExtOptionDefError(ExtValueError):
     desc = "The option definition is illegal"
+    
+    
+class ExtOptionNotSetError(ExtLookupError):
+    desc = "The given option was not set"
 
 
 class ExtOptionDefName(ExtString):
@@ -30,13 +34,35 @@ class ExtOptionDefCode(ExtOrNull):
 
 class ExtOptionDef(ExtOptionDefName):
     name = "option_def"
-    desc = "A option_def instance"
+    desc = "A defined option identified by its name"
 
     def lookup(self, fun, cval):
         return fun.option_def_manager.get_option_def(str(cval))
 
     def output(self, fun, obj):
         return obj.oid
+    
+    
+class ExtOptionValue(ExtStruct):
+    name = "option_value"
+    desc = "An option name-value pair"
+    
+    mandatory = {
+                 "name": (ExtString, "Option name"),
+                 "value": (ExtString, "Option value")
+                }
+ 
+    
+class ExtOptionValueList(ExtList):
+    name = "option_value_list"
+    desc = "List of optiona and their values"
+    typ = ExtOptionValue
+    
+    
+class ExtOptions(ExtDict):
+    typ = ExtString
+    name = "options"
+    desc = "Options defined for the object"
     
     
 class ExtOptionType(ExtEnum):

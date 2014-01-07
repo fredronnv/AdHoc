@@ -4,6 +4,7 @@ from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
 from shared_network import ExtNetwork, ExtNetworkName
+from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptionValueList, ExtOptions
 
 
 class ExtNoSuchSubnetworkError(ExtLookupError):
@@ -49,6 +50,27 @@ class SubnetworkDestroy(SubnetworkFunBase):
 
     def do(self):
         self.subnetwork_manager.destroy_subnetwork(self, self.id)
+        
+
+class SubnetworkOptionSet(SubnetworkFunBase):
+    extname = "subnetwork_option_set"
+    desc = "Set an option value on a subnetwork"
+    params = [("option_name", ExtOptionDef, "Option name"),
+              ("value", ExtString, "Option value")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.subnetwork_manager.set_option(self, self.id, self.option_name, self.value)
+
+
+class SubnetworkOptionUnset(SubnetworkFunBase):
+    extname = "subnetwork_option_unset"
+    desc = "Unset an option value on a subnetwork"
+    params = [("option_name", ExtOptionDef, "Option name")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.subnetwork_manager.unset_option(self, self.id, self.option_name, self.value)
 
 
 class Subnetwork(Model):
@@ -83,6 +105,15 @@ class Subnetwork(Model):
     @template("changed_by", ExtString)
     def get_changed_by(self):
         return self.changed_by
+    
+    @template("options", ExtOptions)
+    def get_options(self):
+        q = "SELECT name, value FROM subnetwork_options WHERE `for`=:id"
+        ret = {}
+        res = self.db.get_all(q, id=self.oid)
+        for opt in res:
+            ret[opt[0]] = opt[1]
+        return ret
     
     @update("id", ExtSubnetworkID)
     def set_id(self, value):
@@ -132,7 +163,7 @@ class SubnetworkManager(Manager):
     
     def create_subnetwork(self, fun, id, network, info):
         q = "INSERT INTO subnetworks (id, network, info, changed_by) VALUES (:id, :network, :info, :changed_by)"
-        print "PARAMS: id=",id,"network=",network
+        print "PARAMS: id=", id, "network=", network
         self.db.put(q, id=id, network=network, info=info, changed_by=fun.session.authuser)
         print "Subnetwork created, id=", id
         self.db.commit()
@@ -148,3 +179,13 @@ class SubnetworkManager(Manager):
         obj.oid = newid
         del(self._model_cache[oid])
         self._model_cache[newid] = obj
+        
+    def set_option(self, fun, id, option, value):
+        q = """INSERT INTO subnetwork_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
+               ON DUPLICATE KEY UPDATE value=:value"""
+        self.db.put(q, id=id, name=option.oid, value=value, changed_by=fun.session.authuser)
+        
+    def unset_option(self, fun, id, name):
+        q = """DELETE FROM subnetwork_options WHERE for=:id AND name=:name"""
+        if not self.db.put(q, id=id, name=name):
+            raise ExtOptionNotSetError()
