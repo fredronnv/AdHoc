@@ -11,7 +11,8 @@ data_template = {
                  "info": True, 
                  "pool": True,
                  "changed_by": True,
-                 "mtime": True
+                 "mtime": True,
+                 "options": True
                  }
 
 
@@ -182,6 +183,58 @@ class T1250_PoolSetNetwork(UnAuthTests):
             self.superuser.network_destroy('network_test')
             self.superuser.network_destroy('network_othertest')                
   
+  
+class T1260_PoolSetOption(AuthTests):
+    """ Test setting options on a pool"""
+    
+    def do(self):  
+        if self.proxy != self.superuser:
+            return
+        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        
+        with AssertAccessError(self):
+            try:
+                self.proxy.pool_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                nd = self.superuser.pool_fetch('QZ1243A', data_template)
+                assert nd.pool == "QZ1243A", "Bad pool id"
+                assert nd.network == 'network_test', "Bad network"
+                assert nd.info == "TestPool", "Bad info"
+                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                
+            finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                self.superuser.network_destroy('network_test')
+                
+                
+class T1270_PoolUnsetOption(AuthTests):
+    """ Test unsetting options on a pool"""
+    
+    def do(self):
+        if self.proxy != self.superuser:
+            return
+        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        
+        with AssertAccessError(self):
+            try:
+                self.superuser.pool_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                self.proxy.pool_option_unset("QZ1243A", "subnet-mask")
+                nd = self.superuser.pool_fetch('QZ1243A', data_template)
+                assert nd.pool == "QZ1243A", "Bad pool id"
+                assert nd.network == 'network_test', "Bad network"
+                assert nd.info == "TestPool", "Bad info"
+                assert "subnet-info" not in nd.options, "Subnet-mask still in options"
+                
+            finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                self.superuser.network_destroy('network_test')
         
 if __name__ == "__main__":
     sys.exit(main())

@@ -6,6 +6,7 @@ from rpcc.function import SessionedFunction
 from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
 from shared_network import ExtNetwork, ExtNetworkName
+from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 
 
 class ExtNoSuchPoolError(ExtLookupError):
@@ -42,7 +43,11 @@ class ExtPoolCreateOptions(ExtStruct):
                 "optionspace": (ExtOptionspace, "Whether the pool should declare an option space"),
                 }
     
-
+    
+class PoolFunBase(SessionedFunction):  
+    params = [("pool", ExtPool, "Pool")]
+    
+    
 class PoolCreate(SessionedFunction):
     extname = "pool_create"
     params = [("pool_name", ExtPoolName, "Name of DHCP pool to create"),
@@ -56,14 +61,34 @@ class PoolCreate(SessionedFunction):
         self.pool_manager.create_pool(self, self.pool_name, self.network, self.info, self.options)
 
 
-class PoolDestroy(SessionedFunction):
+class PoolDestroy(PoolFunBase):
     extname = "pool_destroy"
-    params = [("pool", ExtPool, "Pool to destroy")]
     desc = "Destroys a DHCP pool"
     returns = (ExtNull)
 
     def do(self):
         self.pool_manager.destroy_pool(self, self.pool)
+
+
+class PoolOptionSet(PoolFunBase):
+    extname = "pool_option_set"
+    desc = "Set an option value on a pool"
+    params = [("option_name", ExtOptionDef, "Option name"),
+              ("value", ExtString, "Option value")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.pool_manager.set_option(self, self.pool, self.option_name, self.value)
+
+
+class PoolOptionUnset(PoolFunBase):
+    extname = "pool_option_unset"
+    desc = "Unset an option value on a pool"
+    params = [("option_name", ExtOptionDef, "Option name")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.pool_manager.unset_option(self, self.pool, self.option_name)
 
 
 class Pool(Model):
@@ -104,6 +129,15 @@ class Pool(Model):
     @template("changed_by", ExtString)
     def get_changed_by(self):
         return self.changed_by
+    
+    @template("options", ExtOptions)
+    def get_options(self):
+        q = "SELECT name, value FROM pool_options WHERE `for`=:id"
+        ret = {}
+        res = self.db.get_all(q, id=self.oid)
+        for opt in res:
+            ret[opt[0]] = opt[1]
+        return ret
     
     @update("pool", ExtString)
     def set_pool(self, pool_name):
@@ -196,3 +230,14 @@ class PoolManager(Manager):
         obj.oid = newname
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
+        
+        
+    def set_option(self, fun, pool, option, value):
+        q = """INSERT INTO pool_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
+               ON DUPLICATE KEY UPDATE value=:value"""
+        self.db.put(q, id=pool.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
+        
+    def unset_option(self, fun, pool, option):
+        q = """DELETE FROM pool_options WHERE `for`=:id AND name=:name"""
+        if not self.db.put(q, id=pool.oid, name=option.oid):
+            raise ExtOptionNotSetError()
