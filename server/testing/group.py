@@ -11,7 +11,8 @@ data_template = {
                  "info": True, 
                  "group": True,
                  "changed_by": True,
-                 "mtime": True
+                 "mtime": True,
+                 "options": True
                  }
 
 
@@ -143,6 +144,58 @@ class T1150_GroupSetParent(UnAuthTests):
                 assert nd.group == "QZ1243A", "Bad group group"
                 assert nd.info == "TestGroup", "Bad info"
                 assert nd.parent == "plain", "Bad parent %s, should be 'plain'" % nd.parent
+            finally:
+                try:
+                    self.superuser.group_destroy('QZ1243A')
+                except:
+                    pass
+                
+                
+class T0460_GroupSetOption(AuthTests):
+    """ Test setting options on a group"""
+    
+    def do(self):
+        if self.proxy != self.superuser:
+            return
+        try:
+            self.superuser.group_destroy('QZ1243A')
+        except:
+            pass
+
+        self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
+        
+        with AssertAccessError(self):
+            try:
+                self.proxy.group_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                nd = self.superuser.group_fetch('QZ1243A', data_template)
+                assert nd.group == "QZ1243A", "Bad group id"
+                assert nd.info == "TestGroup", "Bad info"
+                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                
+            finally:
+                try:
+                    self.superuser.group_destroy('QZ1243A')
+                except:
+                    pass
+                
+                
+class T0470_GroupUnsetOption(AuthTests):
+    """ Test unsetting options on a group"""
+    
+    def do(self):
+        if self.proxy != self.superuser:
+            return
+        self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
+        
+        with AssertAccessError(self):
+            try:
+                self.proxy.group_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                self.proxy.group_option_unset("QZ1243A", "subnet-mask")
+                nd = self.superuser.group_fetch("QZ1243A", data_template)
+                assert nd.group == "QZ1243A", "Bad group id"
+                assert nd.info == "TestGroup", "Bad info"
+                assert "subnet-mask" not in nd.options, "Subnet-mask still in options"
+                
             finally:
                 try:
                     self.superuser.group_destroy('QZ1243A')

@@ -5,6 +5,7 @@ from rpcc.exttype import *
 from rpcc.function import SessionedFunction
 from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
+from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 
 
 class ExtNoSuchGroupError(ExtLookupError):
@@ -42,6 +43,10 @@ class ExtGroupCreateOptions(ExtStruct):
                 }
 
 
+class GroupFunBase(SessionedFunction):  
+    params = [("group", ExtGroup, "Group name")]
+    
+    
 class GroupCreate(SessionedFunction):
     extname = "group_create"
     params = [("group_name", ExtGroupName, "Name of DHCP group to create"),
@@ -55,14 +60,34 @@ class GroupCreate(SessionedFunction):
         self.group_manager.create_group(self, self.group_name, self.parent, self.info, self.options)
 
 
-class GroupDestroy(SessionedFunction):
+class GroupDestroy(GroupFunBase):
     extname = "group_destroy"
-    params = [("group", ExtGroup, "Group to destroy")]
     desc = "Destroys a DHCP group"
     returns = (ExtNull)
 
     def do(self):
         self.group_manager.destroy_group(self, self.group)
+
+
+class GroupOptionSet(GroupFunBase):
+    extname = "group_option_set"
+    desc = "Set an option value on a group"
+    params = [("option_name", ExtOptionDef, "Option name"),
+              ("value", ExtString, "Option value")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.group_manager.set_option(self, self.group, self.option_name, self.value)
+
+
+class GroupOptionUnset(GroupFunBase):
+    extname = "group_option_unset"
+    desc = "Unset an option value on a group"
+    params = [("option_name", ExtOptionDef, "Option name")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.group_manager.unset_option(self, self.group, self.option_name)
 
 
 class Group(Model):
@@ -82,12 +107,12 @@ class Group(Model):
 
     @template("group", ExtGroup)
     def get_group(self):
-        print "GET_GROUP"
+        #print "GET_GROUP"
         return self
 
     @template("parent", ExtGroup)
     def get_parent(self):
-        print "GET_PARENT:", self.parent
+        #print "GET_PARENT:", self.parent
         p = self.manager.get_parent(self.parent)
         print "GET_PARENT 2:", p
         return p
@@ -108,6 +133,15 @@ class Group(Model):
     def get_changed_by(self):
         return self.changed_by
     
+    @template("options", ExtOptions)
+    def get_options(self):
+        q = "SELECT name, value FROM group_options WHERE `for`=:id"
+        ret = {}
+        res = self.db.get_all(q, id=self.oid)
+        for opt in res:
+            ret[opt[0]] = opt[1]
+        return ret
+
     @update("group", ExtString)
     def set_name(self, group_name):
         nn = str(group_name)
@@ -185,10 +219,10 @@ class GroupManager(Manager):
             print "Group created, name=", group_name
             self.db.commit()
         except IntegrityError, e:
-            print "SKAPELSEFEL A:",e
+            print "SKAPELSEFEL A:", e
             raise ExtGroupError("The group name is already in use")
         except Exception, e:
-            print "SKAPELSEFEL:",e
+            print "SKAPELSEFEL:", e
             raise
         
     def destroy_group(self, fun, group):
@@ -202,3 +236,13 @@ class GroupManager(Manager):
         obj.oid = newname
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
+        
+    def set_option(self, fun, group, option, value):
+        q = """INSERT INTO group_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
+               ON DUPLICATE KEY UPDATE value=:value"""
+        self.db.put(q, id=group.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
+        
+    def unset_option(self, fun, group, option):
+        q = """DELETE FROM group_options WHERE `for`=:id AND name=:name"""
+        if not self.db.put(q, id=group.oid, name=option.oid):
+            raise ExtOptionNotSetError()
