@@ -4,7 +4,7 @@ from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
 from shared_network import ExtNetwork, ExtNetworkName
-from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptionValueList, ExtOptions
+from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 
 
 class ExtNoSuchSubnetworkError(ExtLookupError):
@@ -29,12 +29,13 @@ class ExtSubnetwork(ExtSubnetworkID):
     
     
 class SubnetworkFunBase(SessionedFunction):  
-    params = [("id", ExtSubnetworkID, "Subnetwork to create")]
+    params = [("subnetwork", ExtSubnetwork, "Subnetwork ID")]
     
     
-class SubnetworkCreate(SubnetworkFunBase):
+class SubnetworkCreate(SessionedFunction):
     extname = "subnetwork_create"
-    params = [("network", ExtNetwork, "Shared network that the subnetwork belongs to"),
+    params = [("subnetwork", ExtSubnetworkID, "ID of new subnetwork"),
+              ("network", ExtNetwork, "Shared network that the subnetwork belongs to"),
               ("info", ExtString, "Subnetwork description")]
     desc = "Creates a subnetwork"
     returns = (ExtNull)
@@ -49,7 +50,7 @@ class SubnetworkDestroy(SubnetworkFunBase):
     returns = (ExtNull)
 
     def do(self):
-        self.subnetwork_manager.destroy_subnetwork(self, self.id)
+        self.subnetwork_manager.destroy_subnetwork(self, self.subnetwork)
         
 
 class SubnetworkOptionSet(SubnetworkFunBase):
@@ -60,7 +61,7 @@ class SubnetworkOptionSet(SubnetworkFunBase):
     returns = (ExtNull)
     
     def do(self):
-        self.subnetwork_manager.set_option(self, self.id, self.option_name, self.value)
+        self.subnetwork_manager.set_option(self, self.subnetwork, self.option_name, self.value)
 
 
 class SubnetworkOptionUnset(SubnetworkFunBase):
@@ -70,7 +71,7 @@ class SubnetworkOptionUnset(SubnetworkFunBase):
     returns = (ExtNull)
     
     def do(self):
-        self.subnetwork_manager.unset_option(self, self.id, self.option_name, self.value)
+        self.subnetwork_manager.unset_option(self, self.subnetwork, self.option_name)
 
 
 class Subnetwork(Model):
@@ -168,9 +169,9 @@ class SubnetworkManager(Manager):
         print "Subnetwork created, id=", id
         self.db.commit()
         
-    def destroy_subnetwork(self, fun, id):
+    def destroy_subnetwork(self, fun, subnetwork):
         q = "DELETE FROM subnetworks WHERE id=:id LIMIT 1"
-        self.db.put(q, id=id)
+        self.db.put(q, id=subnetwork.oid)
         print "Subnetwork destroyed, id=", id
         self.db.commit()
 
@@ -180,12 +181,12 @@ class SubnetworkManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newid] = obj
         
-    def set_option(self, fun, id, option, value):
+    def set_option(self, fun, subnetwork, option, value):
         q = """INSERT INTO subnetwork_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
-        self.db.put(q, id=id, name=option.oid, value=value, changed_by=fun.session.authuser)
+        self.db.put(q, id=subnetwork.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
-    def unset_option(self, fun, id, name):
-        q = """DELETE FROM subnetwork_options WHERE for=:id AND name=:name"""
-        if not self.db.put(q, id=id, name=name):
+    def unset_option(self, fun, subnetwork, option):
+        q = """DELETE FROM subnetwork_options WHERE `for`=:id AND name=:name"""
+        if not self.db.put(q, id=subnetwork.oid, name=option.oid):
             raise ExtOptionNotSetError()
