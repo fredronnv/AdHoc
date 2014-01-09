@@ -15,7 +15,8 @@ data_template = {
                  "info": True, 
                  "group": True,
                  "changed_by": True,
-                 "mtime": True
+                 "mtime": True,
+                 "options": True
                  }
 
 
@@ -255,7 +256,7 @@ class T1391_HostSetBadDNS(UnAuthTests):
             pass              
 
 
-class T1390_HostSetStstus(UnAuthTests):
+class T1390_HostSetStatus(UnAuthTests):
     """ Test setting status on a host"""
     
     def do(self):
@@ -292,5 +293,60 @@ class T1390_HostSetStstus(UnAuthTests):
                     self.superuser.host_destroy('QZ1243A')
                 except:
                     pass
+                
+                
+class T1360_HostSetOption(AuthTests):
+    """ Test setting options on a host"""
+    
+    def do(self):
+        if self.proxy != self.superuser:
+            return
+        try:
+            self.superuser.host_destroy('QZ1243A')
+        except:
+            pass
+
+        self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
+        
+        with AssertAccessError(self):
+            try:
+                self.proxy.host_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                nd = self.superuser.host_fetch('QZ1243A', data_template)
+                assert nd.host == "QZ1243A", "Bad host"
+                assert nd.mac == "00:01:02:03:04:05", "Bad mac"
+                assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
+                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                
+            finally:
+                try:
+                    self.superuser.host_destroy('QZ1243A')
+                except:
+                    pass
+                
+                
+class T1370_HostUnsetOption(AuthTests):
+    """ Test unsetting options on a host"""
+    
+    def do(self):
+        if self.proxy != self.superuser:
+            return
+        self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
+        
+        with AssertAccessError(self):
+            try:
+                self.proxy.host_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                self.proxy.host_option_unset("QZ1243A", "subnet-mask")
+                nd = self.superuser.host_fetch("QZ1243A", data_template)
+                assert nd.host == "QZ1243A", "Bad host"
+                assert nd.mac == "00:01:02:03:04:05", "Bad mac"
+                assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
+                assert "subnet-mask" not in nd.options, "Subnet-mask still in options"
+                
+            finally:
+                try:
+                    self.superuser.host_destroy('QZ1243A')
+                except:
+                    pass
+                
 if __name__ == "__main__":
     sys.exit(main())

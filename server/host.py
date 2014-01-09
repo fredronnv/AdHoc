@@ -9,6 +9,7 @@ from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
 from group import ExtGroup
 from room import ExtRoomName
+from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 
 import socket
 
@@ -52,7 +53,6 @@ class ExtDNSName(ExtString):
             raise ExtNoSuchDNSNameError()
         return cval
         
-    
     
 class ExtHostDns(ExtOrNull):
     name = "host_fqdn"
@@ -105,6 +105,10 @@ class ExtHostRoom(ExtOrNull):
     typ = ExtString
 
 
+class HostFunBase(SessionedFunction):  
+    params = [("host", ExtHost, "Host name")]
+    
+    
 class HostCreate(SessionedFunction):
     extname = "host_create"
     params = [("host_name", ExtHostName, "Name of DHCP host to create"),
@@ -117,14 +121,34 @@ class HostCreate(SessionedFunction):
         self.host_manager.create_host(self, self.host_name, self.mac, self.options)
 
 
-class HostDestroy(SessionedFunction):
+class HostDestroy(HostFunBase):
     extname = "host_destroy"
-    params = [("host", ExtHost, "Host to destroy")]
     desc = "Destroys a DHCP host"
     returns = (ExtNull)
 
     def do(self):
         self.host_manager.destroy_host(self, self.host)
+
+
+class HostOptionSet(HostFunBase):
+    extname = "host_option_set"
+    desc = "Set an option value on a host"
+    params = [("option_name", ExtOptionDef, "Option name"),
+              ("value", ExtString, "Option value")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.host_manager.set_option(self, self.host, self.option_name, self.value)
+
+
+class HostOptionUnset(HostFunBase):
+    extname = "host_option_unset"
+    desc = "Unset an option value on a host"
+    params = [("option_name", ExtOptionDef, "Option name")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.host_manager.unset_option(self, self.host, self.option_name)
 
 
 class Host(Model):
@@ -187,6 +211,15 @@ class Host(Model):
     @template("changed_by", ExtString)
     def get_changed_by(self):
         return self.changed_by
+    
+    @template("options", ExtOptions)
+    def get_options(self):
+        q = "SELECT name, value FROM host_options WHERE `for`=:id"
+        ret = {}
+        res = self.db.get_all(q, id=self.oid)
+        for opt in res:
+            ret[opt[0]] = opt[1]
+        return ret
     
     @update("host", ExtString)
     def set_name(self, host_name):
@@ -314,3 +347,14 @@ class HostManager(Manager):
         obj.oid = newname
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
+             
+    def set_option(self, fun, host, option, value):
+        q = """INSERT INTO host_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
+               ON DUPLICATE KEY UPDATE value=:value"""
+        self.db.put(q, id=host.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
+        
+    def unset_option(self, fun, host, option):
+        q = """DELETE FROM host_options WHERE `for`=:id AND name=:name"""
+        if not self.db.put(q, id=host.oid, name=option.oid):
+            raise ExtOptionNotSetError()
+
