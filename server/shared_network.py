@@ -3,6 +3,8 @@
 from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
+from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
+
 
 
 class ExtNoSuchNetworkError(ExtLookupError):
@@ -10,8 +12,8 @@ class ExtNoSuchNetworkError(ExtLookupError):
 
 
 class ExtNetworkName(ExtString):
-    name = "network-id"
-    desc = "ID of a DHCP shared network"
+    name = "network-name"
+    desc = "Name of a DHCP shared network"
     regexp = "^[A-Za-z0-9_][-A-Za-z0-9_]*$"
 
 
@@ -26,6 +28,10 @@ class ExtNetwork(ExtNetworkName):
         return obj.oid
     
     
+class NetworkFunBase(SessionedFunction):  
+    params = [("network", ExtNetwork, "Shared network name")]
+   
+     
 class NetworkCreate(SessionedFunction):
     extname = "network_create"
     params = [("network_name", ExtNetworkName, "Network ID to create"),
@@ -38,14 +44,34 @@ class NetworkCreate(SessionedFunction):
         self.network_manager.create_network(self, self.network_name, self.authoritative, self.info)
         
 
-class NetworkDestroy(SessionedFunction):
+class NetworkDestroy(NetworkFunBase):
     extname = "network_destroy"
-    params = [("network", ExtNetwork, "Shared network to destroy")]
     desc = "Destroys a shared network"
     returns = (ExtNull)
 
     def do(self):
         self.network_manager.destroy_network(self, self.network)
+
+
+class NetworkOptionSet(NetworkFunBase):
+    extname = "network_option_set"
+    desc = "Set an option value on a network"
+    params = [("option_name", ExtOptionDef, "Option name"),
+              ("value", ExtString, "Option value")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.network_manager.set_option(self, self.network, self.option_name, self.value)
+
+
+class NetworkOptionUnset(NetworkFunBase):
+    extname = "network_option_unset"
+    desc = "Unset an option value on a network"
+    params = [("option_name", ExtOptionDef, "Option name")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.network_manager.unset_option(self, self.network, self.option_name)
 
 
 class Network(Model):
@@ -81,6 +107,22 @@ class Network(Model):
     def get_changed_by(self):
         return self.changed_by
     
+    @template("options", ExtOptions)
+    def get_options(self):
+        q = "SELECT name, value FROM network_options WHERE `for`=:id"
+        ret = {}
+        res = self.db.get_all(q, id=self.oid)
+        for opt in res:
+            ret[opt[0]] = opt[1]
+        return ret
+    
+    @update("network", ExtNetworkName)
+    def set_natwork(self, value):
+        q = "UPDATE snetworks SET id=:value WHERE id=:id"
+        self.db.put(q, id=self.oid, value=value)
+        self.db.commit()
+        self.manager.rename_network(self, value)
+
     @update("authoritative", ExtBoolean)
     def set_authoritative(self, newauthoritative):
         q = "UPDATE networks SET authoritative=:authoritative WHERE id=:id"
@@ -131,3 +173,19 @@ class NetworkManager(Manager):
         self.db.put(q, id=network.oid)
         print "Network destroyed, name=", network.oid
         self.db.commit()
+        
+    def rename_network(self, obj, newid):
+        oid = obj.oid
+        obj.oid = newid
+        del(self._model_cache[oid])
+        self._model_cache[newid] = obj
+        
+    def set_option(self, fun, network, option, value):
+        q = """INSERT INTO network_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
+               ON DUPLICATE KEY UPDATE value=:value"""
+        self.db.put(q, id=network.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
+        
+    def unset_option(self, fun, network, option):
+        q = """DELETE FROM network_options WHERE `for`=:id AND name=:name"""
+        if not self.db.put(q, id=network.oid, name=option.oid):
+            raise ExtOptionNotSetError()
