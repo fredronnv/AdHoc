@@ -11,7 +11,8 @@ data_template = {
                  "info": True, 
                  "host_class": True,
                  "changed_by": True,
-                 "mtime": True
+                 "mtime": True,
+                 "options": True
                  }
 
 
@@ -152,6 +153,59 @@ class T1150_HostClassSetVendorClassID(UnAuthTests):
                     self.superuser.host_class_destroy('QZ1243A')
                 except:
                     pass
+
+               
+class T1160_HostClassSetOption(AuthTests):
+    """ Test setting options on a host_class"""
+    
+    def do(self):
+        if self.proxy != self.superuser:
+            return
+        try:
+            self.superuser.host_class_destroy('QZ1243A')
+        except:
+            pass
+
+        self.superuser.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
+        
+        with AssertAccessError(self):
+            try:
+                self.proxy.host_class_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                nd = self.superuser.host_class_fetch('QZ1243A', data_template)
+                assert nd.host_class == "QZ1243A", "Bad host_class id"
+                assert nd.info == "TestHostClass", "Bad info"
+                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                
+            finally:
+                try:
+                    self.superuser.host_class_destroy('QZ1243A')
+                except:
+                    pass
+                
+                
+class T1170_HostClassUnsetOption(AuthTests):
+    """ Test unsetting options on a host_class"""
+    
+    def do(self):
+        if self.proxy != self.superuser:
+            return
+        self.superuser.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
+        
+        with AssertAccessError(self):
+            try:
+                self.proxy.host_class_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                self.proxy.host_class_option_unset("QZ1243A", "subnet-mask")
+                nd = self.superuser.host_class_fetch("QZ1243A", data_template)
+                assert nd.host_class == "QZ1243A", "Bad host_class id"
+                assert nd.info == "TestHostClass", "Bad info"
+                assert "subnet-mask" not in nd.options, "Subnet-mask still in options"
+                
+            finally:
+                try:
+                    self.superuser.host_class_destroy('QZ1243A')
+                except:
+                    pass
+        
         
 if __name__ == "__main__":
     sys.exit(main())

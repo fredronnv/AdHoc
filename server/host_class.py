@@ -5,6 +5,7 @@ from rpcc.exttype import *
 from rpcc.function import SessionedFunction
 from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
+from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 
 
 class ExtNoSuchHostClassError(ExtLookupError):
@@ -48,6 +49,9 @@ class ExtHostClassVendorClassID(ExtOrNull):
     typ = ExtString
 
 
+class HostClassFunBase(SessionedFunction):  
+    params = [("host_class", ExtHostClass, "HostClass name")]
+    
 class HostClassCreate(SessionedFunction):
     extname = "host_class_create"
     params = [("host_class_name", ExtHostClassName, "Name of DHCP host_class to create"),
@@ -69,6 +73,27 @@ class HostClassDestroy(SessionedFunction):
 
     def do(self):
         self.host_class_manager.destroy_host_class(self, self.host_class)
+
+
+class HostClassOptionSet(HostClassFunBase):
+    extname = "host_class_option_set"
+    desc = "Set an option value on a host_class"
+    params = [("option_name", ExtOptionDef, "Option name"),
+              ("value", ExtString, "Option value")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.host_class_manager.set_option(self, self.host_class, self.option_name, self.value)
+
+
+class HostClassOptionUnset(HostClassFunBase):
+    extname = "host_class_option_unset"
+    desc = "Unset an option value on a host_class"
+    params = [("option_name", ExtOptionDef, "Option name")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.host_class_manager.unset_option(self, self.host_class, self.option_name)
 
 
 class HostClass(Model):
@@ -109,6 +134,15 @@ class HostClass(Model):
     @template("changed_by", ExtString)
     def get_changed_by(self):
         return self.changed_by
+    
+    @template("options", ExtOptions)
+    def get_options(self):
+        q = "SELECT name, value FROM class_options WHERE `for`=:id"
+        ret = {}
+        res = self.db.get_all(q, id=self.oid)
+        for opt in res:
+            ret[opt[0]] = opt[1]
+        return ret
     
     @update("host_class", ExtString)
     def set_host_class(self, host_class_name):
@@ -184,7 +218,7 @@ class HostClassManager(Manager):
             print "HostClass created, name=", host_class_name
             self.db.commit()
         except IntegrityError, e:
-            print "SKAPELSEFEL A:",e
+            print "SKAPELSEFEL A:", e
             raise ExtHostClassError("The host_class name is already in use")
         except Exception, e:
             print "SKAPELSEFEL:",e
@@ -201,3 +235,13 @@ class HostClassManager(Manager):
         obj.oid = newname
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
+            
+    def set_option(self, fun, host_class, option, value):
+        q = """INSERT INTO class_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
+               ON DUPLICATE KEY UPDATE value=:value"""
+        self.db.put(q, id=host_class.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
+        
+    def unset_option(self, fun, host_class, option):
+        q = """DELETE FROM class_options WHERE `for`=:id AND name=:name"""
+        if not self.db.put(q, id=host_class.oid, name=option.oid):
+            raise ExtOptionNotSetError()
