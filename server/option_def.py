@@ -4,6 +4,7 @@ from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
 from optionspace import *
+from util import ExtDict
 
 
 class ExtNoSuchOptionDefError(ExtLookupError):
