@@ -51,6 +51,7 @@ in any order.
 
 """
 
+
 # Cacheability constants. The "level" is used when chaining - the
 # result when merging two _Decisions will get the _Cacheability from
 # the source where the .level is lowest.
@@ -72,11 +73,14 @@ class _Cacehability(object):
 
     __hash__ = None
 
+
 class CacheInFunction(_Cacehability):
     level = 2
 
+
 class CacheInObject(_Cacehability):
     level = 1
+
 
 class NeverCache(_Cacehability):
     level = 0
@@ -92,14 +96,18 @@ class _Decision(object):
         else:
             return self.__class__(self.cacheability)
 
+
 class AccessGranted(_Decision): 
     pass
+
 
 class AccessDenied(_Decision): 
     pass
 
+
 class DecisionReferred(_Decision): 
     pass
+
 
 class Guard(object):
     """A Guard is posted at an @entry-decorated method. On conditions
@@ -156,11 +164,13 @@ class DefaultSuperuserGuard(Guard):
             return AccessGranted(CacheInFunction)
         return DecisionReferred(CacheInFunction)
 
+
 class AuthRequiredGuard(Guard):
     def check(self, obj, function):
         if function.session.authuser is not None:
             return AccessGranted(CacheInFunction)
         return DecisionReferred(CacheInFunction)
+
 
 class SuperuserGuardProxy(Guard):
     def check(self, obj, function):
@@ -256,21 +266,23 @@ class FirstOpinion(_Chain):
     is returned."""
     mode = _Chain.first_opinion
 
+
 class AnyGrants(_Chain):
     """Chain guard that returns AccessGranted if any sub-guards returned
     AccessGranted, regardless of what other returned."""
     mode = _Chain.first_yes
+
 
 class NoDenies(_Chain):
     """Chain guard that returns AccessDenied if any of the sub-guards
     returned AccessDenied, regardless of what the other returned."""
     mode = _Chain.first_no
 
+
 # When the decorator is used, which is in when the "class" statement
 # is being run, entry() is called. It returns a copy of
 # checked_method_maker, where that copy also includes the "guard"
 # variable's value passed to entry().
-
 def entry(guard):
     """@entry decorator, which marks a method as access protected.
 
@@ -349,7 +361,3 @@ def entry(guard):
             actually_called._searches = wrapped_method._searches
         return actually_called
     return checked_method_maker
-
-
-
-
