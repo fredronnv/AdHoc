@@ -6,14 +6,15 @@ from rpcc.function import SessionedFunction
 from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
+from rpcc.access import *
 
 
 class ExtNoSuchHostClassError(ExtLookupError):
     desc = "No such host_class exists."
-
-
-class ExtHostClassError(ExtValueError):
-    desc = "The host_class name is invalid or in use"
+    
+    
+class ExtHostClassAlreadyExistsError(ExtLookupError):
+    desc = "The host class name already exists"
 
 
 class ExtHostClassName(ExtString):
@@ -51,6 +52,7 @@ class ExtHostClassVendorClassID(ExtOrNull):
 
 class HostClassFunBase(SessionedFunction):  
     params = [("host_class", ExtHostClass, "HostClass name")]
+    
     
 class HostClassCreate(SessionedFunction):
     extname = "host_class_create"
@@ -145,6 +147,7 @@ class HostClass(Model):
         return ret
     
     @update("host_class", ExtString)
+    @entry(AuthRequiredGuard)
     def set_host_class(self, host_class_name):
         nn = str(host_class_name)
         q = "UPDATE classes SET classname=:value WHERE classname=:name LIMIT 1"
@@ -154,6 +157,7 @@ class HostClass(Model):
         self.manager.rename_host_class(self, nn)
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, value):
         q = "UPDATE classes SET info=:value WHERE classname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
@@ -161,12 +165,14 @@ class HostClass(Model):
         print "HostClass %s changed Info to %s" % (self.oid, value)
     
     @update("vendor_class_id", ExtString)
+    @entry(AuthRequiredGuard)
     def set_vendor_class_id(self, value):
         q = "UPDATE classes SET vendor_class_id=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
         self.db.commit()
         
     @update("optionspace", ExtOrNullOptionspace)
+    @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE host_classes SET optionspace=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
@@ -205,6 +211,7 @@ class HostClassManager(Manager):
         dq.table("classes g")
         return "g.vendor_class_id"
     
+    @entry(AuthRequiredGuard)
     def create_host_class(self, fun, host_class_name, vendor_class_id, info, options):
         if options == None:
             options = {}
@@ -218,12 +225,9 @@ class HostClassManager(Manager):
             print "HostClass created, name=", host_class_name
             self.db.commit()
         except IntegrityError, e:
-            print "SKAPELSEFEL A:", e
-            raise ExtHostClassError("The host_class name is already in use")
-        except Exception, e:
-            print "SKAPELSEFEL:",e
-            raise
+            raise ExtHostClassAlreadyExistsError()
         
+    @entry(AuthRequiredGuard)
     def destroy_host_class(self, fun, host_class):
         q = "DELETE FROM classes WHERE classname=:classname LIMIT 1"
         self.db.put(q, classname=host_class.oid)
@@ -236,11 +240,13 @@ class HostClassManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
             
+    @entry(AuthRequiredGuard)
     def set_option(self, fun, host_class, option, value):
         q = """INSERT INTO class_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=host_class.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
+    @entry(AuthRequiredGuard)
     def unset_option(self, fun, host_class, option):
         q = """DELETE FROM class_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=host_class.oid, name=option.oid):

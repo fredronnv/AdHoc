@@ -7,15 +7,16 @@ from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
 from shared_network import ExtNetwork, ExtNetworkName
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
+from rpcc.access import *
 
 
 class ExtNoSuchPoolError(ExtLookupError):
     desc = "No such pool exists."
 
 
-class ExtPoolError(ExtValueError):
-    desc = "The pool name is invalid or in use"
-
+class ExtPoolAlreadyExistsError(ExtLookupError):
+    desc = "The pool name is already in use"
+    
 
 class ExtPoolName(ExtString):
     name = "pool-name"
@@ -79,6 +80,10 @@ class PoolOptionSet(PoolFunBase):
     
     def do(self):
         self.pool_manager.set_option(self, self.pool, self.option_name, self.value)
+        
+        
+class PoolLiteralOptionAdd(PoolFunBase):
+    extname = "pool_literal_option_add"
 
 
 class PoolOptionUnset(PoolFunBase):
@@ -140,6 +145,7 @@ class Pool(Model):
         return ret
     
     @update("pool", ExtString)
+    @entry(AuthRequiredGuard)
     def set_pool(self, pool_name):
         nn = str(pool_name)
         q = "UPDATE pools SET poolname=:value WHERE poolname=:name LIMIT 1"
@@ -149,6 +155,7 @@ class Pool(Model):
         self.manager.rename_pool(self, nn)
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, value):
         q = "UPDATE pools SET info=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
@@ -156,12 +163,14 @@ class Pool(Model):
         print "Pool %s changed Info to %s" % (self.oid, value)
     
     @update("network", ExtString)
+    @entry(AuthRequiredGuard)
     def set_network(self, value):
         q = "UPDATE pools SET network=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
         self.db.commit()
         
     @update("optionspace", ExtOrNullOptionspace)
+    @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE pooles SET optionspace=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
@@ -200,6 +209,7 @@ class PoolManager(Manager):
         dq.table("pools g")
         return "g.network"
     
+    @entry(AuthRequiredGuard)
     def create_pool(self, fun, pool_name, network, info, options):
         if options == None:
             options = {}
@@ -213,12 +223,9 @@ class PoolManager(Manager):
             print "Pool created, name=", pool_name
             self.db.commit()
         except IntegrityError, e:
-            print "SKAPELSEFEL A:", e
-            raise ExtPoolError("The pool name is already in use")
-        except Exception, e:
-            print "SKAPELSEFEL:", e
-            raise
-        
+            raise ExtPoolAlreadyExistsError()
+    
+    @entry(AuthRequiredGuard)
     def destroy_pool(self, fun, pool):
         q = "DELETE FROM pools WHERE poolname=:poolname LIMIT 1"
         self.db.put(q, poolname=pool.oid)
@@ -230,13 +237,14 @@ class PoolManager(Manager):
         obj.oid = newname
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
-        
-        
+    
+    @entry(AuthRequiredGuard)   
     def set_option(self, fun, pool, option, value):
         q = """INSERT INTO pool_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=pool.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
-        
+    
+    @entry(AuthRequiredGuard)    
     def unset_option(self, fun, pool, option):
         q = """DELETE FROM pool_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=pool.oid, name=option.oid):

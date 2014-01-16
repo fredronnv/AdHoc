@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 """ ADHOC pool API test suite"""
-from framework import *
+from testing.framework import *
 from util import *
 
 data_template = {
@@ -43,12 +43,10 @@ class T1210_PoolFetch(UnAuthTests):
                 break
             
             
-class T1220_PoolCreate(UnAuthTests):
+class T1220_PoolCreate(AuthTests):
     """ Test pool_create """
     
     def do(self):  
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.pool_destroy('QZ1243A')
         except:
@@ -76,12 +74,10 @@ class T1220_PoolCreate(UnAuthTests):
             self.superuser.network_destroy('network_test')
         
         
-class T1230_PoolDestroy(UnAuthTests):
+class T1230_PoolDestroy(AuthTests):
     """ Test pool destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.pool_destroy('QZ1243A')
         except:
@@ -105,12 +101,10 @@ class T1230_PoolDestroy(UnAuthTests):
         self.superuser.network_destroy('network_test')
             
         
-class T1240_PoolSetName(UnAuthTests):
+class T1240_PoolSetName(AuthTests):
     """ Test setting the name of a pool"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.network_destroy('network_test')
         except:
@@ -132,12 +126,10 @@ class T1240_PoolSetName(UnAuthTests):
         self.superuser.network_destroy('network_test')
                 
                 
-class T1250_PoolSetInfo(UnAuthTests):
+class T1250_PoolSetInfo(AuthTests):
     """ Test setting info on a pool"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.network_destroy('network_test')
         except:
@@ -159,12 +151,10 @@ class T1250_PoolSetInfo(UnAuthTests):
         self.superuser.network_destroy('network_test')
 
 
-class T1250_PoolSetNetwork(UnAuthTests):
+class T1250_PoolSetNetwork(AuthTests):
     """ Test setting network on a pool"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.network_create('network_othertest', False, "Testnätverk 3")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
@@ -188,8 +178,6 @@ class T1260_PoolSetOption(AuthTests):
     """ Test setting options on a pool"""
     
     def do(self):  
-        if self.proxy != self.superuser:
-            return
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
         
@@ -214,8 +202,6 @@ class T1270_PoolUnsetOption(AuthTests):
     """ Test unsetting options on a pool"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
         

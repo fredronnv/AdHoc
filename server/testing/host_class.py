@@ -43,12 +43,10 @@ class T1110_HostClassFetch(UnAuthTests):
                 break
             
             
-class T1120_HostClassCreate(UnAuthTests):
+class T1120_HostClassCreate(AuthTests):
     """ Test host_class_create """
     
-    def do(self):  
-        if self.proxy != self.superuser:
-            return
+    def do(self):
         try:
             self.superuser.host_class_destroy('QZ1243A')
         except:
@@ -69,12 +67,10 @@ class T1120_HostClassCreate(UnAuthTests):
                     pass
         
         
-class T1130_HostClassDestroy(UnAuthTests):
+class T1130_HostClassDestroy(AuthTests):
     """ Test host_class destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.host_class_destroy('QZ1243A')
         except:
@@ -92,12 +88,10 @@ class T1130_HostClassDestroy(UnAuthTests):
                 pass
             
         
-class T1140_HostClassSetName(UnAuthTests):
+class T1140_HostClassSetName(AuthTests):
     """ Test setting the name of a host_class"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
         with AssertAccessError(self):
             try:
@@ -111,14 +105,17 @@ class T1140_HostClassSetName(UnAuthTests):
                     self.superuser.host_class_destroy('ZQ1296')
                 except:
                     pass
+                try:    
+                    self.superuser.host_class_destroy('QZ1243A')
+                except:
+                    pass
+        
                 
                 
-class T1150_HostClassSetInfo(UnAuthTests):
+class T1150_HostClassSetInfo(AuthTests):
     """ Test setting info on a host_class"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
         with AssertAccessError(self):
             try:
@@ -134,12 +131,10 @@ class T1150_HostClassSetInfo(UnAuthTests):
                     pass
                 
                 
-class T1150_HostClassSetVendorClassID(UnAuthTests):
+class T1150_HostClassSetVendorClassID(AuthTests):
     """ Test setting vendor_class_id on a host_class"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
         with AssertAccessError(self):
             try:
@@ -159,8 +154,6 @@ class T1160_HostClassSetOption(AuthTests):
     """ Test setting options on a host_class"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.host_class_destroy('QZ1243A')
         except:
@@ -187,8 +180,6 @@ class T1170_HostClassUnsetOption(AuthTests):
     """ Test unsetting options on a host_class"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
         
         with AssertAccessError(self):
