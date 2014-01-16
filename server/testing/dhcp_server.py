@@ -31,12 +31,14 @@ class T0510_DHCPServerFetch(UnAuthTests):
             assert "dns" in ret, "Key dns missing in returned struct from dhcp_server_fetch"
             
             
-class T0520_DHCPServerCreate(UnAuthTests):
+class T0520_DHCPServerCreate(SuperUserTests):
     """ Test dhcp_server_create """
     
-    def do(self):  
-        if self.proxy != self.superuser:
-            return
+    def do(self):
+        try:
+            self.superuser.dhcp_server_destroy('Q')
+        except:
+            pass
         with AssertAccessError(self):
             self.proxy.dhcp_server_create('Q', 'apa.bepa.chalmers.se', "TestDHCPServer")
             ret = self.superuser.dhcp_server_fetch('Q', {"dhcp_server": True, "info": True, "dns": True})
@@ -47,24 +49,30 @@ class T0520_DHCPServerCreate(UnAuthTests):
             assert ret.dns == "apa.bepa.chalmers.se", "DNS is " + ret.dns + " but should be 'apa.bepa.chalmers.se'"
         
         
-class T0530_DHCPServerDestroy(UnAuthTests):
+class T0530_DHCPServerDestroy(SuperUserTests):
     """ Test dhcp_server destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
-        with AssertAccessError(self):
-            self.proxy.dhcp_server_destroy('Q')
-            with AssertRPCCError("LookupError::NoSuchDHCPServer", True):
-                self.superuser.dhcp_server_fetch('Q', {"dhcp_server": True})
+        try:
+            self.superuser.dhcp_server_create('Q', 'apa.bepa.chalmers.se', "TestDHCPServer")
+        except:
+            pass
+        try:
+            with AssertAccessError(self):
+                self.proxy.dhcp_server_destroy('Q')
+                with AssertRPCCError("LookupError::NoSuchDHCPServer", True):
+                    self.superuser.dhcp_server_fetch('Q', {"dhcp_server": True})
+        finally:
+            try:
+                self.superuser.dhcp_server_destroy('Q')
+            except:
+                pass
         
         
-class T0540_DHCPServerSetDNS(UnAuthTests):
+class T0540_DHCPServerSetDNS(SuperUserTests):
     """ Test setting dns  of a dhcp_server"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.dhcp_server_create('Q', 'apa.chalmers.se', "Testserver 2")
         with AssertAccessError(self):
             try:
@@ -77,12 +85,10 @@ class T0540_DHCPServerSetDNS(UnAuthTests):
                 self.superuser.dhcp_server_destroy('Q')
                 
                 
-class T0550_DHCPServerSetInfo(UnAuthTests):
+class T0550_DHCPServerSetInfo(SuperUserTests):
     """ Test setting info on a dhcp_server"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.dhcp_server_create('Q', 'apa.chalmers.se', "Testserver 2")
         with AssertAccessError(self):
             try:
