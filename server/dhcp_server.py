@@ -2,13 +2,19 @@
 
 from rpcc.model import *
 from rpcc.exttype import *
-from rpcc.function import Function, SessionedFunction
+from rpcc.function import SessionedFunction
+from rpcc.access import *
+from rpcc.database import IntegrityError
 
 
 class ExtNoSuchDHCPServerError(ExtLookupError):
     desc = "No such dhcp_server exists."
 
 
+class ExtDHCPServerAlreadyExistsError(ExtLookupError):
+    desc = "The DHCP server ID is already in use"
+    
+    
 class ExtDHCPServerID(ExtString):
     name = "dhcp-server-id"
     desc = "ID of a DHCP server"
@@ -37,7 +43,7 @@ class DHCPServerCreate(SessionedFunction):
     def do(self):
         self.dhcp_server_manager.create_dhcp_server(self, self.dhcp_server_id, self.dns, self.info)
 
-
+    
 class DHCPServerDestroy(SessionedFunction):
     extname = "dhcp_server_destroy"
     params = [("dhcp_server", ExtDHCPServer, "DHCPServer to destroy")]
@@ -82,12 +88,14 @@ class DHCPServer(Model):
     def get_changed_by(self):
         return self.changed_by
     
+    @entry(SuperuserGuardProxy)
     @update("dns", ExtString)
     def set_dns(self, dns):
         q = "UPDATE dhcp_servers SET name=:name WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, name=dns)
         self.db.commit()
         
+    @entry(SuperuserGuardProxy)
     @update("info", ExtString)
     def set_info(self, info):
         q = "UPDATE dhcp_servers SET info=:info WHERE id=:dhcp_id"
@@ -121,12 +129,17 @@ class DHCPServerManager(Manager):
         dq.table("dhcp_servers ds")
         return "ds.id"
     
+    @entry(SuperuserGuardProxy)
     def create_dhcp_server(self, fun, dhcp_server_id, dns, info):
         q = "INSERT INTO dhcp_servers (id, name, info, changed_by) VALUES (:id, :name, :info, :changed_by)"
-        self.db.put(q, id=dhcp_server_id, name=dns, info=info, changed_by=fun.session.authuser)
+        try:
+            self.db.put(q, id=dhcp_server_id, name=dns, info=info, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtDHCPServerAlreadyExistsError()
         print "DHCPServer created, id=", dhcp_server_id
         self.db.commit()
         
+    @entry(SuperuserGuardProxy)
     def destroy_dhcp_server(self, fun, dhcp_server):
         q = "DELETE FROM dhcp_servers WHERE id=:id LIMIT 1"
         self.db.put(q, id=dhcp_server.oid)
