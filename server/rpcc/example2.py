@@ -11,6 +11,7 @@ import session
 import database
 import authentication
 
+
 class AllowCertainUser(access.Guard):
     def __init__(self, uname):
         self.uname = uname
@@ -20,6 +21,7 @@ class AllowCertainUser(access.Guard):
             return access.AccessGranted(access.CacheInFunction)
         else:
             return access.AccessDenied(access.CacheInFunction)
+
 
 class AllowOwner(access.Guard):
     def check(self, obj, fun):
@@ -34,7 +36,8 @@ class AllowOwner(access.Guard):
             else:
                 return access.AccessDenied(access.CacheInFunction)
         else:
-            return access.AccessReferred(access.CacheInFunction)
+            return access.DecisionReferred(access.CacheInFunction)
+
 
 class AllowBeforeLunch(access.Guard):
     def check(self, obj, fun):
@@ -42,6 +45,7 @@ class AllowBeforeLunch(access.Guard):
             return access.AccessGranted(access.CacheInFunction)
         else:
             return access.AccessDenied(access.CacheInFunction)
+
 
 class AllowAfterLunch(access.Guard):
     def check(self, obj, fun):
@@ -61,6 +65,7 @@ class ExtPerson(ExtString):
     def output(self, fun, obj):
         return obj.oid
 
+
 class ExtAccount(ExtString):
     name = "account"
     desc = "ID of an account in the system"
@@ -71,14 +76,18 @@ class ExtAccount(ExtString):
     def output(self, fun, obj):
         return obj.oid
 
+
 class ExtNoSuchPersonError(ExtLookupError):
     desc = "No such person exists."
+
 
 class ExtNoSuchAccountError(ExtLookupError):
     desc = "No such account exists."
 
+
 class PersonFunBase(Function):
     params = [("person", ExtPerson, "A person")]
+
 
 class FunPersonGetName(PersonFunBase):
     extname = "person_get_name"
@@ -86,6 +95,7 @@ class FunPersonGetName(PersonFunBase):
 
     def do(self):
         return self.person.fname + " " + self.person.lname
+
 
 class Person(Model):
     name = "person"
@@ -161,6 +171,7 @@ class Person(Model):
         amgr = self.account_manager
         return [amgr.model(a) for (a,) in self.db.get(q, pid=self.oid)]
 
+
 class PersonManager(Manager):
     name = "person_manager"
     manages = Person
@@ -199,6 +210,7 @@ class PersonManager(Manager):
         q.where("a.ucid_owner = p.ucid")
         return "a.ucid"
 
+
 class Account(Model):
     name = "account"
     exttype = ExtAccount
@@ -221,6 +233,7 @@ class Account(Model):
     @template("owner", ExtPerson, model="person")
     def get_owner(self):
         return self.person_manager.get_person(self.owner_id)
+
 
 class AccountManager(Manager):
     name = "account_manager"
@@ -268,15 +281,18 @@ class ExtStringSample(ExtString):
     regexp = "[sample]+"
     maxlen = 33
 
+
 class ExtIntegerSample(ExtInteger):
     name = "integer-sample"
     desc = "An integer sample"
     range = (1, 11)
 
+
 class ExtEnumSample(ExtEnum):
     name = "enum-sample"
     desc = "A sample of an enum"
     values = ["value1", "value2", "value3", "value4"]
+
 
 class ExtStructSample(ExtStruct):
     name = "struct-sample"
@@ -293,6 +309,7 @@ class ExtStructSample(ExtStruct):
         }
 
 ExtStructSample.optional["self"] = (ExtStructSample, "A value of its own type")
+
 
 class FunDoctest(Function):
     extname = "doctest"
