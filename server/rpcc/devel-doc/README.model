@@ -8,7 +8,7 @@ auto-generate _dig(), _fetch() and _update() calls.
 Lets start with _fetch(), which takes an object id and a data
 template, and produces templated data for that particular object.
 
-The first problem is "who" defines the date template and templated
+The first problem is "who" defines the data template and templated
 data structures (ExtStruct:s).
 
 The reasonable place to define which attributes the template can
