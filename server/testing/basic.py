@@ -3,6 +3,7 @@
 from framework import *
 from util import *
 import urllib2
+import os
 
 from xml.sax._exceptions import SAXParseException
 
@@ -98,7 +99,7 @@ class T0093_ServerListFunctions(UnAuthTests):
                 assert type(fn) is unicode, "Function name is not unicode"
                 if fn == "sleep":
                     continue
-                assert '_' in fn, "Function name %s does not contain any underscores (_)"%fn
+                assert '_' in fn, "Function name %s does not contain any underscores (_)" % fn
 
 
 class T0094_ServerNodeName(UnAuthTests):
@@ -129,7 +130,7 @@ class T0096_WSDL_list(UnAuthTests):
     """ Test fetching the WSDL list"""
 
     def do(self):
-        resp = urllib2.urlopen("http://nile.medic.chalmers.se:12121/WSDL")
+        resp = urllib2.urlopen(os.environ['ADHOC_SERVER_URL'] + "/WSDL")
         html = resp.read()
 
         l = html.split("<li>")
@@ -153,7 +154,7 @@ class T0097_WSDL(UnAuthTests):
             self.countFunctions(child)
 
     def do(self):
-        resp = urllib2.urlopen("http://nile.medic.chalmers.se:12121/WSDL/AdHoc.wsdl")
+        resp = urllib2.urlopen(os.environ['ADHOC_SERVER_URL'] + "/WSDL/AdHoc.wsdl")
         xml = resp.read()
         # xml = unicodedata.normalize('NFKD', xml).encode('ascii', 'ignore')
         # pprint.pprint(xml)
