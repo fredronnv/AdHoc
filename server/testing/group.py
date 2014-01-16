@@ -43,12 +43,10 @@ class T1110_GroupFetch(UnAuthTests):
                 break
             
             
-class T1120_GroupCreate(UnAuthTests):
+class T1120_GroupCreate(AuthTests):
     """ Test group_create """
     
-    def do(self):  
-        if self.proxy != self.superuser:
-            return
+    def do(self):
         try:
             self.superuser.group_destroy('QZ1243A')
         except:
@@ -69,12 +67,10 @@ class T1120_GroupCreate(UnAuthTests):
                     pass
         
         
-class T1130_GroupDestroy(UnAuthTests):
+class T1130_GroupDestroy(AuthTests):
     """ Test group destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
         try:
             with AssertAccessError(self):
@@ -88,12 +84,10 @@ class T1130_GroupDestroy(UnAuthTests):
                 pass
             
         
-class T1140_GroupSetName(UnAuthTests):
+class T1140_GroupSetName(AuthTests):
     """ Test setting group of a group"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
         with AssertAccessError(self):
             try:
@@ -107,14 +101,16 @@ class T1140_GroupSetName(UnAuthTests):
                     self.superuser.group_destroy('ZQ1296')
                 except:
                     pass
+                try:
+                    self.superuser.group_destroy('QZ1243A')
+                except:
+                    pass
                 
                 
-class T1150_GroupSetInfo(UnAuthTests):
+class T1150_GroupSetInfo(AuthTests):
     """ Test setting info on a group"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
         with AssertAccessError(self):
             try:
@@ -130,12 +126,10 @@ class T1150_GroupSetInfo(UnAuthTests):
                     pass
                 
                 
-class T1150_GroupSetParent(UnAuthTests):
+class T1150_GroupSetParent(AuthTests):
     """ Test setting parent on a group"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
         with AssertAccessError(self):
             try:
@@ -155,8 +149,6 @@ class T0460_GroupSetOption(AuthTests):
     """ Test setting options on a group"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.group_destroy('QZ1243A')
         except:
@@ -183,8 +175,6 @@ class T0470_GroupUnsetOption(AuthTests):
     """ Test unsetting options on a group"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
         
         with AssertAccessError(self):

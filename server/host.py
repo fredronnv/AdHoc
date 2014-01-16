@@ -10,6 +10,7 @@ from rpcc.database import  IntegrityError
 from group import ExtGroup
 from room import ExtRoomName
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
+from rpcc.access import *
 
 import socket
 
@@ -18,8 +19,8 @@ class ExtNoSuchHostError(ExtLookupError):
     desc = "No such host exists."
 
 
-class ExtHostError(ExtValueError):
-    desc = "The host name is invalid or in use"
+class ExtHostAlreadyExistsError(ExtLookupError):
+    desc = "The host name already exists"
     
     
 class ExtNoSuchDNSNameError(ExtLookupError):
@@ -222,6 +223,7 @@ class Host(Model):
         return ret
     
     @update("host", ExtString)
+    @entry(AuthRequiredGuard)
     def set_name(self, host_name):
         nn = str(host_name)
         q = "UPDATE hosts SET id=:value WHERE id=:name LIMIT 1"
@@ -231,6 +233,7 @@ class Host(Model):
         self.manager.rename_host(self, nn)
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, value):
         q = "UPDATE hosts SET info=:value WHERE id=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
@@ -238,24 +241,28 @@ class Host(Model):
         print "Host %s changed Info to %s" % (self.oid, value)
     
     @update("group", ExtGroup)
+    @entry(AuthRequiredGuard)
     def set_parent(self, value):
         q = "UPDATE hosts SET `group`=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value.oid)
         self.db.commit()
         
     @update("optionspace", ExtOrNullOptionspace)
+    @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE hosts SET optionspace=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         self.db.commit()
         
     @update("mac", ExtMacAddress)
+    @entry(AuthRequiredGuard)
     def set_mac(self, value):
         q = "UPDATE hosts SET mac=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         self.db.commit()
     
     @update("room", ExtRoomName)
+    @entry(AuthRequiredGuard)
     def set_room(self, value):
         try:
             q = "UPDATE hosts SET room=:value WHERE id=:name"
@@ -267,12 +274,14 @@ class Host(Model):
             self.db.commit()
             
     @update("dns", ExtDNSName)
+    @entry(AuthRequiredGuard)
     def set_dns(self, value):
         q = "UPDATE hosts SET dns=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         self.db.commit()
         
     @update("status", ExtHostStatus)
+    @entry(AuthRequiredGuard)
     def set_status(self, value):
         q = "UPDATE hosts SET entry_status=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
@@ -312,6 +321,7 @@ class HostManager(Manager):
         dq.table("hosts h")
         return "h.`group`"
     
+    @entry(AuthRequiredGuard)
     def create_host(self, fun, host_name, mac, options):
         if options == None:
             options = {}
@@ -330,12 +340,9 @@ class HostManager(Manager):
             print "Host created, name=", host_name
             self.db.commit()
         except IntegrityError, e:
-            print "SKAPELSEFEL A:", e
-            raise ExtHostError("The host name is already in use")
-        except Exception, e:
-            print "SKAPELSEFEL:", e
-            raise
+            raise ExtHostAlreadyExistsError()
         
+    @entry(AuthRequiredGuard)
     def destroy_host(self, fun, host):
         q = "DELETE FROM hosts WHERE id=:hostname LIMIT 1"
         self.db.put(q, hostname=host.oid)
@@ -348,13 +355,14 @@ class HostManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
              
+    @entry(AuthRequiredGuard)
     def set_option(self, fun, host, option, value):
         q = """INSERT INTO host_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=host.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
+    @entry(AuthRequiredGuard)
     def unset_option(self, fun, host, option):
         q = """DELETE FROM host_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=host.oid, name=option.oid):
             raise ExtOptionNotSetError()
-

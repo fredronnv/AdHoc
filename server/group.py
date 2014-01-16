@@ -6,14 +6,15 @@ from rpcc.function import SessionedFunction
 from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
+from rpcc.access import *
 
 
 class ExtNoSuchGroupError(ExtLookupError):
     desc = "No such group exists."
 
 
-class ExtGroupError(ExtValueError):
-    desc = "The group name is invalid or in use"
+class ExtGroupAlreadyExistsError(ExtLookupError):
+    desc = "The group name is already in use"
 
 
 class ExtGroupName(ExtString):
@@ -143,6 +144,7 @@ class Group(Model):
         return ret
 
     @update("group", ExtString)
+    @entry(AuthRequiredGuard)
     def set_name(self, group_name):
         nn = str(group_name)
         q = "UPDATE groups SET groupname=:value WHERE groupname=:name LIMIT 1"
@@ -152,6 +154,7 @@ class Group(Model):
         self.manager.rename_group(self, nn)
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, value):
         q = "UPDATE groups SET info=:value WHERE groupname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
@@ -159,12 +162,14 @@ class Group(Model):
         print "Group %s changed Info to %s" % (self.oid, value)
     
     @update("parent", ExtString)
+    @entry(AuthRequiredGuard)
     def set_parent(self, value):
         q = "UPDATE groups SET parent_group=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
         self.db.commit()
         
     @update("optionspace", ExtOrNullOptionspace)
+    @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE groups SET optionspace=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
@@ -206,6 +211,7 @@ class GroupManager(Manager):
         dq.table("groups g")
         return "g.parent"
     
+    @entry(AuthRequiredGuard)
     def create_group(self, fun, group_name, parent, info, options):
         if options == None:
             options = {}
@@ -219,12 +225,9 @@ class GroupManager(Manager):
             print "Group created, name=", group_name
             self.db.commit()
         except IntegrityError, e:
-            print "SKAPELSEFEL A:", e
-            raise ExtGroupError("The group name is already in use")
-        except Exception, e:
-            print "SKAPELSEFEL:", e
-            raise
+            raise ExtGroupAlreadyExistsError()
         
+    @entry(AuthRequiredGuard)
     def destroy_group(self, fun, group):
         q = "DELETE FROM groups WHERE groupname=:groupname LIMIT 1"
         self.db.put(q, groupname=group.oid)
@@ -237,11 +240,13 @@ class GroupManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
         
+    @entry(AuthRequiredGuard)
     def set_option(self, fun, group, option, value):
         q = """INSERT INTO group_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=group.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
+    @entry(AuthRequiredGuard)
     def unset_option(self, fun, group, option):
         q = """DELETE FROM group_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=group.oid, name=option.oid):

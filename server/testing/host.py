@@ -47,12 +47,10 @@ class T1310_HostFetch(UnAuthTests):
                 break
             
             
-class T1320_HostCreate(UnAuthTests):
+class T1320_HostCreate(AuthTests):
     """ Test host_create """
     
-    def do(self):  
-        if self.proxy != self.superuser:
-            return
+    def do(self):
         try:
             self.superuser.host_destroy('QZ1243A')
         except:
@@ -73,12 +71,10 @@ class T1320_HostCreate(UnAuthTests):
                     pass
         
         
-class T1330_HostDestroy(UnAuthTests):
+class T1330_HostDestroy(AuthTests):
     """ Test host destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         try:
             with AssertAccessError(self):
@@ -92,12 +88,10 @@ class T1330_HostDestroy(UnAuthTests):
                 pass
             
         
-class T1340_HostSetName(UnAuthTests):
+class T1340_HostSetName(AuthTests):
     """ Test setting name of a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
@@ -108,17 +102,19 @@ class T1340_HostSetName(UnAuthTests):
                 assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
             finally:
                 try:
+                    self.superuser.host_destroy('QZ1243A')
+                except:
+                    pass
+                try:
                     self.superuser.host_destroy('ZQ1296')
                 except:
                     pass
                 
                 
-class T1350_HostSetInfo(UnAuthTests):
+class T1350_HostSetInfo(AuthTests):
     """ Test setting info on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
@@ -134,12 +130,10 @@ class T1350_HostSetInfo(UnAuthTests):
                     pass
                 
                 
-class T1350_HostSetGroup(UnAuthTests):
+class T1360_HostSetGroup(AuthTests):
     """ Test setting group on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
@@ -155,12 +149,10 @@ class T1350_HostSetGroup(UnAuthTests):
                     pass
 
 
-class T1360_HostSetMac(UnAuthTests):
+class T1370_HostSetMac(AuthTests):
     """ Test setting mac on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
@@ -176,12 +168,10 @@ class T1360_HostSetMac(UnAuthTests):
                     pass
                 
                 
-class T1370_HostSetRoom(UnAuthTests):
+class T1380_HostSetRoom(AuthTests):
     """ Test setting room on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
@@ -199,12 +189,10 @@ class T1370_HostSetRoom(UnAuthTests):
                     pass
                 
                 
-class T1380_HostSetBadRoom(UnAuthTests):
+class T1390_HostSetBadRoom(UnAuthTests):
     """ Test setting a bad room on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             with AssertRPCCError("LookupError::NoMatchingBuilding"):
@@ -216,12 +204,10 @@ class T1380_HostSetBadRoom(UnAuthTests):
             pass
         
         
-class T1390_HostSetDNS(UnAuthTests):
+class T1391_HostSetDNS(AuthTests):
     """ Test setting DNS name on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
@@ -239,12 +225,10 @@ class T1390_HostSetDNS(UnAuthTests):
                     pass
                 
                 
-class T1391_HostSetBadDNS(UnAuthTests):
+class T1392_HostSetBadDNS(UnAuthTests):
     """ Test setting a bad DNS name on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             with AssertRPCCError("LookupError::NoSuchDNSName"):
@@ -256,12 +240,10 @@ class T1391_HostSetBadDNS(UnAuthTests):
             pass              
 
 
-class T1390_HostSetStatus(UnAuthTests):
+class T1393_HostSetStatus(AuthTests):
     """ Test setting status on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
@@ -295,12 +277,10 @@ class T1390_HostSetStatus(UnAuthTests):
                     pass
                 
                 
-class T1360_HostSetOption(AuthTests):
+class T1394_HostSetOption(AuthTests):
     """ Test setting options on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.host_destroy('QZ1243A')
         except:
@@ -324,12 +304,10 @@ class T1360_HostSetOption(AuthTests):
                     pass
                 
                 
-class T1370_HostUnsetOption(AuthTests):
+class T1395_HostUnsetOption(AuthTests):
     """ Test unsetting options on a host"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
         
         with AssertAccessError(self):
