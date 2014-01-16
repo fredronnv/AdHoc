@@ -5,10 +5,16 @@ from rpcc.exttype import *
 from rpcc.function import SessionedFunction
 from shared_network import ExtNetwork, ExtNetworkName
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
+from rpcc.access import *
+from rpcc.database import IntegrityError
 
 
 class ExtNoSuchSubnetworkError(ExtLookupError):
     desc = "No such subnetwork exists."
+
+
+class ExtSubnetworkAlreadyExistsError(ExtLookupError):
+    desc = "The subnetwork ID is already in use"
 
 
 class ExtSubnetworkID(ExtString):
@@ -41,7 +47,7 @@ class SubnetworkCreate(SessionedFunction):
     returns = (ExtNull)
 
     def do(self):
-        self.subnetwork_manager.create_subnetwork(self, self.id, self.network.oid, self.info)
+        self.subnetwork_manager.create_subnetwork(self, self.subnetwork, self.network.oid, self.info)
         
 
 class SubnetworkDestroy(SubnetworkFunBase):
@@ -117,6 +123,7 @@ class Subnetwork(Model):
         return ret
     
     @update("id", ExtSubnetworkID)
+    @entry(AuthRequiredGuard)
     def set_id(self, value):
         q = "UPDATE subnetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
@@ -124,12 +131,14 @@ class Subnetwork(Model):
         self.manager.rename_subnetwork(self, value)
         
     @update("network", ExtNetworkName)
+    @entry(AuthRequiredGuard)
     def set_network(self, value):
         q = "UPDATE subnetworks SET network=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
         self.db.commit()
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, value):
         q = "UPDATE subnetworks SET info=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
@@ -162,13 +171,16 @@ class SubnetworkManager(Manager):
         dq.table("subnetworks nw")
         return "nw.id"
     
+    @entry(AuthRequiredGuard)
     def create_subnetwork(self, fun, id, network, info):
         q = "INSERT INTO subnetworks (id, network, info, changed_by) VALUES (:id, :network, :info, :changed_by)"
-        print "PARAMS: id=", id, "network=", network
-        self.db.put(q, id=id, network=network, info=info, changed_by=fun.session.authuser)
-        print "Subnetwork created, id=", id
+        try:
+            self.db.put(q, id=id, network=network, info=info, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtSubnetworkAlreadyExistsError()
         self.db.commit()
         
+    @entry(AuthRequiredGuard)
     def destroy_subnetwork(self, fun, subnetwork):
         q = "DELETE FROM subnetworks WHERE id=:id LIMIT 1"
         self.db.put(q, id=subnetwork.oid)
@@ -181,11 +193,13 @@ class SubnetworkManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newid] = obj
         
+    @entry(AuthRequiredGuard)
     def set_option(self, fun, subnetwork, option, value):
         q = """INSERT INTO subnetwork_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=subnetwork.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
+    @entry(AuthRequiredGuard)
     def unset_option(self, fun, subnetwork, option):
         q = """DELETE FROM subnetwork_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=subnetwork.oid, name=option.oid):
