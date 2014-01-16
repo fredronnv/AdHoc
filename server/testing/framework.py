@@ -252,9 +252,13 @@ class MyTests(object):
         """ Main engine for testing, called from the outside. The tests to be run is determined usin python introspection and te test order
             is determined using the class name of each test. Therefore, the class names of the tests are prefixed with a number in order to
             sort them correctly"""
-        classes = sorted(self.get_subsubclasses_for(self.__class__), cmp=self.__lt__)
-        print classes
-
+        classes = []
+        for cls_ in self.get_subsubclasses_for(self.__class__):
+            if hasattr(cls_, "do") and callable(getattr(cls_, "do")):
+                classes.append(cls_)
+       
+        classes.sort(self.__lt__, None, True)
+        
         # For all of the proxies run all tests, in the test order, one proxy at a time.
         tests_run = 0
         test_phases_run = 0
@@ -314,6 +318,7 @@ class MyTests(object):
                 else:
                     pass
                     # print "No do() method in ", cls_
+            print "==============="
         print "Tests run=%d, phases=%d, skipped=%d" % (tests_run, test_phases_run, tests_skipped)
 
     def function(self):
@@ -426,7 +431,13 @@ class MyTests(object):
     def __lt__(self, a, b):
         """ Compares the names of self and other. This operator is used by the sorting function, specifically to sort the list of subclasses to order the
             tests."""
-        return a.__name__ < b.__name__
+        if a.__name__ == b.__name__:
+                return 0
+        ret = a.__name__ < b.__name__
+        if ret:
+            return 1
+        return -1
+        #return a.__name__ < b.__name__
 
     def suffice_privs(self, sufficient_privs=None):
         """ Returns the given expected privileges or, if None the expected privileges of the current test object"""
