@@ -15,8 +15,20 @@ sys.path.append(os.path.join(adhoc_home, 'server'))
 
 from rpcc.server import Server
 from rpcc.database import MySQLDatabase
+from rpcc.access import *
 import re
 import rpcc
+
+
+class AdHocSuperuserGuard(Guard):
+    """This guard says yes if session.authuser is someone in the given list"""
+    
+    superusers = ["viktor", "bernerus"]
+
+    def check(self, obj, function):
+        if function.session.authuser in self.superusers:
+            return AccessGranted(CacheInFunction)
+        return DecisionReferred(CacheInFunction)
 
 
 class AdHocServer(Server):
@@ -25,7 +37,10 @@ class AdHocServer(Server):
     major_version = 0
     minor_version = 1
     
-srv = AdHocServer("nile.medic.chalmers.se", 12121)
+    superuser_guard = AdHocSuperuserGuard
+    
+    
+srv = AdHocServer("localhost", 12121)
 
 srv.enable_database(MySQLDatabase)
 srv.database.check_rpcc_tables()
