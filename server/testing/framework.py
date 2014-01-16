@@ -121,7 +121,7 @@ class MyTests(object):
     # so that data within that parent may be accesed
 
     def __init__(self, proxy=None, parent=None):
-        self.set_proxy(proxy)
+        #self.set_proxy(proxy)
         self.parent = parent
 
     def prepare_test(self):
@@ -149,8 +149,11 @@ class MyTests(object):
 #             except KeyError:
 #                 self.actual_privs = self.proxy.session_get_privileges()
 #                 self.proxy.put_into_cache("actual_privs", self.actual_privs)
+            if self.proxy == self.superuser:
+                self.actual_access = {"anyauth": True, "unauth": True, "superusers": True}
+            else:
+                self.actual_access = {"anyauth": True, "unauth": True, "superusers": False}
             
-            self.actual_access = {"anyauth": True, "unauth": True, "superusers": True}
             self.actual_privs = []
             self.actual_admin = self.proxy._auth.endswith("/admin")
 
@@ -204,11 +207,12 @@ class MyTests(object):
         try:
             self.nouser = test_rpcc_client.RPCC(None, "", None, 0, basic_exceptions=False)
             self.superuser = test_rpcc_client.RPCC(url, adhoc_superuser, None, 0, basic_exceptions=False)
+            self.reguser = test_rpcc_client.RPCC(url, "fbq", "fbq", 0, basic_exceptions=False, superuser=self.superuser)
             
-            regular_users = ()
-            for px in regular_users:
-                px.clear_privileges()
-                px.clear_access()
+            regular_users = (self.reguser,)
+            #for px in regular_users:
+                #px.clear_privileges()
+                #px.clear_access()
 
         except test_rpcc_client.ADHOCNotATestSystem, _e: 
             print "Not a test system"
@@ -266,6 +270,7 @@ class MyTests(object):
             for cls_ in classes:
                 testobject = cls_(proxy=px, parent=self)  # Create a test object
                 testobject.superuser = self.superuser  # Give the test object an easy handle to the superuser
+                testobject.set_proxy(px)
                 if hasattr(cls_, "do") and callable(getattr(cls_, "do")):
                     fmt = "[%%%ds] %%s as %%s" % (namelen + 1)
                     doc = cls_.__doc__
@@ -502,11 +507,11 @@ class MyTests(object):
             if expected_exception_name:
                 errs.add(expected_exception_name)
                 return(expected_authenticated or sufficient_privs, errs, possible_exception_name)
-            errs.add("AccessError")
+            errs.add("RuntimeError::AccessDenied")
             return(expected_authenticated or sufficient_privs, errs, possible_exception_name)
 
         if expected_admin and not self.proxy._auth.endswith("/admin"):
-            errs.add("AccessError")
+            errs.add("RuntimeError::AccessDenied")
             errs.add("AccessError::AccessErrorInAuthenticationSystemError")
             return(True, errs, possible_exception_name)
 
@@ -521,7 +526,7 @@ class MyTests(object):
         if exception_expected or expected_exception_name:
             if expected_exception_name:
                 return(True, ("AccessError", expected_exception_name), possible_exception_name)
-            return(True, ("AccessError",), possible_exception_name)
+            return(True, ("RuntimeError::AccessDenied",), possible_exception_name)
 
         if exception_expected:
             if possible_exception_name:
@@ -661,13 +666,18 @@ class AssertAccessError(object):
         
 class UnAuthTests(MyTests):
     """ Superclass for tests that do not require any access rights"""
-    pass
 
 
 class AuthTests(MyTests):
     """ Superclass for tests that are expected to work for anyone who is authenticated"""
     expected_authenticated = True
     expected_access = ["anyauth"]
+    pass
+
+
+class SuperUserTests(AuthTests):
+    """ Superclass for tests that are expected to work for anyone who is logged as a superUser"""
+    expected_access = ["superusers"]
 
 
 class MustFailTests(AuthTests):
