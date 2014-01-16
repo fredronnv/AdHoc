@@ -156,6 +156,11 @@ class DefaultSuperuserGuard(Guard):
             return AccessGranted(CacheInFunction)
         return DecisionReferred(CacheInFunction)
 
+class AuthRequiredGuard(Guard):
+    def check(self, obj, function):
+        if function.session.authuser is not None:
+            return AccessGranted(CacheInFunction)
+        return DecisionReferred(CacheInFunction)
 
 class SuperuserGuardProxy(Guard):
     def check(self, obj, function):
