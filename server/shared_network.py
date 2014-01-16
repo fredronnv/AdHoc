@@ -4,11 +4,16 @@ from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
-
+from rpcc.access import *
+from rpcc.database import IntegrityError
 
 
 class ExtNoSuchNetworkError(ExtLookupError):
     desc = "No such network exists."
+    
+    
+class ExtNetworkAlreadyExistsError(ExtLookupError):
+    desc = "The network name is already in use"
 
 
 class ExtNetworkName(ExtString):
@@ -31,7 +36,7 @@ class ExtNetwork(ExtNetworkName):
 class NetworkFunBase(SessionedFunction):  
     params = [("network", ExtNetwork, "Shared network name")]
    
-     
+
 class NetworkCreate(SessionedFunction):
     extname = "network_create"
     params = [("network_name", ExtNetworkName, "Network ID to create"),
@@ -117,6 +122,7 @@ class Network(Model):
         return ret
     
     @update("network", ExtNetworkName)
+    @entry(AuthRequiredGuard)
     def set_natwork(self, value):
         q = "UPDATE snetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
@@ -124,12 +130,14 @@ class Network(Model):
         self.manager.rename_network(self, value)
 
     @update("authoritative", ExtBoolean)
+    @entry(AuthRequiredGuard)
     def set_authoritative(self, newauthoritative):
         q = "UPDATE networks SET authoritative=:authoritative WHERE id=:id"
         self.db.put(q, id=self.oid, authoritative=newauthoritative)
         self.db.commit()
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, newinfo):
         q = "UPDATE networks SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
@@ -162,12 +170,18 @@ class NetworkManager(Manager):
         dq.table("networks nw")
         return "nw.id"
     
+    @entry(AuthRequiredGuard)
     def create_network(self, fun, network_name, authoritative, info):
         q = "INSERT INTO networks (id, authoritative, info, changed_by) VALUES (:id, :authoritative, :info, :changed_by)"
-        self.db.put(q, id=network_name, authoritative=authoritative, info=info, changed_by=fun.session.authuser)
+        try:
+            self.db.put(q, id=network_name, authoritative=authoritative, info=info, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtNetworkAlreadyExistsError()
+        
         print "Network created, network_name=", network_name
         self.db.commit()
         
+    @entry(AuthRequiredGuard)
     def destroy_network(self, fun, network):
         q = "DELETE FROM networks WHERE id=:id LIMIT 1"
         self.db.put(q, id=network.oid)
@@ -180,11 +194,13 @@ class NetworkManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newid] = obj
         
+    @entry(AuthRequiredGuard)
     def set_option(self, fun, network, option, value):
         q = """INSERT INTO network_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=network.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
+    @entry(AuthRequiredGuard)
     def unset_option(self, fun, network, option):
         q = """DELETE FROM network_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=network.oid, name=option.oid):
