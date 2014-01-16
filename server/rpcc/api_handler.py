@@ -8,13 +8,22 @@ from category import FunctionCategory
 class APIHandler(object):
     def __init__(self, server):
         self.server = server
+        self.all_funclasses_added = []
+        self.initialize()
 
+    def initialize(self):
         self.api_by_schema_url = {}
         self.api_by_wsdl_path = {}
 
         base_api = API(self, 0)
         self.apis = [base_api]
         self.store_soap_data(base_api)
+
+    def reboot(self):
+        self.initialize()
+        for funclass in self.all_funclasses_added:
+            self.add_function(funclass)
+        self.generate_model_stuff()
 
     def store_soap_data(self, api):
         for path in api.get_all_wsdl_paths():
@@ -24,6 +33,8 @@ class APIHandler(object):
             self.api_by_schema_url[url] = api
 
     def add_function(self, funclass):
+        self.all_funclasses_added.append(funclass)
+
         while len(self.apis) < funclass.from_version + 1:
             newapi = self.apis[-1].next_version()
             self.apis.append(newapi)
