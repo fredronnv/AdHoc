@@ -22,19 +22,6 @@ therefore their own transaction space). Managers can use the database
 link of the Function that created them, as can the Model instances that
 a Manager creates. Once a Function completes running, the Managers and
 Models it has created are deallocated.
-
-Model classes can also ease the creation of standard Functions and
-external data types. They do this by using the @extattr() decorator on
-methods named get_*() and set_*(). The decorator specifies the external
-data type that is returned/expected, the external attribute name (if other
-than what follows get_/set_), and the API versions between which the
-attribute is to be defined this way.
-
-@extattr decorators may be nested, and may choose to supply different
-descriptions of the attribute by the 'desc' keyword argument. Normally,
-however, the description is stable while types and names vary over
-API versions. There is therefore a special @extdesc() decorator which
-sets a default external description.
 """
 
 import random
@@ -55,13 +42,14 @@ class _TmpReference(object):
 
 class ExternalAttribute(object):
     # Valid for one particular API version.
-    def __init__(self, name, type=None, method=None, desc=None, model=None, default=False):
-        self.extname = name
-        self.exttype = type
+    def __init__(self, extname, exttype=None, method=None, desc=None, model=None, default=False, kwargs={}):
+        self.extname = extname
+        self.exttype = exttype
         self.method = method
         self.extdesc = desc
         self.model = model
         self.default = default
+        self.kwargs = kwargs
 
     def __repr__(self):
         return "%s attr=%s type=%s method=%s" % (self.__class__.__name__, self.extname, self.exttype, self.method)
@@ -106,42 +94,48 @@ class ExternalWriteAttribute(ExternalAttribute):
         upd.optional[self.extname] = (self.exttype, self.extdesc)
 
 
-# NOTE! In order for @entry and @template to be stackable in arbitrary
-# order, @entry needs to know about (and copy) the _template method
-# attribute.
-def template(name, exttype, minv=0, maxv=10000, desc=None, model=None, default=False):
+###
+# The @template and @update decorators take their arguments and store
+# them in attributes on the method (methods are also objects) called
+# ._templates and ._updates respectively. The arguments are later
+# passed to the __init__ of ExternalAttribute, and must be valid there.
+#
+# NOTE! @entry replaces a method with a wrapper that calls the
+# method. The wrapper needs to copy the _template and _update method
+# attributes to the wrapper if present in the wrapped method.
+###
+
+def template(extname, exttype, **kwargs):
     def decorate(decorated):
-        data = dict(name=name, type=exttype, desc=desc, model=model, 
-                    default=default)
-        if hasattr(decorated, "_update"):
+        data = kwargs.copy()
+        data["extname"] = extname
+        data["exttype"] = exttype
+
+        if hasattr(decorated, "_updates"):
             raise IntAPIValidationError("Both @template and @update cannot be applied to the same method, but are for %s" % (decorated,))
 
-        if hasattr(decorated, "_template"):
-            for (submin, submax, subdata) in decorated._template:
-                if submin < maxv and submax > minv:
-                    raise IntAPIValidationError("Two @template directives have overlapping API versions for %s" % (decorated,))
-            decorated._template.append((minv, maxv, data))
-        else:
-            decorated._template = [(minv, maxv, data)]
+        try:
+            decorated._templates.append(data)
+        except AttributeError:
+            decorated._templates = [data]
+
         return decorated
     return decorate
 
-
-# NOTE! In order for @entry and @update to be stackable in arbitrary
-# order, @entry needs to know about (and copy) the _update method
-# attribute.
-def update(name, exttype, minv=0, maxv=10000, desc=None):
+def update(extname, exttype, **kwargs):
     def decorate(decorated):
-        data = dict(name=name, type=exttype, desc=desc)
-        if hasattr(decorated, "_template"):
+        data = kwargs.copy()
+        data["extname"] = extname
+        data["exttype"] = exttype
+
+        if hasattr(decorated, "_templates"):
             raise IntAPIValidationError("Both @template and @update cannot be applied to the same method, but are for %s" % (decorated,))
-        if hasattr(decorated, "_update"):
-            for (submin, submax, subdata) in decorated._update:
-                if submin < maxv and submax > minv:
-                    raise IntAPIValidationError("Two @update directives have overlapping API versions for %s" % (decorated,))
-            decorated._update.append((minv, maxv, data))
-        else:
-            decorated._update = [(minv, maxv, data)]
+
+        try:
+            decorated._updates.append(data)
+        except AttributeError:
+            decorated._updates = [data]
+
         return decorated
     return decorate
 
@@ -227,9 +221,14 @@ class Model(object):
         return cls.name
 
     @classmethod
+    def _reboot(cls):
+        del cls._attributes_cache
+
+    @classmethod
     def _attributes(cls, api_version):
-        # Note: the result is cached in the _class_ object, and
-        # therefore only ever calculated once.
+        # Note: the result is cached in the _class_ object. If you have
+        # a changing API in your development server, you need to empty
+        # that cache using ._reboot().
 
         # Note 2: If the attribute has a "model" attribute, the
         # _TmpReference object is used in the templates on an
@@ -246,38 +245,41 @@ class Model(object):
 
         for candname in dir(cls):
             candidate = getattr(cls, candname)
-            if hasattr(candidate, "_template"):
+            if hasattr(candidate, "_templates"):
                 attrcls = ExternalReadAttribute
-                defs = candidate._template
+                defs = candidate._templates
                 dest = cls._attributes_cache[api_version][0]
-            elif hasattr(candidate, "_update"):
+            elif hasattr(candidate, "_updates"):
                 attrcls = ExternalWriteAttribute
-                defs = candidate._update
+                defs = candidate._updates
                 dest = cls._attributes_cache[api_version][1]
             else:
+                # Next candidate name
                 continue
 
-            for (minv, maxv, data) in defs:
-                if api_version >= minv and api_version <= maxv:
-                    break
-            else:
-                continue
+            for d in defs:
+                data = d.copy()
+                name = data.pop("extname")
+                minv = data.pop("minv", 0)
+                maxv = data.pop("maxv", 10000)
 
-            name = data.pop("name")
-            if name in dest:
-                raise IntAPIValidationError("Multiple @template/@update definitions uses the public name %s for API version %d" % (name, api_version))
+                if api_version < minv or api_version > maxv:
+                    continue
 
-            typminv, typmaxv = ExtType.instance(data["type"])._api_versions()
-            if api_version < typminv or api_version > typmaxv:
-                raise IntAPIValidationError("@template/@update definition on method %s.%s says its valid through API versions (%d, %d), but the type %s it uses is valid through (%d, %d) making it invalid for version %d" % (cls, candname, minv, maxv, data["type"], typminv, typmaxv, api_version))
+                if name in dest:
+                    raise IntAPIValidationError("Multiple @template/@update definitions defines the public name %s for API version %d" % (name, api_version))
 
-            data["method"] = candidate
+                typminv, typmaxv = ExtType.instance(data["exttype"])._api_versions()
+                if api_version < typminv or api_version > typmaxv:
+                    raise IntAPIValidationError("@template/@update definition on method %s.%s says its valid through API versions (%d, %d), but the type %s it uses is valid through (%d, %d) making it invalid for version %d" % (cls, candname, minv, maxv, data["exttype"], typminv, typmaxv, api_version))
 
-            if "model" in data and data["model"]:
-                dest[name + "_data"] = attrcls(name + "_data", **data)
+                data["method"] = candidate
 
-            dummy = data.pop("model", None)
-            dest[name] = attrcls(name, **data)
+                if "model" in data and data["model"]:
+                    dest[name + "_data"] = attrcls(name + "_data", **data)
+                    data.pop("model")
+
+                dest[name] = attrcls(name, **data)
 
         return cls._attributes_cache[api_version]
 
@@ -328,13 +330,7 @@ class Model(object):
         writeattrs = self._write_attributes(api_version)
         for (name, newval) in updates.items():
             attr = writeattrs[name]
-            if not hasattr(attr, "args"):
-                attr.args = []
-            if not hasattr(attr, "kwargs"):
-                attr.kwargs = {}
-            # TODO: What should be in args or kwargs ???
-            
-            attr.method(self, newval, *attr.args, **attr.kwargs)
+            attr.method(self, newval, **attr.kwargs)
 
     def apply_template(self, api_version, tmpl):
         # Note: many different other Model instances may call
@@ -365,13 +361,12 @@ class Model(object):
             # to pass self explicitly) and any parameters to
             # it.
             attr = readattrs[name]
-            value = attr.method(self)
+            value = attr.method(self, **attr.kwargs)
+
             if value is None:
                 if "_remove_nulls" in tmpl and tmpl["_remove_nulls"]:
                     continue
-#TODO: Index on the next line used to be attr.name. Verify that changing this to name is a correct fix.
                 out[name] = None
-
                 continue
 
             if attr.model:
@@ -386,6 +381,7 @@ class Model(object):
                     out[name] = value.apply_template(api_version, subtmpl)
             else:
                 out[name] = value
+
         self._templated[(api_version, tmplidx)] = out
         return out
 
@@ -822,7 +818,7 @@ class Manager(object):
 
         if oid not in self._model_cache:
             if not isinstance(oid, self.manages.id_type):
-                print "AAAA", self.manages, self.manages.id_type, type(oid), args[0]
+                print "AAAA", self.manages, self.manages.id_type, type(oid)
                 raise ValueError("%s id is of type %s, but must be of type %s - supplied value %s isn't" % (self.manages.__name__, type(oid), self.manages.id_type, oid))
             args = self.args_for_model(oid)
             kwargs = self.kwargs_for_model(oid) or {}
