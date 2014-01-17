@@ -16,6 +16,10 @@ class ExtNoSuchSubnetworkError(ExtLookupError):
 class ExtSubnetworkAlreadyExistsError(ExtLookupError):
     desc = "The subnetwork ID is already in use"
 
+    
+class ExtSubnetworkInUseError(ExtValueError):
+    desc = "The subnetwork is referred to by other objects. It cannot be destroyed"    
+
 
 class ExtSubnetworkID(ExtString):
     name = "subnetwork-id"
@@ -127,7 +131,7 @@ class Subnetwork(Model):
     def set_id(self, value):
         q = "UPDATE subnetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
-        self.db.commit()
+        
         self.manager.rename_subnetwork(self, value)
         
     @update("network", ExtNetworkName)
@@ -135,16 +139,14 @@ class Subnetwork(Model):
     def set_network(self, value):
         q = "UPDATE subnetworks SET network=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
-        self.db.commit()
-        
+              
     @update("info", ExtString)
     @entry(AuthRequiredGuard)
     def set_info(self, value):
         q = "UPDATE subnetworks SET info=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
-        self.db.commit()
-
-
+ 
+        
 class SubnetworkManager(Manager):
     name = "subnetwork_manager"
     manages = Subnetwork
@@ -178,15 +180,17 @@ class SubnetworkManager(Manager):
             self.db.put(q, id=id, network=network, info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtSubnetworkAlreadyExistsError()
-        self.db.commit()
         
     @entry(AuthRequiredGuard)
     def destroy_subnetwork(self, fun, subnetwork):
         q = "DELETE FROM subnetworks WHERE id=:id LIMIT 1"
-        self.db.put(q, id=subnetwork.oid)
+        try:
+            self.db.put(q, id=subnetwork.oid)
+        except IntegrityError:
+            raise ExtSubnetworkInUseError()
+        
         print "Subnetwork destroyed, id=", id
-        self.db.commit()
-
+        
     def rename_subnetwork(self, obj, newid):
         oid = obj.oid
         obj.oid = newid

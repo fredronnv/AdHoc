@@ -3,10 +3,20 @@
 from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
+from rpcc.access import *
+from rpcc.database import IntegrityError
 
 
 class ExtNoSuchOptionspaceError(ExtLookupError):
     desc = "No such optionspace exists."
+
+
+class ExtOptionspaceAlreadyExistsError(ExtLookupError):
+    desc = "The optionspace already exists"
+
+    
+class ExtOptionspaceInUseError(ExtValueError):
+    desc = "The optionspace is referred to by other objects. It cannot be destroyed"    
 
 
 class ExtOptionspaceName(ExtString):
@@ -36,6 +46,7 @@ class ExtOptionspace(ExtOptionspaceName):
 
     def output(self, fun, obj):
         return obj.oid
+ 
     
 class OptionspaceCreate(SessionedFunction):
     extname = "optionspace_create"
@@ -94,26 +105,27 @@ class Optionspace(Model):
         return self.changed_by
     
     @update("optionspace", ExtString)
+    @entry(AuthRequiredGuard)
     def set_optionspace(self, optionspace_name):
         nn = str(optionspace_name)
         q = "UPDATE optionspaces SET value=:value WHERE value=:oid LIMIT 1"
         self.db.put(q, oid=self.oid, value=nn)
-        self.db.commit()
+        
         print "Optionspace %s changed name to %s" % (self.oid, nn)
         self.manager.rename_optionspace(self, nn)
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, info):
         q = "UPDATE optionspaces SET info=:info WHERE value=:value"
         self.db.put(q, value=self.oid, info=info)
-        self.db.commit()
-        
+              
     @update("type", ExtOptionspaceType)
+    @entry(AuthRequiredGuard)
     def set_type(self, newtype):
         q = "UPDATE optionspaces SET type=:type WHERE value=:value"
         self.db.put(q, value=self.oid, type=newtype)
-        self.db.commit()
-
+        
 
 class OptionspaceManager(Manager):
     name = "optionspace_manager"
@@ -141,17 +153,22 @@ class OptionspaceManager(Manager):
         dq.table("optionspaces ds")
         return "ds.value"
     
+    @entry(AuthRequiredGuard)
     def create_optionspace(self, fun, optionspace_name, optionspace_type, info):
         q = "INSERT INTO optionspaces (value, type, info, changed_by) VALUES (:value, :type, :info, :changed_by)"
-        self.db.put(q, value=optionspace_name, type=optionspace_type, info=info, changed_by=fun.session.authuser)
-        print "Optionspace created, name=", optionspace_name
-        self.db.commit()
+        try:
+            self.db.put(q, value=optionspace_name, type=optionspace_type, info=info, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtOptionspaceAlreadyExistsError()
+        #
         
+    @entry(AuthRequiredGuard)
     def destroy_optionspace(self, fun, optionspace):
         q = "DELETE FROM optionspaces WHERE value=:value LIMIT 1"
-        self.db.put(q, value=optionspace.oid)
-        print "Optionspace destroyed, name=", optionspace.oid
-        self.db.commit()
+        try:
+            self.db.put(q, value=optionspace.oid)
+        except IntegrityError:
+            raise ExtOptionspaceInUseError()
         
     def rename_optionspace(self, obj, optionspace_name):
         oname = obj.oid

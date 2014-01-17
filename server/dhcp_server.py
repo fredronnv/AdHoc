@@ -15,6 +15,10 @@ class ExtDHCPServerAlreadyExistsError(ExtLookupError):
     desc = "The DHCP server ID is already in use"
     
     
+class ExtDHCPServerInUseError(ExtValueError):
+    desc = "The DHCP server is referred to by other objects. It cannot be destroyed"    
+
+    
 class ExtDHCPServerID(ExtString):
     name = "dhcp-server-id"
     desc = "ID of a DHCP server"
@@ -93,16 +97,14 @@ class DHCPServer(Model):
     def set_dns(self, dns):
         q = "UPDATE dhcp_servers SET name=:name WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, name=dns)
-        self.db.commit()
         
     @entry(SuperuserGuardProxy)
     @update("info", ExtString)
     def set_info(self, info):
         q = "UPDATE dhcp_servers SET info=:info WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, info=info)
-        self.db.commit()
-
-
+        
+        
 class DHCPServerManager(Manager):
     name = "dhcp_server_manager"
     manages = DHCPServer
@@ -137,11 +139,11 @@ class DHCPServerManager(Manager):
         except IntegrityError:
             raise ExtDHCPServerAlreadyExistsError()
         print "DHCPServer created, id=", dhcp_server_id
-        self.db.commit()
         
     @entry(SuperuserGuardProxy)
     def destroy_dhcp_server(self, fun, dhcp_server):
         q = "DELETE FROM dhcp_servers WHERE id=:id LIMIT 1"
-        self.db.put(q, id=dhcp_server.oid)
-        print "DHCPServer destroyed, id=", dhcp_server.oid
-        self.db.commit()
+        try:
+            self.db.put(q, id=dhcp_server.oid)
+        except IntegrityError:
+            raise ExtDHCPServerInUseError()

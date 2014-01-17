@@ -3,10 +3,20 @@
 from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
+from rpcc.access import *
+from rpcc.database import IntegrityError
 
 
 class ExtNoSuchGlobalOptionError(ExtLookupError):
     desc = "No such global-option exists."
+    
+
+class ExtGlobalOptionAlreadyExistsError(ExtLookupError):
+    desc = "The global option already exists"
+
+    
+class ExtGlobalOptionInUseError(ExtValueError):
+    desc = "The global option is referred to by other objects. It cannot be destroyed"    
 
 
 class ExtGlobalOptionName(ExtString):
@@ -28,7 +38,7 @@ class ExtGlobalOptionValue(ExtString):
 
 class ExtGlobalOption(ExtGlobalOptionID):
     name = "global-option"
-    desc = "A global-option instance"
+    desc = "A global-option instance, identified by its ID"
 
     def lookup(self, fun, cval):
         return fun.global_option_manager.get_global_option(cval)
@@ -39,7 +49,7 @@ class ExtGlobalOption(ExtGlobalOptionID):
     
 class GlobalOptionCreate(SessionedFunction):
     extname = "global_option_create"
-    params = [("global_option_name", ExtGlobalOptionName, "GlobalOption name to create"),
+    params = [("global_option_name", ExtGlobalOptionName, "Global option name to create"),
               ("value", ExtGlobalOptionValue, "The value of this particular option")]
     desc = "Creates a global option"
     returns = (ExtGlobalOptionID)
@@ -52,7 +62,7 @@ class GlobalOptionCreate(SessionedFunction):
 class GlobalOptionDestroy(SessionedFunction):
     extname = "global_option_destroy"
     params = [("global_option", ExtGlobalOption, "GlobalOption")]
-    desc = "Destroys a global-option"
+    desc = "Destroys a global option"
     returns = (ExtNull)
 
     def do(self):
@@ -96,19 +106,20 @@ class GlobalOption(Model):
         return self.changed_by
     
     @update("name", ExtString)
-    def set_name(self, newname):
+    @entry(AuthRequiredGuard)
+    def set_global_option(self, newname):
         nn = str(newname)
         q = "UPDATE global_options SET name=:newname WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newname=nn)
-        self.db.commit()
+        
         print "GlobalOption %s changed Name to %s" % (self.oid, nn)
         
     @update("value", ExtGlobalOptionValue)
+    @entry(AuthRequiredGuard)
     def set_value(self, newvalue):
         q = "UPDATE global_options SET value=:value WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, value=newvalue)
-        self.db.commit()
-
+        
 
 class GlobalOptionManager(Manager):
     name = "global_option_manager"
@@ -146,15 +157,19 @@ class GlobalOptionManager(Manager):
         dq.table("global_options r")
         return "r.id"
     
+    @entry(AuthRequiredGuard)
     def create_global_option(self, fun, name, value):
         q = "INSERT INTO global_options (name, value, changed_by) VALUES (:name, :value, :changed_by)"
-        id = self.db.insert("id", q, name=name, value=value, changed_by=fun.session.authuser)
-        print "GlobalOption created, id=", id
-        self.db.commit()
+        try:
+            id = self.db.insert("id", q, name=name, value=value, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtGlobalOptionAlreadyExistsError()
         return id
         
+    @entry(AuthRequiredGuard)
     def destroy_global_option(self, fun, global_option):
         q = "DELETE FROM global_options WHERE id=:id LIMIT 1"
-        self.db.put(q, id=global_option.oid)
-        print "GlobalOption destroyed, id=", id
-        self.db.commit()
+        try:
+            self.db.put(q, id=global_option.oid)
+        except IntegrityError:
+            raise ExtGlobalOptionInUseError()

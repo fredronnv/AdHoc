@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 """ ADHOC pool API test suite"""
-from testing.framework import *
+from framework import *
 from util import *
 
 data_template = {
@@ -121,6 +121,10 @@ class T1240_PoolSetName(AuthTests):
         finally:
             try:
                 self.superuser.pool_destroy('ZQ1296')
+            except:
+                pass
+            try:
+                self.superuser.pool_destroy('QZ1243A')
             except:
                 pass
         self.superuser.network_destroy('network_test')

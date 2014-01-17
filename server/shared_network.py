@@ -14,6 +14,10 @@ class ExtNoSuchNetworkError(ExtLookupError):
     
 class ExtNetworkAlreadyExistsError(ExtLookupError):
     desc = "The network name is already in use"
+    
+    
+class ExtNetworkInUseError(ExtValueError):
+    desc = "The network is referred to by other objects. It cannot be destroyed"    
 
 
 class ExtNetworkName(ExtString):
@@ -126,7 +130,7 @@ class Network(Model):
     def set_natwork(self, value):
         q = "UPDATE snetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
-        self.db.commit()
+        
         self.manager.rename_network(self, value)
 
     @update("authoritative", ExtBoolean)
@@ -134,14 +138,14 @@ class Network(Model):
     def set_authoritative(self, newauthoritative):
         q = "UPDATE networks SET authoritative=:authoritative WHERE id=:id"
         self.db.put(q, id=self.oid, authoritative=newauthoritative)
-        self.db.commit()
+        
         
     @update("info", ExtString)
     @entry(AuthRequiredGuard)
     def set_info(self, newinfo):
         q = "UPDATE networks SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
-        self.db.commit()
+        
 
 
 class NetworkManager(Manager):
@@ -179,14 +183,16 @@ class NetworkManager(Manager):
             raise ExtNetworkAlreadyExistsError()
         
         print "Network created, network_name=", network_name
-        self.db.commit()
+        
         
     @entry(AuthRequiredGuard)
     def destroy_network(self, fun, network):
-        q = "DELETE FROM networks WHERE id=:id LIMIT 1"
+        try:
+            q = "DELETE FROM networks WHERE id=:id LIMIT 1"
+        except IntegrityError:
+            raise ExtNetworkInUseError()
         self.db.put(q, id=network.oid)
-        print "Network destroyed, name=", network.oid
-        self.db.commit()
+        
         
     def rename_network(self, obj, newid):
         oid = obj.oid

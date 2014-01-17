@@ -3,10 +3,20 @@
 from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
+from rpcc.access import *
+from rpcc.database import IntegrityError
 
 
 class ExtNoSuchBuildingError(ExtLookupError):
     desc = "No such building exists."
+
+
+class ExtBuildingAlreadyExistsError(ExtLookupError):
+    desc = "The building name is already in use"
+
+    
+class ExtBuildingInUseError(ExtValueError):
+    desc = "The building is referred to by other objects. It cannot be destroyed"    
 
 
 class ExtBuildingName(ExtString):
@@ -91,26 +101,27 @@ class Building(Model):
         return self.changed_by
     
     @update("building", ExtString)
+    @entry(AuthRequiredGuard)
     def set_building(self, newbuilding):
         nn = str(newbuilding)
         q = "UPDATE buildings SET id=:newbuilding WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newbuilding=nn)
-        self.db.commit()
+        
         print "Building %s changed ID to %s" % (self.oid, nn)
         self.manager.rename_building(self, nn)
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, newinfo):
         q = "UPDATE buildings SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
-        self.db.commit()
         
     @update("re", ExtBuildingRe)
+    @entry(AuthRequiredGuard)
     def set_re(self, newre):
         q = "UPDATE buildings SET re=:re WHERE id=:id"
         self.db.put(q, id=self.oid, re=newre)
-        self.db.commit()
-
+        
 
 class BuildingManager(Manager):
     name = "building_manager"
@@ -138,17 +149,22 @@ class BuildingManager(Manager):
         dq.table("buildings r")
         return "r.id"
     
+    @entry(AuthRequiredGuard)
     def create_building(self, fun, building_name, re, info):
         q = "INSERT INTO buildings (id, re, info, changed_by) VALUES (:id, :re, :info, :changed_by)"
-        self.db.put(q, id=building_name, re=re, info=info, changed_by=fun.session.authuser)
-        print "Building created, name=", building_name
-        self.db.commit()
-        
+        try:
+            self.db.put(q, id=building_name, re=re, info=info, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtBuildingAlreadyExistsError()
+               
+    @entry(AuthRequiredGuard)
     def destroy_building(self, fun, building):
         q = "DELETE FROM buildings WHERE id=:id LIMIT 1"
-        self.db.put(q, id=building.oid)
+        try:
+            self.db.put(q, id=building.oid)
+        except IntegrityError:
+            raise ExtBuildingInUseError()
         print "Building destroyed, id=", building.oid
-        self.db.commit()
         
     def rename_building(self, obj, building_name):
         oid = obj.oid

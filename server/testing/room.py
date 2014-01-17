@@ -35,45 +35,53 @@ class T0710_RoomFetch(UnAuthTests):
                 break
             
             
-class T0720_RoomCreate(UnAuthTests):
+class T0720_RoomCreate(AuthTests):
     """ Test room_create """
     
-    def do(self):  
-        if self.proxy != self.superuser:
-            return
-        with AssertAccessError(self):
+    def do(self):
+        try:
+            
+            with AssertAccessError(self):
+                try:
+                    self.proxy.room_destroy('CA9876H')
+                except:
+                    pass
+                self.proxy.room_create('CA9876H', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1', "TestRoom")
+                ret = self.superuser.room_fetch('CA9876H', {"printers": True, "info": True, "room": True})
+                assert "printers" in ret, "Key printers missing in returned struct from room_fetch"
+                assert "info" in ret, "Key info missing in returned struct from room_fetch"
+                assert "room" in ret, "Key room missing in returned struct from room_fetch" 
+                assert ret.room == "CA9876H", "Bad room, is % should be %s" % (ret.room, "CA9876H")
+                assert ret.printers == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1", "Printers is " + ret.printers + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1'"
+                assert ret.info == "TestRoom", "Info is " + ret.info + "but should be 'TestRoom'"
+        finally:
             try:
-                self.proxy.room_destroy('CA9876H')
+                self.superuser.room_destroy('CA9876H')
             except:
                 pass
-            self.proxy.room_create('CA9876H', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1', "TestRoom")
-            ret = self.superuser.room_fetch('CA9876H', {"printers": True, "info": True, "room": True})
-            assert "printers" in ret, "Key printers missing in returned struct from room_fetch"
-            assert "info" in ret, "Key info missing in returned struct from room_fetch"
-            assert "room" in ret, "Key room missing in returned struct from room_fetch" 
-            assert ret.room == "CA9876H", "Bad room, is % should be %s" % (ret.room, "CA9876H")
-            assert ret.printers == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1", "Printers is " + ret.printers + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1'"
-            assert ret.info == "TestRoom", "Info is " + ret.info + "but should be 'TestRoom'"
         
         
-class T0730_RoomDestroy(UnAuthTests):
+class T0730_RoomDestroy(AuthTests):
     """ Test room destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
-        with AssertAccessError(self):
-            self.proxy.room_destroy('CA9876H')
-            with AssertRPCCError("LookupError::NoSuchRoom", True):
-                self.superuser.room_fetch('CA9876H', {"room": True})
+        self.superuser.room_create('CA9876H', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1', "TestRoom")
+        try:
+            with AssertAccessError(self):
+                self.proxy.room_destroy('CA9876H')
+                with AssertRPCCError("LookupError::NoSuchRoom", True):
+                    self.superuser.room_fetch('CA9876H', {"room": True})
+        finally:   
+            try:
+                self.superuser.room_destroy('CA9876H')
+            except:
+                pass
+            
         
-        
-class T0740_RoomSetName(UnAuthTests):
+class T0740_RoomSetName(AuthTests):
     """ Test setting name of a room"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.room_create('CA9876H', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1', "TestRoom")
         with AssertAccessError(self):
             try:
@@ -83,15 +91,20 @@ class T0740_RoomSetName(UnAuthTests):
                 assert nd.printers == 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1', "Bad printers"
                 assert nd.info == "TestRoom", "Bad info"
             finally:
-                self.superuser.room_destroy('ZQ1296')
+                try:
+                    self.superuser.room_destroy('ZQ1296')
+                except:
+                    pass
+                try:
+                    self.superuser.room_destroy('CA9876H')
+                except:
+                    pass
                 
                 
-class T0750_RoomSetInfo(UnAuthTests):
+class T0750_RoomSetInfo(AuthTests):
     """ Test setting info on a room"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.room_create('CA9876H', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1', "TestRoom")
         with AssertAccessError(self):
             try:
@@ -104,12 +117,10 @@ class T0750_RoomSetInfo(UnAuthTests):
                 self.superuser.room_destroy('CA9876H')
                 
                 
-class T0750_RoomSetPrinters(UnAuthTests):
+class T0750_RoomSetPrinters(AuthTests):
     """ Test setting printers on a room"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.room_create('CA9876H', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3,a-3223-laser1', "TestRoom")
         with AssertAccessError(self):
             try:

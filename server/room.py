@@ -3,6 +3,8 @@
 from rpcc.model import *
 from rpcc.exttype import *
 from rpcc.function import SessionedFunction
+from rpcc.access import *
+from rpcc.database import IntegrityError
 
 
 class ExtNoSuchRoomError(ExtLookupError):
@@ -11,6 +13,14 @@ class ExtNoSuchRoomError(ExtLookupError):
     
 class ExtNoMatchingBuildingError(ExtLookupError):
     desc = "There is no building defined that matches the room name"
+
+
+class ExtRoomAlreadyExistsError(ExtLookupError):
+    desc = "The room name is already in use"
+    
+    
+class ExtRoomInUseError(ExtValueError):
+    desc = "The room is referred to by other objects. It cannot be destroyed"    
 
 
 class ExtRoomName(ExtString):
@@ -107,26 +117,27 @@ class Room(Model):
         return self.changed_by
     
     @update("room", ExtString)
-    def set_id(self, newid):
+    @entry(AuthRequiredGuard)
+    def set_room(self, newid):
         nn = str(newid)
         q = "UPDATE rooms SET id=:newid WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newid=nn)
-        self.db.commit()
+        
         print "Room %s changed ID to %s" % (self.oid, nn)
         self.manager.rename_room(self, nn)
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, newinfo):
         q = "UPDATE rooms SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
-        self.db.commit()
-        
+              
     @update("printers", ExtRoomPrinters)
+    @entry(AuthRequiredGuard)
     def set_printers(self, newprinters):
         q = "UPDATE rooms SET printers=:printers WHERE id=:id"
         self.db.put(q, id=self.oid, printers=newprinters)
-        self.db.commit()
-
+        
 
 class RoomManager(Manager):
     name = "room_manager"
@@ -154,18 +165,23 @@ class RoomManager(Manager):
         dq.table("rooms r")
         return "r.id"
     
+    @entry(AuthRequiredGuard)
     def create_room(self, fun, room_name, printers, info):
         q = "INSERT INTO rooms (id, printers, info, changed_by) VALUES (:id, :printers, :info, :changed_by)"
-        self.db.put(q, id=room_name, printers=printers, info=info, changed_by=fun.session.authuser)
+        try:
+            self.db.put(q, id=room_name, printers=printers, info=info, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtRoomAlreadyExistsError()
         print "Room created, id=", id
-        self.db.commit()
-        
+                  
+    @entry(AuthRequiredGuard)
     def destroy_room(self, fun, room):
         q = "DELETE FROM rooms WHERE id=:id LIMIT 1"
-        self.db.put(q, id=room.oid)
-        print "Room destroyed, id=", room.oid
-        self.db.commit()
-        
+        try:
+            self.db.put(q, id=room.oid)
+        except IntegrityError:
+            raise ExtRoomInUseError()
+               
     def rename_room(self, obj, room_name):
         oid = obj.oid
         obj.oid = room_name

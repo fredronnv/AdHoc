@@ -113,7 +113,7 @@ class DHCPManager(Manager):
         for (my_id, re, info, changed_by, mtime) in self.odb.get(qf):
             #print my_id, re, info, changed_by, mtime
             self.db.insert(my_id, qp, id=my_id, re=re, info=info, changedby=changed_by, mtime=mtime)
-        self.db.commit()
+        
         
         #rooms
         #print 
@@ -229,7 +229,7 @@ class DHCPManager(Manager):
             #print classname, optionspace, network, info, changed_by, mtime
             self.db.insert(id, qp, classname=classname, optionspace=optionspace, 
                            vendorclassid=vendor_class_id, info=info, changedby=changed_by, mtime=mtime)
-        self.db.commit()
+        
         
         # Stratum 3: group_options, pool_options, network_options, subnetwork_options, pool_ranges, 
         #            pool_literal_options, class_literal_optrions, class_options and hosts
@@ -450,7 +450,7 @@ class DHCPManager(Manager):
             if max_lease_time:
                 self.db.put("""INSERT INTO pool_options (`for`, name, value, changed_by) 
                                VALUES(:name, "max-lease-time", :value, "dhcp2-ng")""", name=name, value=max_lease_time)
-        self.db.commit() 
+         
         return None
               
     def resolve_option_host(self, option_value, host, option_key):

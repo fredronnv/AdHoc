@@ -16,6 +16,10 @@ class ExtNoSuchGroupError(ExtLookupError):
 class ExtGroupAlreadyExistsError(ExtLookupError):
     desc = "The group name is already in use"
 
+    
+class ExtGroupInUseError(ExtValueError):
+    desc = "The group is referred to by other objects. It cannot be destroyed"    
+
 
 class ExtGroupName(ExtString):
     name = "group-name"
@@ -113,9 +117,7 @@ class Group(Model):
 
     @template("parent", ExtGroup)
     def get_parent(self):
-        #print "GET_PARENT:", self.parent
         p = self.manager.get_parent(self.parent)
-        print "GET_PARENT 2:", p
         return p
     
     @template("optionspace", ExtOrNullOptionspace)
@@ -149,7 +151,7 @@ class Group(Model):
         nn = str(group_name)
         q = "UPDATE groups SET groupname=:value WHERE groupname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
-        self.db.commit()
+        
         print "Group %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_group(self, nn)
         
@@ -158,7 +160,7 @@ class Group(Model):
     def set_info(self, value):
         q = "UPDATE groups SET info=:value WHERE groupname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         print "Group %s changed Info to %s" % (self.oid, value)
     
     @update("parent", ExtString)
@@ -166,14 +168,14 @@ class Group(Model):
     def set_parent(self, value):
         q = "UPDATE groups SET parent_group=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         
     @update("optionspace", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE groups SET optionspace=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
 
 
 class GroupManager(Manager):
@@ -223,16 +225,17 @@ class GroupManager(Manager):
             self.db.insert("id", q, group_name=group_name, parent=parent.oid, optionspace=optionspace,
                        info=info, changed_by=fun.session.authuser)
             print "Group created, name=", group_name
-            self.db.commit()
+            
         except IntegrityError, e:
             raise ExtGroupAlreadyExistsError()
         
     @entry(AuthRequiredGuard)
     def destroy_group(self, fun, group):
         q = "DELETE FROM groups WHERE groupname=:groupname LIMIT 1"
-        self.db.put(q, groupname=group.oid)
-        print "Group destroyed, name=", group.oid
-        self.db.commit()
+        try:
+            self.db.put(q, groupname=group.oid)
+        except IntegrityError:
+            raise ExtGroupInUseError()
         
     def rename_group(self, obj, newname):
         oid = obj.oid

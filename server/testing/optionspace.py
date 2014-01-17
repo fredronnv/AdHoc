@@ -31,45 +31,53 @@ class T0510_OptionspaceFetch(UnAuthTests):
             assert "optionspace" in ret, "Key optionspace missing in returned struct from optionspace_fetch"
             
             
-class T0520_OptionspaceCreate(UnAuthTests):
+class T0520_OptionspaceCreate(AuthTests):
     """ Test optionspace_create """
     
-    def do(self):  
-        if self.proxy != self.superuser:
-            return
-        with AssertAccessError(self):
+    def do(self):
+        try:
+            self.superuser.optionspace_destroy('ACME')
+        except:
+            pass
+        try:
+            with AssertAccessError(self):
+                self.proxy.optionspace_create('ACME', 'vendor', "TestOptionspace")
+                ret = self.superuser.optionspace_fetch('ACME', {"type": True, "info": True, "optionspace": True})
+                assert "type" in ret, "Key type missing in returned struct from optionspace_fetch"
+                assert "info" in ret, "Key info missing in returned struct from optionspace_fetch"
+                assert "optionspace" in ret, "Key optionspace missing in returned struct from optionspace_fetch" 
+                assert ret.optionspace == "ACME", "Bad optionspace, is % should be %s" % (ret.optionspace, "ACME")
+                assert ret.type == "vendor", "Type is " + ret.type + " but should be 'vendor'"
+                assert ret.info == "TestOptionspace", "Info is " + ret.info + "but should be 'TestOptionspace'"
+        finally:
             try:
-                self.proxy.optionspace_destroy('ACME')
+                self.superuser.optionspace_destroy('ACME')
             except:
                 pass
-            self.proxy.optionspace_create('ACME', 'vendor', "TestOptionspace")
-            ret = self.superuser.optionspace_fetch('ACME', {"type": True, "info": True, "optionspace": True})
-            assert "type" in ret, "Key type missing in returned struct from optionspace_fetch"
-            assert "info" in ret, "Key info missing in returned struct from optionspace_fetch"
-            assert "optionspace" in ret, "Key optionspace missing in returned struct from optionspace_fetch" 
-            assert ret.optionspace == "ACME", "Bad optionspace, is % should be %s" % (ret.optionspace, "ACME")
-            assert ret.type == "vendor", "Type is " + ret.type + " but should be 'vendor'"
-            assert ret.info == "TestOptionspace", "Info is " + ret.info + "but should be 'TestOptionspace'"
+            
         
-        
-class T0530_OptionspaceDestroy(UnAuthTests):
+class T0530_OptionspaceDestroy(AuthTests):
     """ Test optionspace destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
-        with AssertAccessError(self):
-            self.proxy.optionspace_destroy('ACME')
-            with AssertRPCCError("LookupError::NoSuchOptionspace", True):
-                self.superuser.optionspace_fetch('ACME', {"optionspace": True})
+        
+        self.superuser.optionspace_create('ACME', 'vendor', "TestOptionspace")
+        try:
+            with AssertAccessError(self):
+                self.proxy.optionspace_destroy('ACME')
+                with AssertRPCCError("LookupError::NoSuchOptionspace", True):
+                    self.superuser.optionspace_fetch('ACME', {"optionspace": True})
+        finally:
+            try:
+                self.superuser.optionspace_destroy('ACME')
+            except:
+                pass
         
         
-class T0540_OptionspaceSetName(UnAuthTests):
+class T0540_OptionspaceSetName(AuthTests):
     """ Test setting optionspace of an optionspace"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.optionspace_create('ACME', 'vendor', "TestOptionspace")
         with AssertAccessError(self):
             try:
@@ -79,15 +87,20 @@ class T0540_OptionspaceSetName(UnAuthTests):
                 assert nd.type == 'vendor', "Bad type"
                 assert nd.info == "TestOptionspace", "Bad info"
             finally:
-                self.superuser.optionspace_destroy('IKEA')
+                try:
+                    self.superuser.optionspace_destroy('IKEA')
+                except:
+                    pass
+                try:
+                    self.superuser.optionspace_destroy('ACME')
+                except:
+                    pass
                 
                 
-class T0550_OptionspaceSetInfo(UnAuthTests):
+class T0550_OptionspaceSetInfo(AuthTests):
     """ Test setting info on an optionspace"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.optionspace_create('ACME', 'vendor', "TestOptionspace")
         with AssertAccessError(self):
             try:
@@ -100,12 +113,10 @@ class T0550_OptionspaceSetInfo(UnAuthTests):
                 self.superuser.optionspace_destroy('ACME')
                 
                 
-class T0550_OptionspaceSetType(UnAuthTests):
+class T0550_OptionspaceSetType(AuthTests):
     """ Test setting type on an optionspace"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.optionspace_create('ACME', 'vendor', "TestOptionspace")
         with AssertAccessError(self):
             try:

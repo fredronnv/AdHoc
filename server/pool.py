@@ -17,6 +17,10 @@ class ExtNoSuchPoolError(ExtLookupError):
 class ExtPoolAlreadyExistsError(ExtLookupError):
     desc = "The pool name is already in use"
     
+    
+class ExtPoolInUseError(ExtValueError):
+    desc = "The pool is referred to by other objects. It cannot be destroyed"    
+
 
 class ExtPoolName(ExtString):
     name = "pool-name"
@@ -150,7 +154,7 @@ class Pool(Model):
         nn = str(pool_name)
         q = "UPDATE pools SET poolname=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
-        self.db.commit()
+        
         print "Pool %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_pool(self, nn)
         
@@ -159,7 +163,7 @@ class Pool(Model):
     def set_info(self, value):
         q = "UPDATE pools SET info=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         print "Pool %s changed Info to %s" % (self.oid, value)
     
     @update("network", ExtString)
@@ -167,14 +171,14 @@ class Pool(Model):
     def set_network(self, value):
         q = "UPDATE pools SET network=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         
     @update("optionspace", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE pooles SET optionspace=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
 
 
 class PoolManager(Manager):
@@ -221,16 +225,19 @@ class PoolManager(Manager):
             self.db.insert("id", q, pool_name=pool_name, network=network.oid, optionspace=optionspace,
                        info=info, changed_by=fun.session.authuser)
             print "Pool created, name=", pool_name
-            self.db.commit()
+            
         except IntegrityError, e:
             raise ExtPoolAlreadyExistsError()
     
     @entry(AuthRequiredGuard)
     def destroy_pool(self, fun, pool):
-        q = "DELETE FROM pools WHERE poolname=:poolname LIMIT 1"
+        try:
+            q = "DELETE FROM pools WHERE poolname=:poolname LIMIT 1"
+        except IntegrityError:
+            raise ExtPoolInUseError()
         self.db.put(q, poolname=pool.oid)
         print "Pool destroyed, name=", pool.oid
-        self.db.commit()
+        
         
     def rename_pool(self, obj, newname):
         oid = obj.oid

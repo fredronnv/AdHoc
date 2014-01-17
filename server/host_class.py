@@ -16,6 +16,10 @@ class ExtNoSuchHostClassError(ExtLookupError):
 class ExtHostClassAlreadyExistsError(ExtLookupError):
     desc = "The host class name already exists"
 
+    
+class ExtHostClassInUseError(ExtValueError):
+    desc = "The host class is referred to by other objects. It cannot be destroyed"    
+
 
 class ExtHostClassName(ExtString):
     name = "host_class-name"
@@ -152,7 +156,7 @@ class HostClass(Model):
         nn = str(host_class_name)
         q = "UPDATE classes SET classname=:value WHERE classname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
-        self.db.commit()
+        
         print "HostClass %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_host_class(self, nn)
         
@@ -161,7 +165,7 @@ class HostClass(Model):
     def set_info(self, value):
         q = "UPDATE classes SET info=:value WHERE classname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         print "HostClass %s changed Info to %s" % (self.oid, value)
     
     @update("vendor_class_id", ExtString)
@@ -169,14 +173,14 @@ class HostClass(Model):
     def set_vendor_class_id(self, value):
         q = "UPDATE classes SET vendor_class_id=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         
     @update("optionspace", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE host_classes SET optionspace=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
 
 
 class HostClassManager(Manager):
@@ -223,16 +227,19 @@ class HostClassManager(Manager):
             self.db.insert("id", q, host_class_name=host_class_name, vendor_class_id=vendor_class_id, optionspace=optionspace,
                        info=info, changed_by=fun.session.authuser)
             print "HostClass created, name=", host_class_name
-            self.db.commit()
+            
         except IntegrityError, e:
             raise ExtHostClassAlreadyExistsError()
         
     @entry(AuthRequiredGuard)
     def destroy_host_class(self, fun, host_class):
         q = "DELETE FROM classes WHERE classname=:classname LIMIT 1"
-        self.db.put(q, classname=host_class.oid)
+        try:
+            self.db.put(q, classname=host_class.oid)
+        except IntegrityError:
+            raise ExtHostClassInUseError()
         print "HostClass destroyed, name=", host_class.oid
-        self.db.commit()
+        
         
     def rename_host_class(self, obj, newname):
         oid = obj.oid

@@ -2,14 +2,23 @@
 
 from rpcc.model import *
 from rpcc.exttype import *
-from rpcc.function import SessionedFunction
 from optionspace import *
-from util import ExtDict
+from util import *
+from rpcc.access import *
+from rpcc.database import IntegrityError
 
 
 class ExtNoSuchOptionDefError(ExtLookupError):
     desc = "No such option_def exists."
     
+
+class ExtOptionDefAlreadyExistsError(ExtLookupError):
+    desc = "The option definition already exists"
+    
+   
+class ExtOptionDefInUseError(ExtValueError):
+    desc = "The option definition is in use. It cannot be destroyed"    
+
     
 class ExtOptionDefError(ExtValueError):
     desc = "The option definition is illegal"
@@ -215,52 +224,60 @@ class OptionDef(Model):
         return self.changed_by
     
     @update("option_def", ExtString)
+    @entry(AuthRequiredGuard)
     def set_option_def(self, value):
         nn = str(value)
         q = "UPDATE option_defs SET name=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
-        self.db.commit()
+        
         print "OptionDef %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_option_def(self, nn)
         
     @update("info", ExtString)
+    @entry(AuthRequiredGuard)
     def set_info(self, value):
         q = "UPDATE option_defs SET info=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         print "OptionDef %s changed Info to %s" % (self.oid, value)
     
     @update("code", ExtString)
+    @entry(AuthRequiredGuard)
     def set_code(self, value):
         q = "UPDATE option_defs SET code=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         
     @update("qualifier", ExtOptionDefQualifier)
+    @entry(AuthRequiredGuard)
     def set_qualifier(self, value):
         q = "UPDATE option_defs SET qualifier=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         
     @update("type", ExtOptionType)
+    @entry(AuthRequiredGuard)
     def set_type(self, value):
         q = "UPDATE option_defs SET type=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         
     @update("optionspace", ExtOrNullOptionspace)
+    @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE option_defs SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         
     @update("encapsulate", ExtOrNullOptionspace)
+    @entry(AuthRequiredGuard)
     def set_encapsulate(self, value):
         q = "UPDATE option_defs SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
+        
         
     @update("struct", ExtList(ExtOptionType))
+    @entry(AuthRequiredGuard)
     def set_struct(self, value):
         q = "UPDATE option_defs SET struct=:value WHERE name=:name"
         
@@ -270,7 +287,7 @@ class OptionDef(Model):
             struct = "{ " + ",".join([x.value for x in value.value]) + " }"
             
         self.db.put(q, name=self.oid, value=struct)
-        self.db.commit()
+        
 
 
 class OptionDefManager(Manager):
@@ -300,6 +317,7 @@ class OptionDefManager(Manager):
         dq.table("option_defs r")
         return "r.name"
     
+    @entry(AuthRequiredGuard)
     def create_option_def(self, fun, option_def_name, code, type, info, options):
         if options == None:
             options = {}
@@ -315,18 +333,23 @@ class OptionDefManager(Manager):
             
         q = """INSERT INTO option_defs (name, code, qualifier, type, optionspace, encapsulate, struct, info, changed_by) 
                VALUES (:name, :code, :qualifier, :type, :optionspace, :encapsulate, :struct, :info, :changed_by)"""
-        self.db.insert("id", q, name=option_def_name, code=code, 
-                       qualifier=qualifier, optionspace=optionspace,
-                       encapsulate=encapsulate, struct=struct, type=type,
-                       info=info, changed_by=fun.session.authuser)
-        print "OptionDef created, name=", option_def_name
-        self.db.commit()
+        try:
+            self.db.insert("id", q, name=option_def_name, code=code, 
+                           qualifier=qualifier, optionspace=optionspace,
+                           encapsulate=encapsulate, struct=struct, type=type,
+                           info=info, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtOptionDefAlreadyExistsError()
         
+        
+    @entry(AuthRequiredGuard)
     def destroy_option_def(self, fun, option_def):
         q = "DELETE FROM option_defs WHERE name=:name LIMIT 1"
-        self.db.put(q, name=option_def.oid)
-        print "OptionDef destroyed, name=", option_def.oid
-        self.db.commit()
+        try:
+            self.db.put(q, name=option_def.oid)
+        except IntegrityError:
+            raise ExtOptionDefInUseError()
+        
         
     def rename_option_def(self, obj, newname):
         oid = obj.oid

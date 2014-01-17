@@ -44,12 +44,10 @@ class T1010_OptionDefFetch(UnAuthTests):
                 break
             
             
-class T1020_OptionDefCreate(UnAuthTests):
+class T1020_OptionDefCreate(AuthTests):
     """ Test option_def_create """
     
     def do(self):  
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.option_def_destroy("QZ1243A")
         except:
@@ -84,12 +82,10 @@ class T1020_OptionDefCreate(UnAuthTests):
                     pass
         
         
-class T1030_OptionDefDestroy(UnAuthTests):
+class T1030_OptionDefDestroy(AuthTests):
     """ Test option_def destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.option_def_create('QZ1243A', 253, 'text', "TestOptionDef", {})
         try:
             with AssertAccessError(self):
@@ -103,33 +99,33 @@ class T1030_OptionDefDestroy(UnAuthTests):
                 pass
             
         
-class T1040_OptionDefSetID(UnAuthTests):
+class T1040_OptionDefSetID(AuthTests):
     """ Test setting option_def of a option_def"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.option_def_create('QZ1243A', 253, 'text', "TestOptionDef", {})
-        with AssertAccessError(self):
-            try:
+        try:
+            with AssertAccessError(self):
                 self.proxy.option_def_update('QZ1243A', {"option_def": 'ZQ1296'})
                 nd = self.superuser.option_def_fetch('ZQ1296', {"type": True, "info": True, "option_def": True})
                 assert nd.option_def == "ZQ1296", "Bad option_def"
                 assert nd.type == 'text', "Bad type"
                 assert nd.info == "TestOptionDef", "Bad info"
-            finally:
-                try:
-                    self.superuser.option_def_destroy('ZQ1296')
-                except:
-                    pass
+        finally:
+            try:
+                self.superuser.option_def_destroy('ZQ1296')
+            except:
+                pass
+            try:
+                self.superuser.option_def_destroy('QZ1243A')
+            except:
+                pass
                 
                 
-class T1050_OptionDefSetInfo(UnAuthTests):
+class T1050_OptionDefSetInfo(AuthTests):
     """ Test setting info on a option_def"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.option_def_create('QZ1243A', 253, 'text', "TestOptionDef", {})
         with AssertAccessError(self):
             try:
@@ -145,12 +141,10 @@ class T1050_OptionDefSetInfo(UnAuthTests):
                     pass
                 
                 
-class T1050_OptionDefSetType(UnAuthTests):
+class T1050_OptionDefSetType(AuthTests):
     """ Test setting type on a option_def"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.option_def_create('QZ1243A', 253, 'text', "TestOptionDef", {})
         with AssertAccessError(self):
             try:

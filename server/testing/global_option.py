@@ -35,42 +35,50 @@ class T0910_GlobalOptionFetch(UnAuthTests):
                 break
             
             
-class T0920_GlobalOptionCreate(UnAuthTests):
+class T0920_GlobalOptionCreate(AuthTests):
     """ Test global_option_create """
     
-    def do(self):  
-        if self.proxy != self.superuser:
-            return
-        with AssertAccessError(self):
-            self.proxy.goid = self.proxy.global_option_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3')
-            ret = self.superuser.global_option_fetch(self.proxy.goid, {"global_option": True, "value": True, "name": True})
-            assert "value" in ret, "Key value missing in returned struct from global_option_fetch"
-            assert "name" in ret, "Key name missing in returned struct from global_option_fetch" 
-            assert "global_option" in ret, "Kay global_option  missing in returned struct from global_option_fetch" 
-            assert ret.global_option == self.proxy.goid, "Bad global_option id, is %d should be %s" % (ret.global_option, self.proxy.goid)
-            assert ret.name == "QZ1243A", "Bad global_option, is % should be %s" % (ret.name, "QZ1243A")
-            assert ret.value == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3", "Value is " + ret.value + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3'"
+    def do(self):
+        try:
+            goid = None
+            with AssertAccessError(self):
+                goid = self.proxy.global_option_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3')
+                ret = self.superuser.global_option_fetch(goid, {"global_option": True, "value": True, "name": True})
+                assert "value" in ret, "Key value missing in returned struct from global_option_fetch"
+                assert "name" in ret, "Key name missing in returned struct from global_option_fetch" 
+                assert "global_option" in ret, "Kay global_option  missing in returned struct from global_option_fetch" 
+                assert ret.global_option == goid, "Bad global_option id, is %d should be %s" % (ret.global_option, goid)
+                assert ret.name == "QZ1243A", "Bad global_option, is % should be %s" % (ret.name, "QZ1243A")
+                assert ret.value == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3", "Value is " + ret.value + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3'"
+        finally:
+            if goid:
+                self.superuser.global_option_destroy(goid)
+                
         
-        
-class T0930_GlobalOptionDestroy(UnAuthTests):
+class T0930_GlobalOptionDestroy(AuthTests):
     """ Test global_option destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
-        with AssertAccessError(self):
-            print "DESTROYING GO", self.proxy.goid
-            self.proxy.global_option_destroy(self.proxy.goid)
-            with AssertRPCCError("LookupError::NoSuchGlobalOption", True):
-                self.superuser.global_option_fetch(self.proxy.goid, {"global_option": True, "name": True})
+        goid = self.superuser.global_option_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3')
+        try:
+            with AssertAccessError(self):
+                #print "DESTROYING GO", self.proxy.goid
+                self.proxy.global_option_destroy(goid)
+                with AssertRPCCError("LookupError::NoSuchGlobalOption", True):
+                    self.superuser.global_option_fetch(goid, {"global_option": True, "name": True})
+                goid = None
+        finally:
+            if goid:
+                try:
+                    self.superuser.global_option_destroy(goid)
+                except:
+                    pass
         
         
-class T0940_GlobalOptionSetName(UnAuthTests):
+class T0940_GlobalOptionSetName(AuthTests):
     """ Test setting name of a global_option"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.proxy.goid = self.superuser.global_option_create('QZ1243A', '.*')
         with AssertAccessError(self):
             try:
@@ -82,12 +90,10 @@ class T0940_GlobalOptionSetName(UnAuthTests):
                 self.superuser.global_option_destroy(self.proxy.goid)
                 
                 
-class T0950_GlobalOptionSetValue(UnAuthTests):
+class T0950_GlobalOptionSetValue(AuthTests):
     """ Test setting value on a global_option"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.proxy.goid = self.superuser.global_option_create('QZ1243A', '.*')
         with AssertAccessError(self):
             try:

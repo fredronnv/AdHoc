@@ -21,7 +21,11 @@ class ExtNoSuchHostError(ExtLookupError):
 
 class ExtHostAlreadyExistsError(ExtLookupError):
     desc = "The host name already exists"
+
     
+class ExtHostInUseError(ExtValueError):
+    desc = "The host is referred to by other objects. It cannot be destroyed"    
+
     
 class ExtNoSuchDNSNameError(ExtLookupError):
     desc = "The DNS name cannot be looked up"
@@ -228,7 +232,6 @@ class Host(Model):
         nn = str(host_name)
         q = "UPDATE hosts SET id=:value WHERE id=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
-        self.db.commit()
         print "Host %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_host(self, nn)
         
@@ -237,7 +240,6 @@ class Host(Model):
     def set_info(self, value):
         q = "UPDATE hosts SET info=:value WHERE id=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
         print "Host %s changed Info to %s" % (self.oid, value)
     
     @update("group", ExtGroup)
@@ -245,21 +247,18 @@ class Host(Model):
     def set_parent(self, value):
         q = "UPDATE hosts SET `group`=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value.oid)
-        self.db.commit()
         
     @update("optionspace", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE hosts SET optionspace=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
         
     @update("mac", ExtMacAddress)
     @entry(AuthRequiredGuard)
     def set_mac(self, value):
         q = "UPDATE hosts SET mac=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
     
     @update("room", ExtRoomName)
     @entry(AuthRequiredGuard)
@@ -267,25 +266,21 @@ class Host(Model):
         try:
             q = "UPDATE hosts SET room=:value WHERE id=:name"
             self.db.put(q, name=self.oid, value=value)
-            self.db.commit()
         except IntegrityError as e:
             self.room_manager.create_room(self.function, value, None, "Auto-created by host_set_room")
             self.db.put(q, name=self.oid, value=value)
-            self.db.commit()
             
     @update("dns", ExtDNSName)
     @entry(AuthRequiredGuard)
     def set_dns(self, value):
         q = "UPDATE hosts SET dns=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
         
     @update("status", ExtHostStatus)
     @entry(AuthRequiredGuard)
     def set_status(self, value):
         q = "UPDATE hosts SET entry_status=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.db.commit()
             
 
 class HostManager(Manager):
@@ -337,17 +332,17 @@ class HostManager(Manager):
         try:
             self.db.put(q, host_name=host_name, dns=dns, group=group.oid, mac=mac, room=room, optionspace=optionspace,
                        info=info, changed_by=fun.session.authuser)
-            print "Host created, name=", host_name
-            self.db.commit()
         except IntegrityError, e:
             raise ExtHostAlreadyExistsError()
         
     @entry(AuthRequiredGuard)
     def destroy_host(self, fun, host):
         q = "DELETE FROM hosts WHERE id=:hostname LIMIT 1"
-        self.db.put(q, hostname=host.oid)
+        try:
+            self.db.put(q, hostname=host.oid)
+        except IntegrityError:
+            raise ExtHostInUseError
         print "Host destroyed, name=", host.oid
-        self.db.commit()
         
     def rename_host(self, obj, newname):
         oid = obj.oid

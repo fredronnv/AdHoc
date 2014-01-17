@@ -35,45 +35,52 @@ class T0810_BuildingFetch(UnAuthTests):
                 break
             
             
-class T0820_BuildingCreate(UnAuthTests):
+class T0820_BuildingCreate(AuthTests):
     """ Test building_create """
     
     def do(self):  
-        if self.proxy != self.superuser:
-            return
         try:
             self.superuser.building_destroy("QZ1243A")
         except:
             pass
-        with AssertAccessError(self):
-            self.proxy.building_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3', "TestBuilding")
-            ret = self.superuser.building_fetch('QZ1243A', {"re": True, "info": True, "building": True})
-            assert "re" in ret, "Key re missing in returned struct from building_fetch"
-            assert "info" in ret, "Key info missing in returned struct from building_fetch"
-            assert "building" in ret, "Key building missing in returned struct from building_fetch" 
-            assert ret.building == "QZ1243A", "Bad building, is % should be %s" % (ret.building, "QZ1243A")
-            assert ret.re == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3", "Re is " + ret.re + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3'"
-            assert ret.info == "TestBuilding", "Info is " + ret.info + "but should be 'TestBuilding'"
+        try:
+            with AssertAccessError(self):
+                self.proxy.building_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3', "TestBuilding")
+                ret = self.superuser.building_fetch('QZ1243A', {"re": True, "info": True, "building": True})
+                assert "re" in ret, "Key re missing in returned struct from building_fetch"
+                assert "info" in ret, "Key info missing in returned struct from building_fetch"
+                assert "building" in ret, "Key building missing in returned struct from building_fetch" 
+                assert ret.building == "QZ1243A", "Bad building, is % should be %s" % (ret.building, "QZ1243A")
+                assert ret.re == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3", "Re is " + ret.re + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3'"
+                assert ret.info == "TestBuilding", "Info is " + ret.info + "but should be 'TestBuilding'"
+        finally:
+            try:
+                self.superuser.building_destroy("QZ1243A")
+            except:
+                pass
         
         
-class T0830_BuildingDestroy(UnAuthTests):
+class T0830_BuildingDestroy(AuthTests):
     """ Test building destroy """
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
-        with AssertAccessError(self):
-            self.proxy.building_destroy('QZ1243A')
-            with AssertRPCCError("LookupError::NoSuchBuilding", True):
-                self.superuser.building_fetch('QZ1243A', {"building": True})
+        self.superuser.building_create('QZ1243A', '.*', "No info")
+        try:
+            with AssertAccessError(self):
+                self.proxy.building_destroy('QZ1243A')
+                with AssertRPCCError("LookupError::NoSuchBuilding", True):
+                    self.superuser.building_fetch('QZ1243A', {"building": True})
+        finally:
+            try:
+                self.superuser.building_destroy("QZ1243A")
+            except:
+                pass
         
         
-class T0840_BuildingSetName(UnAuthTests):
+class T0840_BuildingSetName(AuthTests):
     """ Test renaming a building"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.building_create('QZ1243A', '.*', "No info")
         with AssertAccessError(self):
             try:
@@ -83,15 +90,20 @@ class T0840_BuildingSetName(UnAuthTests):
                 assert nd.re == '.*', "Bad re"
                 assert nd.info == "No info", "Bad info"
             finally:
-                self.superuser.building_destroy('ZQ1296')
+                try:
+                    self.superuser.building_destroy('ZQ1296')
+                except:
+                    pass
+                try:
+                    self.superuser.building_destroy('QZ1243A')
+                except:
+                    pass
                 
                 
-class T0850_BuildingSetInfo(UnAuthTests):
+class T0850_BuildingSetInfo(AuthTests):
     """ Test setting info on a building"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.building_create('QZ1243A', '.*', "TestBuilding")
         with AssertAccessError(self):
             try:
@@ -104,12 +116,10 @@ class T0850_BuildingSetInfo(UnAuthTests):
                 self.superuser.building_destroy('QZ1243A')
                 
                 
-class T0850_BuildingSetRe(UnAuthTests):
+class T0850_BuildingSetRe(AuthTests):
     """ Test setting re on a building"""
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         self.superuser.building_create('QZ1243A', '.*', "TestBuilding")
         with AssertAccessError(self):
             try:
