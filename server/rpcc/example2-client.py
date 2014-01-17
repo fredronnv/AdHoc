@@ -7,9 +7,26 @@ sys.path.append("/home/viktor/AdHoc/trunk/client")
 import rpcc_client
 from rpcc_client import RPCCValueError, RPCCLookupError
 
-rpcc = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121")
-rpcc.login("#root#", "#root#")
-assert rpcc._auth == "#root#"
+rpcc0 = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121", 0)
+rpcc0.login("#root#", "#root#")
+rpcc1 = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121", 1)
+rpcc1.login("#root#", "#root#")
+rpcc2 = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121", 2)
+rpcc2.login("#root#", "#root#")
+
+print rpcc0.person_fetch("viktor", {"firstname": True, "upfirstname": True, "lowfirstname": True})
+
+print rpcc1.person_fetch("viktor", {"upfirstname": True, "firstname": True, "lowfirstname": True})
+
+print rpcc2.person_fetch("viktor", {"upfirstname": True, "firstname": True, "lowfirstname": True})
+
+raise SystemExit()
+
+rpcc = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121", 0)
+rpcc.session_auth_kerberos()
+
+raise SystemExit()
+
 
 mutex = "test-mutex"
 

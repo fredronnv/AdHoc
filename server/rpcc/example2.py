@@ -55,6 +55,10 @@ class AllowAfterLunch(access.Guard):
             return access.AccessDenied(access.CacheInFunction)
 
 
+class ExtName(ExtString):
+    name = "name"
+    desc = "A name of a person"
+
 class ExtPerson(ExtString):
     name = "person"
     desc = "ID of a person in the system"
@@ -100,7 +104,7 @@ class FunPersonGetName(PersonFunBase):
 class Person(Model):
     name = "person"
     exttype = ExtPerson
-    id_type = str
+    id_type = basestring
 
     def init(self, persid, fname, lname, pnr, acc):
         self.oid = persid
@@ -118,9 +122,17 @@ class Person(Model):
     def get_person(self):
         return self
 
-    @template("firstname", ExtString, default=True)
-    def get_firstname(self):
-        return self.fname
+    @template("firstname", ExtString, default=True, maxv=0)
+    @template("firstname", ExtName, default=True, minv=1)
+    @template("lowfirstname", ExtString, kwargs=dict(low=True), maxv=1) 
+    @template("upfirstname", ExtString, kwargs=dict(up=True))
+    def get_firstname(self, up=False, low=False):
+        if up:
+            return self.fname.upper()
+        elif low:
+            return self.fname.lower()
+        else:
+            return self.fname
 
     @update("firstname", ExtString)
     @access.entry(g_before_lunch)
@@ -322,6 +334,18 @@ class FunDoctest(Function):
         pass
 
 
+# Currently, API versions do not appear when mentioned in a decorator
+# such as @template - they need to be mentioned in a Function
+# .from_version. Will be fixed.
+
+class DummyFunction(Function):
+    extname = "dummy"
+    from_version = 10
+    returns = ExtNull
+
+    def do(self):
+        return
+
 class MyServer(server.Server):
     envvar_prefix = "XMPL_"
     superuser_guard = access.DefaultSuperuserGuard
@@ -338,6 +362,7 @@ srv.register_manager(PersonManager)
 
 srv.register_function(FunPersonGetName)
 srv.register_function(FunDoctest)
+srv.register_function(DummyFunction)
 
 srv.enable_documentation()
 srv.enable_mutexes()
