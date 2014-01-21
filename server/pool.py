@@ -155,7 +155,7 @@ class Pool(Model):
         q = "UPDATE pools SET poolname=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
         
-        print "Pool %s changed Name to %s" % (self.oid, nn)
+        #print "Pool %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_pool(self, nn)
         
     @update("info", ExtString)
@@ -164,7 +164,7 @@ class Pool(Model):
         q = "UPDATE pools SET info=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
         
-        print "Pool %s changed Info to %s" % (self.oid, value)
+        #print "Pool %s changed Info to %s" % (self.oid, value)
     
     @update("network", ExtString)
     @entry(AuthRequiredGuard)
@@ -224,7 +224,7 @@ class PoolManager(Manager):
         try:
             self.db.insert("id", q, pool_name=pool_name, network=network.oid, optionspace=optionspace,
                        info=info, changed_by=fun.session.authuser)
-            print "Pool created, name=", pool_name
+            #print "Pool created, name=", pool_name
             
         except IntegrityError, e:
             raise ExtPoolAlreadyExistsError()
@@ -236,7 +236,7 @@ class PoolManager(Manager):
         except IntegrityError:
             raise ExtPoolInUseError()
         self.db.put(q, poolname=pool.oid)
-        print "Pool destroyed, name=", pool.oid
+        #print "Pool destroyed, name=", pool.oid
         
         
     def rename_pool(self, obj, newname):

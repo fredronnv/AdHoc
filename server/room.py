@@ -31,7 +31,6 @@ class ExtRoomName(ExtString):
     def lookup(self, fun, cval):
         q = "SELECT re FROM buildings"
         for rexp in fun.db.get_all(q):
-            print rexp[0]
             if re.match(rexp[0], cval):
                 return cval
         raise ExtNoMatchingBuildingError()
@@ -123,7 +122,7 @@ class Room(Model):
         q = "UPDATE rooms SET id=:newid WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newid=nn)
         
-        print "Room %s changed ID to %s" % (self.oid, nn)
+        #print "Room %s changed ID to %s" % (self.oid, nn)
         self.manager.rename_room(self, nn)
         
     @update("info", ExtString)
@@ -172,7 +171,7 @@ class RoomManager(Manager):
             self.db.put(q, id=room_name, printers=printers, info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtRoomAlreadyExistsError()
-        print "Room created, id=", id
+        #print "Room created, id=", id
                   
     @entry(AuthRequiredGuard)
     def destroy_room(self, fun, room):

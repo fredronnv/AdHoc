@@ -230,7 +230,7 @@ class OptionDef(Model):
         q = "UPDATE option_defs SET name=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
         
-        print "OptionDef %s changed Name to %s" % (self.oid, nn)
+        #print "OptionDef %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_option_def(self, nn)
         
     @update("info", ExtString)
@@ -239,43 +239,38 @@ class OptionDef(Model):
         q = "UPDATE option_defs SET info=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
         
-        print "OptionDef %s changed Info to %s" % (self.oid, value)
+        #print "OptionDef %s changed Info to %s" % (self.oid, value)
     
     @update("code", ExtString)
     @entry(AuthRequiredGuard)
     def set_code(self, value):
         q = "UPDATE option_defs SET code=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        
-        
+             
     @update("qualifier", ExtOptionDefQualifier)
     @entry(AuthRequiredGuard)
     def set_qualifier(self, value):
         q = "UPDATE option_defs SET qualifier=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        
-        
+             
     @update("type", ExtOptionType)
     @entry(AuthRequiredGuard)
     def set_type(self, value):
         q = "UPDATE option_defs SET type=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        
-        
+             
     @update("optionspace", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE option_defs SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
         
-        
     @update("encapsulate", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_encapsulate(self, value):
         q = "UPDATE option_defs SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        
-        
+           
     @update("struct", ExtList(ExtOptionType))
     @entry(AuthRequiredGuard)
     def set_struct(self, value):
@@ -288,7 +283,6 @@ class OptionDef(Model):
             
         self.db.put(q, name=self.oid, value=struct)
         
-
 
 class OptionDefManager(Manager):
     name = "option_def_manager"
@@ -340,8 +334,7 @@ class OptionDefManager(Manager):
                            info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtOptionDefAlreadyExistsError()
-        
-        
+              
     @entry(AuthRequiredGuard)
     def destroy_option_def(self, fun, option_def):
         q = "DELETE FROM option_defs WHERE name=:name LIMIT 1"
@@ -349,8 +342,7 @@ class OptionDefManager(Manager):
             self.db.put(q, name=option_def.oid)
         except IntegrityError:
             raise ExtOptionDefInUseError()
-        
-        
+              
     def rename_option_def(self, obj, newname):
         oid = obj.oid
         obj.oid = newname

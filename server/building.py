@@ -107,7 +107,7 @@ class Building(Model):
         q = "UPDATE buildings SET id=:newbuilding WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newbuilding=nn)
         
-        print "Building %s changed ID to %s" % (self.oid, nn)
+        #print "Building %s changed ID to %s" % (self.oid, nn)
         self.manager.rename_building(self, nn)
         
     @update("info", ExtString)
@@ -164,7 +164,7 @@ class BuildingManager(Manager):
             self.db.put(q, id=building.oid)
         except IntegrityError:
             raise ExtBuildingInUseError()
-        print "Building destroyed, id=", building.oid
+        #print "Building destroyed, id=", building.oid
         
     def rename_building(self, obj, building_name):
         oid = obj.oid

@@ -111,7 +111,7 @@ class Optionspace(Model):
         q = "UPDATE optionspaces SET value=:value WHERE value=:oid LIMIT 1"
         self.db.put(q, oid=self.oid, value=nn)
         
-        print "Optionspace %s changed name to %s" % (self.oid, nn)
+        #print "Optionspace %s changed name to %s" % (self.oid, nn)
         self.manager.rename_optionspace(self, nn)
         
     @update("info", ExtString)

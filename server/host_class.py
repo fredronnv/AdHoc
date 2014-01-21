@@ -157,7 +157,7 @@ class HostClass(Model):
         q = "UPDATE classes SET classname=:value WHERE classname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
         
-        print "HostClass %s changed Name to %s" % (self.oid, nn)
+        #print "HostClass %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_host_class(self, nn)
         
     @update("info", ExtString)
@@ -166,7 +166,7 @@ class HostClass(Model):
         q = "UPDATE classes SET info=:value WHERE classname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
         
-        print "HostClass %s changed Info to %s" % (self.oid, value)
+        #print "HostClass %s changed Info to %s" % (self.oid, value)
     
     @update("vendor_class_id", ExtString)
     @entry(AuthRequiredGuard)
@@ -226,7 +226,7 @@ class HostClassManager(Manager):
         try:
             self.db.insert("id", q, host_class_name=host_class_name, vendor_class_id=vendor_class_id, optionspace=optionspace,
                        info=info, changed_by=fun.session.authuser)
-            print "HostClass created, name=", host_class_name
+            #print "HostClass created, name=", host_class_name
             
         except IntegrityError, e:
             raise ExtHostClassAlreadyExistsError()
@@ -238,9 +238,8 @@ class HostClassManager(Manager):
             self.db.put(q, classname=host_class.oid)
         except IntegrityError:
             raise ExtHostClassInUseError()
-        print "HostClass destroyed, name=", host_class.oid
-        
-        
+        #print "HostClass destroyed, name=", host_class.oid
+         
     def rename_host_class(self, obj, newname):
         oid = obj.oid
         obj.oid = newname

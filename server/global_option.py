@@ -112,7 +112,7 @@ class GlobalOption(Model):
         q = "UPDATE global_options SET name=:newname WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newname=nn)
         
-        print "GlobalOption %s changed Name to %s" % (self.oid, nn)
+        #print "GlobalOption %s changed Name to %s" % (self.oid, nn)
         
     @update("value", ExtGlobalOptionValue)
     @entry(AuthRequiredGuard)

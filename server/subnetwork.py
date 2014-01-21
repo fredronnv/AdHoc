@@ -189,7 +189,7 @@ class SubnetworkManager(Manager):
         except IntegrityError:
             raise ExtSubnetworkInUseError()
         
-        print "Subnetwork destroyed, id=", id
+        #print "Subnetwork destroyed, id=", id
         
     def rename_subnetwork(self, obj, newid):
         oid = obj.oid

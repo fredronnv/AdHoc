@@ -177,7 +177,7 @@ class Host(Model):
 
     @template("host", ExtHost)
     def get_host(self):
-        print "GET_GROUP"
+        #print "GET_GROUP"
         return self
 
     @template("group", ExtGroup)
@@ -232,7 +232,7 @@ class Host(Model):
         nn = str(host_name)
         q = "UPDATE hosts SET id=:value WHERE id=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
-        print "Host %s changed Name to %s" % (self.oid, nn)
+        #print "Host %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_host(self, nn)
         
     @update("info", ExtString)
@@ -240,7 +240,7 @@ class Host(Model):
     def set_info(self, value):
         q = "UPDATE hosts SET info=:value WHERE id=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        print "Host %s changed Info to %s" % (self.oid, value)
+        #print "Host %s changed Info to %s" % (self.oid, value)
     
     @update("group", ExtGroup)
     @entry(AuthRequiredGuard)
@@ -342,7 +342,7 @@ class HostManager(Manager):
             self.db.put(q, hostname=host.oid)
         except IntegrityError:
             raise ExtHostInUseError
-        print "Host destroyed, name=", host.oid
+        #print "Host destroyed, name=", host.oid
         
     def rename_host(self, obj, newname):
         oid = obj.oid

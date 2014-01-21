@@ -152,7 +152,7 @@ class Group(Model):
         q = "UPDATE groups SET groupname=:value WHERE groupname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
         
-        print "Group %s changed Name to %s" % (self.oid, nn)
+        #print "Group %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_group(self, nn)
         
     @update("info", ExtString)
@@ -161,22 +161,20 @@ class Group(Model):
         q = "UPDATE groups SET info=:value WHERE groupname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
         
-        print "Group %s changed Info to %s" % (self.oid, value)
+        #print "Group %s changed Info to %s" % (self.oid, value)
     
     @update("parent", ExtString)
     @entry(AuthRequiredGuard)
     def set_parent(self, value):
         q = "UPDATE groups SET parent_group=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
-        
-        
+                
     @update("optionspace", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE groups SET optionspace=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
         
-
 
 class GroupManager(Manager):
     name = "group_manager"

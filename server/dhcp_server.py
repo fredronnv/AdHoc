@@ -33,6 +33,7 @@ class ExtDHCPServer(ExtDHCPServerID):
         return fun.dhcp_server_manager.get_dhcp_server(cval)
 
     def output(self, fun, obj):
+        #print "DHCP-server output", obj, obj.__dict__
         return obj.oid
     
     
@@ -138,7 +139,7 @@ class DHCPServerManager(Manager):
             self.db.put(q, id=dhcp_server_id, name=dns, info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtDHCPServerAlreadyExistsError()
-        print "DHCPServer created, id=", dhcp_server_id
+        #print "DHCPServer created, id=", dhcp_server_id
         
     @entry(SuperuserGuardProxy)
     def destroy_dhcp_server(self, fun, dhcp_server):

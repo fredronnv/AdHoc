@@ -46,11 +46,9 @@ class ExtPoolRange(ExtPoolRangeName):
     desc = "A DHCP shared pool_range"
 
     def lookup(self, fun, cval):
-        print "LOOKING UP RANGE", str(cval)
         return fun.pool_range_manager.get_pool_range(str(cval))
 
     def output(self, fun, obj):
-        print "Outputting object", obj, obj.__dict__
         return obj.oid
     
     
@@ -94,7 +92,6 @@ class PoolRange(Model):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        print a
         self.oid = a.pop(0)
         self.start_ip = self.oid
         self.end_ip = a.pop(0)
@@ -156,7 +153,6 @@ class PoolRange(Model):
     def check_model(self):
         q = "SELECT INET_ATON(:start_ip) > INET_ATON(:end_ip)"
         val = self.db.get_value(q, start_ip=self.start_ip, end_ip=self.end_ip)
-        print "VAL=", val
         if val:
             raise ExtPoolRangeReversedError()
         self.manager.checkoverlaps(self.start_ip, self.end_ip)
@@ -177,7 +173,6 @@ class PoolRangeManager(Manager):
         return dq
 
     def get_pool_range(self, pool_range_name):
-        print "GET_POOL_RANGE", pool_range_name
         return self.model(pool_range_name)
 
     def search_select(self, dq):
@@ -234,5 +229,4 @@ class PoolRangeManager(Manager):
             if overlap[0] != start_ip or overlap[1] != end_ip:
                 true_overlaps.append(overlap)
         if true_overlaps:
-                print "RAISING OVERLAP ERROR:", true_overlaps
                 raise ExtPoolRangeOverlapError("The range would overlap the ranges: %s" % ",".join(elem[0] for elem in true_overlaps))

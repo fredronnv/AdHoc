@@ -182,8 +182,7 @@ class NetworkManager(Manager):
         except IntegrityError:
             raise ExtNetworkAlreadyExistsError()
         
-        print "Network created, network_name=", network_name
-        
+        #print "Network created, network_name=", network_name
         
     @entry(AuthRequiredGuard)
     def destroy_network(self, fun, network):
@@ -192,7 +191,6 @@ class NetworkManager(Manager):
         except IntegrityError:
             raise ExtNetworkInUseError()
         self.db.put(q, id=network.oid)
-        
         
     def rename_network(self, obj, newid):
         oid = obj.oid
