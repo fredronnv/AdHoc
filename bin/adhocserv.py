@@ -68,7 +68,6 @@ for file in os.listdir(serverdir):
                     except:
                         print "Failed to register manager ", obj, " in module", mo.group(1)
                         raise
-                    break
     srv.register_functions_from_module(module)
              
 
