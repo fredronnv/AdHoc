@@ -17,6 +17,7 @@ from group import *
 from host_class import *
 from pool import *
 from host import *
+from pool_range import *
 #from mutex import *
 
 if __name__ == "__main__":
