@@ -311,6 +311,18 @@ a.funlink {
   font-size: 10pt;
   text-decoration: none;
 }
+
+span.type_name {
+   font-family: monospace;
+   font-size: 10pt;
+   color: #068
+}
+td.type{
+  background-color: #cdd;
+  border-bottom: solid 1px #888;
+}
+
+
 """
         return t
         #return s
@@ -331,7 +343,7 @@ a.funlink {
             row.td(cls="section_name", valign="top").cdata(name)
             return row
 
-        html = HTMLNode("html", _space_children=True)
+        html = HTMLNode("html", _space_children=False)
         head = html.head()
         head.title().cdata("Definition of %s function %s for API version %d" % (self.server.get_server_url(), funcls._name(), apivers))
         head.link(rel="stylesheet", href="/api/api.css")
@@ -447,7 +459,7 @@ a.funlink {
                     r = ttbl.tr()
                     r.td(valign="top").cdata("Optional")
                     x = False
-                    for (key, typ, desc) in sorted(mand):
+                    for (key, typ, desc) in sorted(opt):
                         if x:
                             r = ttbl.tr()
                             r.td().cdata("")
