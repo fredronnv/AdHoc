@@ -59,7 +59,7 @@ popd  > /dev/null
 #D =pod
 #D =head4 dhcp2 - DHCP control program
 #D
-#D The command suite I<dhcp2> implements a CLI interface to MEDIC's DHCP database. 
+#D The command suite I<dhcp2> implements a CLI interface to ITS DHCP administration system. 
 #D
 #M =head1 NAME
 #M
@@ -71,7 +71,7 @@ popd  > /dev/null
 #M
 #M =head1 DESCRIPTION
 #M
-#M The command suite dhcp2 implements a CLI interface to MEDIC's DHCP database.
+#M The command suite dhcp2 implements a CLI interface to ITS DHCP administration system.
 #M
 #M =head1 USAGE
 #M
@@ -81,16 +81,6 @@ popd  > /dev/null
 #M for developing this script itself.
 ##SSDE1
 #M
-#M Note that dhcp2 can only be used on machines that have been configured correctly. See the
-#M configuration file section.
-#M
-#M The following machines are known to support dhcp2 correctly:
-#M 
-#M lusaka.medic.chalmers.se (restricted access to this machine)
-#M
-#M {aso,soya}.medic.chalmers.se
-#M
-#M See also the EXAMPLES section of this document for some scenarios.
 #M
 #M =head3 Adding a plain host
 #M
@@ -2015,9 +2005,13 @@ _validate_hotbeat_class()
     return
 }
 ##VGIP Validator generation insertion point, do not delete!!
-coprocess()
+proxy_start()
 {
+	if [ -n "$coppid" ]; then
+		return
+	fi
 	#echo "SERVER_CALL CMD=" "$@" >&2
+
 	if [ -z "$DHCP2_CONFFILE" ]; then
         dhcp2_get_conffile
     fi
@@ -2034,11 +2028,14 @@ coprocess()
 	$MY_PATH/dhcp2proxy.py $copin $copout &
 	coppid=$!
 	trap "kill $coppid; rm $copin $copout" EXIT
+	
+	server_call "session_auth_login('fbq', 'fbq')"
 
 }
 
 server_call()
 {
+	proxy_start
 	#echo "copin=" $copin >&2
     echo "Sending " "$@" >&2
     echo "$@" >"$copin"
@@ -6181,9 +6178,8 @@ _chsubnetwork_foundaflag()
 
 ##SSCB2 Suite specific code begin 2
 # Run the command
-coprocess
+#proxy_start
 #server_call "session_start()"
-server_call "session_auth_login('fbq', 'fbq')"
 main "$@" 
 #M
 #M =head1 EXAMPLES
