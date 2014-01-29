@@ -1,0 +1,6363 @@
+#!/bin/bash
+##SSCB1 Suite specific code begin 1
+# @(#) $Id: dhcp2,v 2.54 2012/10/30 09:51:12 bernerus Exp $
+# @(#) $Header: /users/medic/bernerus/subsys/cvs/proj/dhcp2/dhcp2,v 2.54 2012/10/30 09:51:12 bernerus Exp $
+# @(#) $Name:  $
+CVSversion='$Revision: 2.54 $'
+#
+# Copyright (C) Christer Bernerus, 2003-2014
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#
+#
+PATH=/usr/ed-pkg/vcs-core/bin:/usr/site/sup.phc/b/binh:/usr/site/lic.phc/b/binh:/usr/ed-pkg/sup.phc/b/binh:/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/usr/local/mysql/bin:/js/tool/bin
+version=`echo "{$CVSversion}" | cut -f2 -d' '`
+verbose=0
+export verbose
+columns=`stty -a | grep columns | sed 's/= //g' | tr ';' '\n' | grep columns | sed 's/^ //' | tr ' ' '\n' | egrep '^[0-9]*$'`
+# In case you want to use ksh instead of sh, the following lines are helpful 
+#trap 'echo proxy_quit | nc localhost 4848' EXIT
+if [ -n "`echo $- | grep x`" ]; then
+    echo "Tracing is on"
+    KSH_GLOBALTRACE=1;
+fi
+if [ -z "$columns" ]; then
+    columns=80
+fi
+case $0 in
+    /*) myself=$0  #*/ /* C comment killer*/
+    ;;
+    *)  myself=$PWD/$0 
+    ;;
+esac
+
+MY_PATH="${BASH_SOURCE[0]}";
+if ([ -h "${MY_PATH}" ]) then
+	while([ -h "${MY_PATH}" ]) do 
+		MY_PATH=`readlink "${SCRIPT_PATH}"`
+	done
+fi
+pushd . > /dev/null
+cd `dirname ${MY_PATH}` > /dev/null
+MY_PATH=`pwd`;
+popd  > /dev/null
+
+#D 
+#D =pod
+#D =head4 dhcp2 - DHCP control program
+#D
+#D The command suite I<dhcp2> implements a CLI interface to MEDIC's DHCP database. 
+#D
+#M =head1 NAME
+#M
+#M dhcp2 - DHCP control program
+#M
+#M =head1 SYNOPSIS
+#M
+#M dhcp2 [global options] subcommand [options...]
+#M
+#M =head1 DESCRIPTION
+#M
+#M The command suite dhcp2 implements a CLI interface to MEDIC's DHCP database.
+#M
+#M =head1 USAGE
+#M
+#M Use the different subcommands to perform operations against the database. 
+##SSDB1 
+#M The "Listvalidators", "Newsub", "Newoption","Newtitle" and "Release" subcommands are used 
+#M for developing this script itself.
+##SSDE1
+#M
+#M Note that dhcp2 can only be used on machines that have been configured correctly. See the
+#M configuration file section.
+#M
+#M The following machines are known to support dhcp2 correctly:
+#M 
+#M lusaka.medic.chalmers.se (restricted access to this machine)
+#M
+#M {aso,soya}.medic.chalmers.se
+#M
+#M See also the EXAMPLES section of this document for some scenarios.
+#M
+#M =head3 Adding a plain host
+#M
+#M A plain host is one that only need the network setup parameters, but no boot or installation options.
+#M Most machines are in this group. E.g. all self administered machines
+#M
+#M Use B<dhcp2 addhost hostname mac-address>
+#M
+#M =head3 Finding a free hostname
+#M
+#M If you need to find a free hostname, the dhcp2 mkhost command may be of help. You need to know
+#M which network the machine will be connected to. 
+#M
+#M Use B<dhcp2 mkhost -n network-name>
+#M
+#M =head3 Finding out network names
+#M
+#M To be able to use mkhost, you need to find out which network names that are acceptable. 
+#M
+#M Use B<dhcp2 lsnetworks> to get a list. The "Id" column lists the names.
+#M
+#M =head3 Triggering a reinstallation
+#M
+#M You can trigger a reinstallation of Linux hosts at next reboot by manipulating the I<bootmode> field of the host.
+#M
+#M Use B<dhcp2 chhost -b install hostname> 
+#M
+#M This will cause the backend script to generate a symlink in the TFTP area for the Linux installation that will
+#M divert the PXE reboot process to do a full kickstart instead of just a rebooot. 
+#M When the machine is ready, the machine will contact the TFTP server to remove the symlink. The DHCP backend 
+#M script will detect that the symlink is gone and returns the bootmode to its default I<disk> value. 
+#M You can abort the pending kickstart if you set the bootmode field back to I<disk>. However,
+#M a kickstart will not be aborted once started.
+#M
+#M =head3 Finding out the syntax of a dhcp2 subcommand
+#M
+#M If you are unsure about the syntax for a subcommand, jyst type
+#M
+#M B<dhcp2 >I<subcommand> B<-h>
+#M
+#M If you need a little more help: 
+#M
+#M use B<dhcp2 >I<subcommand> B<--help>
+#M
+#M =head1 ABBREVIATIONS
+#M 
+#M When using the script, all subcommands may be abbreviated down to the level where the
+#M abbreviation becomes ambiguous.
+#M
+#M =head1 ALIASES
+#M
+#M Another form of abbreviations are contractions, i.e. a subcommand named I<newsub> may be contracted
+#M to I<ns>. All subcommands may specify a comma separated list of legal aliases that also
+#M match the subcommand. These aliases may be used for specifying valid contractions of a subcommand
+#M or can specify valid aliases, contractions or not.
+#M Aliases may not in turn be abbreviated, thus if you specify the alias "luv" as a legal
+#M contraction for I<listuservolumes>, the subcommand I<lu> will not be recognized.
+#M
+#M =head1 GLOBAL OPTIONS
+#M
+#M Global options are valid for all subcommands. These are specified prior to the subcommand
+#M itself. The following global options are implemented:
+#M
+#M =over
+#M
+#M =item B<-v>
+#M 
+#M The B<-v> (verbose) option enables tracing of the activites going on in the script.
+#M
+#M =back
+#M
+
+#
+# titlearray - Generate the global title array from the embedded #T tags
+#
+_titlearray()
+{
+    if [ ! -n "$_titlearray_cache" ]; then
+        IFS= _titlearray_cache=`_extract \#T <$myself`
+    fi
+#   echo TARRCACHE "$_titlearray_cache" >&2
+    echo "$_titlearray_cache"
+}
+#
+# cmdarray - Generate the global command array from the embedded #S tags
+#
+_cmdarray()
+{
+    if [ ! -n "$_cmdarray_cache" ]; then
+        _cmdarray_cache="`_extract \#S <$myself`"
+    fi
+    echo "$_cmdarray_cache"
+}
+
+#
+# optarray - Generate the options array from the embedded #O tags for a specific subcommand
+#
+_optarray()
+{
+    _extract "\#O $1;" <$myself
+}
+
+_split_line()
+{
+#    echo "_split_line:$1" >&2
+    OIFS=$IFS; IFS=';'
+    set -- $1
+    IFS=$OIFS
+    _pl_1=$1
+    _pl_2=$2
+    _pl_3=$3
+    _pl_4=$4
+    _pl_5=$5
+    _pl_6=$6
+    _pl_7=$7
+    _pl_8=$8
+#    echo "_split_line:/$_pl_1/$_pl_2/$_pl_3/$_pl_4/$_pl_5/$_pl_6/$_pl_7/$_pl_8" >&2
+}
+
+#
+# Parse the command array into a number of variables to enhance speed of execution
+#
+_setup_syntax()
+{
+#
+# Fetch subcommand lines
+#
+    if [ ! -n "$_cmdarray_cache" ]; then
+        _cmdarray_cache=`_cmdarray`
+    fi
+    scl=`_cmdarray | cut -f1 -d";" | tr '\n' ' '`
+        
+## Next line sets IFS to '\n'
+    IFS='
+'
+    for _cmd_line in `_cmdarray | sed "s/;;/;'';/g"`; do
+        _split_line "$_cmd_line"
+        s=$_pl_1
+        eval ${s}_aliases="\"$_pl_2\"" \
+             ${s}_what="\"$_pl_3\"" \
+             ${s}_minargs="\"$_pl_4\"" \
+             ${s}_maxargs="\"$_pl_5\"" \
+             ${s}_tail="\"$_pl_6\"" \
+             ${s}_help="\"$_pl_7\"" \
+             ${s}_seq="\"$_pl_8\""
+
+        if [ -z "$_pl_8" ]; then
+            _cmdarr_s1="$_pl_1;1000000 $_cmdarr_s1"
+        else
+             _cmdarr_s1="$_pl_1;$_pl_8 $_cmdarr_s1"
+        fi
+    done
+## Next line sets IFS to ' \t\n'
+    IFS=' 	
+'
+#
+# Fetch title lines
+#
+    if [ ! -n "$_titlearray_cache" ]; then
+        _titlearray_cache=`_titlearray`
+    fi
+
+    tl=`_titlearray`
+## Next line sets IFS to '\n'
+    IFS='
+'
+    for _title_line in $tl; do
+        _split_line "$_title_line"
+        _seq=$_pl_2
+        tseq=TiTlE$_seq
+        eval ${tseq}_what="\"$_pl_1\""
+        eval ${tseq}_seq="\"$_pl_2\""
+        _titarr="TiTlE$_seq;$_seq $_titarr"
+    done
+## Next line sets IFS to ' \t\n'
+    IFS=' 	
+'
+    _cmdarr_s1="$_titarr $_cmdarr_s1"
+    subcmd_list_sorted=`echo $_cmdarr_s1 | tr ' ' '\n' | sort -t ';' -n -k +2 | cut -f1 -d';'`
+    subcmd_list=`echo $_cmdarr_s1 | tr ' ' '\n' | cut -f1 -d';'`
+}
+
+#
+# Parse the options array into a number of variables to enhance speed of execution
+#
+_setup_options()
+{
+    sc=$1
+    shift
+
+    optl=`_optarray ${sc} | cut -f1 -d";" | tr '\n' ' '`
+
+    subcmd_opt=$optl
+#
+# These variables collect the long and short synopsis strings
+#
+    _opt_lsyn=
+    _opt_ssyn=
+
+    for s in $optl; do
+        _opt_line=`_optarray ${sc} | egrep "^${s};"`
+        _split_line "$_opt_line"
+        
+        eval _${sc}_${s}_flag="\"$_pl_1\""
+        if [ ${#_pl_1} -gt 1 ]; then
+            _syn_dashes='--'
+        else
+            _syn_dashes='-'
+        fi
+
+        _so_arg="$_pl_2"
+#        _so_arg=`echo $_opt_line | cut -f2 -d';'`
+        eval _${sc}_${s}_arg="\"$_pl_2\""
+        eval _${sc}_${s}_help="\"$_pl_3\""
+        eval _${sc}_${s}_status="\"$_pl_4\""
+        eval _${sc}_${s}_validator="\"$_pl_5\""
+        _so_status="$_pl_4"
+
+        _opt_summary=${_opt_summary}${s}
+        if [ "$_so_status" = "M" ]; then
+            if [ -n "$_so_arg" ]; then
+                _opt_summary=${_opt_summary}:
+                _opt_lsyn=${_opt_lsyn}" ${_syn_dashes}${s} ${_so_arg}"
+            else
+                _opt_lsyn=${_opt_lsyn}" ${_syn_dashes}${s}"
+            fi
+        else    
+            if [ -n "$_so_arg" -o ${_syn_dashes} != '-' ]; then
+                _opt_summary=${_opt_summary}:
+                _opt_lsyn=${_opt_lsyn}" [${_syn_dashes}${s} ${_so_arg}]"
+            else
+                _opt_ssyn=${_opt_ssyn}${s}
+            fi
+        fi
+    done
+
+    eval ${sc}_getopt="\"$_opt_summary\""
+
+    if [ -n "${_opt_ssyn}" ]; then
+        eval ${sc}_synopt="\"[-${_opt_ssyn}]${_opt_lsyn}\""
+    else
+        eval ${sc}_synopt="\"${_opt_lsyn}\""
+    fi
+}
+
+
+#
+# Match a command against a the list of commands and print the commands that 
+# matches a given string
+#
+_match_cmds()
+{
+    for c in $subcmd_list; do
+        echo $c | egrep "^$1[a-z ]*\$"
+        for i in `_alias_list $c`; do
+            if [ "$i" = "$1" ]; then
+                echo $c
+                break
+            fi
+        done
+    done
+}
+
+_alias_list()
+{
+    eval _aliaslist=\"\$$1_aliases\"
+    _aliaslist=`echo $_aliaslist | sed s/\'\'//g`
+    echo $_aliaslist | tr ',' ' '
+}
+
+#
+# Count the number of words in a parameter list
+#
+_count_words()
+{
+    echo $#
+}
+#
+# The main routine, called from the very last statement of this script
+#
+main()
+{
+# Remove comment on next line to enable full tracing if running under ksh
+#if [ -n "$KSH_GLOBALTRACE" ]; then
+#    typeset -ft $(typeset +f) 
+#fi
+    mycmd=`basename $0`
+
+    while true; do
+        case $1 in
+#
+# Specify any global options here
+#
+            -v) verbose=1;
+                shift
+                continue
+                ;;
+             *) break 
+                ;;
+        esac
+    done
+
+    subcmd=$1
+    if [ $# -gt 0 ] ; then shift; fi
+    if [ -z "$subcmd" ]; then subcmd=help; fi
+    _setup_syntax
+    matching_commands=`_match_cmds $subcmd`
+    num_match=`_count_words $matching_commands`
+    
+    case $num_match in
+        0)
+            help
+            exit
+            ;;
+        1)
+            subcmd=$matching_commands
+            ;; # Fall out of the case
+        *)
+            echo -e "Subcommand is ambiguous: ( \c"
+            for c in $matching_commands; do
+                echo  -e "$c \c"
+            done
+            echo ")"
+            exit
+            ;;
+    esac
+
+    suite_subcmd "$@"
+}
+
+suite_subcmd()
+{
+    _setup_options $subcmd
+    case $1 in
+        -what|--what)
+            eval echo \"$mycmd \$${subcmd}_what\"
+            ;;
+        *)
+            eval minargs=\"\$${subcmd}_minargs\"
+            eval maxargs=\"\$${subcmd}_maxargs\"
+            eval syntail=\"\$${subcmd}_tail\"
+            eval getopt=\"\$${subcmd}_getopt\"
+            do_subcmd "$@"
+            ;;
+    esac
+}
+
+expand_multiflags()
+{
+    _em_out=
+#    echo "expand_multiflags: " "$@" "nargs=$#" >&2
+    while [ "$#" -gt 0 ]; do
+        _arg="$1"
+#         echo "expand_multiflags: " "looking at argument '$_arg'" >&2
+        case $_arg in
+            -[a-zA-Z]*)
+                _em_out="$_em_out `echo -- $_arg | sed 's/-- //' | sed 's/-//' | sed 's/\([a-zA-Z]\)/\"-&\" /g'`"
+                ;;
+            *)
+                _em_out="$_em_out '$_arg'"
+                ;;
+        esac
+            
+        shift
+    done
+    echo -- $_em_out | sed 's/--//'
+}
+
+expand_args()
+{
+    _ea_subcmd=$1
+    shift
+
+    _ea_input=$*
+    _ea_resargs=
+    while [ "$#" -gt 0 ]; do
+        _arg=$1
+        case $_arg in
+# Double-dash flags, see if an arg is needed and pick the next one
+            --[a-zA-Z]*)
+                _ea_longargs="$_ea_longargs '$_arg'"
+                _ea_larg=${_arg:2}
+                eval _ea_tmp=\"\$_${_ea_subcmd}_${_ea_larg}_arg\"
+                if [ -n "${_ea_tmp}" ]; then
+                    shift
+                    _ea_longargs="$_ea_longargs '$1'"
+                fi
+            ;;
+            *)
+                _ea_resargs="$_ea_resargs '$_arg'"
+            ;;
+        esac
+        shift
+    done
+    eval set -- $_ea_resargs
+    _ea_resargs=
+    while [ "$#" -gt 0 ]; do
+        _arg=$1
+        shift
+        case $_arg in
+# One dash flags, pick the next non-flag arg if wanted
+            -[a-zA-Z]*)
+                _ea_shortargs="$_ea_shortargs '$_arg'"
+                _ea_sarg=${_arg:1}
+                eval _ea_tmp=\"\$_${_ea_subcmd}_${_ea_sarg}_arg\"
+                _ea_expargs=`echo -- $_arg | sed 's/-- //' | sed 's/-//' | sed 's/\([a-zA-Z]\)/\"-&\" /g'`
+                if [ -n "${_ea_tmp}" ]; then
+                    _ea_tmp_arglist=
+                    _ea_flagarg=
+                    while [ "$#" -gt 0 ]; do
+                        if [ -z "$1" ]; then
+                            if [ -z "$_ea_flagarg" ]; then
+                                _ea_flagarg="''"
+                            else
+                                _ea_tmp_arglist="$_ea_tmp_arglist ''"
+                            fi
+                        else
+                            case $1 in
+                                -*)
+                                    _ea_tmp_arglist="$_ea_tmp_arglist '$1'"
+                                    ;;
+                                *)
+                                    if [ -z "$_ea_flagarg" ]; then
+                                        _ea_flagarg="$1"
+                                    else
+                                        _ea_tmp_arglist="$_ea_tmp_arglist '$1'"
+                                    fi
+                                    ;;
+                            esac
+                        fi
+                        shift
+                    done
+                    _ea_shortargs="$_ea_shortargs '$_ea_flagarg'"
+                    eval set -- $_ea_tmp_arglist
+                fi
+                ;;
+            *)
+                _ea_resargs="$_ea_resargs '$_arg'"
+                ;;
+        esac
+    done
+    echo -- $_ea_longargs $_ea_shortargs $_ea_resargs | sed 's/--//'
+}
+
+_short_help()
+{
+    eval echo \"Usage: $mycmd $subcmd \$${subcmd}_synopt \$${subcmd}_tail\"
+    for a in `_alias_list $subcmd`; do
+        eval echo \""      " $mycmd $a \$${subcmd}_synopt \$${subcmd}_tail\"
+    done
+}
+
+#C
+#C =item _check_fflag
+#C
+#C A small utility that checks for the presence of a -f flag in the arg list.
+#C
+_check_fflag()
+{
+    while  [ "$#" -gt 0 ]; do
+        case $1 in
+            -f)
+                return 0
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+    return 1
+}
+
+
+do_subcmd()
+{
+#    echo "do_subcmd ENTRY" "$@" >&2
+    if [ "$subcmd" = "help" ]; then
+        help $*
+        return
+    fi
+    eval set -- `expand_multiflags "$@"`
+#   echo "do_subcmd 1" "$@" >&2
+     
+    _do_subcmd_arglist=`expand_args $subcmd "$@"`
+    eval set -- "$_do_subcmd_arglist"
+#   echo "do_subcmd 2" "$@" >&2
+    _do_subcmd_arglist=
+
+#C Now, the command arguments are normalized:
+#C First, look through the list to see if we have a -f flag. In that case
+#C set the _do_subcmd_force variable to 'f' to indicate to validator
+#C routines that they may use force.
+#C
+    if _check_fflag "$@"; then    
+        eval _do_subcmd_tmp=\"\$_${subcmd}_f_flag\"
+#        echo _do_subcmd_tmp=$_do_subcmd_tmp
+        if [ "$_do_subcmd_tmp" = "f" ]; then
+            _do_subcmd_force='f'
+        fi
+    fi
+
+#C Now check the given arguments.
+#C First, we have the -- flags, with any flag arguments adjacent to the flag
+#C Then we have the - flags, one at a time, with any flag arguments adjacent to the flag
+#C Finally, the last arguments.
+
+# If there are options specified, ask getopt to parse
+# the command line
+#
+#C
+#C Analyze the resulting command line and check against the spec.
+#C
+    _argsleft=0
+#    echo Analyzing $# args>&2
+#    echo Args are "$@">&2
+
+    while [ "$#" -gt 0 ]; do 
+        _arg=$1
+        shift
+#C
+#C Check for the --help or -help options. These are global to all subcommands
+#C
+        case $_arg in
+            --help|-help)
+                eval echo \"$mycmd $subcmd: \$${subcmd}_help\" | fmt -w $columns
+                eval echo \"Usage: $mycmd $subcmd \$${subcmd}_synopt \$${subcmd}_tail\"
+                if [ -n "`_alias_list $subcmd`" ]; then
+                    echo "Valid aliases:" `_alias_list $subcmd | tr ' ' ','`
+                fi
+                if [ -n "$optl" ]; then
+                    echo "Options:"
+                    for s in $optl; do
+                        _opt_line=`_optarray ${subcmd} | egrep "^${s};"`
+                        _split_line "$_opt_line"
+                        _syn_opt_flag="$_pl_1"
+                        _syn_opt_arg="$_pl_2"
+                        _syn_opt_help="$_pl_3"
+
+                        if [ ${#_syn_opt_flag} -gt 1 ]; then
+                            _help_dashes='--'
+                        else
+                            _help_dashes='-'
+                        fi
+
+                        if [ -n "$_syn_opt_arg" ]; then
+                            echo "    $_help_dashes$_syn_opt_flag $_syn_opt_arg"
+                            echo "       $_syn_opt_help"
+                        else
+                            echo "    $_help_dashes$_syn_opt_flag $_syn_opt_help"
+                        fi
+                    done
+                fi
+                return 0
+                ;;
+#C
+#C Check the -h option, if found, prin short help and return OK.
+#C
+            -h)
+                _short_help
+                return 0
+                ;;
+#C
+#C Found a -- option
+#C
+            --*)
+                _larg=${_arg:2}
+#C Is the option known to this subcommand ?
+                eval _do_subcmd_tmp=\"\$_${subcmd}_${_larg}_flag\"
+                if [ "$_do_subcmd_tmp" != "${_arg:2}" ]; then
+                    echo
+                    echo "Unknown option '$_arg'"
+                    _short_help
+                    exit 2
+                fi
+#C Does it require an argument ?
+                eval _do_subcmd_tmp=\"\$_${subcmd}_${_larg}_arg\"
+                if [ -n "${_do_subcmd_tmp}" ]; then
+#                    echo Argument to $_arg is $1
+#C Check if it does have an argument
+                    if [ $# -eq 0 -o "${1:1}" = '-' ]; then
+                        echo "The option $_arg needs an argument"
+                        _short_help
+                        exit 2
+                    fi
+#C OK, we got an arg, shell we send it through a validator ?
+                    eval _do_subcmd_validator=\"\$_${subcmd}_${_larg}_validator\"
+                    if [ -n "${_do_subcmd_validator}" ]; then
+#C Yes, rewrite the syntax name to a real function name
+                        eval _do_subcmd_validator="_validate_${_do_subcmd_validator}"
+#C Send the arg throug the validator
+                        _do_subcmd_tmp=`${_do_subcmd_validator} "$1"`
+#C Got something? Nothing means error
+                        if [ -z "${_do_subcmd_tmp}" ]; then
+                            exit 2
+                        fi
+#C OK, we're through here, tack on the flag and the possibly altered argument to the output arg list
+                        _do_subcmd_arglist="$_do_subcmd_arglist '$_arg' '$_do_subcmd_tmp'"
+                    else
+#C No validator, tack on the flag and the argument to the output arg list
+                        _do_subcmd_arglist="$_do_subcmd_arglist '$_arg' '$1'"
+                    fi
+                    shift
+                else
+#C No arg expected, tack on the flag to the output arg list
+                    _do_subcmd_arglist="$_do_subcmd_arglist '$_arg'"
+                fi
+                ;;
+            -*)
+                _sarg=${_arg:1}
+                eval _do_subcmd_tmp=\"\$_${subcmd}_${_sarg}_flag\"
+                if [ "$_do_subcmd_tmp" != "${_arg:1}" -a "$_arg" != "-h" ]; then
+                    echo "Unknown flag '$_arg'"
+                    _short_help
+                    exit 2
+                fi
+                eval _do_subcmd_tmp=\"\$_${subcmd}_${_sarg}_arg\"
+                if [ -n "${_do_subcmd_tmp}" ]; then
+#                    echo Argument to $_arg is "'$1'"
+                    if [ $# -eq 0 -o "${1:1}" = '-' ]; then
+                        echo "The flag $_arg needs an argument"
+                        _short_help
+                        exit 2
+                    fi
+                    eval _do_subcmd_validator=\"\$_${subcmd}_${_sarg}_validator\"
+                    if [ -n "${_do_subcmd_validator}" ]; then
+                        eval _do_subcmd_validator="_validate_${_do_subcmd_validator}"
+                        _do_subcmd_tmp=`${_do_subcmd_validator} "$1"`
+                        if [ -z "${_do_subcmd_tmp}" ]; then
+                            exit 2
+                         fi
+                        _do_subcmd_arglist="$_do_subcmd_arglist '$_arg' '$_do_subcmd_tmp'"
+                    else
+                        _do_subcmd_arglist="$_do_subcmd_arglist '$_arg' '$1'"
+                    fi
+                    shift
+                else
+                    _do_subcmd_arglist="$_do_subcmd_arglist '$_arg'"
+                fi
+                ;;
+#C Non option args, tack them to the output arg list and count them.
+            *)
+                _do_subcmd_arglist="$_do_subcmd_arglist '$_arg'"
+                _argsleft=`expr $_argsleft + 1`
+                ;;
+        esac
+#    echo _do_subcmd_arglist="$_do_subcmd_arglist"
+    done
+
+#C Check residual arg count
+    if [ $_argsleft -lt $minargs -o $_argsleft -gt $maxargs ]; then
+        eval echo \"Wrong \# of args: $_argsleft.\"
+        eval echo \"Usage: $mycmd $subcmd \$${subcmd}_synopt \$${subcmd}_tail\"
+        return
+    fi
+
+#C Set arguments to resulting arg list
+    eval set -- "$_do_subcmd_arglist"
+#C Dispatch to the subcommand
+#    echo " $subcmd $@" >&2
+    $subcmd "$@"
+}
+#
+# This routine formats a line in the subcommands list in a relatively nice way.
+#
+_formathelpline()
+{
+    seqn=$1
+    title=$2
+    shift
+    shift
+    shift
+    echo  "${title}" | awk "{ printf(\"      $seqn $mycmd %-${_subc_maxlen}s - \", \$1);}" 
+    eval echo "$@" 
+}
+#M
+#M =head1 UTILITY ROUTINES
+#M 
+#M A number of utility routines are available for the programmer. these are:
+#M
+#M =head2 trace
+#M
+#M The trace routine will echo its parameters to stderr if the -v (verbose) option is
+#M specified I<before> the subcommand. This routine is useful for tracing the operation of the
+#M implemented script
+#M
+trace()
+{
+    verb=$1
+    if [ $verbose -gt 0 ]; then
+        echo $verb >&2
+    fi
+}
+
+#
+# Extract embedded pod documentation
+#
+_extract()
+{
+    _ex_tag=$1
+    shift
+    for i in "$@"; do
+        _opt_tags=${_opt_tags}"|$1"
+        shift
+    done
+    egrep "^(${_ex_tag}${_opt_tags})[ ]*" <&0 | sed -e "s/${_ex_tag}[ ]*//"
+}
+
+#T General;0
+#
+#M =head1 IMPLEMENTED SUBCOMMANDS 
+#M
+#S help;;Print this help text;0;0;;The help subcommand prints a help text including a list of the implemented subcommands.;1
+#O help;n;;Include numeric help sequence numbers
+#
+#
+help()
+{
+    _subc_maxlen=0
+
+    for i in "$@"; do
+        case "$i" in
+            -n)
+        _help_n_flag=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    echo "$mycmd version $version: Synopsis:"
+    echo "$mycmd [ -v ] subcommand [ arguments ]"
+    echo
+    echo " -v - Enable verbose output"
+    echo
+    echo "       Subcommands are:"
+#   echo "       $subcmd_list"
+
+# Doing this with perl is a lot faster than doing it within the shell...
+    _subc_maxlen=`echo $subcmd_list_sorted | tr ' ' '\n' | perl -nle 'BEGIN{$l=0;}END{print $l;}$l=length($_) > $l ? length($_):$l;'`
+
+    for c in $subcmd_list_sorted; do
+        sq=
+        if [ "$_help_n_flag" = "-n" ]; then
+            eval sq=\$${c}_seq
+        fi
+        case $c in
+            TiTlE[0-9]*)
+                echo 
+                eval echo  "'    '$sq \$${c}_what"
+                ;;
+            *)
+                _formathelpline "$sq" $c eval \$${c}_what
+                ;;
+        esac
+    done
+    echo
+    echo "Use $mycmd <subcommand> --help to get more specific help"
+    echo "Use $mycmd <subcommand> -h for synopsis"
+}
+
+#
+#
+#M
+
+#S man;;Print manual page;0;0;;The man subcommand formats the embedded manual page for the command suite.;1
+#O man;n;;Do not send the manual output through less
+#O man;m;;Produce HTML markup output instead of plain text
+#O man;M;;Produce nroff source suitable for processing by the man(1) command
+#O man;o;outputfile;Send output to outputfile
+#O man;e;;Do not format, just extract the pod input text (for debug)
+
+man()
+{
+#   echo dhcp2 man "$@" >&2
+    man_pager="| less"
+    man_formatter="| pod2man --center=DHCP2\(1\) --release=$version --section='Embedded\ Manual' | nroff -man"
+    man_o_arg=
+
+    for i in "$@"; do
+        case "$i" in
+            -e)
+                eflag=$i
+                man_formatter=""
+                shift
+                ;;
+            -m)
+                man_formatter="| pod2html"  
+                shift
+                ;;
+            -M)
+                man_formatter="| pod2man --section=1 --release=$version --center='MEDIC Sysadmin Documentation' --name=DHCP2"
+                shift
+                ;;
+            -n)
+                man_pager= 
+                shift
+                ;;
+            -o) 
+                shift
+                man_o_arg=$1 
+                shift
+                ;;
+            --)
+                shift 
+                break
+                ;;
+        esac
+    done
+
+    if [ "$eflag" = "-e" ]; then
+        trace "Extracting from $myself"
+        _extract '#M' '#S' < $myself | _syntaxexpand
+        return
+    fi
+
+    if [ -z "$man_o_arg" ]; then
+        _extract '#M' '#S' < $myself | eval "_syntaxexpand ${man_formatter} ${man_pager}" 
+    else
+        trace "Sending output to file"
+        _extract '#M' '#S' < $myself | eval "_syntaxexpand ${man_formatter}" > ${man_o_arg} 
+    fi
+}
+
+_syn_read()
+{
+    OIFS=$IFS; IFS=';'
+    set -- $1
+    IFS=$OIFS;
+    _syn_sc=$1
+    _syn_tail=$6
+    _syn_hlp=$7
+}
+
+_syntaxexpand()
+{
+    while read _syn_line; do
+        trace "Checking line $_syn_line"
+        if [ "${_syn_line:0:3}" = "#S " ]; then
+            _syn_read "${_syn_line:3}"
+            echo "=head2 $_syn_sc"
+            echo
+            echo "$_syn_hlp"
+            _setup_options $_syn_sc
+            echo
+            echo "=head2 I<Synopsis>"
+            echo
+            eval echo \"$mycmd $_syn_sc \$${_syn_sc}_synopt $_syn_tail\"
+            echo
+
+            for _syn_alias in `_alias_list $_syn_sc`; do
+                eval echo \"$mycmd $_syn_alias \$${_syn_sc}_synopt $_syn_tail\"
+                echo
+            done
+            echo 
+            optl=`_optarray ${sc} | cut -f1 -d";" | tr '\n' ' '`
+            if [ -n "$optl" ]; then
+                echo "I<Options>"; echo
+                echo "=over"; echo
+                for s in $optl; do
+                    _opt_line=`_optarray ${sc} | egrep "^${s};"`            
+                    OIFS=$IFS; IFS=';'; set -- $_opt_line; IFS=$OIFS;
+                    _syn_opt_flag=$1
+                    _syn_opt_arg=$2
+                    _syn_opt_help=$3
+                    echo "=item B<-$_syn_opt_flag> I<$_syn_opt_arg>"
+                    echo
+                    echo $_syn_opt_help; echo
+                done
+                echo "=back" ; echo
+            fi
+        else
+            echo $_syn_line
+        fi
+    done
+}
+
+##SSDB2 Developer subcommands begin tag, do not delete.
+#T Subcommands for developing this program itself;10
+#M
+#M =head1 DEVELOPER SUBCOMMANDS
+#M
+#M These subcommands do not interact with the DHCP database in any way, rather these subcommands were used for creating this script.
+#M The subcommands are for developer use only.
+#M
+#S Release;;Release the suite;0;1;[new_name];The Release subcommand produces a copy of the suite that does not contain any developer subcommands;18
+#M =head2 I<Description>
+#M
+#M The I<Release> subcommand creates a new command suite with a new name. It does not just
+#M make a copy, rather it takes the code and changes removes the developer specific subcommands.
+#M
+#M If the I<new_name> is given, that name is used as output filename, otherwise, the name of the script with an attached version number is used.
+#M
+Release()
+{
+#    echo "dhcp2 Release " "$@"
+#   exit
+
+    offspring=$1; 
+
+    if [ -z "$offspring" ]; then
+        offspring=${myself}-${version}
+    fi
+# Must use /usr/bin/test here
+    if /usr/bin/test -e "$offspring"; then
+        echo "A file with the name $offspring already exists, choose another name"
+        exit 2
+    fi
+    if [ -h "$offspring" ] ; then
+        echo "A symbolic link with the name $offspring already exists, choose another name"
+        exit 2
+    fi
+    perlp=/tmp/suite_spawn.$$.pl
+##
+## WARNING, We will soon shift to perl language, beware !!
+##
+    cat <<EOF >$perlp
+#!perl
+#
+## NOTE! This is perl code, not Bourne shell code
+#
+
+\$, = ' ';  # set the output field separator
+\$\ = "\n"; # set the output record separator
+
+
+\$offspring = \$ARGV[0];shift @ARGV;
+\$descr = \$ARGV[0];shift @ARGV;
+
+line: while (<>) 
+{
+    chomp;    # strip record separator
+#
+# The header part
+#
+## NOTE! This is perl code, not Bourne shell code
+#
+    if (/^##SSDB1/ .. /^##SSDE1/)
+    {
+        next line;
+    }
+
+    if (/^##SSDB2/ .. /^##SSDE2/)
+    {
+        next line;
+    }
+
+    print \$_;
+}
+EOF
+#
+# Back to shell code again, phew!
+#
+    perl $perlp <${myself} >${offspring}  $offspring "$description"
+    rm -f $perlp
+    chmod +x ${offspring}
+    echo "New code is found in ${offspring}"
+}
+#S Newtitle;Nt;Create a new title;2;2;sequence_number "title";Create a new subcommands group title;14
+#O Newtitle;r;;Replace code in place
+#M =head2 I<Description>
+#M
+#M The Newtitle subcommand adds a new subcommands title to the help menu.
+#M
+#M The I<sequence_number> must be a non-negative integer. 
+#M
+#M The I<title> argument must be quoted if it contains any spaces.
+#M
+Newtitle()
+{
+    for i in "$@"; do
+        case "$i" in
+            -r)
+                Newtitle_r_flag=$i;
+                shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    newcode=$mycmd.new
+
+# Must use /usr/bin/test here
+    if /usr/bin/test -e "$newcode"; then
+        echo "A file with the name $newcode already exists, you must remove or rename  $newcode"
+        exit 2
+    fi
+    if [ -h "$newcode" ] ; then
+        echo "A symbolic link with the name $newcode already exists, choose another name"
+        exit 2
+    fi
+  
+
+    _Newtitle_seq=$1
+    _Newtitle_title=$2
+
+    case $_Newtitle_seq in
+        [0-9][0-9]*)
+            ;;
+        *)
+            echo "The sequence number must be numeric"
+            return 1
+            ;;
+    esac
+
+    check_busy_seqn "$_Newtitle_seq" || return 1
+
+    perlp=/tmp/suite_Newtitle.$$.pl
+##
+## WARNING, We will soon shift to perl language, beware !!
+##
+    cat >$perlp <<'EOF'
+#!perl
+#
+## NOTE! This is perl code, not Bourne shell code
+#
+
+$, = ' ';  # set the output field separator
+$\ = "\n"; # set the output record separator
+
+
+$title =  $ARGV[0];shift @ARGV;
+$sequence = $ARGV[0];shift @ARGV;
+
+
+line: while (<>) 
+{
+    chomp;    # strip record separator
+#
+# The first suite code block, copy unaltered
+#
+## NOTE! This is perl code, not Bourne shell code
+# 
+    if(/^##SGIP/)
+    {
+        print "#T $title;$sequence";
+    }
+    print $_;
+}
+EOF
+    
+    perl $perlp <${myself} >${newcode}  "$_Newtitle_title" "$_Newtitle_seq"
+    rm -f $perlp
+    chmod +x ${newcode}
+    if [ -n "$Newtitle_r_flag" ]; then
+        mv ${newcode} ${myself}
+    else
+        echo "New code is found in ${newcode}"
+    fi
+}
+#S Lsvalidators;Lv;List validators;0;0;;List currently available argument validators;12
+#M =head2 I<Description>
+#M
+#M The Lsvalidators subcommand scans the code to find which argument validators that are defined.
+#M The produced list is in the same order as the validators appear in tne code.
+#M
+Lsvalidators()
+{
+    grep "^_validate_.*()$" $myself |sed -e 's/_validate_//' -e 's/()//' 
+}
+#S Newsub;;Create a new subcommand;6;6;sub_name minargs maxargs trailsyntax shortdesc longdesc;The Newsub subcommand creates code for a new subcommand;15
+#O Newsub;r;;Replace code in place
+#O Newsub;a;alias_list;Specify valid aliases
+#O Newsub;s;sequence_number;Specify help sequence number
+#M =head2 I<Description>
+#M
+#M The Newsub subcommand creates a new subcommand for the suite. A subcommand tag is inserted into the code together with
+#M an empty skeleton function with the same name as the subcommand. 
+#M
+Newsub()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -r)
+                Newsub_r_flag=$i;
+                shift
+                ;;
+            -a)
+                shift
+                Newsub_a_arg=$1
+                shift
+                ;;
+            -s)
+                shift
+                Newsub_s_arg=$1
+                shift
+                ;;
+            --)
+              shift;break
+              ;;
+        esac
+    done
+    newcode=$mycmd.new
+
+# Must use /usr/bin/test here
+    if /usr/bin/test -e "$newcode"; then
+        echo "A file with the name $newcode already exists, you must remove or rename  $newcode"
+        exit 2
+    fi
+    if [ -h "$newcode" ] ; then
+        echo "A symbolic link with the name $newcode already exists, choose another name"
+        exit 2
+    fi
+    matching_commands=`_match_cmds $1`
+    num_match=`_count_words $matching_commands`
+
+    case $num_match in
+        0)
+            ;;
+        *)
+            echo "The subcommand given will be ambiguous with existing subcommands or aliases"
+            exit 2;
+            ;; # Fall out of the case
+    esac
+
+    if [ -n "$Newsub_s_arg" ]; then
+        case $Newsub_s_arg in
+        [0-9][0-9]*)
+            ;;
+        *)
+            echo "The sequence number must be numeric"
+            return 1
+            ;;
+        esac
+    
+        check_busy_seqn "$Newsub_s_arg" || return 1
+    
+    fi
+
+    perlp=/tmp/suite_Newsub.$$.pl
+##
+## WARNING, We will soon shift to perl language, beware !!
+##
+    cat <<EOF >$perlp
+#!perl
+#
+## NOTE! This is perl code, not Bourne shell code
+#
+
+\$, = ' ';  # set the output field separator
+\$\ = "\n"; # set the output record separator
+
+
+\$Newsub =  \$ARGV[0];shift @ARGV;
+\$newaliases = \$ARGV[0];shift @ARGV;
+\$newminargs =  \$ARGV[0];shift @ARGV;
+\$newmaxargs =  \$ARGV[0];shift @ARGV;
+\$newtrailsyntax =  \$ARGV[0];shift @ARGV;
+\$newshortdesc =  \$ARGV[0];shift @ARGV;
+\$newlongdesc =  \$ARGV[0];shift @ARGV;
+\$newseqn =  \$ARGV[0];shift @ARGV;
+
+
+line: while (<>) 
+{
+    chomp;    # strip record separator
+#
+# The first suite code block, copy unaltered
+#
+## NOTE! This is perl code, not Bourne shell code
+# 
+    if(/^##SGIP/)
+    {
+        print "#S \$Newsub;\$newaliases;\$newshortdesc;\$newminargs;\$newmaxargs;\$newtrailsyntax;\$newlongdesc;\$newseqn";
+        print "#M =head2 I<Description>";
+        print "#M";
+        print "#M The \$Newsub subcommand does something that is yet undefined and needs to be documented";
+        print "#M";
+        print "\$Newsub()";
+        print "{";
+        print ": # Enter the code for \$Newsub here";
+        print "}";
+    }
+    print \$_;
+}
+EOF
+#
+# Back to shell code again, phew!
+#
+    perl $perlp <${myself} >${newcode}  "$1" "$Newsub_a_arg" "$2" "$3" "$4" "$5" "$6" "$Newsub_s_arg"
+    rm -f $perlp
+    chmod +x ${newcode}
+    if [ -n "$Newsub_r_flag" ]; then
+        mv ${newcode} ${myself}
+    else
+        echo "New code is found in ${newcode}"
+    fi
+}
+
+check_busy_seqn()
+{
+    tl=`_titlearray`
+## Next line sets IFS to '\n'
+    IFS='
+'
+    for _title_line in $tl; do
+        _split_line "$_title_line"
+        if [ "$1" -eq "$_pl_2" ]; then
+            echo "There is already a title with that sequence number, choose another"
+            return 1
+        fi
+    done
+
+    scl=`_cmdarray`
+## Next line sets IFS to '\n'
+    IFS='
+'
+    for _cmd_line in `_cmdarray | sed "s/;;/;'';/g"`; do
+        _split_line "$_cmd_line"
+        if [ "$1" -eq "$_pl_8" ]; then
+            echo "There is already a subcommand with that sequence number, choose another"
+            return 1
+        fi
+    done
+
+    IFS=' 	
+'
+    return 0
+}
+#S Newoption;;Add an option flag;3;4;subcmd flag desc [arg];Add an option for an existing subcommand;16
+#O Newoption;f;;Use force to generate unknown validators;;
+#O Newoption;validator;validator;Argument validator;;validator
+#O Newoption;mandatory;;Mandatory option;
+#O Newoption;r;;Replace code in place;
+#M =head2 I<Description>
+#M
+#M The Newoption subcommand creates a new option for an already existing subcommand. An option tag is
+#M generated and an entry for parsing the command line option is inserted into the code of the subcommand.
+#M
+#M The I<subcmd> parameter must be given and should match the name of an already existing subcommand. If the
+#M I<subcmd> parameter is abbreviated, the full subcommand name is deduced if the abbreviation is unambiguous.
+#M If such a deduction is done, a warning message is printed. If the full subcommand name cannot be deduced,
+#M an error message is printed.
+#M
+#M The I<flag> parameter should be unique for the subcommand. If it is not
+#M unique, an error message is printed. If I<flag> is a single character, a single character
+#M flag option is generated to be used with a single dash, e.g. "-f". If I<flag> is more
+#M than one character long, a double-dash option is generated, e.g. "--force".
+#M
+#M The I<desc> parameter should contain a short explanation of the option. 
+#M This description is entered
+#M into the help function, and into the manual page.
+#M
+#M If the B<--mandatory> option is given, the option will be marked as mandatory. This will automatically
+#M be reflected in the synopsis for the subcommand, but no inherent checking is done for presence
+#M of mandatory options. This
+#M will have to be done explicitly by the subcommand code.
+#M
+#M If an argument I<arg> is given, it is expected that the resulting flag or option 
+#M requires an argument.
+#M
+#M If this is the first option for this subcommand, a complete parsing sequence is 
+#M generated. If an argument is given, it is expected that the option takes an argument. 
+#M In that case, the generated parsing code will take the argument into account and its value 
+#M is read into a variable named I<subcmd>_I<option>_arg,
+#M The presence of an option can be tested by checking if the variable I<subcmd>_I<option>_flag 
+#M is of nonzero length.
+#M
+#M If the option B<--validator> I<validator> is given, and the option has an argument, the
+#M option argument will subsequently be tested using the specified I<validator>. If the specified
+#M I<validator> does not exist, a stub validator is generated if the B<-f> flag is also given.
+#M See the section on AGRUMENT VALIDATORS, for more information on how to use them.
+#M
+Newoption()
+{
+#    echo Newoption arglist = "$@"
+    for i in "$@"; do
+        case "$i" in
+            -r)
+                Newoption_r_flag=$i; shift
+                ;;
+            --validator)
+                Newoption_validator_flag=$i; shift
+                Newoption_validator_arg=$1; shift
+                ;;
+            --mandatory)
+                Newoption_mandatory_flag=$i; shift
+                ;;
+            -f)
+                Newoption_f_flag=$i; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+    newcode=$mycmd.new
+
+# Must use /usr/bin/test here
+    if /usr/bin/test -e "$newcode"; then
+        echo "A file with the name $newcode already exists, you must remove or rename  $newcode" >&2
+        exit 2
+    fi
+    if [ -h "$offspring" ] ; then
+        echo "A symbolic link with the name $newcode already exists, choose another name" >&2
+        exit 2
+    fi
+
+    _Newoption_subcmd=$1
+    shift
+    _Newoption_Newopt=$1
+    shift
+    _Newoption_desc=$1
+    shift
+    _Newoption_arg=$1
+
+    _Newoption_status=
+    if [ -n "$Newoption_mandatory_flag" ]; then
+        _Newoption_status="M"
+    fi
+
+    if [ -z "$_Newoption_arg" -a -n "$Newoption_validator_flag" ]; then
+        echo "There is no point in defining a validator for an option that don't take an argument" >&2
+        echo "No code is generated" >&2
+        exit 2
+    fi
+    
+    _Newoption_generate_validator=0
+    if [ -n "$Newoption_validator_flag" -a -n "$Newoption_f_flag" ]; then
+        if grep "^_validate_${Newoption_validator_arg}()$" $myself >/dev/null 2>&1; then
+            :
+        else
+            _Newoption_generate_validator=1
+            echo "Stub validator for ${Newoption_validator_arg} is generated"
+        fi
+    fi
+    _Newoption_validator=$Newoption_validator_arg
+
+    matching_commands=`_match_cmds $_Newoption_subcmd`
+    num_match=`_count_words $matching_commands`
+
+    case $num_match in
+        0)
+            echo "The subcommand '$_Newoption_subcmd' does not exist" >&2
+            exit 2
+            ;;
+        1)
+            ;;
+        *)
+            echo "The subcommand given is ambiguous" >&2
+            exit 2
+            ;; # Fall out of the case
+    esac
+
+    if [ "$_Newoption_subcmd" != "$matching_commands" ]; then
+        _Newoption_subcmd=$matching_commands;
+        echo "Applying new option $_Newoption_Newopt to the $_Newoption_subcmd subcommand" >&2
+    fi
+
+    _setup_options $_Newoption_subcmd
+
+    eval "isflag=\${_${_Newoption_subcmd}_${_Newoption_Newopt}_flag}"
+    if [ -n "$isflag" ]; then
+        echo "The option ${_Newoption_Newopt} is already defined for the subcommand ${_Newoption_subcmd}" >&2
+        echo "isflag=$isflag" >&2
+        exit 2
+    fi
+
+    perlp=/tmp/suite_Newoption.$$.pl
+    
+#### WARNING, We will soon shift to perl language, beware !!
+#### It's even more confusing than you'd think. This is a shell inline
+#### code that generates a perl program that in its turn will generate shell code. Am I insane or not ???
+##
+    cat <<EOF >$perlp
+#!perl
+#
+## NOTE! This is perl code, not Bourne shell code
+#
+
+\$, = ' ';  # set the output field separator
+\$\ = "\n"; # set the output record separator
+
+
+\$subcmd =  \$ARGV[0];shift @ARGV;
+\$newflag =  \$ARGV[0];shift @ARGV;
+\$newdesc =  \$ARGV[0];shift @ARGV;
+\$newarg =  \$ARGV[0];shift @ARGV;
+\$newstatus =  \$ARGV[0];shift @ARGV;
+\$newvalidator =  \$ARGV[0];shift @ARGV;
+\$Generate_validator =  \$ARGV[0];shift @ARGV;
+
+\$addfor = 1;
+
+while (<>)
+{
+
+# See if we need to add a complete for loop or just an entry
+# If you think this is obfuscating, you have my sympathy....
+    if(/^\$subcmd\(/ .. ( /--\)/ || /^}/ ) )
+    {
+        if( /for i in \"\\\$@\"; do/ )
+        {
+            \$addfor=0;
+        }
+    }
+    push @lines,\$_;
+}
+
+line: while (\$_ = shift @lines)
+{
+#
+# The first suite code block, copy unaltered
+#
+## NOTE! This is perl code, not Bourne shell code
+# 
+    chomp;
+
+    if (! \$doneopt && /^#S \$subcmd;/ )
+    {
+        print \$_;
+        print "#O \$subcmd;\$newflag;\$newarg;\$newdesc;\$newstatus;\$newvalidator";
+        \$doneopt=1;
+        next line;
+    }
+
+    if( !(\$doneyet) && (/^\$subcmd\(/ .. ( /--\)/ || /^}/ )) && \$addfor && /^\$subcmd\(/  )
+    {
+        print "\$_";;
+        \$_ = shift @lines;
+        print "\$_";
+    
+        print '    for i in "\$@"; do';
+        print '        case "\$i" in';
+        if(length(\$newflag) > 1)
+        {
+            print "            --\$newflag)";
+        } else {
+            print "            -\$newflag)";
+        }
+        print '                '.\$subcmd.'_'.\$newflag.'_flag=\$i; shift';
+        if ( length(\$newarg) )
+        {
+                print '                '.\$subcmd.'_'.\$newflag.'_arg=\$1; shift';
+        }
+        print '                ;;';
+        print '            --)';
+        print '                shift;break';
+        print '                ;;';
+        print '        esac';
+        print '    done';
+        \$doneyet=1;
+        next line;
+    }
+
+    if ( !(\$doneyet) && (/^\$subcmd\(/ .. ( /--\)/ || /^}/ )) && !\$addfor && /--\)/ )
+    {
+        if(length(\$newflag) > 1)
+        {
+            print "            --\$newflag)";
+        } else {
+            print "            -\$newflag)";
+        }
+        print '                '.\$subcmd.'_'.\$newflag.'_flag=\$i; shift';
+        if ( length(\$newarg) )
+        {
+                print '                '.\$subcmd.'_'.\$newflag.'_arg=\$1; shift';
+        }
+        print '                ;;';
+        print "\$_";
+        \$doneyet=1;
+        next line;
+    }
+    if(/^##VGIP/ && \$Generate_validator)
+    {
+        print "#C";
+        print "#C Validator for \$newvalidator";
+        print "#C";
+        print "_validate_\$newvalidator"."()";
+        print "{";
+        print "    _validate_\$newvalidator"."_arg=".'\$1';
+        print "";
+        print "# Enter the code for validating \$newvalidator here";
+        print '    echo "'.'\$_validate_'."\$newvalidator".'_arg"';
+        print "}";
+    }
+    print \$_;
+}
+EOF
+    perl $perlp <${myself} >${newcode}  "$_Newoption_subcmd" "$_Newoption_Newopt" "$_Newoption_desc" "$_Newoption_arg" "$_Newoption_status" "$_Newoption_validator" "$_Newoption_generate_validator"
+#   rm -f $perlp
+    chmod +x ${newcode}
+    if [ -n "$Newoption_r_flag" ]; then
+        mv ${newcode} ${myself}
+    else
+        echo "New code is found in ${newcode}"
+    fi
+}
+#M
+#M =head1 ARGUMENT VALIDATORS
+#M
+#M Whenever an option takes an argument, it is usually the case that the argument should
+#M be checked for some kind of validity. The suite framework provides a mechanism
+#M to make this dull type of coding easier.
+#M
+#M When you as a developer creates an option to a subcommand, you may use the --validator
+#M option to specify a validator routine to use whenever that option is given by the user.
+#M The chosen validator shows up as the fifth field of the #O tag that specifies the option.
+#M
+#M When the command parses sees that a given option has a validator, it tries to call the
+#M validator routine whose name is the validator name prepended by _validate_. E.g. the
+#M mac_address validator is named _validate_mac_address().
+#M
+#M =head2 Creating options with a validator
+#M
+#M When you create an option with a validator, the validator name is validated itself. In
+#M this case the validator validator will check if a validator routine with the correct name
+#M is present in the code. If it is not, the --validator argument is rejected.
+#M
+#M =head2 Generating a stub validator automatically
+#M
+#M If the Newopt subcommand also has the I<-f> (force) flag given, the validator validator
+#M will not reject the --validator argument, but instead print a message that there were no
+#M such validator defined, but one will be generated. In these cases the Newsub subcommand
+#M will generate a stub validator with the correct name. You will of course have to do
+#M most of the coding yourself. The stub validator will not reject anything.
+#M
+_validate_validator()
+{
+    _validate_validator_arg=$1
+
+    if grep "^_validate_${_validate_validator_arg}()$" $myself >/dev/null 2>&1; then
+        :
+    else
+        if [ -z $_do_subcmd_force ]; then
+            echo "There is no validator routine defined for $_validate_validator_arg" >&2
+            return
+        else
+            echo "There is no validator routine defined for $_validate_validator_arg" >&2
+            echo "Do not forget to write one" >&2
+        fi
+    fi
+    echo ${_validate_validator_arg}
+}
+##SSDE2 Developer subcommands end tag, do not delete.
+##
+##SSCE1 Suite specific code end
+#M
+#M =head1 CANONICAL ETHERNET ADDRESSES
+#M
+#M Dhcp2 checks all given ethernet addresses and rewrites them on the form xx:xx:xx:xx:xx:xx
+#M All parts of the ethernet address is supposed to be in hexadecimal, 0-9a-fA-F. Each field is 
+#M first converted to upper case, translated to decimal, checked for range between 0 and 255, and then
+#M converted back to lower case hexadecimal. This means that an address given as 00:08:a4:Fe:35:CA, which is
+#M valid, will be converted to 00:08:a4:fe:35:ca before entering the database.
+#M
+#M The Microsoft syntax 00-01-CO-FF-EE-00 is also supported and you can even mix hyphens and colons.
+#M
+_validate_mac_address()
+{
+    ether_in=`echo $1 | sed 's/-/:/'`
+    #echo "Validating ether address $ether_in" >&2
+    ether_out=
+
+    ea1=`echo ${ether_in} | cut -f1 -d:`
+    ea2=`echo ${ether_in} | cut -f2 -d:`
+    ea3=`echo ${ether_in} | cut -f3 -d:`
+    ea4=`echo ${ether_in} | cut -f4 -d:`
+    ea5=`echo ${ether_in} | cut -f5 -d:`
+    ea6=`echo ${ether_in} | cut -f6 -d:`
+
+    for j in $ea1 $ea2 $ea3 $ea4 $ea5 $ea6; do
+        j=`echo $j | tr 'abcdef' 'ABCDEF'`
+        dec=`printf "%s\n" "ibase=16; $j" | bc 2>/dev/null`
+       
+        if [ -z "$dec" ]; then
+	    echo "Invalid mac address: $ether_in" >&2
+            return
+        fi
+        if [ "$dec" -ge 0 -a "$dec" -le 255 ]; then
+            hex=`printf "%02x" "$dec"`
+            ether_out="${ether_out}:${hex}"
+        else
+            echo "Invalid mac address: $ether_in" >&2
+            return
+        fi
+    done
+    echo ${ether_out} | sed 's/://'
+}
+#C
+#C Validator for fqdn. This validates an argument supposed to be a valid host name in DNS.
+#C Returns 0 if ok, else 1
+#C
+_validate_fqdn()
+{
+    _validate_fqdn_arg=$1
+    _validate_fqdn_nowarn=$2
+
+##
+    _validate_fqdn_ip=`dig +short "${_validate_fqdn_arg}"`
+    if [ -z "$_validate_fqdn_ip" ]; then
+        echo "The host name $_validate_fqdn_arg does not exist" >&2
+        return 1
+    fi
+
+    _validate_fqdn_canon=`dig +short -x "${_validate_fqdn_ip}" | sed 's/\.$//'`
+##
+    if [ -n "$_validate_fqdn_canon" -a "$_validate_fqdn_canon" != "${_validate_fqdn_arg}" ]; then
+        if [ -z "$_validate_fqdn_nowarn" ]; then
+            echo Using the fully qualified name "'${_validate_fqdn_canon}'" instead of "'${_validate_fqdn_arg}'" >&2
+        fi
+        _validate_fqdn_arg="$_validate_fqdn_canon"
+    fi
+    if [ -z "$_validate_fqdn_canon" ]; then
+        echo "The host name $_validate_fqdn_arg does not exist" >&2
+        return 1
+    fi
+
+    echo "$_validate_fqdn_arg"
+    [ -n "$_validate_fqdn_arg" ]
+}
+
+#C
+#C Validator for host names
+#C 
+#C This validator validates a fqdn and that its IP address is within a configured subnetwork
+_validate_host_in_subnet()
+{
+    _validate_host_in_subnet_arg=$1
+    _validate_host_in_subnet_nowarn=$2
+
+    if _validate_fqdn $_validate_host_in_subnet_arg $_validate_host_in_subnet_nowarn >/dev/null; then
+        :
+    else
+        return 1
+    fi
+
+    _validate_host_in_subnet_subnet=`find_subnet $_validate_host_in_subnet_arg`
+
+    if [ -z "$_validate_host_in_subnet_subnet" ]; then
+        return 1
+    fi
+    
+    echo "$_validate_host_in_subnet_arg"
+ 
+    return 0
+}
+
+#C
+#C Validator for host_in_db. This validates an argument supposed to be a valid host name in the database.
+#C
+_validate_host_in_db()
+{
+    _validate_host_in_db_arg=$1
+    
+    if db_exists host $_validate_host_in_db_arg ; then
+        echo "$_validate_host_in_db_arg"
+    else
+        echo "The host name $_validate_host_in_db_arg is unknown in the database" >&2
+    fi
+}
+
+#C
+#C Validator for host_in_db. This validates an argument supposed to be a host name not in the database.
+#C
+_validate_host_not_in_db()
+{
+    _validate_host_not_in_db_arg=$1
+    
+    if db_exists host $_validate_host_not_in_db_arg ; then
+        echo "The host name $_validate_host_not_in_db_arg is already in the database" >&2
+    else
+        echo "$_validate_host_not_in_db_arg"
+    fi
+}
+#C
+
+#C
+#C Validator for netmask
+#C
+_validate_netmask()
+{
+    _validate_netmask_arg=$1
+#C
+#C The netmask validator works by splitting the given mask into four pieces�
+#C
+    ma1=`echo ${_validate_netmask_arg} | cut -f1 -d.`
+    ma2=`echo ${_validate_netmask_arg} | cut -f2 -d.`
+    ma3=`echo ${_validate_netmask_arg} | cut -f3 -d.`
+    ma4=`echo ${_validate_netmask_arg} | cut -f4 -d.`
+
+#C
+#C Then combining the pieces to an integer into a binary number
+    bin=`printf "%s\n" "obase=2; $ma1*256*256*256+$ma2*256*256+$ma3*256+$ma4" | bc 2>/dev/null`
+#C That number is then analyzed by testing for a starting zero, all such are invalid
+    if echo $bin | egrep '^0.*' >/dev/null 2>&1; then
+        echo "Invalid netmask: $_validate_netmask_arg ($bin)" >&2
+        return
+    fi
+#C
+#C The string is then analyzed by separating the initial ones string
+    ones=`echo $bin | cut -f1 -d0`
+#C These ones are then used, for chopping them off from the initial binary string leaving
+#C the zeros left, which are also all eliminated from the tail of the string, if there are
+#C any ones left there, they will show up in the residue. An initally valid netmask is should
+#C yield an empty string
+    rest=`echo $bin | sed "s/$ones//" | sed "s/0//g"`
+    if [ -n "$rest" ]; then
+        echo "Invalid netmask: $_validate_netmask_arg ($bin)" >&2
+        return
+    fi
+    echo "$_validate_netmask_arg"
+}
+
+#C
+#C Validator for netmask_or_null
+#C
+_validate_netmask_or_null()
+{
+    _validate_netmask_or_null_arg=$1
+
+    if [ -z "$_validate_netmask_or_null_arg" ]; then
+	echo ""
+	return
+    fi
+
+    _validate_netmask "$_validate_netmask_or_null_arg"
+}
+
+#C
+#C Validator for subnetworks
+#C
+_validate_subnetwork_id()
+{
+    _validate_subnetwork_id_id=$1
+    _validate_subnetwork_id_mask=$2
+#C
+#C The id netmask validator works by checking the residue host address when masked with the
+#C inverse of the mask. This is much simpler to do in SQL than in sh, and since we have a database at hand....
+#C
+    xsql="select INET_ATON('$_validate_subnetwork_id_id') & ~INET_ATON('$_validate_subnetwork_id_mask')"
+    res=`sql "$xsql"`
+#C
+    if [ "$res"  != "0" ]; then
+        echo "Invalid subnet/mask combination: $_validate_subnetwork_id_id $_validate_subnetwork_id_mask ($res)" >&2
+        echo "$xsql" >&2
+        return
+    fi
+    echo "$_validate_subnetwork_id_id"
+}
+#C
+#C Validator for IP addresses
+#C
+_validate_ipaddr()
+{
+    trace "Validating IP address '$1'"
+    _validate_ipaddr_arg=$1
+    
+    ia1=`echo ${_validate_ipaddr_arg} | cut -f1 -d.`
+    ia2=`echo ${_validate_ipaddr_arg} | cut -f2 -d.`
+    ia3=`echo ${_validate_ipaddr_arg} | cut -f3 -d.`
+    ia4=`echo ${_validate_ipaddr_arg} | cut -f4 -d.`
+
+    for j in $ia1 $ia2 $ia3 $ia4; do
+        if echo $j | egrep '^[0-9][0-9]*$' >/dev/null 2>&1; then
+            :
+        else
+            echo "IP addresses must be numeric" >&2
+            return
+        fi
+        if [ $j -lt 0 -o $j -gt 255 ]; then
+            echo "IP address parts must be between 0 and 255" >&2
+            return
+        fi
+## Strip leading zeros
+        if [ "$j" != "0" ]; then
+            vi_out="$vi_out"`echo $j | sed 's/^0*//'`'.'
+        else
+            vi_out="$vi_out"'0.'
+        fi
+    done
+
+    echo "$vi_out" | sed 's/\.$//'
+}
+#C
+#C Validator for leasetime
+#C
+_validate_leasetime()
+{
+    _validate_leasetime_arg=$1
+    trace "Validating lease time '$_validate_leasetime_arg'"
+
+    if echo $_validate_leasetime_arg | grep '^[0-9][0-9]*$' >/dev/null 2>&1; then
+        :
+    else
+        echo "Lease time must be numeric" >&2
+        return
+    fi
+
+    if [ $_validate_leasetime_arg -lt 10 ]; then
+        echo "Lease times less than 10 seconds are not allowed" >&2
+        return
+    fi
+
+    if [ $_validate_leasetime_arg -gt 157680000 ]; then
+        echo "Lease times more than 5 years are ridiculous" >&2
+        return
+    fi
+
+    echo "$_validate_leasetime_arg"
+}
+#C
+#C Validator for descriptions
+#C
+_validate_description()
+{
+    _validate_description_arg=$1
+
+    trace "Validating description '$_validate_description_arg'"
+    if [ -z "$_validate_description_arg" ]; then
+        echo "A null description is no description, please write something sensible" >&2
+        return
+    fi
+
+    if [ ${#_validate_description_arg} -lt 5 ]; then
+        echo "The description is too short" >&2
+        return
+    fi
+
+    echo "$_validate_description_arg"
+}
+
+#C
+#C Validator for dhcpserver
+#C
+_validate_dhcpserver()
+{
+    _validate_dhcpserver_arg=$1
+
+    did=`sql "select id from dhcp_servers where id='$_validate_dhcpserver_arg'"`
+
+    if [ x"$_validate_dhcpserver_arg" != x"$did" ]; then
+        echo "Invalid DHCP server specifier '$_validate_dhcpserver_arg'" >&2
+        return
+    fi
+
+    echo "$_validate_dhcpserver_arg"
+}
+#C
+#C Validator for category
+#C
+_validate_category()
+{
+    _validate_category_arg=$1
+    
+    if check_category $_validate_category_arg >/dev/null 2>&1; then
+        echo "$_validate_category_arg"
+        return
+    fi
+        echo "The host category $_validate_category_arg is undefined" >&2
+    return
+}
+#C
+#C Validator for network names
+#C
+_validate_network_name()
+{
+	_validate_network_name_arg=$1
+
+	rv=`echo $_validate_network_name_arg | grep '^[0-9A-Za-z_][-0-9A-Za-z_]*$'`
+	if [ -z "$rv" ]; then
+		echo "The network name $_validate_network_name_arg is invalid" >&2
+		return
+	fi
+	echo $rv
+}
+#C
+#C Validator for pool names
+#C
+_validate_pool_name()
+{
+	_validate_pool_name_arg=$1
+
+	rv=`echo $_validate_pool_name_arg | grep '^[0-9A-Za-z_][-0-9A-Za-z_]*$'`
+	if [ -z "$rv" ]; then
+		echo "The pool name $_validate_pool_name_arg is invalid" >&2
+		return
+	fi
+	echo $rv
+}
+#C
+#C Validator for usernames
+#C
+_validate_username()
+{
+    _validate_username_arg=$1
+
+    if [ `uname` = 'SunOS' ]; then
+            rv=`/usr/bin/ldapsearch -B -h ldap.chalmers.se -b ou=users,dc=chalmers,dc=se uid="${_validate_username_arg}" uidNumber | grep uidNumber | cut -f2 -d'='`
+    else
+            rv=`/usr/bin/ldapsearch -u -x -LLL -h ldap.chalmers.se -b ou=users,dc=chalmers,dc=se uid="${_validate_username_arg}" uidNumber | grep uidNumber | cut -f2 -d' '`
+    fi
+    if [ -z "$rv" ]; then
+	echo "You must specify a known username" >&2
+	return
+    fi
+#M or if its numeric uid is less than 200, the command is aborted with an error message.
+    if [ "$rv" -lt 200 ]; then
+	echo "You must specify a known uname of a real user. System accounts may not be used." >&2
+	return
+    fi
+
+    echo $_validate_username_arg
+    return
+}
+
+#C
+#C Validator for hotbeat_class
+#C
+_validate_hotbeat_class()
+{
+    _validate_hotbeat_class_arg=$1
+
+    if db_exists hotbeat_class $_validate_hotbeat_class_arg ; then
+        echo "$_validate_hotbeat_class_arg"
+    else
+        echo "The hotbeat class $_validate_hotbeat_class_arg is unknown in the database" >&2
+    fi
+    return
+}
+##VGIP Validator generation insertion point, do not delete!!
+coprocess()
+{
+	#echo "SERVER_CALL CMD=" "$@" >&2
+	if [ -z "$DHCP2_CONFFILE" ]; then
+        dhcp2_get_conffile
+    fi
+    if [ -n "$DHCP2_CONFFILE" ]; then
+    	. $DHCP2_CONFFILE
+	fi
+	
+	copin="/tmp/dhcp2_in_$$"
+	copout="/tmp/dhcp2_out_$$"
+	
+	echo "Starting proxy" >&2
+				
+	mkfifo $copin $copout
+	$MY_PATH/dhcp2proxy.py $copin $copout &
+	coppid=$!
+	trap "kill $coppid; rm $copin $copout" EXIT
+
+}
+
+server_call()
+{
+	#echo "copin=" $copin >&2
+    echo "Sending " "$@" >&2
+    echo "$@" >"$copin"
+    cat $copout
+    #result=`cat $copout`
+    #echo "Result='"$result"'" >&2
+    #echo $result
+	#output=`$MY_PATH/mync.py $@`
+	#echo "mync exited with code $?" >&2
+	#echo "$output"
+	#echo "output=" $output >&2
+	#if echo -n "$@" | nc -n 127.0.0.1 4848; then
+		#	echo "Nc returned normally" >&2
+	#else
+		#	echo "Nc returned with error" >&2
+		#	exit $?
+	#fi
+ 
+}
+
+sql()
+{
+    if [ -z "$DHCP2_CONFFILE" ]; then
+        dhcp2_get_conffile
+    fi
+    if [ -n "$DHCP2_CONFFILE" ]; then
+        if [ -z "$_db_major_version" ]; then
+            _db_major_version=`mysql --defaults-file=${DHCP2_CONFFILE} --batch -N <<EOF
+select version_number from database_version where version_tag = 'major_version';
+quit
+EOF`
+        fi
+        if [ -z "$_db_minor_version" ]; then
+        _db_minor_version=`mysql --defaults-file=${DHCP2_CONFFILE} --batch -N <<EOF
+select version_number from database_version where version_tag = 'minor_version';
+quit
+EOF`
+        fi
+        min_major_version=$2
+        min_minor_version=$3
+        if [ -n "$min_major_version" ]; then
+            if [ $_db_major_version -lt $min_major_version ]; then
+                echo "This version of dhcp2 requires at least version $min_major_version of the database. Current version is $_db_major_version" >&2
+                exit 
+            else
+                if [ -n "$min_minor_version" ]; then
+                    if [ $_db_major_version -eq $min_major_version ]; then
+                        if [ $_db_minor_version -lt $min_minor_version ]; then
+                            echo "This version of dhcp2 requires at least version $_db_major_version.$_db_minor_version of the database. Current version is $_db_major_version.$_db_minor_version" >&2
+                            exit 
+                        fi
+                    fi
+                fi
+            fi
+        fi
+        xsql=$1
+        trace "Executing sql: $xsql" >&2
+
+        if mysql --defaults-file=${DHCP2_CONFFILE} --batch -N <<EOF
+${xsql};
+quit
+EOF
+        then
+            #echo $xsql >&2
+            if echo $xsql | egrep -i '^(update|insert) ' >/dev/null 2>&1; then
+                if [ -z "$RELOADING" ]; then
+                    #Prevent infinite recursion
+                    RELOADING="YES"
+                    #reload
+                    # Could have used reload here again, but that costs many trips to the database
+                    ysql="update optionlist set value = '`date +%FT%T`' where \`group\` = '' and gtype = 'global' and name = 'dhcp2_timestamp'"
+                    sql "$ysql"
+                    RELOADING=""
+                fi
+            fi
+        else
+            exit
+        fi
+    else
+        exit
+    fi
+}
+
+adhoc()
+{
+	adhoc_call.py $1
+}
+
+ip2num()
+{
+    _ip2num_ipaddr=$1
+
+    ia1=`echo ${_ip2num_ipaddr} | cut -f1 -d.`
+    ia2=`echo ${_ip2num_ipaddr} | cut -f2 -d.`
+    ia3=`echo ${_ip2num_ipaddr} | cut -f3 -d.`
+    ia4=`echo ${_ip2num_ipaddr} | cut -f4 -d.`
+
+    num=`printf "%s\n" "$ia1*256*256*256+$ia2*256*256+$ia3*256+$ia4" | bc 2>/dev/null`
+    echo $num
+}
+
+num2ip()
+{
+    _num2ip_num=$1
+
+    hex=`printf "%s\n" "obase=16;$_num2ip_num" | bc 2>/dev/null`
+    ix1=`echo $hex | cut -c1-2`
+    ix2=`echo $hex | cut -c3-4`
+    ix3=`echo $hex | cut -c5-6`
+    ix4=`echo $hex | cut -c7-28`
+    in1=`printf "%s\n" "ibase=16;$ix1" | bc 2>/dev/null`
+    in2=`printf "%s\n" "ibase=16;$ix2" | bc 2>/dev/null`
+    in3=`printf "%s\n" "ibase=16;$ix3" | bc 2>/dev/null`
+    in4=`printf "%s\n" "ibase=16;$ix4" | bc 2>/dev/null`
+    echo "$in1.$in2.$in3.$in4"
+}
+
+
+db_hostgroup()
+{
+    if [ -z "$2" ]; then
+        sql "select \`group\` from hostlist where id='$1'"
+    else
+        sql "update \`hostlist\` set \`group\` = '$2', \`changed_by\` = '$USER'  where \`id\` = '$1' limit 1"
+        echo $2
+    fi
+}
+
+db_hostmac()
+{
+    if [ -z "$2" ]; then
+        sql "select \`mac\` from hostlist where id='$1' limit 1"
+    else
+        sql "update hostlist set \`mac\` = '$2', \`changed_by\` = '$USER' where \`id\` = '$1' limit 1"
+        echo $2
+    fi
+}
+
+db_hostadd()
+{
+    hname=$1
+    hmac=$2
+    hgrp=$3
+    hexp=$4
+    hstat=$5
+    huname=$6
+    hroom=$7
+    hinfo=$8
+    haccgrp=$9
+    hcategory=${10}
+
+    echo "Adding host $hname mac $hmac into group '$hgrp' access group '$haccgrp' of the database" >&2
+
+    if db_hostindb $hname; then
+        sql "update hostlist set \`group\` = '$hgrp', \`mac\` = '$hmac', \`changed_by\` = '$USER' where \`id\` = '$hname' limit 1"
+    else
+        sql "insert into hostlist (\`id\`, \`group\`, \`mac\`, \`changed_by\`) values ('$hname','$hgrp','$hmac','$USER')"
+    fi
+    if [ -n "$hexp" ]; then
+        sql "update hostlist set \`expdate\` = '$hexp' where \`id\` = '$hname' limit 1"
+    fi
+
+    if [ -n "$hstat" ]; then
+        sql "update hostlist set \`entry_status\` = '$hstat'  where \`id\` = '$hname' limit 1"
+    fi
+
+    if [ -n "$huname" ]; then
+        sql "update hostlist set \`owner_CID\` = '$huname'  where \`id\` = '$hname' limit 1"
+    fi
+
+    if [ -n "$hroom" ]; then
+        sql "update hostlist set \`room\` = '$hroom'  where \`id\` = '$hname' limit 1"
+    fi
+
+    if [ -n "$hinfo" ]; then
+        sql "update hostlist set \`info\` = '$hinfo'  where \`id\` = '$hname' limit 1"
+    fi
+
+    if [ -n "$haccgrp" ]; then
+        sql "update hostlist set \`mountclass\` = '$haccgrp'  where \`id\` = '$hname' limit 1"
+    fi
+
+    if [ -n "$hcategory" ]; then
+        sql "update hostlist set \`category\` = '$hcategory' where \`id\` = '$hname' limit 1"
+    fi
+}
+
+db_addroom()
+{
+    rname=$1
+    rprint=$2
+    rinfo=$3
+
+    echo "Adding room $rname ($rinfo) into the database" >&2
+
+    sql "insert into rooms (id,info,printer) values ('$rname','$rinfo','$rprint')"
+}
+        
+db_spaceexists()
+{
+    _sname=`sql "select value from optionspaces where value = '$1'"`
+
+    if [ "$_sname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_fsidexists()
+{
+    _fsid=`sql "select id from fileservers where id = '$1'"`
+
+    if [ "$_fsid" = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_fsfqdnexists()
+{
+    _fsfqdn=`sql "select fqdn from fileservers where fqdn = '$1'"`
+
+    if [ "$_fsfqdn" = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_poolexists()
+{
+    _cname=`sql "select poolname from pools where poolname = '$1'"`
+
+    if [ "$_cname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_poolrangeexists()
+{
+    _rname=`sql "select start_ip from pool_ranges where start_ip = '$1'"`
+
+    if [ "$_rname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_classexists()
+{
+    _cname=`sql "select classname from classes where classname = '$1'"`
+
+    if [ "$_cname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_grouphasmembers()
+{
+    _sql="select id from hostlist where \`group\` = '$1'"
+    _hnames=`sql "$_sql"`
+
+    if [ -n "$_hnames" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_configexists()
+{
+    _cname=`sql "select name from config_groups where name = '$1'"`
+
+    if [ "$_cname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_groupexists()
+{
+	echo "Gname?'"$1"'"
+	_gname=`server_call "group_dig({'group':'$1'}, {'group':True})"`
+    #_gname=`sql "select groupname from groups where groupname = '$1'"`
+	echo "Gname='"$_gname"'"
+    if [ "$_gname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_mountclassexists()
+{
+    _mcname=`sql "select id from mountclasses where id = '$1'"`
+
+    if [ "$_mcname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_loginclassexists()
+{
+    _lcname=`sql "select id from loginclasses where id = '$1'"`
+
+    if [ "$_lcname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_optionexists()
+{
+    _oname=`sql "select name from dhcp_option_defs where name = '$1'"`
+    
+    if [ "$_oname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_roomexists()
+{
+    _rname=`sql "select id from rooms where id = '$1'"`
+    
+    if [ "$_rname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_poolexists()
+{
+    _pname=`sql "select poolname from pools where poolname = '$1'"`
+    
+    if [ "$_pname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_macindb()
+{
+    _sql="select id from hostlist where \`mac\` = '$1'"
+    _hnames=`sql "$_sql"`
+
+    if [ -n "$_hnames" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_hostindb()
+{
+    rv=`db_hostgroup $1`
+    if [ -n "$rv" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+db_hotbeat_classindb()
+{
+    _sql="select value from heartbeat_classes where \`value\`= '$1'"
+    _res=`sql "$_sql"`
+
+    #echo $_sql $_res >&2
+
+    if [ -n "$_res" ]; then
+	return 0
+    fi
+    return 1
+}
+
+db_hostdelete()
+{
+    if db_hostindb $1; then
+        rv=$?
+        sql "delete from \`hostlist\` where \`id\` = '$1' limit 1"
+        db_dirty
+    else
+        rv=$?
+    fi
+    return $rv
+}
+
+db_networkexists()
+{
+    _nname=`sql "select id from networks where id = '$1'"`
+    
+    if [ "$_nname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+db_subnetworkexists()
+{
+    _snname=`sql "select id from subnetworks where id = '$1'"`
+    
+    if [ "$_snname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+#
+db_exists()
+{
+    case $1 in
+    
+        space)
+            if db_spaceexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        pool)
+            if db_poolexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        poolrange)
+            if db_poolrangeexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        class)
+            if db_classexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        room)
+            if db_roomexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        pool)
+            if db_poolexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        subnetwork)
+            if db_subnetworkexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        network)
+            if db_networkexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        group)
+            if db_groupexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        host)
+            if db_hostindb $2; then
+                return 0
+            fi
+            return 1
+            ;;
+        hotbeat_class)
+            if db_hotbeat_classindb $2; then
+                return 0
+            fi
+            return 1
+            ;;
+	global)
+	    return 0
+	    ;;
+        *)
+            echo "db_exists: unsupported entity type $1"
+            exit 2
+    esac
+}
+
+db_dirty()
+{
+    :
+    #sql "update \`timestamp\` set \`timestamp\` = now(), uname='$USER' where  \`id\` = 'modified' limit 1"
+}
+#
+# This routine formats a line in the subcommands list in a relatively nice way.
+#
+dhcp_formatline()
+{
+    echo  "$@" | awk "{ printf(\"%-30s %20s\n\", \$1,\$2,\$3,\$4);}"
+}
+dhcp_format()
+{
+    while read _line; do
+        dhcp_id=`echo $_line | cut -f1 -d" "`
+        dhcp_mac=`echo $_line | cut -f2 -d" "`
+        dhcp_formatline $dhcp_id $dhcp_mac
+    done
+}
+
+#M
+#M =head1 CONFIGURATION FILE
+#M
+#M The script cannot access the DHCP database without some configuration that among other things
+#M contains the password for the database. In order not to make the script itself insecure, the
+#M database configuration details is read from a configuration file upon execution.
+#M
+#M A path containing the directories /server/etc:/etc:$MY_PATH is searched on the first
+#M connection to the database to find a file by the name dhcp2.my.cnf. The first file found in 
+#M this PATH is selected and used for subsequent connections to the database.
+#M
+#M =head2 Syntax for the configuration file
+#M
+#M This is the syntax used in the configuration file
+#M
+#M C<[mysql]>
+#M
+#M C<password=>I<password>
+#M
+#M C<user=>I<database user>
+#M
+#M C<host=>I<database host>
+#M
+#M Replace the I<password>, I<database user>, and I<database host> with their actual values.
+#M There is a master file located at hades.medic.chalmers.se:/etc/dhcp2.my.cnf that contains the
+#M current production values. You may want to I<securely> copy these values to your favorite machine. 
+#M Do not forget to set
+#M proper access control bits on the file. 
+#M It is not possible
+#M to use a configuration file in your home directory due to the inherent insecurity of NFS3. 
+#M
+dhcp2_get_conffile()
+{
+    for d in /server/etc /etc $MY_PATH; do
+        if [ -r $d/dhcp2.my.cnf ]; then
+            DHCP2_CONFFILE="$d/dhcp2.my.cnf"
+            return
+        fi
+    done
+    echo "No $mycmd configuration file found. Use $mycmd man and read the section on CONFIGURATION FILE" >&2
+    exit 2
+}
+#M
+#M =head1 HOST CATEGORY CHECKING
+#M
+#M Each host entry has a host category code attached to it. The category code controls how the host may be handled
+#M using dhcp2. This functionality is here to make big mistakes less likely. It is not a security concept as the
+#M "protection" is easily circumvented.
+#M
+#M The available category codes and their meanings are stored in the DHCP database, so what is available may vary from time to time.
+#M Use the C<dhcp2 lscategories -l -i> command to get all the current details.
+#M
+#M Each code is connected with five "flags" that control the behaviour of dhcp2 and other programs. These are:
+#M
+#M =over
+#M
+#M =item listed
+#M
+#M This flag is not interpreted by dhcp2. It means that all hosts having this category code will be listed in a
+#M separate document over machines that are to be handled in special ways.
+#M
+#M =item install_ok
+#M
+#M This flag controls who may set the boot mode to "install", thus ordering a complete re-installation of the host
+#M at the next reboot. If set to B<Y>, anyone may order such a re-installation, if set to B<Owner>, only the person 
+#M listed as "owner" of the machine may order a reinstallation. If set to B<N> reinstallation using dhcp2 is blocked for everyone.
+#M
+#M =item info_req
+#M
+#M This controls whether dhcp2 will enforce that the I<info> field of the host should contain something. This affects the behaviour of
+#M C<dhcp2 chhost>. Valid values are B<Y>, and B<N>.
+#M
+#M =item change_data
+#M
+#M This flag controls who may change data for the host, including the category. Valid balues are B<Any>, and B<Owner>, with the
+#M obvious interpretation.
+#M
+#M =item manual_install
+#M
+#M This flag is not interpreted by dhcp2. However the backend of the database that controls things on the install server
+#M will, in case this flag is set to B<N>, remove any symlinks in the TFTP area that is typically used for doing a reinstallation.
+#M This includes manually created links, so this is an extra precaution that may be invoked for machines that will be
+#M very hard to restore in case of a mistaken reinstallation.
+#M
+#M =back
+#M
+
+check_bootmode()
+{
+    trace "Checking bootmode value $1"
+    _bname=`sql "select mode from bootmodes where mode = '$1' and internal = 0"`
+
+    if [ "$_bname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+check_info_req()
+{
+    trace "Checking if info is required for category $1"
+
+    _sname=`sql "select id from categories where id='$1' and info_req='Y'" 2`
+    if [ -n "$_sname" ]; then
+        return 0
+    fi
+    return 1
+}
+
+check_change_allowed()
+{
+    trace "Checking if change is allowed for host $1"
+
+    _bname=`sql "select hostlist.id from categories,hostlist where categories.id=hostlist.category and categories.change_data='Owner' and hostlist.id='$1'" 2`
+    if [ -n "$_bname" ]; then
+        _owner=`sql "select owner_CID from hostlist where id = '$1'"`
+        if [ "$USER" != "$_owner" ]; then
+            echo "Only the owner ($_owner) of $1 may change data"
+            return 1
+        fi
+    fi
+    return 0
+}
+
+check_bootmode_allowed()
+{
+    trace "Checking if bootmode $1 is allowed for host $2"
+    _bname=`sql "select hostlist.id from categories,hostlist where categories.id=hostlist.category and (categories.manual_install='N' or categories.install_ok='N') and hostlist.id='$2'" 2`
+
+    if [ -n "$_bname" -a "$1" = "install" ]; then
+        echo "Setting boot mode to $1 for host $2 is prohibited"
+        return 1
+    fi
+
+    _bname=`sql "select hostlist.id from categories,hostlist where categories.id=hostlist.category and categories.install_ok='Owner' and hostlist.id='$2'" 2`
+    if [ -n "$_bname" -a "$1" = "install" ]; then
+        _owner=`sql "select owner_CID from hostlist where id = '$2'"`
+        if [ $USER != $_owner ]; then
+            echo "Only the owner ($_owner) of $2 may set the install boot mode"
+            return 1
+        fi
+    fi
+
+    if [ "$1" != "disk" ]; then
+        _bname=`sql "select id from hostlist where id='$2' and bootmode = '$1'" 2`
+        if [ -n "$_bname" -a "$1" ]; then
+	    echo "The boot mode $1 is already set for host $2, it is not allowed to set the same mode again"
+	    return 1
+        fi
+
+    	_bname=`sql "select hostlist.id from hostlist where hostlist.id='$2' and bootmode != 'disk'" 2`
+	if [ -n "$_bname" -a "$1" ]; then
+		echo "Setting boot mode to $1 for host $2 is not allowed unless its current boot mode is 'disk'"
+		return 1
+	fi
+    fi
+	
+    return 0
+}
+
+check_category()
+{
+    trace "Checking category value $1"
+    _sname=`sql "select id from  categories where id = '$1'" 2`
+
+    if [ "$_sname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+check_entry_status()
+{
+    trace "Checking entry status value $1"
+    _sname=`sql "select id from  entry_statuslist where id = '$1'"`
+
+    if [ "$_sname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+check_room()
+{
+    trace "Checking room $1"
+
+    buildings=`sql "select re from buildings"`
+    trace "Found buildings=$buildings"
+    for re in $buildings; do
+        rv=`echo  $1 | egrep "^$re"`
+	    trace "Matching RE $re"
+            if [ "$rv" == "$1" ]; then
+                return 0
+        fi
+    done
+
+    echo "The room number seems to be invalid"
+
+    for bid in `sql "select id from buildings"`; do
+        binfo=`sql "select info from buildings where id='$bid'"`
+        bre=`sql "select re from buildings where id='$bid'"`
+        echo "  Room" numbers in $binfo should match $bre
+    done
+    return 1
+}
+
+check_printer()
+{
+    trace "Checking printer $1"
+
+    re='[A-Za-z][-A-Za-z0-9]*'
+    rv=`echo $1 | egrep "$re"`
+    if [ "$rv" == "$1" ]; then
+        return 0
+    fi
+
+    echo "The printer name seems to be invalid , should match $re"
+    return 1
+}
+
+check_date()
+{
+#
+# Simple ISO date checker, gives false positives on non-leap years
+#
+    rv1=`echo $1 | egrep '^(19|20)[0-9][0-9]-(01|03|05|07|08|10|12)-(0[1-9]|[12][0-9]|3[01])$'`
+    rv2=`echo $1 | egrep '^(19|20)[0-9][0-9]-(04|06|09|11)-(0[1-9]|[12][0-9]|30)$'`
+    rv3=`echo $1 | egrep '^(19|20)[0-9][0-9]-(02)-(0[1-9]|[12][0-9])$'`
+
+    if [ "$rv1" != "$1" -a "$rv2" != "$1" -a "$rv3" != "$1" ]; then
+        echo "Dates must be in ISO format: YYYY-MM-DD from 1900-01-01 to 2099-12-31"
+        return 1
+    fi
+    return 0
+}
+
+#M
+#M =head1 DHCP INTERACTION SUBCOMMANDS
+#M
+#M These are the subcommands thet interact with the database. You may have to have a password for the database
+#M to get anything useful dune.
+#M
+
+#S addhost;;Add a host;2;2;hostname mac-address;Add a host to the DHCP database;21
+#O addhost;c;category;Specify host category;;category
+#O addhost;r;room;Assign room number
+#O addhost;u;uname;Assign user name (mandatory);M
+#O addhost;f;;Force - bypass checks
+#O addhost;s;entry_status;Specify entry status[Active|Inactive]
+#O addhost;e;expdate;Specify expiry
+#O addhost;g;group;Specify group
+#O addhost;i;info;Specify information about the host
+#O addhost;a;mount_class;Specify file mount class
+#M =head2 I<Description>
+#M
+#M The addhost subcommand adds a host to the dhcp database.
+#M Host names are preferably written as FQDN names, but if not,
+#M they will be looked up using the I<getent(1)> command.
+
+#M
+addhost()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -f)
+                addhost_f_flag=$i; shift
+                ;;
+            -a)
+                addhost_a_flag=$i; shift
+                addhost_a_arg=$1; shift
+                ;;
+            -g)
+                addhost_g_flag=$i; shift
+                addhost_g_arg=$1; shift
+                ;;
+            -i)
+                addhost_i_flag=$i; shift
+                addhost_i_arg=$1; shift
+                ;;
+            -e)
+                addhost_e_flag=$i; shift
+                addhost_e_arg=$1; shift
+                ;;
+            -s)
+                addhost_s_flag=$i; shift
+                addhost_s_arg=$1; shift
+                ;;
+            -u)
+                addhost_u_flag=$i; shift
+                addhost_u_arg=$1; shift
+                ;;
+            -r)
+                addhost_r_flag=$i; shift
+                addhost_r_arg=$1; shift
+                ;;
+            -c)
+                addhost_c_flag=$i; shift
+                addhost_c_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    if [ -z "$1" ]; then
+        echo "No hostname specified"
+        exit 2
+    fi
+
+    if [ -z "$addhost_u_flag" ]; then
+        echo "You must specify a uname with the -u flag"
+        exit 2
+    fi
+
+    addhost_hostname=$1; shift 
+    addhost_hostname1=`_validate_fqdn ${addhost_hostname} nowarn` 
+#M
+#M The given hostname is validated against DNS. If the B<-f> flag is not given
+#M the DNS canonical name will be used. If  the B<-f> flag is given
+#M and the canonical name differs from the given name, the given name is nevertheless
+#M used and a warning is issued.
+#M
+   if [ -n "$addhost_hostname1" -a "$addhost_hostname1" != "$addhost_hostname" ]; then
+	if [ -z "$addhost_f_flag" ]; then
+                echo Using the fully qualified name "'${addhost_hostname1}'" instead of "'${addhost_hostname}'" 
+		addhost_hostname=$addhost_hostname1
+	else
+		echo Warning: The given host name "'$addhost_hostname'" differs from the DNS canonical name "'$addhost_hostname1'"
+		echo Using the given name anyway.
+		addhost_hostname1=$addhost_hostname
+	fi
+   fi
+    
+#M
+#M If the B<-f> flag is not given, the command will abort under
+#M any of the following conditions:
+#M 
+#M =over
+   if [ -n "$addhost_hostname1" ]; then
+       addhost_hostname=$addhost_hostname1;
+   else
+#M
+#M =item 1
+#M
+#M The host name cannot be looked up using I<dig(1)>
+        if [ -z "$addhost_f_flag" ]; then
+            echo "The host name specified is invalid. Use -f to override"
+            exit 1
+        else
+            echo "WARNING: The host name specified is invalid - using force"
+        fi
+    fi
+#M
+#M =item 2
+#M
+#M The host's IP address is not within a configured subnet.
+#M
+    if _validate_host_in_subnet "${addhost_hostname}" nowarn >/dev/null; then
+        :
+    else
+        if [ -z  "$addhost_f_flag" ]; then
+            echo "The host's IP address is not within a configured subnet. Use -f to override"
+        exit 1
+        else
+            echo "Warning: The host's IP address is not within a configured subnet"
+            echo "DHCP services will not work"
+        fi
+    fi 
+#M
+#M =item 3
+#M
+#M The host is active and ansers to a ping request
+    if /usr/sbin/ping ${addhost_hostname} 1 >/dev/null 2>&1; then
+        if [ -z "$addhost_f_flag" ]; then
+            echo "The host is in use. Use -f to override"
+            exit 1
+        else
+            echo "WARNING: The host is in use - using force"
+        fi
+    fi
+#M
+#M =item 4
+#M
+#M No MAC address is given
+    if [ -z "$1" -a -z "$addhost_f_flag" ]; then
+        echo "No MAC address specified"
+        exit 2
+    else 
+        if [ -z "$1" ]; then
+            addhost_macaddr="00:00:00:00:00:00"
+            echo "Warning, no MAC address specified, using $addhost_macaddr"
+        else
+            addhost_macaddr=$1
+        fi
+    fi
+#M
+#M =back
+#M
+#M Mac addresses are entered in the form xx:xx:xx:xx:xx:xx or xx-xx-xx-xx-xx-xx
+#M All alphabetic characters will be converted
+#M to lower case, and leading zeros will be inserted in each field. Hyphens will be
+#M converted to colons.
+#M It is checked that each field is a hexadecimal number
+#M between 00 and ff. If this check fails, the command is always aborted.
+
+    addhost_macaddr=`_validate_mac_address $addhost_macaddr`; shift
+    if [ -z "$addhost_macaddr" ]; then
+        exit 1
+    fi
+
+    if [ -z "$addhost_g_flag" ]; then
+        addhost_g_arg="plain";
+        echo "Note: -g group not specified, using group=plain"
+    fi
+#M
+#M If the B<-g group> flag and arguments are not given, the group 'plain' is assumed.
+#M It is an error if a given group is undefined in the database.
+
+    if db_groupexists "$addhost_g_arg"; then
+        :
+    else
+        echo The group $addhost_g_arg is not defined in the database
+        exit 1
+    fi
+#M
+#M The entry status code B<Active> is assumed if no I<-s> flag is given.
+    if  [ -z "$addhost_s_flag" ]; then
+        addhost_s_arg="Active";
+    fi
+
+    if check_entry_status "$addhost_s_arg"; then
+        :
+    else
+        echo "The entry status value given is not valid"
+        echo "valid values are:"; lsestatus
+    fi
+#M
+#M If the host name is already configured in the database, the command is aborted.
+#M
+    if db_hostindb $addhost_hostname; then
+        echo The host $addhost_hostname is already configured
+        exit 1
+    fi
+#M
+#M If the given MAC address is already present in the database, a warning message is given
+#M
+
+    if db_macindb ${addhost_macaddr}; then
+        echo "WARNING: The given MAC address is already present in the database"
+    fi
+#M
+#M If the B<-u> I<username> argument is given, I<username> is checked against Chalmers LDAP directory
+    if [ -n "${addhost_u_arg}" ]; then
+	if [ -z "`_validate_username ${addhost_u_arg}`" ]; then
+	    exit 1
+#M if it is not found,
+#M or if its numeric uid is less than 200, the command is aborted with an error message.
+        fi
+    fi
+#M 
+#M If the B<-r> I<room> argument is given, the room code is checked against the available room code rules.
+#M
+    if [ -n "$addhost_r_flag" ]; then
+        if check_room "$addhost_r_arg"; then
+            :
+        else
+            exit 1
+        fi
+    fi
+
+    db_hostadd ${addhost_hostname} ${addhost_macaddr} ${addhost_g_arg} "${addhost_e_arg}" "${addhost_s_arg}" "${addhost_u_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_a_arg}" "${addhost_c_arg}"
+
+}
+
+#S addoption;ao;Add an option;2;2;key value;Add an option to a class, group, host, network, subnetwork, pool or a global option.;85
+#O addoption;c;class;Add option to this class
+#O addoption;g;group;Add option to this group
+#O addoption;p;pool;Add option to this pool
+#O addoption;H;host;Add option to this host
+#O addoption;N;network;Add option to this network
+#O addoption;S;subnetwork;Add option to this subnetwork
+#O addoption;G;global;Add an option globally
+#M
+#M =head2 I<Description>
+#M
+#M The addoption adds an option to the list of options for a class, group, host, network, subnetwork or a pool.
+#M It is also possible to add options with global scope. In this case, specify the literal string 'global' as the 
+#M argument to -G.
+#M Beware that there is no checking of the given value.
+#M
+_opoption_checkmultiple()
+{
+    if [ -n "$1" ]; then
+        echo "You may only anly specify one of  the -c, -g, -H, -N, -S, -G or -p options"
+        echo "You have already specified the '$1' option"
+        exit 1
+    fi
+}
+addoption()
+{
+    option_op='add'
+    opoption "$@"
+}
+
+opoption()
+{
+
+    opoption_gtype=
+    for i in "$@"; do
+        case "$i" in
+            -c)
+                _opoption_checkmultiple $opoption_gtype
+                opoption_gtype='class';
+                shift; opoption_arg=$1; shift
+                ;;
+            -g)
+                _opoption_checkmultiple $opoption_gtype
+                opoption_gtype='group';
+                shift; opoption_arg=$1; shift
+                ;;
+            -H)
+                _opoption_checkmultiple $opoption_gtype
+                opoption_gtype='host';
+                shift; opoption_arg=$1; shift
+                ;;
+            -N)
+                _opoption_checkmultiple $opoption_gtype
+                opoption_gtype='network';
+                shift; opoption_arg=$1; shift
+                ;;
+            -S)
+                _opoption_checkmultiple $opoption_gtype
+                opoption_gtype='subnetwork';
+                shift; opoption_arg=$1; shift
+                ;;
+            -G)
+                _opoption_checkmultiple $opoption_gtype
+                opoption_gtype='global';
+                shift; opoption_arg=$1; shift
+                ;;
+            -p)
+                _opoption_checkmultiple $opoption_gtype
+                opoption_gtype='pool';
+                shift; opoption_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+
+    if [ -z "$opoption_gtype" ]; then
+        echo "You must specify either -c, -g, -H, -N, -S, -G or -p with argument"
+        return
+    fi
+
+    if [ -z "$opoption_arg" ]; then
+        echo "You must specify a $opoption_gtype name"
+        return
+    fi
+
+    if db_exists $opoption_gtype $opoption_arg ; then
+        :
+    else
+        echo "The $opoption_gtype $opoption_arg is not defined"
+        return
+    fi
+    _opoption_oname="$1"
+    if [ $opoption_gtype = "global" ]; then
+	opoption_arg=""
+    fi
+    case $option_op in
+
+    add)
+    	_addoption "$opoption_arg" "$_opoption_oname" "$2" "$opoption_gtype"
+	;;
+    change)
+        _choption "$opoption_arg" "$_opoption_oname" "$2" "$opoption_gtype"
+	;;
+    remove)
+        _rmoption "$opoption_arg" "$_opoption_oname" "$opoption_gtype"
+	;;
+    esac
+}
+
+_addoption()
+{
+    _addoption_group=$1
+    _addoption_key=$2
+    _addoption_value=$3
+    _addoption_gtype=$4
+
+    if db_optionexists $_addoption_key; then
+        :
+    else
+        echo The option $_addoption_key is undefined.
+        return
+    fi
+
+    _sql="select name from optionlist where \`group\` = '$_addoption_group' and gtype = '$_addoption_gtype' and name = '$_addoption_key'"
+    _addoption_check=`sql "$_sql"`
+    if [ -n "$_addoption_check" ]; then
+        echo The option $_addoption_key is already defined for the $_addoption_gtype $_addoption_group, use the choption command to change
+        return
+    fi
+    sql "insert into optionlist (\`group\`,\`gtype\`,\`name\`,\`value\`,\`changed_by\`,\`mtime\`) values ('$_addoption_group','$_addoption_gtype','$_addoption_key','$_addoption_value','$USER',now())"
+}
+
+#S addroom;ar;Add a room;1;2;roomcode [info];Add a room to the DHCP database;101
+#O addroom;p;printer;Assign a default printer
+#M =head2 I<Description>
+#M
+#M The addroom subcommand adds a room to the dhcp database.
+#M The room may be associated with a printer name in which case this printer will be
+#M configured as default printer to all hosts that has this room assigned.
+#M 
+#M The room entry may also carry an informational text which is highly desired.
+#M
+addroom()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -p)
+                addroom_p_flag=$i; shift
+                addroom_p_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    if [ -z "$1" ]; then
+        echo "No room codeame specified"
+        exit 2
+    fi
+
+    addroom_roomcode=$1; shift
+    addroom_info=$1
+
+    if check_room "$addroom_roomcode"; then
+        :
+    else
+        exit 1
+    fi
+
+    if [ -n "$addroom_p_flag" ]; then
+        if check_printer "$addroom_p_arg"; then
+            :
+        else
+            exit 1
+        fi
+    fi
+
+    if db_roomexists $addroom_roomcode; then
+        echo "The room code $addroom_roomcode is already defined in the database. Use the chroom subcommand to make changes"
+        exit 1
+    fi
+
+    db_addroom  $addroom_roomcode "$addroom_p_arg" "$addroom_info"
+   
+}
+
+
+#S chgroup;cg;Change group data;1;1;group;Change the attributes of a group;42
+#O chgroup;hotbeat_class;class;Change or attach to a hotbeat class;;hotbeat_class
+#O chgroup;I;group_info;Change group info
+#O chgroup;F;filename;Change filename
+#O chgroup;s;server_name;Change server_name
+#O chgroup;S;server_identifier_ip;Change server_identifier
+#O chgroup;N;next_server_ip;Change next-server
+#O chgroup;O;option_space;Change option space
+#O chgroup;P;parent_group;Change parent group
+#O chgroup;C;config_class;Change configuration class
+#O chgroup;a;Mount_class;Change mount class
+#M
+#M =head2 I<Description>
+#M
+#M The chgroup subcommand is used for altering DHCP or vendor options for a group. 
+#M If an option is unspecified, options are inherited from a parent group.
+#M
+chgroup()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -P)
+                chgroup_P_flag=$i; shift
+                chgroup_P_arg=$1; shift
+                ;;
+            -O)
+                chgroup_O_flag=$i; shift
+                chgroup_O_arg=$1; shift
+                ;;
+            -o)
+                chgroup_o_flag=$i; shift
+                chgroup_o_arg=$1; shift
+                ;;
+            -N)
+                chgroup_N_flag=$i; shift
+                chgroup_N_arg=$1; shift
+                ;;
+            -S)
+                chgroup_S_flag=$i; shift
+                chgroup_S_arg=$1; shift
+                ;;
+            -s)
+                chgroup_s_flag=$i; shift
+                chgroup_s_arg=$1; shift
+                ;;
+            -F)
+                chgroup_F_flag=$i; shift
+                chgroup_F_arg=$1; shift
+                ;;
+            -I)
+                chgroup_I_flag=$i; shift
+                chgroup_I_arg=$1; shift
+                ;;
+            -a)
+                chgroup_a_flag=$i; shift
+                chgroup_a_arg=$1; shift
+                ;;
+            -C)
+                chgroup_C_flag=$i; shift
+                chgroup_C_arg=$1; shift
+                ;;
+            --hotbeat_class)
+                chgroup_hotbeat_class_flag=$i; shift
+                chgroup_hotbeat_class_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+    chgroup_anyflag=
+
+    if [ -z "$1" ]; then
+        echo "No group name specified"
+        exit 2
+    fi
+    chgroup_groupname=$1; shift
+
+    if db_groupexists $chgroup_groupname; then
+        :
+    else
+        echo "The group $chgroup_groupname is not defined in the database"
+        exit 2
+    fi
+
+    tosql="update \`groups\` set changed_by = '$USER'";
+
+    if [ -n "$chgroup_P_flag" ];then
+        _chgroup_foundaflag
+        if db_groupexists "$chgroup_P_arg"; then
+            tosql="$tosql parent_group = '$chgroup_P_arg' "
+        else
+            echo "The parent group $chgroup_P_arg is unknown in the database"
+            exit 2
+        fi
+    fi
+
+    if [ -n "$chgroup_O_flag" ]; then
+        _chgroup_foundaflag
+        if db_spaceexists "$chgroup_O_arg"; then
+            tosql="$tosql optionspace = '$chgroup_O_arg' "
+        else
+            echo "The specified option space $chgroup_O_arg is unknown in the database"
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chgroup_N_flag" ]; then
+        _chgroup_foundaflag
+        if _validate_fqdn "$chgroup_N_arg" >/dev/null; then
+            tosql="$tosql next_server = '$chgroup_N_arg' "
+        else
+            echo "The specified next-server $chgroup_N_arg is unknown, should be registered in DNS"
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chgroup_s_flag" ]; then
+        _chgroup_foundaflag
+        if _validate_fqdn "$chgroup_s_arg" >/dev/null; then
+            tosql="$tosql \`server_name\` = '$chgroup_s_arg' "
+        else
+            echo "Host $chgroup_s_arg is unknown"
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chgroup_a_flag" ]; then
+        _chgroup_foundaflag
+        if db_mountclassexists $chgroup_a_arg; then
+            tosql="$tosql \`mountclass\` = '$chgroup_a_arg' "
+        else
+            echo "The access group $chgroup_a_arg is not defined in the database"
+            exit 2
+        fi
+    fi
+
+    if [ -n "$chgroup_C_flag" ]; then
+        _chgroup_foundaflag
+        if db_configexists $chgroup_C_arg; then
+            tosql="$tosql \`config_group\` = '$chgroup_C_arg' "
+        else
+            echo "The configuration class $chgroup_C_arg is not defined in the database"
+            exit 2
+        fi
+    fi
+
+    if [ -n "$chgroup_S_flag"  ]; then
+        _chgroup_foundaflag
+        if _validate_fqdn "$chgroup_S_arg" >/dev/null; then
+            tosql="$tosql \`server_identifier\` = '$chgroup_S_arg' "
+        else
+            echo "The specified server-id $chgroup_S_arg is unknown, should be registered in DNS"
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chgroup_F_flag"  ]; then
+        _chgroup_foundaflag
+        if [ -n "$chgroup_F_arg" ]; then
+            tosql="$tosql \`filename\` = '$chgroup_F_arg' "
+        else
+            echo "You must specify a file name"
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chgroup_I_flag"  ]; then
+        _chgroup_foundaflag
+        if [ -n "$chgroup_I_arg" ]; then
+            :
+        else
+            echo "You just erased the information on the group ${chgroup_groupname}, hope that is OK"
+        fi
+        tosql="$tosql \`info\` = '$chgroup_I_arg' "
+    fi
+
+    if [ -z "$chgroup_anyflag" -a -z "${chgroup_hotbeat_class_flag}" ]; then
+        echo "No flags specified, so there is nothing to change"
+        exit 0
+    fi
+   
+    if [ -n "$chgroup_anyflag" ]; then
+        tosql=" $tosql where groupname = '${chgroup_groupname}' limit 1";
+        sql "$tosql" 2 1
+    fi
+
+    if [ -n "${chgroup_hotbeat_class_flag}" ]; then
+        _q="insert into heartbeat_class_members (tied_to,tied_to_type,value,changed_by) values('${chgroup_groupname}','group','${chgroup_hotbeat_class_arg}', '$USER') on duplicate key update value='${chgroup_hotbeat_class_arg}', changed_by='$USER'"
+	echo $_q
+	sql "$_q" 2 1
+    fi
+}
+
+_chgroup_foundaflag()
+{
+    tosql="$tosql, "
+    chgroup_anyflag=1
+}
+#S chhost;;Change data for a host;1;1;hostname;Change the different data associated with a host;23
+#O chhost;a;Mount_class;Change host's mount class
+#O chhost;b;Boot_mode;Change host's boot action (disk or install)
+#O chhost;l;Login_class;Change host's login class
+#O chhost;r;room;Change the owner room number
+#O chhost;u;uname;Change the owner uname
+#O chhost;g;group;Change the group
+#O chhost;e;expdate;Change the expiry date
+#O chhost;m;mac-address;Change the mac address;;mac_address
+#O chhost;s;entry_status;Change the entry's status
+#O chhost;c;category;Change the host's category
+#O chhost;i;info;Change the information about the host
+#O chhost;C;group;Change the Configuration class
+#M
+#M =head2 I<Description>
+#M
+#M
+#M The chhost subcommand manipulates the different attributes associated with a host.
+#M
+chhost()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -a)
+                chhost_a_flag=$i; shift
+                chhost_a_arg=$1; shift
+                ;;
+            -b)
+                chhost_b_flag=$i; shift
+                chhost_b_arg=$1; shift
+                ;;
+            -m)
+                chhost_m_flag=$i; shift
+                chhost_m_arg=$1; shift
+                ;;
+            -l)
+                chhost_l_flag=$i; shift
+                chhost_l_arg=$1; shift
+                ;;
+            -e)
+                chhost_e_flag=$i; shift
+                chhost_e_arg=$1; shift
+                ;;
+            -g)
+                chhost_g_flag=$i; shift
+                chhost_g_arg=$1; shift
+                ;;
+            -u)
+                chhost_u_flag=$i; shift
+                chhost_u_arg=$1; shift
+                ;;
+            -r)
+                chhost_r_flag=$i; shift
+                chhost_r_arg=$1; shift
+                ;;
+            -s)
+                chhost_s_flag=$i; shift
+                chhost_s_arg=$1; shift
+                ;;
+            -c)
+                chhost_c_flag=$i; shift
+                chhost_c_arg=$1; shift
+                ;;
+            -i)
+                chhost_i_flag=$i; shift
+                chhost_i_arg=$1; shift
+                ;;
+            -C)
+                chhost_C_flag=$i; shift
+                chhost_C_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    chhost_anyflag=
+
+    if [ -z "$1" ]; then
+        echo "No hostname specified"
+        exit 2
+    fi
+    chhost_hostname=$1; shift
+
+    if [ -z "`_validate_fqdn ${chhost_hostname}`" ]; then
+        echo "WARNING: The host name specified is invalid"
+    fi
+
+    if db_hostindb ${chhost_hostname}; then
+        :
+    else
+        echo "The host specified is unknown to the database"
+        exit 1
+    fi
+#M
+#M Machines whose status are Precious or Delicate, may only be changed by their owner.
+#M
+    if check_change_allowed ${chhost_hostname}; then
+        :
+    else
+        exit 1
+    fi
+
+    tosql="update hostlist set changed_by = '$USER'";
+
+    if [ -n "$chhost_m_flag" ];then
+        _chhost_foundaflag
+        chhost_m_arg=`_validate_mac_address $chhost_m_arg`
+        if [ -z "$chhost_m_arg" ]; then
+            exit 1
+        fi
+            tosql="$tosql mac = '$chhost_m_arg' "
+    fi
+
+    if [ -n "$chhost_e_flag" ]; then
+        _chhost_foundaflag
+        if check_date $chhost_e_arg; then
+            tosql="$tosql expdate = '$chhost_e_arg' "
+        else
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chhost_g_flag" ]; then
+        _chhost_foundaflag
+        if db_groupexists $chhost_g_arg; then
+            tosql="$tosql \`group\` = '$chhost_g_arg' "
+        else
+            echo "The group $chhost_g_arg is not defined in the database"
+            exit 2
+        fi
+    fi
+
+    if [ -n "$chhost_a_flag" ]; then
+        _chhost_foundaflag
+        if [ -n "$chhost_a_arg" ]; then
+            if db_mountclassexists $chhost_a_arg; then
+                tosql="$tosql \`mountclass\` = '$chhost_a_arg' "
+            else
+                echo "The access group $chhost_a_arg is not defined in the database"
+                exit 2
+            fi
+        else
+            tosql="$tosql \`mountclass\` = NULL"
+        fi
+    fi
+
+    if [ -n "$chhost_l_flag" ]; then
+        _chhost_foundaflag
+        if [ -n "$chhost_l_arg" ]; then
+            if db_loginclassexists $chhost_l_arg; then
+                tosql="$tosql \`loginclass\` = '$chhost_l_arg' "
+            else
+                echo "The login class $chhost_l_arg is not defined in the database"
+                exit 2
+            fi
+        else
+            tosql="$tosql \`loginclass\` = NULL"
+        fi
+    fi
+
+    if [ -n "$chhost_C_flag" ]; then
+        _chhost_foundaflag
+        if [ -n "$chhost_C_arg" ]; then
+            if db_configexists $chhost_C_arg; then
+                tosql="$tosql \`config_group\` = '$chhost_C_arg' "
+            else
+                echo "The configuration class $chhost_C_arg is not defined in the database"
+                exit 2
+            fi
+        else
+            tosql="$tosql \`config_group\` = NULL "
+        fi
+    fi
+
+    if [ -n "$chhost_r_flag" ]; then
+        _chhost_foundaflag
+        if check_room "$chhost_r_arg"; then
+            tosql="$tosql \`room\` = '$chhost_r_arg' "
+        else
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chhost_u_flag" ]; then
+        _chhost_foundaflag
+	if [ -n "${chhost_u_arg}" ]; then
+	    if [ -z "`_validate_username ${chhost_u_arg}`" ]; then 
+		exit 1
+	    fi
+	fi 
+        tosql="$tosql \`owner_CID\` =  '$chhost_u_arg' "
+    fi
+
+    if [ -n "$chhost_b_flag"  ]; then
+        _chhost_foundaflag
+#M
+#M Boot mode=installed may not be set for machines with status=Delicate. For machines
+#M whose status are Precious or Critical,  Boot mode=installed may only be set by their
+#M owners.
+#M
+        if check_bootmode "$chhost_b_arg"; then
+            if check_bootmode_allowed "$chhost_b_arg" "${chhost_hostname}"; then
+                :
+            else
+                exit 1
+            fi
+            tosql="$tosql \`bootmode\` = '$chhost_b_arg' "
+        else
+            echo "The boot mode value given is not valid"
+            echo "valid values are:"; sql 'select mode,info from bootmodes where internal=0';
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chhost_s_flag"  ]; then
+        _chhost_foundaflag
+        if check_entry_status "$chhost_s_arg"; then
+            tosql="$tosql \`entry_status\` = '$chhost_s_arg' "
+        else
+            echo "The entry status value given is not valid"
+            echo "valid values are:"; sql 'select id,info from entry_statuslist';
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chhost_c_flag"  ]; then
+        _chhost_foundaflag
+        if check_category "$chhost_c_arg"; then
+            if check_info_req "$chhost_c_arg"; then
+                if [ -z "$chhost_i_flag" -a -z "`sql \"select info from hostlist where id='$chhost_hostname'\" | sed 's/NULL//'`" ]; then
+                    chhost_noinfo='Y';
+                    :
+                fi
+
+                if [ -n "$chhost_i_flag" -a -z "$chhost_i_arg" ]; then
+                    chhost_noinfo='Y';
+                fi
+
+                if [ -n "$chhost_noinfo" ]; then
+                    echo "Changing category to $chhost_c_arg requires the info field to be set. Use chhost -i"
+                    exit 1
+                fi
+                :
+            fi
+            tosql="$tosql \`category\` = '$chhost_c_arg' "
+        else
+            echo "The category value given is not valid"
+            echo "valid values are:"
+            lscategories -i
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chhost_i_flag" ]; then
+        _chhost_foundaflag
+        if [ -z "$chhost_i_arg"  -a -z  "$chhost_c_flag" ]; then
+            if check_info_req "`sql \"select category from hostlist where id='$chhost_hostname'\"  | sed 's/NULL//' 2`"; then
+                echo "The category prohibits the removal of the host information"
+                exit 1;
+            fi
+        fi
+        tosql="$tosql \`info\` = '$chhost_i_arg' "
+    fi
+
+    if [ -z "$chhost_anyflag" ]; then
+        echo "No flags specified, so there is nothing to change"
+        exit 0
+    fi
+   
+    tosql=" $tosql where id = '${chhost_hostname}' limit 1";
+
+    sql "$tosql" 2 
+}
+
+_categorylist_fmt()
+{
+    sed s/NULL//g | awk -F'	' "{ printf(\"%11s %s\n\n\", \$1,\$2);}" |  sed 's/ /#            /g' | tr '#' '\n' | fmt -c
+}
+
+_chhost_foundaflag()
+{
+    tosql="$tosql, "
+    chhost_anyflag=1
+}
+
+#S choption;co;Change an option;2;2;key value;Modify an option of a group, class, host, network, subnetwork, pool or a global option;86
+#O choption;c;class;Change option for this class
+#O choption;g;group;Change option for this group
+#O choption;p;pool;Change option for this pool
+#O choption;H;host;Change option for this host;;host_in_db
+#O choption;N;network;Change option for this network
+#O choption;S;subnetwork;Change option for this subnetwork
+#O choption;G;global;Change a global option
+#M
+#M =head2 I<Description>
+#M
+#M The choption changes the value of an option. Beware that there is no checking of the given value.
+#M Use B<-G global> to change global options, the argument I<global> here is the literal sting 'global'.
+#M
+choption()
+{
+    option_op='change'
+    opoption "$@"
+}
+_choption()
+{
+    _choption_group="$1"
+    _choption_key="$2"
+    _choption_value="$3"
+    _choption_gtype="$4"
+
+    if db_optionexists $_choption_key; then
+        :
+    else
+        echo The option $_choption_key is undefined.
+        return
+    fi
+
+    _sql="select name from optionlist where \`group\` = '$_choption_group' and gtype = '$_choption_gtype' and name = '$_choption_key'"
+    _choption_check=`sql "$_sql"`
+    if [ -z "$_choption_check" ]; then
+        echo The option $_choption_key is not defined for $_choption_group, use the addoption command to add it
+        return
+    fi
+    sql "update optionlist set value = '$_choption_value' where \`group\` = '$_choption_group' and gtype = '$_choption_gtype' and name = '$_choption_key'"
+}
+
+#S chroom;cr;Change a room;1;1;room_code;Change the data stored for a room in the database;102
+#O chroom;i;info;Change room description
+#O chroom;p;printer_name;Change printer definition
+#M =head2 I<Description>
+#M
+#M The chroom subcommand changes the data in the database that is stored for a room.
+#M
+chroom()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -p)
+                chroom_p_flag=$i; shift
+                chroom_p_arg=$1; shift
+                ;;
+            -i)
+                chroom_i_flag=$i; shift
+                chroom_i_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    _chroom_id=$1
+   
+    if db_roomexists $_chroom_id; then
+        :
+    else
+        echo "The room $_chroom_id is unknown in the database"
+        exit 1
+    fi
+
+    if [ -z "$chroom_p_flag$chroom_i_flag" ]; then
+        echo "No flag specified, there is nothing to change"
+        exit 1
+    fi
+
+    _chroom_sql="update rooms set "
+
+    if [ -n "$chroom_p_flag" ]; then
+        if check_printer "$chroom_p_arg"; then
+            :
+        else
+            exit 1
+        fi
+
+        _chroom_sql="$_chroom_sql printer = '$chroom_p_arg' "
+        chroom_p_flag=
+        if [ -n "$chroom_p_flag$chroom_i_flag" ]; then
+            _chroom_sql="$_chroom_sql ,"
+        fi
+    fi
+
+    if [ -n "$chroom_i_flag" ]; then
+        _chroom_sql="$_chroom_sql info = '$chroom_i_arg' "
+        chroom_i_flag=
+        if [ -n "$chroom_p_flag$chroom_i_flag" ]; then
+            _chroom_sql="$_chroom_sql ,"
+        fi
+    fi
+
+    _chroom_sql="$_chroom_sql where id = '$_chroom_id' limit 1"
+    sql  "$_chroom_sql"
+}
+
+#S defoption;;Define an option;2;3;name type [info];Define a new option;83
+#O defoption;s;namespace;Assign the option to a namespace
+#O defoption;c;code;Assign a DHCP code to the option
+#M
+#M =head2 I<Description>
+#M
+#M The defoption subcommand defines an option that can be used in the various groups. Please enter something
+#M useful in the info field.
+#M
+defoption()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -c)
+                defoption_c_flag=$i; shift
+                defoption_c_arg=$1; shift
+                ;;
+            -s)
+                defoption_s_flag=$i; shift
+                defoption_s_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    _defoption_name=$1
+    _defoption_type=$2
+    _defoption_info=$3
+
+    if db_optionexists $_defoption_name; then
+        echo "The option $_defoption_name is already defined"
+        return
+    fi
+#M
+#M You may specify one of the following option types
+#M
+#M =over
+#M
+    case $_defoption_type in
+#M 
+#M =item text
+#M
+#M =item ip-address
+#M
+#M =item boolean
+#M 
+#M =item string
+#M
+#M =item encapsulate
+#M
+        text|ip-address|boolean|string|encapsulate)
+            ;;
+#M =item unsigned integer n
+#M
+#M Where n is a number specifying the number of significant bits.
+#M
+        unsigned\ integer\ *)
+            ;;
+#M =item array of x
+#M
+#M Where x is one of the basic types
+#M
+        array\ of\ *)
+            ;;
+#M =item structures
+#M
+#M Use the syntax '{ I<structure definition> }' to define structures.
+#M
+        {\ *\ })
+            ;;
+        *)
+            echo "The type '$_defoption_type' is illegal"
+            return
+            ;;
+    esac
+#M
+#M =back
+#M
+    _defoption_scope="NULL";
+    if [ -n "$defoption_c_flag" -a -n "$defoption_c_arg" ]; then
+        _defoption_code_check=`echo $defoption_c_arg | egrep '^[0-9]*$' 2>/dev/null`
+        if [ -z "$_defoption_code_check" ]; then
+            echo "The DHCP code must be decimal numeric"
+            return
+        fi
+	_defoption_scope="'dhcp'"
+    fi
+    
+    _sql="insert into dhcp_option_defs set name='$_defoption_name',type='$_defoption_type',scope=$_defoption_scope,info='$_defoption_info'";
+    if [ -n "$defoption_c_flag" ]; then
+        _sql="$_sql,code='$defoption_c_arg'"
+    fi
+    if [ -n "$defoption_s_flag" ]; then
+        if db_spaceexists $defoption_s_arg; then
+            _sql="$_sql,optionspace='$defoption_s_arg'"
+        else
+            echo "The namespace '$defoption_s_arg' is not defined. Define it using the defspace subcommand"
+            return
+        fi
+    fi
+    sql  "$_sql"
+}
+#S defspace;;Define namespace;1;2;name [info];Define an option namespace;81
+#M
+#M =head2 I<Description>
+#M
+#M The defspace subcommand degines an option namespace. Option namespaces must be defined before they are used.
+#M
+defspace()
+{
+    _defspace_name=$1
+    _defspace_info=$2
+
+    if db_spaceexists $_defspace_name; then
+        echo "The space $_defspace_name is already defined"
+        return
+    fi
+    
+    sql "insert into optionspaces set value='$_defspace_name',info='$_defspace_info'";
+}
+#S deleteoption;;Delete an option;1;1;name;Delete an option definition;84
+#M
+#M =head2 I<Description>
+#M
+#M The deleteoption subcommand deletes an option definition. Use with caution. There are no checks.
+#M
+deleteoption()
+{
+    _deleteoption_name=$1
+
+    if db_optionexists $_deleteopotion_name; then
+        :
+    else
+        echo "The option '$_deleteoption_name' is not defined"
+        return
+    fi
+
+    sql "delete from dhcp_option_defs where name='$_deleteoption_name' limit 1"
+    db_dirty
+}
+#S deleteroom;;Delete a room;1;1;room_id;Delete a room entry in the database;103
+#M
+#M =head2 I<Description>
+#M
+#M The deleteroom subcommand deletes room definition. Use with caution. There are no checks.
+#M
+deleteroom()
+{
+    _deleteroom_name=$1
+
+    if db_roomexists $_deleteroom_name; then
+        :
+    else
+        echo "The room $_deleteroom_name' is not defined"
+        return
+    fi
+
+    sql "delete from rooms where id='$_deleteroom_name' limit 1"
+    db_dirty
+}
+#S deletespace;;Delete namespace;1;1;name;Delete an option namespace;82
+#M
+#M =head2 I<Description>
+#M
+#M The deletespace subcommand deletes an option namespace. Use with caution. There are no checks.
+#M
+deletespace()
+{
+    _deletespace_name=$1
+
+    if db_spaceexists $_deletespace_name; then
+        :
+    else
+        echo "The namespace '$_deletespace_name' is not defined"
+        return
+    fi
+
+    sql "delete from optionspaces where value='$_deletespace_name' limit 1"
+    db_dirty
+}
+
+#S deletegroup;dg;Delete a group;1;1;group_name;Delete a host group;43
+#M =head2 I<Description>
+#M
+#M The deletegroup removes a group from the database. The group must be empty, otherwise the command fails.
+#M
+deletegroup()
+{
+    deletegroup_groupname=$1;
+
+        if db_groupexists $deletegroup_groupname; then
+            :
+        else
+            echo "The group $deletegroup_groupname does not exist"
+            exit 2
+        fi
+    #deletegroup_memlist=`sql "select id from hostlist where \\\`group\\\` = '$deletegroup_groupname'"`
+    deletegroup_memlist=`server_call "host_dig({'group':'$deletegroup_groupname'}, {'host':True})"`
+    if [ -n "$deletegroup_memlist" ]; then
+        echo "The group must be empty to be deleted. It contains the following hosts:"
+        echo $deletegroup_memlist
+        exit 2
+    fi
+    
+    #sql "delete from \`groups\` where \`groupname\` = '$deletegroup_groupname' limit 1"
+	server_call "group_destroy('$deletegroup_groupname')"
+    db_dirty
+}
+#S deletehost;dh;Delete a host;1;1;hostname;Delete a host from the configuration;24
+#M =head2 I<Description>
+#M
+#M
+#M The deletehost subcommand deletes a host completely from the DHCP database. The host name
+#M I<must> match the host name in the database exactly. No attempt is done to rewrite the
+#M given input to a FQDN.
+#M
+#M Machines whose status is Precious or Delicate, may only be deleted by their owner.
+#M
+deletehost()
+{
+    if [ -z "$1" ]; then
+        echo "No hostname specified"
+        exit 2
+    fi
+    _deletehost_hostname=$1; shift
+#
+# Check write access
+#
+    if check_change_allowed ${_deletehost_hostname}; then
+        :
+    else
+        exit 1
+    fi
+
+
+    if db_hostdelete $_deletehost_hostname; then
+        :
+    else
+        echo "The host $_deletehost_hostname is not present in the DHCP configuration database"
+    fi
+}
+
+#S lsclasses;lc;List classes;0;1;[pattern];List class definitions;51
+#O lsclasses;l;;Use long listing format
+#M =head2 I<Description>
+#M
+#M The lsclasses lists the host classes defined. Host classes are used for classifying hosts that are not
+#M listes in the host list, but nevertheless are identifiable through the I<vendor_class_id> field in the
+#M DHCP protocol. Without the I<-l> option, only the names of the classes are listed. With I<-l>, the
+#M columns listed are as follows:
+#M
+#M =over
+#M
+#M =item classname
+#M
+#M This is the name of the class, used for reference. This is the only field listed without the I<-l> option.
+#M
+#M =item vendor_class_id
+#M
+#M This is the vendor class identifier that a host must present over the DHCP protocol to be considered a member
+#M of the class.
+#M
+#M =item next-server
+#M
+#M The I<next-server> field specifies the host address of the server from which the initial boot file (which is specified in the group)
+#M is to be loaded. The value is a numeric IP address. If the field is empty, the address of the DHCP server itself is used.
+#M
+#M =item server-name
+#M
+#M The I<server-name> field informs the client of the name of the server from which it is booting.
+#M
+#M =item server-id
+#M
+#M The I<server-name> field informs the client of the IP address of the server from which it should boot.
+#M
+#M =item Option space
+#M
+#M This field specifies which option space any attached options belongs to. See also the lsoption subcommand.
+#M
+#M =item Optionlist
+#M
+#M This field signifies a list of options belonging to the class.  Use the lsoptions subcommand to view the options.
+#M
+#M =back 
+#M
+lsclasses()
+{
+    for i in "$@"; do
+        case "$i" in
+            -l)
+                lsclasses_l_flag=$i; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    format="'host_class':True"
+    pattern="^[^	]*${1-.*}"
+    if [ -n "$lsclasses_l_flag" ]; then
+    	format="'host_class':True, 'vendor_class_id':True, 'optionspace':True"
+        echo "Class name	Vendor class id	Option space" | _lsclasses_fmt
+    fi
+
+    #sql "select $format from classes" 2 1 | egrep "$pattern" | _lsclasses_fmt
+    server_call "host_class_dig({}, {$format})" | egrep "$pattern" | _lsclasses_fmt
+    exit 0
+}
+_lsclasses_fmt()
+{
+    sed s/NULL//g | awk -F'	' "{ printf(\"%-20s %-32s %-16s %-18s %-s\n\", \$1,\$2,\$3,\$4,\$5);}"
+}
+
+
+#S lsgroups;lg;List groups;0;1;[pattern];List host groups;44
+#O lsgroups;L;;Use the very long listing format
+#O lsgroups;l;;Use long listing format
+#O lsgroups;R;;Recurse through parent groups on the groups matching pattern
+#M
+#M =head2 I<Description>
+#M
+#M The lsgroups subcommand lists which host groups have been defined in the DHCP database
+#M
+lsgroups()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -R)
+                lsgroups_R_flag=$i; shift
+                ;;
+            -L)
+                lsgroups_L_flag=$i; shift
+                ;;
+            -l)
+                lsgroups_l_flag=$i; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    format=\`groupname\`
+	data_template="'group':True"
+    pattern="^[^	]*${1-.*}"
+    if [ -n "$lsgroups_l_flag" ]; then
+        format=\`groupname\`,\`parent_group\`,mountclass,\`info\`
+		data_template="'group':True, 'parent':True, 'info':True"
+        echo "Group name	Parent group Info" | _lsgroups_fmt
+    fi
+    if [ -n "$lsgroups_L_flag" ]; then
+        format=\`groupname\`,\`parent_group\`,\`next_server\`,\`server_name\`,\`server_identifier\`,\`optionspace\`,config_group,mountclass,\`filename\`
+		data_template="'group':True, 'parent':True, 'optionspace':True, 'info':True"
+        echo "Group name	Parent group	Option space	Info" | _lsgroups_fmt
+    fi
+    if [ -n "$lsgroups_R_flag" ]; then
+        matching_groups=`server_call 'group_dig({}, {"group":True})' | egrep "$pattern"`
+        #echo MG $matching_groups
+        #matching_groups=`sql "select groupname from groups" | egrep "$pattern"`
+        for g in "$matching_groups"; do
+            _lsgroup $g
+        done
+    else
+        #sql "select $format from groups" 2 1 | egrep "$pattern" | _lsgroups_fmt
+		server_call "group_dig({}, {$data_template} )" | egrep "$pattern" | _lsgroups_fmt
+    fi
+    exit 0
+}
+
+_lsgroup()
+{
+    lsgroups_g=$1
+    #echo "LSGroups_g=" $lsgroups_g >&2
+    #sql "select $format from groups where groupname = '$lsgroups_g'" | _lsgroups_fmt
+    server_call "group_fetch('$lsgroups_g', {$data_template})" | _lsgroups_fmt
+    #g_parent=`sql "select parent_group from groups where groupname = '$lsgroups_g'"`
+    g_parent=`server_call "group_fetch('$lsgroups_g', {'parent':True})"`
+    if [ -n "$g_parent" -a "$lsgroups_g" != 'plain' ]; then 
+        _lsgroup $g_parent;
+    fi
+}
+
+
+
+_lsgroups_fmt()
+{
+    sed s/NULL//g | awk -F'	' "{ printf(\"%-36s %-36s %16s %s\n\", \$1,\$2,\$3,\$4);}" |  sed 's/ *$//'
+}
+
+#S lshosts;lh;List hosts;0;1;[pattern];List configured hosts;25
+#O lshosts;l;;Use long format
+#O lshosts;L;;Use the very long format
+#O lshosts;g;group;List hosts belonging to the group 'group'
+#O lshosts;a;;Only list active entries 
+#O lshosts;i;;Only list inactive entries
+#O lshosts;A;;Include active entries
+#O lshosts;I;;Include entries that are not active (inactive or dead)
+#O lshosts;D;;Include dead entries
+#M
+#M =head2 I<Description>
+#M
+#M The lshosts subcommand lists the configured hosts. An optional
+#M I<pattern> may be specified to limit the output to hosts whose name matches the given pattern.
+#M Pattern matching only occurs on the host name, not the mac address or any other output.
+#M If you need to match against anything else, do a lshost -l or lshost -L and feed the output through grep.
+#M
+#M =head3 I<Format control>
+#M
+#M The default format only lists the hostnames.
+#M
+#M The long format (-l) gives hostname, MAC-address, room, expiration date and comments.
+#M
+#M The very long format (-L) also gives the category, uname, and access group information.
+#M 
+#M =head3 I<Selection control>
+#M
+#M The default is to select only active, non-expired entries.
+#M
+#M The -a flag alters the selection to also include expired, but active entries.
+#M
+#M The -i flag alters the selection to only include inactive entries.
+#M
+#M There are five uppercase lettered flags that may be used for composing selections.
+#M
+#M These come in two groups: -A, -I and -D makes selections using the entry status.
+#M Note that you must use at least one flag in each group to get ant results at all,
+#M which is to say that the flags within each group are cumulative. If you don't select
+#M one, you haven't selected any entries at all.
+#M
+#M The -A flag selects the active entries.
+#M
+#M The -I flag selects the inactive entries.
+#M
+#M The -D flag selects entries marked to be dead.
+#M
+#M There are some predefined, sensible combinations of the abovementioned uppercase flags:
+#M
+#M The -a flag is the equivalent of the -A flag, which will give you all entries
+#M that are active.
+#M 
+#M The -i flag is the equivalent of the -I flag, which will give you all entries that
+#M are not active, i.e. both Inactive and dead entries.
+#M
+#M The default (no flags) is the equivalent of the -A, -I and -N flags which will give
+#M you all entries.
+#M
+#M The flags -a and -i are mutually exclusive. 
+#M 
+#M
+lshosts()
+{
+    for i in "$@"; do
+        case "$i" in
+            -a)
+                if [ -n "$lshosts_i_flag" ]; then
+                    echo "The -i and -a flags are mutually exclusive"
+                    return 1
+                fi
+                lshosts_a_flag=$i; shift
+                ;;
+            -i)
+                if [ -n "$lshosts_a_flag" ]; then
+                    echo "The -a and -i flags are mutually exclusive"
+                    return 1
+                fi
+                lshosts_i_flag=$i; shift
+                ;;
+            -N)
+                lshosts_N_flag=$i; shift
+                ;;
+            -A)
+                lshosts_A_flag=$i; shift
+                ;;
+            -I)
+                lshosts_I_flag=$i; shift
+                ;;
+            -D)
+                lshosts_D_flag=$i; shift
+                ;;
+            -g)
+                lshosts_g_flag=$i; shift
+                lshosts_g_arg=$1; shift
+                ;;
+            -l)
+                lshosts_l_flag=$i; shift
+                ;;
+            -L)
+                lshosts_L_flag=$i; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    format=\`id\`
+    pattern="^[^	]*${1-.*}"
+    
+    data_template='"dns":True'
+	search_exp=""
+	
+    
+    if [ -n "$lshosts_l_flag" -o -n "$lshosts_L_flag" ]; then
+    	data_template='"dns":True,"mac":True,"group":True,"status":True,"room":True,"info":True'
+        format="id,mac,\`group\`,entry_status,room,info"
+        echo "Hostname	Mac	Group	EStatus	Room	Info" | _lshosts_l_fmt
+    fi
+    
+    if [ -z "$lshosts_a_flag$lshosts_i_flag$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
+        lshosts_A_flag='A'
+        lshosts_I_flag='I'
+    fi
+    
+    if [ -n "$lshosts_a_flag" ]; then
+        lshosts_A_flag='A'
+    fi
+    
+    if [ -n "$lshosts_i_flag" ]; then
+        lshosts_I_flag='I'
+    fi
+
+	#echo $data_template
+    where="where 1 "
+    if [ -n "$lshosts_g_flag" ]; then
+    	search_exp="$search_exp 'group': '$lshosts_g_arg'"
+        where="$where and \`group\` = '$lshosts_g_arg'"
+    fi
+    #echo SEARCH_EXP= $search_exp
+
+
+	if [ -n "${lshosts_A_flag}${lshosts_I_flag}${lshosts_D_flag}" ]; then
+		if [ -n "$search_exp" ]; then
+			search_exp="$search_exp, "
+		fi
+		search_exp="$search_exp'status_regexp':"
+		status_regexp=""
+    	where="$where and ( 0 "
+    	if [ -n "$lshosts_A_flag" ]; then
+            where="$where or entry_status = 'Active'"
+            status_regexp="'(${status_regexp}Active"
+    	fi
+    	#echo A $search_exp
+
+
+    	if [ -n "$lshosts_I_flag" ]; then
+            where="$where or entry_status != 'Active'"
+            if [ -n "$status_regexp" ]; then
+				status_regexp="$status_regexp|"
+			else
+				status_regexp="'("
+			fi
+			status_regexp="${status_regexp}Inactive"
+    	fi
+    	#echo B $search_exp
+    
+    
+    	if [ -n "$lshosts_D_flag" ]; then
+            where="$where or entry_status = 'Dead'"
+            if [ -n "$status_regexp" ]; then
+				status_regexp="$status_regexp|"
+			else
+				status_regexp="'("
+			fi
+			status_regexp="${status_regexp}Dead"
+    	fi
+    	#echo C $search_exp
+    	status_regexp="$status_regexp)'"
+    	search_exp="$search_exp$status_regexp"
+    	where="$where ) and ( 0"
+    	#echo D $search_exp
+	fi
+
+    #echo E $search_exp
+    
+    where="$where )"
+    #echo F $search_exp
+
+    sql="select $format from hostlist $where"
+    #echo $sql
+    if [ -n "$lshosts_L_flag" -o -n "$lshosts:L_flag" ]; then
+    	server_call "host_dig({$search_exp}, {$data_template})"  |  egrep "$pattern"  | _lshosts_L_fmt
+	fi
+
+    exit 0
+}
+
+_lshosts_l_fmt()
+{
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-32s %17s %36s %-8s %7s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7);}" |  sed 's/ *$//'
+}
+
+_lshosts_L_fmt()
+{
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-32s %17s %41s %-10s %-8s %-8s %7s %12s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10);}" |  sed 's/ *$//'
+}
+#S lsnetworks;ln;List networks;0;0;;List shared networks defined in the DHCP database;64
+#M
+#M =head2 I<Description>
+#M
+#M The lsnetworks subcommand lists the shared networks defined in the dHCP database.
+#M
+#M The columns printed are as follows:
+#M
+#M =over
+#M
+#M =item Id
+#M 
+#M The name of the network. This is the field that the subnetworks associated with the network refer to. See also
+#M lssub subcommand.
+#M
+#M =item subnet_mask
+#M
+#M This is the subnet mask that is sent to the clients when they look up their configuration. It does not define the network by itself.
+#M if this item is undefined, a subnet mask associated with the contained subnetwork will be sent to the client.
+#M
+#M =item next-server
+#M
+#M The I<next-server> field specifies the host address of the server from which the initial boot file (which is specified in the group) 
+#M is to be loaded. The value is a numeric IP address. If the field is empty, the address of the DHCP server itself is used.
+#M
+#M =item server-name
+#M
+#M The I<server-name> field informs the client of the name of the server from which it is booting.
+#M
+#M =item Auth
+#M
+#M The Auth field specifies whether the DHCP server is authoritative for the network or not. If specified, the DHCP server will inform any clients 
+#M that are misconfigured, e.g. by a 'pirate' DHCP server on the same network.
+#M
+#M =item Info
+#M
+#M Some information about the network intended for human consumption.
+#M
+#M =back
+#M
+
+lsnetworks()
+{
+    echo "Network	Auth	Info" | _lsnetworks_fmt
+    #sql "select id,subnet_mask,next_server,server_name,authoritative,info from networks"  2 1 | _lsnetworks_fmt
+    server_call "network_dig({}, {'network':True, 'authoritative':True, 'info':True})" | egrep "$pattern" | _lsnetworks_fmt
+}
+
+_lsnetworks_fmt()
+{
+    sed 's/NULL//' | awk -F'	' '{ printf("%-18s %4s %s\n",$1,$2,$3);}' |  sed 's/ *$//'
+}
+#S lsoptions;;List options;0;0;;List DHCP options defined in the database;88
+#O lsoptions;c;class;List the options for a I<class>
+#O lsoptions;g;group;List the options for a I<group>
+#O lsoptions;H;host;List the options for a I<host>
+#O lsoptions;n;host;List the options for a I<network>
+#O lsoptions;s;host;List the options for a I<subnetwork>
+#O lsoptions;p;pool;List the options for a I<pool>
+#O lsoptions;G;;List the global options
+#M
+#M =head2 I<Description>
+#M
+#M The lsoptions subcommand , without options, lists all options that have been defined in the database
+#M To use an option for the DHCP server through the DATABASE, the option must be defined
+#M in the 'dhcp_option_defs' table in the database. 
+#M The columns output are as follows:
+#M 
+#M =over
+#M
+#M =item Option space
+#M
+#M Options that are not defined in the DHCP RFC usually belongs to a vendor defined option space
+#M To be accepted by the DHCP server, that option space must be defined, and all options that belong
+#M to that option space will have the opton space name defined. Setting the Option space field to
+#M a value will make the option belong to that option space. The option spaces that may be specified
+#M are listed in the table 'optionspaces' Use the lsospaces subcommand to see which option spaces that 
+#M may be used.
+#M
+#M =item Name
+#M 
+#M This is the name of the option, it is appended to any Option space to create a name in the DHCP 
+#M configuration file.
+#M
+#M =item Type
+#M
+#M This field defines to the DHCP server the data type that the option has.
+#M
+#M =item DHCP code
+#M 
+#M This is the code number that the option has in the DHCP protocol.
+#M
+#M =item Info
+#M
+#M Here is some info stored in the database about the option
+#M
+#M =back
+#M
+lsoptions()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -g)
+                lsoptions_mutexcheck
+                lsoptions_g_flag=$i; shift
+                lsoptions_g_arg=$1; shift
+                lsoptions_gtype='group';
+                ;;
+            -c)
+                lsoptions_mutexcheck
+                lsoptions_c_flag=$i; shift
+                lsoptions_arg=$1; shift
+                lsoptions_gtype='class';
+                ;;
+            -H)
+                lsoptions_mutexcheck
+                lsoptions_H_flag=$i; shift
+                lsoptions_H_arg=$1; shift
+                lsoptions_gtype='host';
+                ;;
+            -p)
+                lsoptions_mutexcheck
+                lsoptions_p_flag=$i; shift
+                lsoptions_arg=$1; shift
+                lsoptions_gtype='pool';
+                ;;
+            -n)
+                lsoptions_mutexcheck
+                lsoptions_n_flag=$i; shift
+                lsoptions_arg=$1; shift
+                lsoptions_gtype='network';
+                ;;
+            -s)
+                lsoptions_mutexcheck
+                lsoptions_s_flag=$i; shift
+                lsoptions_arg=$1; shift
+                lsoptions_gtype='subnetwork';
+                ;;
+            -G)
+                lsoptions_mutexcheck
+                lsoptions_G_flag=$i; shift
+                lsoptions_gtype='global';
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+# All defined options
+    if [ -z "$lsoptions_gtype" ]; then
+        echo "Name	Option space	DHCP code	Type	Info" | _lsoptions_all_fmt
+        sql "select name,optionspace,code,type,info from dhcp_option_defs order by code" | _lsoptions_all_fmt
+        return
+    fi
+
+# Globally defined options
+    if [ -n "$lsoptions_G_flag" ]; then
+        found_options=`sql "select id from optionlist where gtype = '$lsoptions_gtype' order by name" `
+        if [ -n "$found_options" ]; then
+            echo "Name	Global Value" | _lsoptions_group_fmt
+            for o in $found_options; do
+                sql="select name,value from optionlist where id=$o"
+                val=`sql "$sql"`
+                name=`echo $val | cut -f1 -d' '`
+                value=`echo $val | cut -f2 -d' '`
+                info=`sql "select info from dhcp_option_defs where name='$name'"`
+                echo "$name	$value	$info" | _lsoptions_group_fmt
+            done
+        fi
+    fi
+
+# Options defined for a group
+    if [ -n "$lsoptions_g_flag" ]; then
+        if db_groupexists $lsoptions_g_arg; then
+            :
+        else
+            echo "No such group: $lsoptions_g_arg"
+            return;
+        fi
+
+        seen_options=
+        found_options=`_hasoptions_group $lsoptions_g_arg group`
+        if [ -n "$found_options" ]; then
+            echo
+            _lsoptions_group $lsoptions_g_arg 'group' "$found_options" "$seen_options"
+            seen_options="$seen_options $found_options"
+        fi
+        lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$lsoptions_g_arg'"`
+        while [ -n "$lsoptions_g_arg"  -a "$lsoptions_g_arg" != "NULL" ]; do
+            found_options=`_hasoptions_group $lsoptions_g_arg group`
+            if [ -n "$found_options" ]; then
+                echo
+                _lsoptions_group $lsoptions_g_arg 'group' "$found_options" "$seen_options"
+            fi
+            lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$lsoptions_g_arg'"`
+            seen_options="$seen_options $found_options"
+        done
+    fi
+
+# Options defined for a subnetwork
+    if [ -n "$lsoptions_s_flag" ]; then
+        if db_exists $lsoptions_gtype $lsoptions_arg ; then
+            :
+        else
+            echo "No such $lsoptions_gtype: $lsoptions_arg"
+            return;
+        fi
+    
+        found_options=`_hasoptions_group $lsoptions_arg $lsoptions_gtype`
+        if [ -n "$found_options" ]; then
+            echo
+            _lsoptions_group $lsoptions_arg 'subnetwork' "$found_options" "$seen_options"
+            seen_options="$seen_options $found_options"
+        else
+            echo "No options are defined for $lsoptions_gtype $lsoptions_arg"
+        fi
+        lsoptions_arg=`sql "select network from subnetworks where id='$lsoptions_arg'"`
+        found_options=`_hasoptions_group $lsoptions_arg network`
+        if [ -n "$found_options" ]; then
+            echo
+            _lsoptions_group $lsoptions_arg 'network' "$found_options" "$seen_options"
+        else
+            echo "No options are defined for network $lsoptions_arg"
+            return
+        fi
+    fi
+
+# Options defined for a class, a pool or a network
+    if [ -n "$lsoptions_c_flag" -o -n "$lsoptions_p_flag" -o -n "$lsoptions_n_flag" ]; then
+        if db_exists $lsoptions_gtype $lsoptions_arg ; then
+            :
+        else
+            echo "No such $lsoptions_gtype: $lsoptions_arg"
+            return;
+        fi
+    
+        found_options=`_hasoptions_group $lsoptions_arg $lsoptions_gtype`
+        if [ -n "$found_options" ]; then
+            echo "Options for $lsoptions_gtype $lsoptions_arg"
+            _lsoptions_group $lsoptions_arg $lsoptions_gtype "$found_options" ""
+        else
+            echo "No options are defined for $lsoptions_gtype $lsoptions_arg"
+            return
+        fi
+    fi
+
+# Options defined for a host
+    if [ -n "$lsoptions_H_flag" ]; then
+        _lsoptions_g_arg=`db_hostgroup  $lsoptions_H_arg`
+        if [ -n "$_lsoptions_g_arg" ]; then
+            :
+        else
+            echo "No such host: $lsoptions_H_arg"
+            return;
+        fi
+        seen_options=
+        found_options=`_hasoptions_group $lsoptions_H_arg $lsoptions_gtype`
+        if [ -n "$found_options" ]; then
+            echo "Options for host $lsoptions_H_arg:"
+            _lsoptions_group $lsoptions_H_arg $lsoptions_gtype "$found_options" "$seen_options"
+        fi
+        seen_options=$found_options
+    
+        found_options=`_hasoptions_group $_lsoptions_g_arg group`
+        if [ -n "$found_options" ]; then
+            echo
+            _lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
+            seen_options="$seen_options $found_options"
+        fi
+        
+        _lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$_lsoptions_g_arg'"`
+        while [ -n "$_lsoptions_g_arg"  -a "$_lsoptions_g_arg" != "NULL" ]; do
+            found_options=`_hasoptions_group $_lsoptions_g_arg group`
+            if [ -n "$found_options" ]; then
+                echo
+                _lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
+            fi
+            _lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$_lsoptions_g_arg'"`
+            seen_options="$seen_options $found_options"
+        done
+    
+        _lsoptions_subnet=`find_subnet $lsoptions_H_arg`
+        if [ -n "$_lsoptions_subnet" ]; then
+            echo
+            echo The host belongs to subnet $_lsoptions_subnet
+            lsoptions_H_flag=
+            lsoptions -s $_lsoptions_subnet
+        fi
+    fi
+}
+
+find_subnet()
+{
+    if [ -z "$1" ]; then
+        return 1
+    fi
+    fs_ip=`dig +short $1` 
+    sn=`sql "select id from subnetworks where (INET_ATON('$fs_ip') & INET_ATON(netmask)) = INET_ATON(id)"`
+    if [ -n "$sn" ]; then
+        echo $sn
+        return 0
+    fi
+    return 1
+}
+
+lsoptions_mutexcheck()
+{
+    if [ -n "${lsoptions_g_flag}${lsoptions_c_flag}${lsoptions_p_flag}${lsoptions_H_flag}${lsoptions_G_flag}${lsoptions_n_flag}${lsoptions_s_flag}" ]; then
+        echo "The -cgGHnps flags are mutually exclusive"
+        exit 1
+    fi
+}
+
+# This routine is used both for groups, classes and pools
+# Args: $1 = Object name
+#       $2 = Type of object
+#       $3 = Options already found
+#       $4 = Options we have seen before
+_lsoptions_group()
+{
+    unseen=
+    for o in $3; do
+        if echo "$4" | grep $o >/dev/null; then
+            :
+        else
+            unseen="$unseen $o"
+        fi
+    done
+            
+    if [ -n "$unseen" ]; then   
+        _lsoptions_group_gtype=$2
+
+        unseen=`echo $unseen | tr '\n' ' '` # Strips leading blank and converts newlines to blanks
+#        unseen=`echo "'$unseen'" | sed "s/ /','/g"`
+#        echo unseen=$unseen
+        echo "Name	Value from $_lsoptions_group_gtype $1" | _lsoptions_group_fmt
+
+        for o in $unseen; do
+            case $o in
+                heartbeat_class)
+                    hbc=`sql "select value from heartbeat_class_members where tied_to = '$1' and tied_to_type = '$_lsoptions_group_gtype'"`
+                    hbt=`sql "select type from heartbeat_classes where value='$hbc'"`
+                    info=`sql "select info from heartbeat_classes where value='$hbc'"`
+                    case $hbt in
+                        hotbeat*)
+                            echo "hotbeat_class	$hbc	$info" | _lsoptions_group_fmt
+                            ;;
+                        heartbeat*)
+                            echo "heartbeat_class	$hbc	$info" | _lsoptions_group_fmt
+                            ;;
+                    esac
+                    ;;
+                 *)
+                    sql="select value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name='$o'"
+                    val=`sql "$sql"`
+                    info=`sql "select info from dhcp_option_defs where name='$o'"`
+                    echo "$o	$val	$info" | _lsoptions_group_fmt
+                    ;;
+            esac
+#            sql "select name,value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name in ($unseen) order by name" | _lsoptions_group_fmt
+        done
+    fi
+}
+
+_hasoptions_group()
+{
+     _hasoptions_group_gtype=$2
+     s1="select name from optionlist where \`group\` = '$1' and gtype = '$_hasoptions_group_gtype' order by name"
+     v1=`sql "$s1" | tr '\n' ' '`
+     s2="select 'heartbeat_class' from heartbeat_class_members where tied_to = '$1' and tied_to_type = '$_hasoptions_group_gtype' limit 1"
+     v2=`sql "$s2" | tr '\n' ' '`
+     #echo "V1=$v1" >/dev/tty
+     #echo "V2=$v2" >/dev/tty
+     echo "$v1 $v2"
+}
+
+_lsoptions_group_fmt()
+{
+    sed s/NULL//g | awk -F'	' '{printf("%25s %-48s %s\n",$1,$2,$3);}' |  sed 's/ *$//'
+
+}
+    
+_lsoptions_all_fmt()
+{
+    sed s/NULL//g | awk -F'	' '{printf("%-25s %15s %9s %-20s - %s\n",$1,$2,$3,$4,$5,$6);}' |  sed 's/ *$//'
+}
+#S lspools;;List pools;0;0;;List IP number pools;71
+#M
+#M =head2 I<Description>
+#M
+#M The lspools lists the defined IP number pools tha the DHCP server uses.
+#M
+#M The columns output are as follows:
+#M 
+#M =over
+#M
+#M =item Pool name
+#M
+#M The pool name.  Used for reference.
+#M
+#M =item Server code
+#M
+#M Server which handles the range.
+#M
+#M =item Range
+#M 
+#M This column lists the first and the last IP number in the pool.
+#M
+#M =item Members
+#M
+#M The class name to which this pool is assigned. The members of this class will use the pool.
+#M
+#M =item Max. lease
+#M
+#M This is the maximum lease time in seconds.
+#M
+#M =item Info
+#M
+#M Something hopefully informative about waht this pool is used for.
+#M
+#M =back
+#M
+lspools()
+{
+    echo "Pool name	Members	Network	Max. lease	Info" | _lspools_fmt
+    echo "Range served by	Range Start	Range End" | _lspoolrange_fmt
+    
+    pools=`server_call 'pool_dig({},{"pool":True})'`
+    #pools=`$MY_PATH/mync.py 'pool_dig' '{}' '{"pool":True}'`
+    
+    for p in $pools; do
+		server_call "pool_fetch('$p',{'pool':True,'network':True,'max_lease_time':True,'info':True})" | _lspools_fmt
+		server_call "pool_range_dig({'pool':'$p'},{'served_by_data':{'dns':True},'start_ip':True,'end_ip':True})" | _lspoolrange_fmt
+        echo
+    done
+}
+
+_lspools_fmt()
+{
+    sed 's/NULL//' | awk -F'	' '{ printf("%-23s %-15s %-15s %-10s %-40s\n",$1,$2,$3,$4,$5);}' |  sed 's/ *$//'
+}
+
+_lspoolrange_fmt()
+{
+    sed 's/NULL//' | awk -F'	' '{ printf("  %-24s %-15s - %-15s\n",$1,$2,$3);}' |  sed 's/ *$//'
+}
+#S lsrooms;lr;List rooms;0;1;[pattern];List room definitions;104
+#M =head2 I<Description>
+#M
+#M The lsrooms subcommand lists the data defined for rooms. The current list includes the room ID, any associated printer and the room
+#M description.
+#M
+lsrooms()
+{
+    pattern="^[^	]*${1-.*}"
+    echo "ID	Printer	Info"  | _lsrooms_fmt
+    #sql "select id,printer,info from rooms" | egrep "$pattern" | _lsrooms_fmt
+    server_call "room_dig({'info_not_like': 'Auto inserted%'}, {'room':True, 'printers':True, 'info':True})" | egrep "$pattern" | _lsrooms_fmt
+}
+
+_lsrooms_fmt()
+{
+    sed 's/NULL//' | awk -F'	' '{ printf("%-10s %-35s %-80s\n",$1,$2,$3);}' |  sed 's/ *$//'
+}
+
+#S lssubnetworks;;List subnetworks;0;1;[pattern];List configured subnetworks;69
+#M
+#M =head2 I<Description>
+#M
+#M The lssubnetworks subcommand lists the subnetworks defined in the DHCP database
+#M The listing contains the following fields:
+#M
+#M =over
+#M
+#M =item Id
+#M
+#M A numeric IP address that defines the lowest possible IB address of the subnetwork.
+#M
+#M =item Netmask
+#M
+#M A numeric IP that defines how many bits of the subnetwork's IP address that belongs to the network.
+#M 
+#M =item Network
+#M 
+#M A reference name that defines which B<network> the subnetwork belongs to. This way, many subnetworks may belong to the same
+#M network.
+#M
+#M =item Info
+#M
+#M Some information about the subnetwork intended for human consumption.
+#M
+#M =back
+#M
+lssubnetworks()
+{
+    echo "Id	Netmask	Network	Info" | _lssubnetworks_fmt
+    #sql "select id,netmask,network,info from subnetworks"  | _lssubnetworks_fmt
+    server_call "subnetwork_dig({}, {'subnetwork':True,'network':True,'info':True})" | egrep "$pattern" | _lssubnetworks_fmt
+}
+
+_lssubnetworks_fmt()
+{
+    sed 's/NULL//g' |  awk -F"	" '{ printf("%-18s %-15s %s\n",$1,$2,$3,$4);}' |  sed 's/ *$//' | sort -n -t. -k 1,1 -k 2,2 -k 3,3 -k 4,4
+}
+#S mkgroup;mg;Create a group;1;2;group;Create a host group;41
+#O mkgroup;P;parent;Parent group name
+#O mkgroup;i;info;Specify information about the group
+#M
+#M =head2 I<Description>
+#M
+#M The mkgroup subcommand creates a host group. A host group is a container for hosts that share a set of DHCP
+#M options. These options may be defined in the DHCP protocol, or be vendor sepcified boot options. A group always
+#M has a parent group (with the exception of the group named 'plain') If no parent group is specified through the
+#M I<-P parent> option, the group 'plain' is used as parent.
+#M
+#M DHCP/vendor options specified in parent groups are inherited in child groups unless specified explicitly.
+#M
+#M When a group is created using this subcommand, only the parent relation may be specified. All other options has to be
+#M created using the chgroup subcommand.
+#M 
+#M This command does not support the setting of any configuration options for the newly created group. You will have to
+#M use the chgroup command to complete configuration of the group.
+#M
+mkgroup()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -P)
+                mkgroup_P_flag=$i; shift
+                mkgroup_P_arg=$1; shift
+                ;;
+            -i)
+                mkgroup_i_flag=$i; shift
+                mkgroup_i_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    mkgroup_groupname=$1; shift
+
+    if [ -z "$mkgroup_groupname" ]; then
+        echo "You must enter a name for the new group"
+        exit 1
+    fi
+
+    if [ -z "$mkgroup_P_flag" ]; then
+        echo "No -P flag specified, using 'plain' as the parent group"
+        mkgroup_P_arg='plain';
+    fi
+    
+    if [ -z "$mkgroup_i_flag" ]; then
+    	echo "Please enter some information about the group using the -i flag"
+    	exit 2
+	else
+		echo "$mkgroup_i_arg"
+	fi
+
+    if db_groupexists $mkgroup_groupname; then
+        echo "The group $mkgroup_groupname is already defined"
+        exit 2
+    fi
+
+    if db_groupexists $mkgroup_P_arg; then
+        :
+    else
+        echo "The parent group $mkgroup_P_arg does not exist"
+        exit 2
+    fi
+	server_call "group_create('$mkgroup_groupname', '$mkgroup_P_arg', '$mkgroup_i_arg', {})"
+    #sql "insert into \`groups\` ( \`groupname\`,\`parent_group\`,\`changed_by\` ) values ('$mkgroup_groupname','$mkgroup_P_arg','$USER' );"
+}
+##
+## Utilities for mkhost
+##
+_check_free()
+{
+    #echo Checking if $1 is free and matching pattern $2 .
+    if [ -z "$1" ]; then
+        return 1
+    fi
+    if [ -n "$2" ]; then
+        if echo $1 | egrep "$2" >/dev/null 2>&1; then
+            :
+        else
+            return 1
+        fi
+    fi
+    if db_hostindb $1; then
+        return 1
+    fi
+    if ping -c 1 ${1} >/dev/null 2>&1; then
+        return 1
+    fi
+    return 0
+}
+
+_ip2i()
+{
+    _ip2i1=`echo $1  | cut -f1 -d'.'`
+    _ip2i2=`echo $1  | cut -f2 -d'.'`
+    _ip2i3=`echo $1  | cut -f3 -d'.'`
+    _ip2i4=`echo $1  | cut -f4 -d'.'`
+
+    /usr/bin/expr $_ip2i1 \* 16777216 + $_ip2i2 \* 65536 + $_ip2i3 \* 256 + $_ip2i4
+    
+}
+
+#
+# Converting a number to an ip address with perl is twice the speed as doing it using expr
+#
+_i2ipp()
+{
+    perl -e "\$ipi=$1; \$i2ip4=\$ipi%256; \$ipi=(\$ipi-\$i2ip4)>>8; \$i2ip3=\$ipi%256; \$ipi=(\$ipi-\$i2ip3)>>8; \$i2ip2=\$ipi%256; \$ipi=(\$ipi-\$i2ip2)>>8; \$i2ip1=\$ipi%256; print \"\$i2ip1.\$i2ip2.\$i2ip3.\$i2ip4\";"
+}
+
+#
+# A simple progress bar implemented in /bin/ksh
+#
+_progbar_init()
+{
+    _progbar_full=$1
+# Following line works on Solaris, Linux and MacOS X, despite siffering output syntax for three of them
+    _progbar_maxcols=`stty -a | grep columns | sed 's/= //g' | tr ';' '\n' | grep columns | sed 's/^ //' | tr ' ' '\n' | egrep '^[0-9]*$'`
+    _progbar_barcols=`expr $_progbar_maxcols \* 90`
+    _progbar_barcols=`expr $_progbar_barcols / 100 - 2`
+    _progbar_now=0
+    _progbar_nowbar=0
+
+    i=$_progbar_barcols
+    _progbar_outstring=
+
+    while [ $i -gt 0 ]; do
+        _progbar_outstring="${_progbar_outstring}."
+        i=`expr $i - 1`
+    done
+
+    echo  -e "|${_progbar_outstring}|\r|\c"
+}
+
+_progbar_incr()
+{
+    _progbar_now=`expr $_progbar_now + 1`
+    _progbar_bars=`expr $_progbar_barcols \* $_progbar_now / $_progbar_full`
+
+    while [ $_progbar_nowbar -lt $_progbar_bars ]; do
+        echo -e "*\c"
+        _progbar_nowbar=`expr $_progbar_nowbar + 1`
+    done
+}
+
+_progbar_zap()
+{
+    i=$_progbar_barcols
+    _progbar_outstring=
+
+    while [ $i -gt 0 ]; do
+        _progbar_outstring="${_progbar_outstring} "
+        i=`expr $i - 1`
+    done
+
+    echo -e "\r ${_progbar_outstring} \r\c"
+}
+
+    
+
+
+#S mkhost;;Make a new host entry;1;3;network [mac-address [pattern]];Find a free hostname in a network and enter it into the DHCP database;22
+#O mkhost;n;;Do not add any host, just display a free hostname
+#O mkhost;A;;Do not stop looking for free hosts when one is found - implies -n
+#O mkhost;u;uname;Assign user name (mandatory);M
+#O mkhost;s;entry_status;Specify entry status[Active|Inactive]
+#O mkhost;r;room;Assign room number
+#O mkhost;e;expdate;Specify expiry date
+#O mkhost;g;group;Specify group
+#O mkhost;a;mount_class;Specify file mount class
+#O mkhost;i;info;Specify information about the host
+#O mkhost;f;;Force - bypass checks
+#M
+#M =head2 I<Description>
+#M
+#M The mkhost subcommand looks for a free hostname in a network, and if one is found calls addhost.
+#M
+#M Unless the -n flag or a I<pattern> are specified, the I<mac-address> is mandatory. If the -n flag is given, then
+#M the I<mac-address> argument is not checked for validity, but it must be a nonzero string in order to specify a I<pattern>.
+#M
+#M If a I<pattern> is specified, only hostnames that match the specfied pattern are considered for selection.
+#M The first two IP addresses are not considered for selection because they are usually reserved for network
+#M equipment.
+#M
+#M To be selected, an IP number must:
+#M
+#M =over
+#M
+#M =item A
+#M
+#M Lie in a range if IP addresses defined by a subnetwork belonging to the specified network
+#M
+#M =item B
+#M
+#M Not be one of the first two in a subnetwork
+#M
+#M =item C
+#M
+#M Have a host name assigned to it as defined by gethostbyaddr(3)
+#M
+#M =item D
+#M
+#M If a pattern is given, the fqdn assigned must match that pattern.
+#M
+#M =item E
+#M
+#M Not be defined in the DHCP database
+#M
+#M =item F
+#M
+#M Not have a running host that answers ICMP ping messages.
+#M
+#M =back
+#M
+#M
+mkhost()
+{
+    for i in "$@"; do
+        case "$i" in
+            -A)
+                mkhost_A_flag=$i; shift
+                mkhost_n_flag=$i;
+                ;;
+            -f)
+                mkhost_f_flag=$i; shift
+                ;;
+            -a)
+                mkhost_a_flag=$i; shift
+                mkhost_a_arg=$1; shift
+                ;;
+            -g)
+                mkhost_g_flag=$i; shift
+                mkhost_g_arg=$1; shift
+                ;;
+            -i)
+                mkhost_i_flag=$i; shift
+                mkhost_i_arg=$1; shift
+                ;;
+            -e)
+                mkhost_e_flag=$i; shift
+                mkhost_e_arg=$1; shift
+                ;;
+            -r)
+                mkhost_r_flag=$i; shift
+                mkhost_r_arg=$1; shift
+                ;;
+            -s)
+                mkhost_s_flag=$i; shift
+                mkhost_s_arg=$1; shift
+                ;;
+            -u)
+                mkhost_u_flag=$i; shift
+                mkhost_u_arg=$1; shift
+                ;;
+            -n)
+                mkhost_n_flag=$i; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    if [ -z "$mkhost_u_flag" ]; then
+        echo "You must specify a uname using the -u flag"
+        exit 2
+    fi
+
+    mkhost_net=$1; shift
+    #if [ -z "$mkhost_n_flag" ]; then
+        mkhost_mac=`_validate_mac_address $1`;
+        if [ -z "$mkhost_mac" ]; then
+            exit 2
+        fi
+    #fi
+    
+    mkhost_pattern=$2
+    #echo  "Mkhost pattern=$mkhost_pattern"
+
+    mkhost_subnetworks=`sql "select id from subnetworks where network = '$mkhost_net'"`;
+
+    if [ -z "$mkhost_subnetworks" ]; then
+        echo "The Network $mkhost_net is empty or is undefined";
+        exit 2
+    fi
+
+    mkhost_tothosts=0
+    mkhost_naddrlist=""
+
+    for mkhost_subnetwork in $mkhost_subnetworks; do
+        mkhost_netmask=`sql "select netmask from subnetworks where id = '$mkhost_subnetwork'"`
+        #echo $mkhost_subnetwork $mkhost_netmask
+        mkhost_netmask1=`echo $mkhost_netmask | cut -f1 -d'.'`
+        mkhost_netmask2=`echo $mkhost_netmask | cut -f2 -d'.'`
+        mkhost_netmask3=`echo $mkhost_netmask | cut -f3 -d'.'`
+        mkhost_netmask4=`echo $mkhost_netmask | cut -f4 -d'.'`
+#
+# Compute how many addresses there are in the subnetwork
+#
+#        mkhost_naddrs=`perl -e "printf '%d', ~(($mkhost_netmask1<<24)+($mkhost_netmask2<<16)+($mkhost_netmask3<<8)+$mkhost_netmask4)+1;"`
+        mkhost_naddrs=$(( (((${mkhost_netmask1}<<24)+(${mkhost_netmask2}<<16)+(${mkhost_netmask3}<<8)+${mkhost_netmask4})^4294967295)+1 ))
+#        echo Nhosts=$mkhost_naddrs;
+        mkhost_tothosts=`expr $mkhost_tothosts + $mkhost_naddrs`;
+#
+# Save # of hosts in a list to be used later
+        mkhost_naddrlist="$mkhost_naddrlist $mkhost_naddrs"
+    done
+    echo "Searching $mkhost_tothosts addresses in network $mkhost_net:"
+    _progbar_init $mkhost_tothosts
+
+#
+# Chop off leading blanks in the list
+#
+    mkhost_naddrlist=`echo $mkhost_naddrlist`
+
+    for mkhost_subnetwork in $mkhost_subnetworks; do
+        mkhost_naddrs=`echo $mkhost_naddrlist | cut -f1 -d' '`
+#
+# Convert the first IP addres to a decimal number, then use that number for counting IP addresses
+#
+        _ip=`_ip2i  $mkhost_subnetwork`
+# The 2 offset skips the network and gateway addresses
+        _ip=`expr  $_ip + 2`
+        _progbar_incr
+        _progbar_incr
+        _ipmax=`expr  $_ip +  $mkhost_naddrs - 2`
+        while [ $_ip -lt $_ipmax ]; do
+            mkhost_freeip=`_i2ipp $_ip`
+            mkhost_fqdn=`dig +short -x $mkhost_freeip | sed 's/\.$//'`
+            if _check_free "$mkhost_fqdn" "$mkhost_pattern"; then
+                _progbar_zap
+                echo $mkhost_fqdn $mkhost_freeip is free
+                if [ -z "$mkhost_n_flag" ]; then
+                    addhost $mkhost_f_flag $mkhost_r_flag $mkhost_r_arg $mkhost_u_flag $mkhost_u_arg $mkhost_s_flag $mkhost_s_arg \
+                    $mkhost_e_flag $mkhost_e_arg $mkhost_g_flag $mkhost_g_arg $mkhost_a_flag $mkhost_a_arg $mkhost_i_flag "$mkhost_i_arg" \
+                    $mkhost_fqdn $mkhost_mac
+                    exit $?
+                fi
+                if [ -z "$mkhost_A_flag" ]; then
+                    exit 0
+                fi
+                mkhost_foundfree=1
+            fi
+            _progbar_incr
+            _ip=`expr $_ip + 1`
+        done
+    done
+    _progbar_zap
+    if [ -n "$mkhost_foundfree" ]; then
+        exit 0
+    fi
+    if [ -n $mkhost_pattern ]; then
+        echo "Nothing free in network '$mkhost_net' that matches '$mkhost_pattern'"
+        exit 2
+    fi
+    echo Nothing free in network '$mkhost_net'
+    exit 2
+}
+
+#S rmoption;;Remove an option;1;1;key;Remove an option from a group, class, host, network, subnetwork, pool or a global option;87
+#O rmoption;c;class;Remove option for this class
+#O rmoption;g;group;Remove option for this group
+#O rmoption;p;pool;Remove option for this pool
+#O rmoption;H;host;Remove option for this host;;host_in_db
+#O rmoption;N;network;Remove option for this network
+#O rmoption;S;subnetwork;Remove option for this subnetwork
+#O rmoption;G;global;Remove a global option
+#M
+#M =head2 I<Description>
+#M
+#M The rmoption removes an option from the option list that belongs to a group, host, 
+#M network, subnetwork, class or pool. You can also remove global options by specifying -G and the literal string "global".
+#M
+rmoption()
+{
+  option_op="remove"
+  opoption "$@"
+}
+
+_rmoption()
+{
+    _rmoption_group=$1
+    _rmoption_key=$2
+    _rmoption_gtype=$3
+
+    _sql="select name from optionlist where \`group\` = '$_rmoption_group' and gtype='$_rmoption_gtype' and name = '$_rmoption_key'"
+    _rmoption_check=`sql "$_sql"`
+    if [ -z "$_rmoption_check" ]; then
+        echo The option $_rmoption_key is not defined for $_rmoption_gtype $_rmoption_group
+        return
+    fi
+    sql "delete from optionlist where \`group\` = '$_rmoption_group' and gtype='$_rmoption_gtype' and name = '$_rmoption_key' limit 1"
+    db_dirty
+}
+
+#T Host management;20
+#T Group management;40
+#T DHCP Classes;50
+#T DHCP Networks;60
+#T DHCP Sub-networks;65
+#T DHCP Pools;70
+#T DHCP Options handling;80
+#T Rooms;100
+#T Buildings;110
+
+#S addnetwork;;Create a network;1;1;network_name;Create a new shared network definition;61
+#O addnetwork;subnet_mask;subnet_mask;Specify subnet mask;;netmask
+#O addnetwork;i;desc;Network description;M;
+#O addnetwork;A;;Make server authoritative for the network (default) (excludes the use of --noA);;
+#O addnetwork;noA;;Do not make the server authoritative for the network (excludes the use of -A);;
+#O addnetwork;server_name;server_name;Specify server name;;fqdn
+#O addnetwork;next_server;next_server;Specify next-server name;;ipaddr
+#M =head2 I<Description>
+#M
+#M The addnetwork subcommand defines a shared network to the DHCP database. 
+#M A shared network is a collection of subnetworks that have the same routing such that any outlet in a shared network may 
+#M use any of the addresses in all subnetworks that belongs to the shared network.
+#M
+#M You must give a name to the network and a description.
+#M The given name is to be used when subsequently defining subnetworks to the shared network. 
+#M
+addnetwork()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            --next_server)
+                addnetwork_next_server_flag=$i; shift
+                addnetwork_next_server_arg=$1; shift
+                ;;
+            --server_name)
+                addnetwork_server_name_flag=$i; shift
+                addnetwork_server_name_arg=$1; shift
+                ;;
+            -A)
+                addnetwork_A_flag=$i; shift
+                ;;
+            -i)
+                addnetwork_i_flag=$i; shift
+                addnetwork_i_arg=$1; shift
+                ;;
+            --subnet_mask)
+                addnetwork_subnet_mask_flag=$i; shift
+                addnetwork_subnet_mask_arg=$1; shift
+                ;;
+            --noA)
+                addnetwork_noA_flag=$i; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    addnetwork_network=`_validate_network_name "$1" `
+ 
+    if [ -z "$addnetwork_network" ]; then
+        echo "You must specify a valid network name"
+        exit 1
+    fi
+
+
+    if db_exists network $addnetwork_network; then
+        echo "The network '$addnetwork_network' is already defined"
+        exit 1
+    fi
+
+    if [ -n "$addnetwork_A_flag" -a -n "$addnetwork_noA_flag" ]; then
+	echo "You cannot specify both -A and --noA flags"
+	exit 1
+    fi
+
+    _addnetwork_authoritative=1
+    if [ -n "$addnetwork_noA_flag" ];then
+        _addnetwork_authoritative=0
+    fi
+  
+    if [ -z "$addnetwork_i_arg" ]; then
+        echo "Please specify some sensible information about the network"
+        exit 1
+    fi
+
+    sql "insert into networks (id,authoritative,info) values('$addnetwork_network',$_addnetwork_authoritative,'$addnetwork_i_arg')"
+    if [ "$addnetwork_subnet_mask_flag" ]; then
+        sql "update networks set subnet_mask='$addnetwork_subnet_mask_arg' where id='$addnetwork_network'"
+    fi
+    if [ "$addnetwork_server_name_flag" ]; then
+        sql "update networks set server_name='$addnetwork_server_name_arg' where id='$addnetwork_network'"
+    fi
+    if [ "$addnetwork_next_server_flag" ]; then
+        sql "update networks set next_server='$addnetwork_next_server_arg' where id='$addnetwork_network'"
+    fi
+}
+#S addsubnetwork;;Add a subnetwork;2;2;IP-address network;Add a new subnetwork to a network;66
+#O addsubnetwork;i;info;Subnetwork description;M;
+#O addsubnetwork;server_name;servername;Specify server_name to clients;;fqdn
+#O addsubnetwork;next_server;address;Specify next_server to clients;;ipaddr
+#O addsubnetwork;server_identifier;address;Specify server identifier to clients;;ipaddr
+#O addsubnetwork;subnet_mask;mask;Specify subnet mask to clients, other than netmask;;netmask
+#O addsubnetwork;netmask;mask;Specify netmask, default is 255.255.255.192;;netmask
+#M =head2 I<Description>
+#M
+#M The addsubnetwork subcommand adds a subnetwork to an already defined shared network. The subnetwork identifier is the lowest IP
+#M address of the subnetwork. At Chalmers this address is typically ending with 0, 64, 128 or 192.
+#M You must also specify which shared network the subnetwork should be attached to.
+#M
+addsubnetwork()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            --netmask)
+                addsubnetwork_netmask_flag=$i; shift
+                addsubnetwork_netmask_arg=$1; shift
+                ;;
+            --subnet_mask)
+                addsubnetwork_subnet_mask_flag=$i; shift
+                addsubnetwork_subnet_mask_arg=$1; shift
+                ;;
+            --next_server)
+                addsubnetwork_next_server_flag=$i; shift
+                addsubnetwork_next_server_arg=$1; shift
+                ;;
+            --server_identifier)
+                addsubnetwork_server_identifier_flag=$i; shift
+                addsubnetwork_server_identifier_arg=$1; shift
+                ;;
+            --server_name)
+                addsubnetwork_server_name_flag=$i; shift
+                addsubnetwork_server_name_arg=$1; shift
+                ;;
+            -i)
+                addsubnetwork_i_flag=$i; shift
+                addsubnetwork_i_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    addsubnetwork_sql="insert into subnetworks set ";
+    addsubnetwork_id=`_validate_ipaddr $1`
+
+    if [ -z "$addsubnetwork_id" ]; then
+        return;
+    fi
+
+    if db_exists subnetwork $addsubnetwork_id; then
+        echo "The specified subnetwork $addsubnetwork_id is already defined"
+        exit 1
+    fi
+
+    addsubnetwork_sql="$addsubnetwork_sql id='$addsubnetwork_id'"
+
+    if db_exists network $2; then
+        addsubnet_network=$2
+    else
+        echo "The specified network is unknown"
+        exit 1
+    fi
+    addsubnetwork_sql="$addsubnetwork_sql, network='$addsubnet_network'"
+
+    if [ -n "$addsubnetwork_netmask_flag" ]; then
+        addsubnetwork_sql="$addsubnetwork_sql, netmask='$addsubnetwork_netmask_arg'"
+    else
+    	addsubnetwork_netmask_arg="255.255.255.192"
+    fi
+
+    addsubnetwork_id=`_validate_subnetwork_id $addsubnetwork_id $addsubnetwork_netmask_arg`
+
+    if [ -z "$addsubnetwork_id" ]; then
+        return;
+    fi
+
+    if [ -n "$addsubnetwork_subnet_mask_flag" ]; then
+        addsubnetwork_sql="$addsubnetwork_sql, subnet_mask='$addsubnetwork_subnet_mask_arg'"
+    fi
+
+    if [ -n "$addsubnetwork_next_server_flag" ]; then
+        addsubnetwork_sql="$addsubnetwork_sql, next_server='$addsubnetwork_next_server_arg'";
+    fi
+
+    if [ -n "$addsubnetwork_server_identifier_flag" ]; then
+        addsubnetwork_sql="$addsubnetwork_sql, server_identifier='$addsubnetwork_server_identifier_arg'";
+    fi
+
+    if [ -n "$addsubnetwork_server_name_flag" ]; then
+        addsubnetwork_sql="$addsubnetwork_sql, server_name='$addsubnetwork_server_name_arg'";
+    fi
+
+    if [ -n "$addsubnetwork_i_flag" ]; then
+        addsubnetwork_sql="$addsubnetwork_sql, info='$addsubnetwork_i_arg'";
+    fi
+
+    addsubnetwork_sql="$addsubnetwork_sql, changed_by='$USER'";
+
+    sql "$addsubnetwork_sql";
+
+}
+#S deletesubnetwork;;Delete a subnetwork;1;1;IP-address;Delete a subnetwork;68
+#M =head2 I<Description>
+#M
+#M The deletesubnetwork deletes a subnetwork specification from the database. Deleting a subnetwork will disable all hosts having
+#M addresses within the subnetwork. Use with care!!
+#M
+deletesubnetwork()
+{
+    deletesubnetwork_subnetwork=`_validate_ipaddr $1`;
+ 
+    if [ -z "$deletesubnetwork_subnetwork" ]; then
+        echo "You must specify a network ID"
+        exit 1
+    fi
+
+    if db_exists subnetwork $deletesubnetwork_subnetwork; then
+        :
+    else
+        echo "The subnetwork '$deletesubnetwork_subnetwork' does not exist"
+        exit 1
+    fi
+
+    sql "delete from subnetworks where id='$deletesubnetwork_subnetwork'"
+}
+#S deletenetwork;;Delete a network;1;1;network-name;Delete a network from the database;63
+#M =head2 I<Description>
+#M
+#M The deletenetwork deletes a shared network specification from the database. You can only delete networks that have no subnetworks
+#M specified. There is no option to zap a complete network with its subnetworks. This limitation is intentional.
+#M
+deletenetwork()
+{
+
+    deletenetwork_network=$1;
+ 
+    if [ -z "$deletenetwork_network" ]; then
+        echo "You must specify a network name"
+        exit 1
+    fi
+
+    if db_exists network $deletenetwork_network; then
+        :
+    else
+        echo "The network '$deletenetwork_network' does not exist"
+        exit 1
+    fi
+
+    sql "delete from networks where id='$deletenetwork_network'"
+
+}
+#S mkpool;;Create a pool;1;1;pool-name;Create a dynamic address pool;72
+#O mkpool;max_lease;seconds;Specify maximum lease time;;leasetime
+#O mkpool;i;info;Pool description;M;description
+#O mkpool;network;network;Network where pool is active;M;
+#O mkpool;optionspace;optionspace;Option space to activate;;
+#O mkpool;members;class;Class members to consider;;
+#M =head2 I<Description>
+#M
+#M The mkpool subcommand creates a poo. A pool is used to assign IP addresses dynamically.
+#M This commans creates the framework. No IP addresses will be assigned until you create one or more
+#M IP ranges using the addrange subcommand.
+#M
+mkpool()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            --members)
+                mkpool_members_flag=$i; shift
+                mkpool_members_arg=$1; shift
+                ;;
+            --optionspace)
+                mkpool_optionspace_flag=$i; shift
+                mkpool_optionspace_arg=$1; shift
+                ;;
+            --network)
+                mkpool_network_flag=$i; shift
+                mkpool_network_arg=$1; shift
+                ;;
+            -i)
+                mkpool_i_flag=$i; shift
+                mkpool_i_arg=$1; shift
+                ;;
+            --max_lease)
+                mkpool_max_lease_flag=$i; shift
+                mkpool_max_lease_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    if db_exists pool $1; then
+        echo "The pool named $1 is already defined"
+        exit 1
+    fi
+    mkpool_poolname=`_validate_pool_name "$1"`
+    if [ -z "$mkpool_poolname" ]; then
+	echo "You must supply a valid pool name"
+	exit 1
+    fi
+    mkpool_sql="insert into pools set poolname='$mkpool_poolname' "
+
+    if [ -n "$mkpool_optionspace_flag" ]; then
+        if db_exists optionspace $mkpool_optionspace_arg; then
+            mkpool_sql="$mkpool_sql , optionspace='$mkpool_optionspace_arg'"
+        else
+            echo "The optionspace '$mkpool_optionspace_arg' is unknown";
+            exit 1
+        fi
+    fi
+
+    if [ -n "$mkpool_members_flag" ]; then
+        if db_exists class $mkpool_members_arg; then
+                mkpool_sql="$mkpool_sql , members='$mkpool_members_arg'"
+        else
+                echo "The class '$mkpool_members_arg' is not defined";
+                exit 1
+        fi
+    fi
+    
+    if [ -n "$mkpool_network_flag" ]; then
+        if db_exists network $mkpool_network_arg; then
+            mkpool_sql="$mkpool_sql , network='$mkpool_network_arg'"
+        else
+            echo "The network '$mkpool_network_arg' is unknown";
+            exit 1
+        fi
+    else
+        echo "You must specify a network using --network"
+        exit 1
+    fi
+
+    if [ -n "$mkpool_max_lease_flag" ]; then
+        mkpool_sql="$mkpool_sql , max_lease_time=$mkpool_max_lease_arg";
+    fi
+
+    if [ -n "$mkpool_i_flag" ]; then
+        mkpool_sql="$mkpool_sql , info='$mkpool_i_arg'"
+    else
+        echo "You must describe the pool using -i"
+        exit
+    fi
+
+    mkpool_sql="$mkpool_sql , changed_by='$USER'";
+
+    sql "$mkpool_sql"
+}
+#S deletepool;;Delete a pool;1;1;pool-name;Deleta a dynamic address pool;73
+#M =head2 I<Description>
+#M
+#M The deletepool subcommand deletes a pool from the database. The pool must not
+#M have any IP ranges assigned to it before you remove the pool.
+#M
+deletepool()
+{
+
+    if db_exists pool $1; then
+        deletepool_pool=$1
+    else
+        echo "The pool '$1' is not defined"
+        exit 1
+    fi
+
+    sql "delete from pools where poolname='$deletepool_pool'";
+: # Enter the code for deletepool here
+}
+#S addrange;;Add an address range;3;3;pool from_address to_address;Add an IP address range to a pool;74
+#O addrange;dhcp_server;server_code;Specify which DHCP server will serve the range;;dhcpserver
+#M =head2 I<Description>
+#M
+#M The addrange subcommand adds a new IP number range to an already existing pool. You may use the --dhcp_server
+#M option to specify which DHCP server should handle the pool. If you not do that, your pool may not work the way 
+#M you expect. I<server_code> is an uppercase character, A, B or C.
+#M
+addrange()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            --dhcp_server)
+                addrange_dhcp_server_flag=$i; shift
+                addrange_dhcp_server_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    if db_exists pool $1; then
+        addrange_pool=$1
+    else
+        echo "The pool '$1' is not defined"
+        exit 1
+    fi
+
+    addrange_start=`_validate_ipaddr $2`
+    addrange_end=`_validate_ipaddr $3`
+
+    if [ -z "$addrange_start" -o -z "$addrange_start" ]; then
+        exit 1
+    fi
+
+    _addrange_start_num=`ip2num $addrange_start`
+    _addrange_end_num=`ip2num $addrange_end`
+
+## Must use /usr/bin/test here !!!
+    if /usr/bin/test $_addrange_start_num -gt $_addrange_end_num ; then
+        echo "Start address must be less or equal to the end address"
+        exit 1
+    fi
+
+    addrange_sql="insert into pool_ranges set pool='$addrange_pool', start_ip='$addrange_start', end_ip='$addrange_end', changed_by='$USER'";
+
+    if [ -n "$addrange_dhcp_server_flag" ]; then
+        addrange_sql="$addrange_sql ,served_by='$addrange_dhcp_server_arg'"
+    fi
+
+    sql "$addrange_sql"
+}
+#S rmrange;;Remove an address range;1;1;From_address;Remove an IP address range from a pool;75
+#M =head2 I<Description>
+#M
+#M The rmrange subcommand may be used to delete a pool range.
+#M
+rmrange()
+{
+
+    rmrange_start=`_validate_ipaddr $1`
+
+        if [ -z "$rmrange_start" ]; then
+            exit 1
+        fi
+
+        if db_exists poolrange $rmrange_start; then
+        :
+    else
+        echo "No range starting at $rmrange_start is defined"
+        exit 1
+    fi
+
+    sql "delete from pool_ranges where start_ip='$rmrange_start' limit 1"
+}
+#S chpool;;Change pool configuration;1;1;pool_name;Change the configuration of a pool;76
+#O chpool;max_lease;seconds;Specify maximum lease time;;leasetime
+#O chpool;i;info;Pool description;;description
+#O chpool;network;network;Network where pool is active;;
+#O chpool;optionspace;optionspace;Option space to activate;;
+#O chpool;members;class;Class members to consider;;
+#M =head2 I<Description>
+#M
+#M The chpool subcommand lets you change the parameters of a DHCP pool.
+#M
+chpool()
+{
+    for i in "$@"; do
+        case "$i" in
+            --members)
+                chpool_members_flag=$i; shift
+                chpool_members_arg=$1; shift
+                ;;
+            --optionspace)
+                chpool_optionspace_flag=$i; shift
+                chpool_optionspace_arg=$1; shift
+                ;;
+            --network)
+                chpool_network_flag=$i; shift
+                chpool_network_arg=$1; shift
+                ;;
+            -i)
+                chpool_i_flag=$i; shift
+                chpool_i_arg=$1; shift
+                ;;
+            --max_lease)
+                chpool_max_lease_flag=$i; shift
+                chpool_max_lease_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    if db_exists pool $1; then
+        :
+    else
+        echo "The pool named $1 is not defined"
+        exit 1
+    fi
+
+    chpool_poolname=$1
+    chpool_sql="update pools set poolname='$chpool_poolname' "
+
+    if [ -n "$chpool_optionspace_flag" ]; then
+        if db_exists optionspace $chpool_optionspace_arg; then
+            chpool_sql="$chpool_sql , optionspace='$chpool_optionspace_arg'"
+        else
+            echo "The optionspace '$chpool_optionspace_arg' is unknown";
+            exit 1
+        fi
+    fi
+    
+    if [ -n "$chpool_network_flag" ]; then
+        if db_exists network $chpool_network_arg; then
+            chpool_sql="$chpool_sql , network='$chpool_network_arg'"
+        else
+            echo "The network '$chpool_network_arg' is unknown";
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chpool_members_flag" ]; then
+        if db_exists class $chpool_members_arg; then
+            chpool_sql="$chpool_sql , members='$chpool_members_arg'"
+        else
+            echo "The class '$chpool_members_arg' is not defined";
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chpool_max_lease_flag" ]; then
+        chpool_sql="$chpool_sql , max_lease_time=$chpool_max_lease_arg";
+    fi
+
+    if [ -n "$chpool_i_flag" ]; then
+        chpool_sql="$chpool_sql , info='$chpool_i_arg'"
+    fi
+
+    chpool_sql="$chpool_sql , changed_by='$USER' where poolname='$chpool_poolname'";
+
+    sql "$chpool_sql"
+}
+#S chrange;;Change range;1;3;range_start [new_start [new_end]];Change data of a range;77
+#O chrange;dhcp_server;server_code;Specify which DHCP server will serve the range;;dhcpserver
+#M =head2 I<Description>
+#M
+#M The chrange subcommand may be used to change start and end addresses of a pool range. 
+#M
+#M =head3 I<Changing DHCP server>
+#M Using the
+#M --dhcp_server option, the range may be reassigned to another DHCP server. If you do that, the units 
+#M that have used the range might get new IP addresses as the new server does not get any information
+#M as to which units have had which IP assignments. Be sure to know whether this possibility will cause
+#M any trouble or not. I<server_code> is an uppercase character, A, B or C.
+#M
+#M It may feel good to know that SunRay clients do never care about their IP assignments.
+#M These devices will find the right sessiom based on the MAC address or the insetret smartcard number.
+#M
+chrange()
+{
+        for i in "$@"; do
+        case "$i" in
+            --dhcp_server)
+                chrange_dhcp_server_flag=$i; shift
+                chrange_dhcp_server_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+    
+    chrange_start=`_validate_ipaddr $1`
+
+    if [ -z "$chrange_start" ]; then
+        exit 1
+    fi
+
+    if db_exists poolrange $chrange_start; then
+        :
+    else
+        echo "No range starting at $chrange_start is defined"
+        exit 1
+    fi
+
+
+    if [ -n $2 ]; then
+        chrange_new_start=`_validate_ipaddr $2`
+        if [ -n $chrange_new_start ]; then            
+            chrange_new_end=`_validate_ipaddr $3`
+        fi
+    fi
+    
+    if [ -n "$chrange_new_start" ]; then
+        _chrange_start_num=`ip2num $chrange_new_start`
+        if [ -z "$chrange_new_end" ]; then
+            chrange_new_end=`sql "select a.end_ip from pool_ranges as a where a.start_ip='$chrange_start' limit 1"`       
+        fi
+        _chrange_end_num=`ip2num $chrange_new_end`
+        if /usr/bin/test $_chrange_start_num -gt $_chrange_end_num; then
+            echo "Start address ($chrange_new_start) must be less or equal to the end address ($chrange_new_end)"
+            exit 1
+        fi
+        
+    fi
+
+    dochange=0
+    chrange_sql="update pool_ranges set changed_by='$USER' "
+    if [ -n "$chrange_new_start" ]; then
+        chrange_sql="$chrange_sql, start_ip='$chrange_new_start', end_ip='$chrange_new_end'";
+        dochange=1
+    fi
+
+    if [ -n "$chrange_dhcp_server_flag" ]; then
+        chrange_sql="$chrange_sql ,served_by='$chrange_dhcp_server_arg'"
+        dochange=1
+    fi
+    
+    chrange_sql="$chrange_sql where start_ip='$chrange_start' limit 1"
+    
+    if [ $dochange = "1" ]; then
+        sql "$chrange_sql"
+    fi
+}
+#S reload;;Reload DHCP servers;0;0;;Trigger a reload of the DHCP server configurations;002
+#M =head2 I<Description>
+#M
+#M The reload subcommand initates a reload of the DHCP server configurations by updating the global dhcp2_timestamp option
+#M
+reload()
+{
+    choption -G global dhcp2_timestamp `date +%FT%T`
+}
+#S chnetwork;;Change network;1;1;network-name;Change name and parameters of an already defined network;62
+#O chnetwork;A;;Turn on authoritativity for the network (excludes the use of --noA);;
+#O chnetwork;noA;;Turn off authoritativity for the network (excludes the use of -A);;
+#O chnetwork;next_server;new_next_server;Change next-server;;ipaddr
+#O chnetwork;server_name;new_server_name;Change server;;host_in_db
+#O chnetwork;i;new-description;Change description;;description
+#O chnetwork;subnet_mask;new-mask;Change subnet mask;;netmask
+#O chnetwork;n;new-name;Change network name;;network_name
+#M =head2 I<Description>
+#M
+#M The chnetwork subcommand does something that is yet undefined and needs to be documented
+#M
+chnetwork()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -n)
+                chnetwork_n_flag=$i; shift
+                chnetwork_n_arg=$1; shift
+                ;;
+            --subnet_mask)
+                chnetwork_subnet_mask_flag=$i; shift
+                chnetwork_subnet_mask_arg=$1; shift
+                ;;
+            -i)
+                chnetwork_i_flag=$i; shift
+                chnetwork_i_arg=$1; shift
+                ;;
+            --server_name)
+                chnetwork_server_name_flag=$i; shift
+                chnetwork_server_name_arg=$1; shift
+                ;;
+            --next_server)
+                chnetwork_next_server_flag=$i; shift
+                chnetwork_next_server_arg=$1; shift
+                ;;
+            --noA)
+                chnetwork_noA_flag=$i; shift
+                ;;
+            -A)
+                chnetwork_A_flag=$i; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    chnetwork__anyflag=
+
+    if [ -n "$chnetwork_A_flag" -a -n "$chnetwork_noA_flag" ]; then
+	echo "You cannot specify both -A and --noA flags"
+	exit 1
+    fi
+
+
+    if [ -z "$1" ]; then
+        echo "No network name specified"
+        exit 2
+    fi
+
+    if db_exists network $1; then
+        chnetwork_network=$1
+    else
+        echo "The specified network is unknown"
+        exit 1
+    fi
+
+    tosql="update networks set changed_by = '$USER'";
+
+    if [ -n "$chnetwork_n_flag" ];then
+        _chnetwork_foundaflag
+         tosql="$tosql id = '$chnetwork_n_arg' "
+    fi
+
+    if [ -n "$chnetwork_subnet_mask_flag" ];then
+        _chnetwork_foundaflag
+         tosql="$tosql subnet_mask = '$chnetwork_subnet_mask_arg' "
+    fi
+
+    if [ -n "$chnetwork_i_flag" ];then
+        _chnetwork_foundaflag
+         tosql="$tosql \`info\` = '$chnetwork_i_arg' "
+    fi
+
+    if [ -n "$chnetwork_server_name_flag" ];then
+        _chnetwork_foundaflag
+         tosql="$tosql server_name = '$chnetwork_server_name_arg' "
+    fi
+
+    if [ -n "$chnetwork_next_server_flag" ];then
+        _chnetwork_foundaflag
+         tosql="$tosql next_server = '$chnetwork_next_server_arg' "
+    fi
+
+    if [ -n "$chnetwork_noA_flag" ]; then
+        _chnetwork_foundaflag
+         tosql="$tosql authoritative = 0 "
+    fi
+
+    if [ -n "$chnetwork_A_flag" ]; then
+        _chnetwork_foundaflag
+         tosql="$tosql authoritative = 1 "
+    fi
+
+    tosql="$tosql WHERE id='${chnetwork_network}' LIMIT 1 "
+
+    sql "$tosql"
+
+}
+
+_chnetwork_foundaflag()
+{
+    tosql="$tosql, "
+    chnetwork_anyflag=1
+}
+
+#S chsubnetwork;;Change subnetwork;1;1;IP-address;Change parameters of a subnetwork;67
+#O chsubnetwork;network_name;network_name;Change network attachment for the subnetwork;;network_name
+#O chsubnetwork;netmask;mask;Change netmask for the subnetwork;;netmask
+#O chsubnetwork;subnet_mask;mask;Change subnet mask to clients;;netmask
+#O chsubnetwork;server_identifier;address;Change server identifier to clients;;ipaddr
+#O chsubnetwork;next_server;address;Change next_server to clients;;ipaddr
+#O chsubnetwork;server_name;servername;Change server name to clients;;fqdn
+#O chsubnetwork;i;description;Change description;;description
+#M =head2 I<Description>
+#M
+#M The chsubnetwork subcommand changes the parameters of a subnetwork.
+#M
+chsubnetwork()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -i)
+                chsubnetwork_i_flag=$i; shift
+                chsubnetwork_i_arg=$1; shift
+                ;;
+            --server_name)
+                chsubnetwork_server_name_flag=$i; shift
+                chsubnetwork_server_name_arg=$1; shift
+                ;;
+            --next_server)
+                chsubnetwork_next_server_flag=$i; shift
+                chsubnetwork_next_server_arg=$1; shift
+                ;;
+            --server_identifier)
+                chsubnetwork_server_identifier_flag=$i; shift
+                chsubnetwork_server_identifier_arg=$1; shift
+                ;;
+            --subnet_mask)
+                chsubnetwork_subnet_mask_flag=$i; shift
+                chsubnetwork_subnet_mask_arg=$1; shift
+                ;;
+            --netmask)
+                chsubnetwork_netmask_flag=$i; shift
+                chsubnetwork_netmask_arg=$1; shift
+                ;;
+            --network_name)
+                chsubnetwork_network_name_flag=$i; shift
+                chsubnetwork_network_name_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    chsubnetwork__anyflag=
+
+    if [ -z "$1" ]; then
+        echo "No network name specified"
+        exit 2
+    fi
+
+    if db_exists subnetwork $1; then
+        chsubnetwork_network=$1
+    else
+        echo "The specified subnetwork is unknown"
+        exit 1
+    fi
+
+    tosql="update subnetworks set changed_by = '$USER'";
+
+    if [ -n "$chsubnetwork_network_name_flag" ];then
+        _chsubnetwork_foundaflag
+         tosql="$tosql network = '$chsubnetwork_network_name_arg' "
+    fi
+
+    if [ -n "$chsubnetwork_subnet_mask_flag" ];then
+        _chsubnetwork_foundaflag
+         tosql="$tosql subnet_mask = '$chsubnetwork_subnet_mask_arg' "
+    fi
+
+    if [ -n "$chsubnetwork_netmask_flag" ];then
+        _chsubnetwork_foundaflag
+         tosql="$tosql netmask = '$chsubnetwork_netmask_mask_arg' "
+    fi
+    if [ -n "$chsubnetwork_i_flag" ];then
+        _chsubnetwork_foundaflag
+         tosql="$tosql \`info\` = '$chsubnetwork_i_arg' "
+    fi
+
+    if [ -n "$chsubnetwork_server_name_flag" ];then
+        _chsubnetwork_foundaflag
+         tosql="$tosql server_name = '$chsubnetwork_server_name_arg' "
+    fi
+
+    if [ -n "$chsubnetwork_server_identifier_flag" ];then
+        _chsubnetwork_foundaflag
+         tosql="$tosql server_identifier = '$chsubnetwork_server_identifier_arg' "
+    fi
+
+    if [ -n "$chsubnetwork_next_server_flag" ];then
+        _chsubnetwork_foundaflag
+         tosql="$tosql next_server = '$chsubnetwork_next_server_arg' "
+    fi
+
+    tosql="$tosql WHERE id='${chsubnetwork_network}' LIMIT 1 "
+
+    sql "$tosql"
+
+}
+
+_chsubnetwork_foundaflag()
+{
+    tosql="$tosql, "
+    chsubnetwork_anyflag=1
+}
+##SGIP Subcommand generation insertion point, do not delete!!
+
+
+##SSCB2 Suite specific code begin 2
+# Run the command
+coprocess
+#server_call "session_start()"
+server_call "session_auth_login('fbq', 'fbq')"
+main "$@" 
+#M
+#M =head1 EXAMPLES
+#M
+#M =head2 Adding a host
+#M
+#M Suppose you get in a new laptop, and you want the DHCP server to give it the IP address of dhcp168-16.math.chalmers.se
+#M You also want to note the room number MC1234 and the username 'bill' so that we know where it is and who is responsible.
+#M The laptop has the mac address 01:12:34:c0:ff:fe and runs BeOS.
+#M
+#M I<Solution:>
+#M
+#M The fact that it runs BeOS shows that it is not part of any automatic installation procedures. This goes for all
+#M machines that are self administered. Thus, we do not assign the machine to any group. (Backstage, "no group" really means
+#M the group named 'plain'. In case that shows up somewhere, it might be useful to know)
+#M
+#M Execute the command:
+#M
+#M dhcp2 addhost -r MC1234 -u bill dhcp168-16.math.chalmers.se  01:12:34:c0:ff:fe 
+#M
+#M
+#M =head2 Adding a host whose IP-number or hostname is not given.
+#M
+#M George at the Math dept. comes in with that old 486 box he bought at eBay, he quickly wants it registered. 
+#M Nobody cares about the hostname.
+#M 
+#M I<Solution:>
+#M
+#M Since George works at the math dept, he needs an IP address in the math network. Ask him about the room number and CID.
+#M He says that he works in MC2433 and his cid is gwb. The mac address is 00:01:80:c0:ff:fe
+#M
+#M The simple solution is to execute the command:
+#M
+#M dhcp2 mkhost -u gwb -r MC2433 math 00:01:80:c0:ff:fe 
+#M
+#M This will make dhcp2 scan the whole math network looking for free IP numbers, pick the first free number and enter that
+#M for the new machine. There is a catch doing this, however. If you want to keep some order, let's say you want to keep
+#M odd machines having names starting with 'dhcp', then you need to constrain dhcp2 to such names.
+#M
+#M To do that, specify a pattern, last in the command:
+#M
+#M dhcp2 mkhost -u gwb -r MC2433 math 00:01:80:c0:ff:fe dhcp
+#M
+#M If you are scary, you might just want to do a check first to see what is picked, then add the -n flag.
+#M
+#M dhcp2 mkhost -n -u gwb -r MC2433 math 00:01:80:c0:ff:fe dhcp
+#M
+#M If the turnout is OK, re-run the command without the -n flag.
+#M
+#M =head2 Temporary assignments
+#M
+#M For some strange reason, Jimmy shows up on a conference on linear algebra. He will only stay a week, but your 
+#M boss orders you to give him network access for his shiny iBook.
+#M
+#M I<Solution>
+#M
+#M We cannot expect Jimmy to have a CID or a room here at Chalmers so use your own CID and 
+#M skip the room entry. We also want the
+#M entry to expire when Jimmy leaves on March 21, 2005.
+#M
+#M Run this command
+#M
+#M dhcp2 mkhost -u $USER -e 2005-03-24 math 00:03:93:c0:ff:fe dhcp
+#M
+#M =head2 Invalidating an entry while keeping it
+#M
+#M Ron has left us, but we are not sure that he won't come back. We wish to turn off 
+#M his entry so that noone may spoof
+#M his mac address. He is using the machine starwars.tekno.chalmers.se
+#M
+#M I<Solution:>
+#M
+#M Deactivate the entry using:
+#M
+#M dhcp2 chhost -s Inactive starwars.tekno.chalmers.se
+#M
+#M Should he come back, you can activate the entry using
+#M
+#M dhcp2 chhost -s Active starwars.tekno.chalmers.se
+#M
+#M =head2 Getting entry status
+#M
+#M You want to know the entry status of the machine www.whitehouse.gov
+#M
+#M  I<Solution:>
+#M
+#M Use the command:
+#M
+#M dchp2 lshosts -l www.whitehouse.gov
+#M
+#M I<Note: you probably won't get any data on this particular machine - yet.>
+#M
+#M =head2 Creating a group
+#M
+#M Jerry wants to set up a bunch of very old IBM360/VM machines. Since they are so 
+#M old, they need to be reinstalled
+#M quite frequently from the machine omaha.medic.chalmers.se, IP 129.16.223.74. 
+#M The machine names in the group
+#M are {liz,mike,john,steve and susie}.dc.chalmers.se
+#M
+#M  I<Solution:>
+#M
+#M First, create a group to put the machines in. Let's call the group I<ibmvm>.
+#M
+#M B<dhcp2 mkgroup ibmvm>
+#M
+#M Next thing is to configure the group with an option set so that they will install 
+#M from omaha. The old IBM manual says nothing about networks at all, but these boxen 
+#M has been refurbished by SUN microsystems, and their manual states that you need a 
+#M whole set of options to jumpstart a SUN machine. Fortunately, there's 
+#M an addendum speaking of refurbished IBM machines, where they have simplified things. 
+#M Anyway, all the options are supposed to live in a namespace of its own, I<IBMSUN>. 
+#M Furthermore, there are three options to specify:
+#M 
+#M =over
+#M
+#M =item ibm-mount-options 
+#M 
+#M This is a text option that specifies which NFS options that has to be used, in this 
+#M case it is a requirement that the
+#M IBM machines use rsize=4096. The option code is 73.
+#M
+#M =item ibm-install-server-ip-address               
+#M 
+#M This is an ip-address option that specifies the IP address of the install server. The option code is 88.
+#M
+#M =item ibm-install-server-hostname     
+#M
+#M This text option specifies the name of the install server. The option code is 99
+#M
+#M =back
+#M
+#M So, now we know that we will have to set these options. The problem is that the DHCP server has never heard of 
+#M these options, but do not despair, we can teach it.
+#M
+#M First, we have to define the namespace I<IBMSUN>, do that using
+#M
+#M B<dhcp2 defspace IBMSUN "Namespace for old IBM machines refurbished by Sun">
+#M
+#M The last argument is only meant as a clue for humans, please be informative.
+#M
+#M Next, we define the options:
+#M
+#M B<dhcp2 defoption -s IBMSUN -c 73 ibm-mount-options text "NFS options to use when mounting from install server">
+#M 
+#M B<dhcp2 defoption -s IBMSUN -c 88 ibm-install-server-ip-address ip-address "IP address of install server">
+#M
+#M B<dhcp2 defoption -s IBMSUN -c 99 ibm-install-server-hostname text "Hostname of install server">
+#M
+#M Now, we have defined the options, let's give them values for the I<ibmvm> group of hosts:
+#M
+#M B<dhcp2 addoption -g ibmvm ibm-mount-options "rsize=4096">
+#M
+#M B<dhcp2 addoption -g ibmvm ibm-install-server-ip-address 129.16.223.74>
+#M
+#M B<dhcp2 addoption -g ibmvm ibm-install-server-hostname omaha.medic.chalmers.se>
+#M
+#M Now, the group is ready to accept the machines:
+#M
+#M B<dhcp2 addhost -u liz -g ibmvm liz.dc.chalmers.se 00:00:01:01:19:74>
+#M
+#M B<dhcp2 addhost -u mike -g ibmvm mike.dc.chalmers.se 00:00:01:01:19:75>
+#M
+#M B<dhcp2 addhost -u john -g ibmvm john.dc.chalmers.se 00:00:01:01:19:76>
+#M
+#M B<dhcp2 addhost -u steve -g ibmvm steve.dc.chalmers.se 00:00:01:01:19:77>
+#M
+#M B<dhcp2 addhost -u susie -g ibmvm susie.dc.chalmers.se 00:00:01:01:19:78>
+#M
+#M Now, the group is ready, all he has to do is to call in his IT executive general and order him
+#M to install the machines. 
+#M
+#M =head1 AUTHOR
+#M
+#M Christer BernE<eacute>rus, spawned from my 'suite' framework.  See www.medic.chalmers.se/~bernerus/dist/suite
+#M
+##SSCE2 Suite specific code end 2

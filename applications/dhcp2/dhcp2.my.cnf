@@ -1,0 +1,2 @@
+export ADHOC_RUNTIME_HOME=$MY_PATH/../..
+. $ADHOC_RUNTIME_HOME/server/testing/.server_conf
