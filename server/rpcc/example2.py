@@ -142,7 +142,8 @@ class Person(Model):
         self.db.put(q, pid=self.pid, name=newname.encode("iso-8859-1"))
         self.db.commit()
 
-    @template("lastname", ExtString)
+    #@template("lastname", ExtString)
+    @auto_template
     def get_lastname(self):
         return self.lname
 
@@ -192,6 +193,10 @@ class PersonManager(Manager):
 
     def init(self):
         self._model_cache = {}
+
+    @classmethod
+    def on_register(cls, srv, db):
+        Person.get_lastname = template("lastname", ExtString)(Person.get_lastname)
 
     def base_query(self, dq):
         dq.select("p.ucid", "p.fname", "p.lname", "p.pnr", "a.ucid")

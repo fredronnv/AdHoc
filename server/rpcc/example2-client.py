@@ -14,11 +14,15 @@ rpcc1.login("#root#", "#root#")
 rpcc2 = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121", 2)
 rpcc2.login("#root#", "#root#")
 
-print rpcc0.person_fetch("viktor", {"firstname": True, "upfirstname": True, "lowfirstname": True})
+print rpcc0.person_fetch("viktor", {"firstname": True, "upfirstname": True, "lowfirstname": True, "lastname": True})
 
 print rpcc1.person_fetch("viktor", {"upfirstname": True, "firstname": True, "lowfirstname": True})
 
-print rpcc2.person_fetch("viktor", {"upfirstname": True, "firstname": True, "lowfirstname": True})
+try:
+    print rpcc2.person_fetch("viktor", {"upfirstname": True, "firstname": True, "lowfirstname": True})
+    raise TypeError("Server should have rejected the 'lowfirstname' key, since it is only defined in api versions up to 1")
+except rpcc_client.RPCCValueError:
+    pass
 
 raise SystemExit()
 

@@ -24,6 +24,7 @@ a Manager creates. Once a Function completes running, the Managers and
 Models it has created are deallocated.
 """
 
+import types
 import random
 import datetime
 import functools
@@ -41,18 +42,28 @@ class _TmpReference(object):
         self.islist = islist
 
 class ExternalAttribute(object):
-    # Valid for one particular API version.
-    def __init__(self, extname, exttype=None, method=None, desc=None, model=None, default=False, kwargs={}):
+    def __init__(self, extname, exttype, method=None, desc=None, model=None, default=False, minv=0, maxv=10000, kwargs={}):
         self.extname = extname
         self.exttype = exttype
         self.method = method
         self.extdesc = desc
         self.model = model
         self.default = default
+        self.minv = minv
+        self.maxv = maxv
         self.kwargs = kwargs
+
+        #print "ExternalAttribute('%s', exttype=%s, method=%s, desc=%s, model=%s, default=%s, minv=%d, maxv=%d, kwargs=%s)" % (extname, exttype, method, desc, model, default, minv, maxv, kwargs)
+
+        (tmin, tmax) = ExtType.instance(exttype)._api_versions()
+        if self.minv < tmin or self.maxv > tmax:
+            raise IntAPIValidationError("The exttype %s used by @template/@update for name %s is only valid in API versions %d-%d, while the decorator is valid for %d-%d" % (exttype, extname, tmin, tmax, minv, maxv))
 
     def __repr__(self):
         return "%s attr=%s type=%s method=%s" % (self.__class__.__name__, self.extname, self.exttype, self.method)
+
+    def clone(self, newname):
+        return self.__class__(newname, exttype=self.exttype, method=self.method, desc=self.desc, model=self.model, default=self.default, minv=self.minv, maxv=self.maxv, kwargs=self.kwargs)
 
 
 class ExternalReadAttribute(ExternalAttribute):
@@ -95,49 +106,98 @@ class ExternalWriteAttribute(ExternalAttribute):
 
 
 ###
-# The @template and @update decorators take their arguments and store
+# The @template and @update decorators take their arguments to create an
+# instance of ExternalReadAttribute or ExternalWriteAttribute, and store
 # them in attributes on the method (methods are also objects) called
-# ._templates and ._updates respectively. The arguments are later
-# passed to the __init__ of ExternalAttribute, and must be valid there.
+# ._templates and ._updates respectively.
 #
-# NOTE! @entry replaces a method with a wrapper that calls the
-# method. The wrapper needs to copy the _template and _update method
-# attributes to the wrapper if present in the wrapped method.
+# Managers can add extra attributes to their Models on startup, for
+# example in their .on_register() methods.
+#
+# NOTE! @entry replaces a method with a wrapper that calls that
+# method. The wrapper copies the ._templates and ._updates attributes
+# from the wrapped method to the wrapper, if they are present.
+#
+# The ExternalAttribute.method attribute is set later - that makes it
+# correctly point out either the wrapper or the raw method regardless
+# of which order the @entry and @template/@update directives come.
 ###
 
 def template(extname, exttype, **kwargs):
     def decorate(decorated):
-        data = kwargs.copy()
-        data["extname"] = extname
-        data["exttype"] = exttype
+        # To support Foo.bar = template(...)(Foo.bar) in Python 2, we need
+        # to extract the function from a possible instancemethod.
+        if isinstance(decorated, types.MethodType):
+            decorated = decorated.im_func
+            if not hasattr(decorated, "_auto_templatable"):
+                raise IntAPIValidationError("Templates can only be dynamically added to methods decorated with the @auto_template decorator, %s isn't (adding the %s(%s) template)" % (decorated, extname, exttype))
 
         if hasattr(decorated, "_updates"):
             raise IntAPIValidationError("Both @template and @update cannot be applied to the same method, but are for %s" % (decorated,))
 
+        # The "model" attribute should really be present in the auto-
+        # generated "_data"-attribute, not in the primary
+        # attribute. See .fill_data_type() to see why.
+
+        attr2 = None
+        if "model" in kwargs and kwargs["model"]:
+            attr2 = ExternalReadAttribute(extname + "_data", exttype, **kwargs)
+            kwargs2 = kwargs.copy()
+            del kwargs2["model"]
+            attr = ExternalReadAttribute(extname, exttype, **kwargs2)
+        else:
+            attr = ExternalReadAttribute(extname, exttype, **kwargs)
+
         try:
-            decorated._templates.append(data)
+            decorated._templates.append(attr)
         except AttributeError:
-            decorated._templates = [data]
+            decorated._templates = [attr]
+
+        if attr2:
+            decorated._templates.append(attr2)
 
         return decorated
     return decorate
 
+def auto_template(decorated):
+    """This decorator needs to be placed on all methods that are passed to
+    the Foo.bar = template(...)(Foo.bar) pattern, to indicate that there
+    are more templates in running code than in the source."""
+
+    decorated._auto_templatable = None
+    return decorated
+
 def update(extname, exttype, **kwargs):
     def decorate(decorated):
-        data = kwargs.copy()
-        data["extname"] = extname
-        data["exttype"] = exttype
+        # To support Foo.bar = update(...)(Foo.bar) in Python 2, we need
+        # to extract the function from a possible instancemethod.
+        if isinstance(decorated, types.MethodType):
+            decorated = decorated.im_func
+            if not hasattr(decorated, "_auto_updateable"):
+                raise IntAPIValidationError("Updates can only be dynamically added to methods decorated with the @auto_update decorator, %s isn't (adding the %s update)" % (decorated, extname))
 
         if hasattr(decorated, "_templates"):
             raise IntAPIValidationError("Both @template and @update cannot be applied to the same method, but are for %s" % (decorated,))
 
+        if "model" in kwargs and kwargs["model"]:
+            raise IntInvalidUsageError("The <model> attribute is only valid for @template, not for @update")
+
+        attr = ExternalWriteAttribute(extname, exttype, **kwargs)
         try:
-            decorated._updates.append(data)
+            decorated._updates.append(attr)
         except AttributeError:
-            decorated._updates = [data]
+            decorated._updates = [attr]
 
         return decorated
     return decorate
+
+def auto_update(decorated):
+    """This decorator needs to be placed on all methods that are passed to
+    the Foo.bar = update(...)(Foo.bar) pattern, to indicate that there
+    are more updates in running code than in the source."""
+
+    decorated._auto_updateable = None
+    return decorated
 
 
 class Model(object):
@@ -221,20 +281,32 @@ class Model(object):
         return cls.name
 
     @classmethod
-    def _reboot(cls):
-        del cls._attributes_cache
+    def _add_template(cls, method_name, *args, **kwargs):
+        # .im_func below is needed for Python 2, since the actual
+        # function is wrapped in an "instancemethod" object in
+        # the class' __getattribute__(), and we need to get it out
+        # again to wrap it in a decorator.
+        decorator_inst = template(*args, **kwargs)
+        to_decorate = getattr(cls, method_name).im_func
+        decorated = decorator_inst(to_decorate)
+        setattr(cls, method_name, decorated)
+
+    @classmethod
+    def _add_update(cls, method_name, *args, **kwargs):
+        # .im_func below is needed for Python 2, since the actual
+        # function is wrapped in an "instancemethod" object in
+        # the class' __getattribute__(), and we need to get it out
+        # again to wrap it in a decorator.
+        decorator_inst = update(*args, **kwargs)
+        to_decorate = getattr(cls, method_name).im_func
+        decorated = decorator_inst(to_decorate)
+        setattr(cls, method_name, decorated)
 
     @classmethod
     def _attributes(cls, api_version):
         # Note: the result is cached in the _class_ object. If you have
         # a changing API in your development server, you need to empty
         # that cache using ._reboot().
-
-        # Note 2: If the attribute has a "model" attribute, the
-        # _TmpReference object is used in the templates on an
-        # "<attr>_data" attribute. _TmpReferences are used as
-        # placeholders, to resolve mutual references between template
-        # types.
 
         try:
             return cls._attributes_cache[api_version]
@@ -245,41 +317,28 @@ class Model(object):
 
         for candname in dir(cls):
             candidate = getattr(cls, candname)
+
             if hasattr(candidate, "_templates"):
                 attrcls = ExternalReadAttribute
-                defs = candidate._templates
+                attrs = candidate._templates
                 dest = cls._attributes_cache[api_version][0]
             elif hasattr(candidate, "_updates"):
                 attrcls = ExternalWriteAttribute
-                defs = candidate._updates
+                attrs = candidate._updates
                 dest = cls._attributes_cache[api_version][1]
             else:
                 # Next candidate name
                 continue
 
-            for d in defs:
-                data = d.copy()
-                name = data.pop("extname")
-                minv = data.pop("minv", 0)
-                maxv = data.pop("maxv", 10000)
-
-                if api_version < minv or api_version > maxv:
+            for attr in attrs:
+                if api_version < attr.minv or api_version > attr.maxv:
                     continue
 
-                if name in dest:
-                    raise IntAPIValidationError("Multiple @template/@update definitions defines the public name %s for API version %d" % (name, api_version))
+                if attr.extname in dest:
+                    raise IntAPIValidationError("Multiple @template/@update definitions defines the public name %s for API version %d" % (attr.extname, api_version))
 
-                typminv, typmaxv = ExtType.instance(data["exttype"])._api_versions()
-                if api_version < typminv or api_version > typmaxv:
-                    raise IntAPIValidationError("@template/@update definition on method %s.%s says its valid through API versions (%d, %d), but the type %s it uses is valid through (%d, %d) making it invalid for version %d" % (cls, candname, minv, maxv, data["exttype"], typminv, typmaxv, api_version))
-
-                data["method"] = candidate
-
-                if "model" in data and data["model"]:
-                    dest[name + "_data"] = attrcls(name + "_data", **data)
-                    data.pop("model")
-
-                dest[name] = attrcls(name, **data)
+                attr.method = candidate
+                dest[attr.extname] = attr
 
         return cls._attributes_cache[api_version]
 
@@ -331,6 +390,8 @@ class Model(object):
         for (name, newval) in updates.items():
             attr = writeattrs[name]
             attr.method(self, newval, **attr.kwargs)
+        self.reload()
+        self.check_model()
 
     def apply_template(self, api_version, tmpl):
         # Note: many different other Model instances may call
@@ -390,22 +451,20 @@ class Model(object):
 #
 # From the external viewpoint, search keys are exposed that can be fed
 # to the system. Each search key represents a combination of a search
-# method (which sets up a DynamicQuery to include a particular
-# attribute) and a match method (which adds a comparison to the
-# DynamicQuery involving the external value and the attribute set up
-# by the search method).
+# method and a match method.
 #
-# Internally, Managers expose methods, called search methods, that
-# when called set up a DynamicQuery to contain a particular attribute
-# and return the SQL for that attribute.
+# Managers expose search methods, that when called set up a
+# DynamicQuery to contain a particular attribute and return the SQL
+# for that attribute. The match methods then add SQL involvning that
+# attribute and a comparison.
 #
 # Search methods are decorated with one or more @search() decorators,
-# each belonging to non-overlapping API version ranges. In the
-# decorator, the external name of the attribute is specified, as is
-# the Match subclass that implements all matching mechanisms
-# (comparisons and such) that should be usable with the attribute. The
-# data from the decorator(s) is stored on the method as a list of
-# _SearchSpec instances.
+# each optionally limited to certain API versions. In the decorator,
+# the external name of the attribute is specified, as is the Match
+# subclass that implements all matching mechanisms (comparisons and
+# such) that should be usable with the attribute. The data from the
+# decorator(s) is stored on the method as a list of _SearchSpec
+# instances.
 #
 # A Match subclass implements different matching methods, each
 # decorated with a @prefix() or @suffix() decorator. When a matching
@@ -600,13 +659,14 @@ class IntegerMatch(EqualityMatchMixin, Match):
 class _SearchSpec(object):
     """Represents one @search decorator and the data in it."""
 
-    def __init__(self, minv, maxv, name, matcher, desc, manager_name):
+    def __init__(self, minv, maxv, name, matcher, desc, manager_name, kwargs):
         self.minv = minv
         self.maxv = maxv
         self.name = name
         self.matcher = matcher
         self.desc = desc
         self.manager_name = manager_name
+        self.kwargs = kwargs
 
     def covers_api_version(self, api_version):
         return (api_version >= self.minv and api_version <= self.maxv)
@@ -633,28 +693,36 @@ class _SearchSpec(object):
             
             keys.append(_SearchKey(subkeyname, manager_method, subsearcher.subsearch, _TmpReference(self.manager_name, nullable=False), self.desc))
 
-            #ss = _Subsearch(srch["manager"])
-            #cls._search_lookup[srch["name"] + "_in"] = (candidate, (ss, ss.subsearch), _TmpReference(srch["manager"], nullable=False), desc)
-
-        #print "QBHD", self, [k.key for k in keys]
         return keys
+
+class _ComputedSearchSpec(_SearchSpec):
+    pass
 
 
 # NOTE! In order for @entry and @search to be stackable in arbitrary
 # order, @entry needs to know about (and copy) the _searches method
 # attribute.
-def search(name, matchcls, minv=0, maxv=10000, desc=None, manager_name=None):
+def search(name, matchcls, minv=0, maxv=10000, desc=None, manager_name=None, kwargs={}):
     def decorate(decorated):
-        newsobj = _SearchSpec(minv, maxv, name, matchcls, desc, manager_name)
+        # To support Foo.bar = search(...)(Foo.bar) in Python 2, we need
+        # to extract the function from a possible instancemethod
+        if isinstance(decorated, types.MethodType):
+            decorated = decorated.im_func
+            if not hasattr(decorated, "_auto_searchable"):
+                raise IntAPIValidationError("Searches can only be dynamically added to methods decorated with the @auto_search decorator, %s isn't (adding the %s search name)" % (decorated, name))
+
+
+        newsobj = _SearchSpec(minv, maxv, name, matchcls, desc, manager_name, kwargs)
         if hasattr(decorated, "_searches"):
-            for oldsobj in decorated._searches:
-                if oldsobj.overlaps_api_range(newsobj):
-                    raise IntAPIValidationError("Two @template directives have overlapping API versions for %s" % (decorated,))
             decorated._searches.append(newsobj)
         else:
             decorated._searches = [newsobj]
         return decorated
     return decorate
+
+def auto_search(decorated):
+    decorated._auto_searchable = None
+    return decorated
 
 
 class _Subsearch(object):
@@ -765,12 +833,24 @@ class Manager(object):
         will be run and passed a database link.
 
         It can perform startup tasks such as checking/setting up
-        tables in the database.
+        tables in the database, or reading the database to compute 
+        automatic @template/@update/@search decorators.
 
         If the database has not yet been enabled in the server,
         the db argument will be None.
         """
         pass
+
+    @classmethod
+    def _add_search(cls, method_name, *args, **kwargs):
+        # .im_func below is needed for Python 2, since the actual
+        # function is wrapped in an "instancemethod" object in
+        # the class' __getattribute__(), and we need to get it out
+        # again to wrap it in a decorator.
+        decorator_inst = search(*args, **kwargs)
+        to_decorate = getattr(cls, method_name).im_func
+        decorated = decorator_inst(to_decorate)
+        setattr(cls, method_name, decorated)
 
     def __init__(self, function, *args, **kwargs):
         self.function = function
