@@ -29,7 +29,7 @@ import random
 import datetime
 import functools
 
-from error import IntAPIValidationError
+from error import IntAPIValidationError, IntInvalidUsageError
 from exttype import *
 from default_type import *
 

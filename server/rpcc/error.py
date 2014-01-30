@@ -5,4 +5,5 @@ class IntAPIValidationError(Exception):
 class IntAttributeDefitionsOverlapError(IntAPIValidationError):
     pass
 
-
+class IntInvalidUsageError(Exception):
+    pass
