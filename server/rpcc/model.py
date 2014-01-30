@@ -254,7 +254,6 @@ class Model(object):
         """
         self._decision_cache = {}
         self._templated = {}
-
         self.init(*self.manager.args_for_model(self.oid))
 
     def init(self, *args):
@@ -384,7 +383,10 @@ class Model(object):
         for attr in cls._write_attributes(api_version).values():
             attr.fill_update_type(upd)
         return upd
-
+    
+    def check_model(self):  # To be overriden in subclasses, if needed.
+        pass
+    
     def apply_update(self, api_version, updates):
         writeattrs = self._write_attributes(api_version)
         for (name, newval) in updates.items():
@@ -392,6 +394,8 @@ class Model(object):
             attr.method(self, newval, **attr.kwargs)
         self.reload()
         self.check_model()
+        self.reload()
+        self.check_model()  # Hook for checking the model consistency.
 
     def apply_template(self, api_version, tmpl):
         # Note: many different other Model instances may call
@@ -626,16 +630,23 @@ class EqualityMatchMixin(object):
     @suffix("not_equal", ExtString)
     def neq(self, fun, q, expr, val):
         q.where(expr + "<>" + q.var(val))
-
-
+        
 class StringMatch(EqualityMatchMixin, Match):
     @suffix("maxlen", ExtInteger)
     def maxlen(self, fun, q, expr, val):
         q.where("LENGTH(" + expr + ") <= " + q.var(val))
+        
+    @suffix("minlen", ExtInteger)
+    def minlen(self, fun, q, expr, val):
+        q.where("LENGTH(" + expr + ") >= " + q.var(val))
 
     @suffix("like", ExtLikePattern)
     def like(self, fun, q, expr, val):
         q.where(expr + " LIKE " + q.var(val))
+        
+    @suffix("not_like", ExtLikePattern)
+    def not_like(self, fun, q, expr, val):
+        q.where(expr + " NOT LIKE " + q.var(val))
 
     @suffix("nocase_equal", ExtString)
     def nceq(self, fun, q, expr, val):
@@ -644,6 +655,10 @@ class StringMatch(EqualityMatchMixin, Match):
     @suffix("nocase_not_equal", ExtString)
     def ncneq(self, fun, q, expr, val):
         q.where("LOWER(" + expr + ") <> LOWER(" + q.var(val) + ") ")
+        
+    @suffix("regexp", ExtString)
+    def regexp(self, fun, q, expr, val):
+        q.where(expr + "REGEXP " + q.var(val))
 
 
 class IntegerMatch(EqualityMatchMixin, Match):
