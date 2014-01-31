@@ -356,4 +356,5 @@ def entry(guard):
                      "_auto_searchable"):
             if hasattr(wrapped_method, attr):
                 setattr(actually_called, attr, getattr(wrapped_method, attr))
+        return actually_called
     return checked_method_maker
