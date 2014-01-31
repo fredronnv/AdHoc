@@ -7,6 +7,7 @@ from shared_network import ExtNetwork, ExtNetworkName
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
 from rpcc.database import IntegrityError
+from pool_range import ExtIpV4Address
 
 
 class ExtNoSuchSubnetworkError(ExtLookupError):
@@ -97,8 +98,8 @@ class Subnetwork(Model):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
-    @template("id", ExtSubnetwork)
-    def get_id(self):
+    @template("subnetwork", ExtSubnetwork)
+    def get_subnetwork(self):
         return self
 
     @template("network", ExtNetworkName)
@@ -126,7 +127,7 @@ class Subnetwork(Model):
             ret[opt[0]] = opt[1]
         return ret
     
-    @update("id", ExtSubnetworkID)
+    @update("subnetwork", ExtSubnetworkID)
     @entry(AuthRequiredGuard)
     def set_id(self, value):
         q = "UPDATE subnetworks SET id=:value WHERE id=:id"
@@ -145,6 +146,17 @@ class Subnetwork(Model):
     def set_info(self, value):
         q = "UPDATE subnetworks SET info=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
+
+
+class IPV4Match(Match):
+    @suffix("covers", ExtIpV4Address)
+    def covers(self, fun, q, expr, val):
+        q1 = "INET_ATON("
+        q1 += q.var(val)
+        q1 += ") >= INET_ATON(SUBSTRING_INDEX(id,'/',1)) AND INET_ATON("
+        q1 += q.var(val)
+        q1 += ") <= INET_ATON(SUBSTRING_INDEX(id,'/',1)) + ((1 << (32 - CONVERT(SUBSTRING_INDEX(id,'/',-1), UNSIGNED) ))-1)"
+        q.where(q1)
  
         
 class SubnetworkManager(Manager):
@@ -170,6 +182,11 @@ class SubnetworkManager(Manager):
 
     @search("subnetwork", StringMatch)
     def s_net(self, dq):
+        dq.table("subnetworks nw")
+        return "nw.id"
+    
+    @search("subnetwork", IPV4Match)
+    def s_anet(self, dq):
         dq.table("subnetworks nw")
         return "nw.id"
     
