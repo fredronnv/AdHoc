@@ -351,13 +351,9 @@ def entry(guard):
             else:
                 raise ValueError("Rugbyboll" + str(decision))
             
-        if hasattr(wrapped_method, "_update"):
-            actually_called._update = wrapped_method._update
-        if hasattr(wrapped_method, "_template"):
-            actually_called._template = wrapped_method._template
-        if hasattr(wrapped_method, "_matchers"):
-            actually_called._matchers = wrapped_method._matchers
-        if hasattr(wrapped_method, "_searches"):
-            actually_called._searches = wrapped_method._searches
-        return actually_called
+        for attr in ("_updates", "_templates", "_matchers", "_searches",
+                     "_auto_updateable", "_auto_templatable",
+                     "_auto_searchable"):
+            if hasattr(wrapped_method, attr):
+                setattr(actually_called, attr, getattr(wrapped_method, attr))
     return checked_method_maker
