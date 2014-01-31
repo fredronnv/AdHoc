@@ -2008,6 +2008,7 @@ _validate_hotbeat_class()
 proxy_start()
 {
 	if [ -n "$coppid" ]; then
+		trace "Proxy $coppid already running" 
 		return
 	fi
 	#echo "SERVER_CALL CMD=" "$@" >&2
@@ -2019,41 +2020,40 @@ proxy_start()
     	. $DHCP2_CONFFILE
 	fi
 	
-	copin="/tmp/dhcp2_in_$$"
-	copout="/tmp/dhcp2_out_$$"
-	
-	echo "Starting proxy" >&2
+	trace "Starting proxy"
 				
 	mkfifo $copin $copout
 	$MY_PATH/dhcp2proxy.py $copin $copout &
 	coppid=$!
-	trap "kill $coppid; rm $copin $copout" EXIT
 	
-	server_call "session_auth_login('fbq', 'fbq')"
+	trap "proxy_stop $coppid; rm $copin $copout" INT TERM EXIT
+	
+	server_call "session_auth_login('fbq', 'fbq')" >/dev/null
 
 }
 
-server_call()
+proxy_stop()
 {
-	proxy_start
+	kill ${1} 2>/dev/null
+	wait ${1} 2>/dev/null
+}
+
+proxy_call()
+{
 	#echo "copin=" $copin >&2
-    echo "Sending " "$@" >&2
+    trace "server_call: ""$@"
     echo "$@" >"$copin"
     cat $copout
     #result=`cat $copout`
     #echo "Result='"$result"'" >&2
-    #echo $result
-	#output=`$MY_PATH/mync.py $@`
-	#echo "mync exited with code $?" >&2
-	#echo "$output"
-	#echo "output=" $output >&2
-	#if echo -n "$@" | nc -n 127.0.0.1 4848; then
-		#	echo "Nc returned normally" >&2
-	#else
-		#	echo "Nc returned with error" >&2
-		#	exit $?
-	#fi
- 
+}
+
+server_call()
+{
+	#echo "copin=" $copin >&2
+	proxy_call "res = srv.""$@"
+    #result=`cat $copout`
+    #echo "Result='"$result"'" >&2
 }
 
 sql()
@@ -2156,10 +2156,13 @@ num2ip()
 
 db_hostgroup()
 {
+	proxy_start
     if [ -z "$2" ]; then
-        sql "select \`group\` from hostlist where id='$1'"
+    	server_call "host_dig({'host':'$1'}, {'group':True})"
+        #sql "select \`group\` from hostlist where id='$1'"
     else
-        sql "update \`hostlist\` set \`group\` = '$2', \`changed_by\` = '$USER'  where \`id\` = '$1' limit 1"
+    	server_call "host_update('$1', {'group':'$2'})"
+        #sql "update \`hostlist\` set \`group\` = '$2', \`changed_by\` = '$USER'  where \`id\` = '$1' limit 1"
         echo $2
     fi
 }
@@ -2179,48 +2182,45 @@ db_hostadd()
     hname=$1
     hmac=$2
     hgrp=$3
-    hexp=$4
+    hdns=$4
     hstat=$5
-    huname=$6
-    hroom=$7
-    hinfo=$8
-    haccgrp=$9
-    hcategory=${10}
+    hroom=$6
+    hinfo=$7
 
-    echo "Adding host $hname mac $hmac into group '$hgrp' access group '$haccgrp' of the database" >&2
+    echo "Adding host $hname mac $hmac into group '$hgrp' of the database" >&2
 
-    if db_hostindb $hname; then
-        sql "update hostlist set \`group\` = '$hgrp', \`mac\` = '$hmac', \`changed_by\` = '$USER' where \`id\` = '$hname' limit 1"
-    else
-        sql "insert into hostlist (\`id\`, \`group\`, \`mac\`, \`changed_by\`) values ('$hname','$hgrp','$hmac','$USER')"
-    fi
-    if [ -n "$hexp" ]; then
-        sql "update hostlist set \`expdate\` = '$hexp' where \`id\` = '$hname' limit 1"
-    fi
+    
 
     if [ -n "$hstat" ]; then
-        sql "update hostlist set \`entry_status\` = '$hstat'  where \`id\` = '$hname' limit 1"
-    fi
-
-    if [ -n "$huname" ]; then
-        sql "update hostlist set \`owner_CID\` = '$huname'  where \`id\` = '$hname' limit 1"
+    	proxy_call "options['status']='$hstat'"
     fi
 
     if [ -n "$hroom" ]; then
-        sql "update hostlist set \`room\` = '$hroom'  where \`id\` = '$hname' limit 1"
+    	proxy_call "options['room']='$hroom'"
     fi
 
     if [ -n "$hinfo" ]; then
-        sql "update hostlist set \`info\` = '$hinfo'  where \`id\` = '$hname' limit 1"
+    	proxy_call "options['info']='$hinfo'"
     fi
-
-    if [ -n "$haccgrp" ]; then
-        sql "update hostlist set \`mountclass\` = '$haccgrp'  where \`id\` = '$hname' limit 1"
+	
+	if [ -n "$hdns" ]; then
+		proxy_call "options['dns']='$hdns'"
+	fi
+	
+	if [ -n "$hgrp" ]; then
+		proxy_call "options['group']='$hgrp'"
+	fi
+	
+	if db_hostindb $hname; then
+		if [ -n "$mac" ]; then
+			proxy_call "options['mac']='$hmac'"
+		fi
+		server_call "host_update('$hname', options)"
+    else
+    	server_call "host_create('$hname', '$hmac', options)"
     fi
-
-    if [ -n "$hcategory" ]; then
-        sql "update hostlist set \`category\` = '$hcategory' where \`id\` = '$hname' limit 1"
-    fi
+	
+	
 }
 
 db_addroom()
@@ -2236,7 +2236,9 @@ db_addroom()
         
 db_spaceexists()
 {
-    _sname=`sql "select value from optionspaces where value = '$1'"`
+	proxy_start
+	_sname=`server_call "optionspace_dig({'optionspace':'$1'}, {'optionspace':True})"`
+    #_sname=`sql "select value from optionspaces where value = '$1'"`
 
     if [ "$_sname"  = "$1" ]; then
         return 0
@@ -2244,29 +2246,11 @@ db_spaceexists()
     return 1
 }
 
-db_fsidexists()
-{
-    _fsid=`sql "select id from fileservers where id = '$1'"`
-
-    if [ "$_fsid" = "$1" ]; then
-        return 0
-    fi
-    return 1
-}
-
-db_fsfqdnexists()
-{
-    _fsfqdn=`sql "select fqdn from fileservers where fqdn = '$1'"`
-
-    if [ "$_fsfqdn" = "$1" ]; then
-        return 0
-    fi
-    return 1
-}
-
 db_poolexists()
 {
-    _cname=`sql "select poolname from pools where poolname = '$1'"`
+	proxy_start
+	_cname=`server_call "pool_dig({'pool':'$1'}, {'pool':True})"`
+    #_cname=`sql "select poolname from pools where poolname = '$1'"`
 
     if [ "$_cname"  = "$1" ]; then
         return 0
@@ -2276,7 +2260,9 @@ db_poolexists()
 
 db_poolrangeexists()
 {
-    _rname=`sql "select start_ip from pool_ranges where start_ip = '$1'"`
+	proxy_start
+	_cname=`server_call "pool_range_dig({'start_ip':'$1'}, {'start_ip':True})"`
+    #_rname=`sql "select start_ip from pool_ranges where start_ip = '$1'"`
 
     if [ "$_rname"  = "$1" ]; then
         return 0
@@ -2286,7 +2272,9 @@ db_poolrangeexists()
 
 db_classexists()
 {
-    _cname=`sql "select classname from classes where classname = '$1'"`
+	proxy_start
+	_cname=`server_call "host_class_dig({'host_class':'$1'}, {'host_class':True})"`
+    #_cname=`sql "select classname from classes where classname = '$1'"`
 
     if [ "$_cname"  = "$1" ]; then
         return 0
@@ -2296,7 +2284,9 @@ db_classexists()
 
 db_grouphasmembers()
 {
-    _sql="select id from hostlist where \`group\` = '$1'"
+	proxy_start
+	_hnames=`server_call "host_dig({'group':'$1'}, {'host'}"`
+    #_sql="select id from hostlist where \`group\` = '$1'"
     _hnames=`sql "$_sql"`
 
     if [ -n "$_hnames" ]; then
@@ -2305,43 +2295,12 @@ db_grouphasmembers()
     return 1
 }
 
-db_configexists()
-{
-    _cname=`sql "select name from config_groups where name = '$1'"`
-
-    if [ "$_cname"  = "$1" ]; then
-        return 0
-    fi
-    return 1
-}
-
 db_groupexists()
 {
-	echo "Gname?'"$1"'"
+	proxy_start
 	_gname=`server_call "group_dig({'group':'$1'}, {'group':True})"`
     #_gname=`sql "select groupname from groups where groupname = '$1'"`
-	echo "Gname='"$_gname"'"
     if [ "$_gname"  = "$1" ]; then
-        return 0
-    fi
-    return 1
-}
-
-db_mountclassexists()
-{
-    _mcname=`sql "select id from mountclasses where id = '$1'"`
-
-    if [ "$_mcname"  = "$1" ]; then
-        return 0
-    fi
-    return 1
-}
-
-db_loginclassexists()
-{
-    _lcname=`sql "select id from loginclasses where id = '$1'"`
-
-    if [ "$_lcname"  = "$1" ]; then
         return 0
     fi
     return 1
@@ -2359,7 +2318,9 @@ db_optionexists()
 
 db_roomexists()
 {
-    _rname=`sql "select id from rooms where id = '$1'"`
+	proxy_start
+	_rname=`server_call "room_dig({'room':'$1'}, {'room':True})"`
+    #_rname=`sql "select id from rooms where id = '$1'"`
     
     if [ "$_rname"  = "$1" ]; then
         return 0
@@ -2369,8 +2330,10 @@ db_roomexists()
 
 db_poolexists()
 {
-    _pname=`sql "select poolname from pools where poolname = '$1'"`
-    
+	proxy_start
+	_pname=`server_call "pool_dig({'pool':'$1'}, {'pool':True})"`
+    #_pname=`sql "select poolname from pools where poolname = '$1'"`
+
     if [ "$_pname"  = "$1" ]; then
         return 0
     fi
@@ -2379,8 +2342,10 @@ db_poolexists()
 
 db_macindb()
 {
-    _sql="select id from hostlist where \`mac\` = '$1'"
-    _hnames=`sql "$_sql"`
+	proxy_start
+	_hnames=`server_call "host_dig({'mac':'$1'}, {'host':True})"`
+    #_sql="select id from hostlist where \`mac\` = '$1'"
+    #_hnames=`sql "$_sql"`
 
     if [ -n "$_hnames" ]; then
         return 0
@@ -2398,24 +2363,13 @@ db_hostindb()
     fi
 }
 
-db_hotbeat_classindb()
-{
-    _sql="select value from heartbeat_classes where \`value\`= '$1'"
-    _res=`sql "$_sql"`
-
-    #echo $_sql $_res >&2
-
-    if [ -n "$_res" ]; then
-	return 0
-    fi
-    return 1
-}
-
 db_hostdelete()
 {
     if db_hostindb $1; then
         rv=$?
-        sql "delete from \`hostlist\` where \`id\` = '$1' limit 1"
+        proxy_start
+        server_call "host_destroy('$1')"
+        #sql "delete from \`hostlist\` where \`id\` = '$1' limit 1"
         db_dirty
     else
         rv=$?
@@ -2425,7 +2379,9 @@ db_hostdelete()
 
 db_networkexists()
 {
-    _nname=`sql "select id from networks where id = '$1'"`
+	proxy_start
+	_nname=`server_call "network_dig({'network':'$1'},{'network':True})"`
+    #_nname=`sql "select id from networks where id = '$1'"`
     
     if [ "$_nname"  = "$1" ]; then
         return 0
@@ -2433,8 +2389,9 @@ db_networkexists()
     return 1
 }
 db_subnetworkexists()
-{
-    _snname=`sql "select id from subnetworks where id = '$1'"`
+{	proxy_start
+	_snname=`server_call "subnetwork_dig({'subnetwork':'$1'},{'subnetwork':True})"`
+    #_snname=`sql "select id from subnetworks where id = '$1'"`
     
     if [ "$_snname"  = "$1" ]; then
         return 0
@@ -2476,12 +2433,6 @@ db_exists()
             fi
             return 1
             ;;
-        pool)
-            if db_poolexists $2; then
-                return 0
-            fi
-            return 1
-            ;;
         subnetwork)
             if db_subnetworkexists $2; then
                 return 0
@@ -2506,15 +2457,9 @@ db_exists()
             fi
             return 1
             ;;
-        hotbeat_class)
-            if db_hotbeat_classindb $2; then
-                return 0
-            fi
-            return 1
-            ;;
-	global)
-	    return 0
-	    ;;
+		global)
+	    	return 0
+	    	 ;;
         *)
             echo "db_exists: unsupported entity type $1"
             exit 2
@@ -2716,19 +2661,25 @@ check_category()
 check_entry_status()
 {
     trace "Checking entry status value $1"
-    _sname=`sql "select id from  entry_statuslist where id = '$1'"`
-
-    if [ "$_sname"  = "$1" ]; then
-        return 0
-    fi
+    
+    if [ "$1" = "Active" ]; then
+		return 0 
+	fi
+	if [ "$1" = "Inactive" ]; then
+		return 0 
+	fi
+	if [ "$1" = "Dead" ]; then
+		return 0 
+	fi
     return 1
 }
 
 check_room()
 {
     trace "Checking room $1"
-
-    buildings=`sql "select re from buildings"`
+	proxy_start
+	buildings=`server_call "building_dig({}, {'re':True})"`
+    #buildings=`sql "select re from buildings"`
     trace "Found buildings=$buildings"
     for re in $buildings; do
         rv=`echo  $1 | egrep "^$re"`
@@ -2786,15 +2737,12 @@ check_date()
 #M
 
 #S addhost;;Add a host;2;2;hostname mac-address;Add a host to the DHCP database;21
-#O addhost;c;category;Specify host category;;category
 #O addhost;r;room;Assign room number
-#O addhost;u;uname;Assign user name (mandatory);M
+#O addhost;d;DNS;Assign a DNS address
 #O addhost;f;;Force - bypass checks
 #O addhost;s;entry_status;Specify entry status[Active|Inactive]
-#O addhost;e;expdate;Specify expiry
 #O addhost;g;group;Specify group
 #O addhost;i;info;Specify information about the host
-#O addhost;a;mount_class;Specify file mount class
 #M =head2 I<Description>
 #M
 #M The addhost subcommand adds a host to the dhcp database.
@@ -2810,37 +2758,25 @@ addhost()
             -f)
                 addhost_f_flag=$i; shift
                 ;;
-            -a)
-                addhost_a_flag=$i; shift
-                addhost_a_arg=$1; shift
-                ;;
             -g)
                 addhost_g_flag=$i; shift
                 addhost_g_arg=$1; shift
+                ;;
+            -d)
+                addhost_d_flag=$i; shift
+                addhost_d_arg=$1; shift
                 ;;
             -i)
                 addhost_i_flag=$i; shift
                 addhost_i_arg=$1; shift
                 ;;
-            -e)
-                addhost_e_flag=$i; shift
-                addhost_e_arg=$1; shift
-                ;;
             -s)
                 addhost_s_flag=$i; shift
                 addhost_s_arg=$1; shift
                 ;;
-            -u)
-                addhost_u_flag=$i; shift
-                addhost_u_arg=$1; shift
-                ;;
             -r)
                 addhost_r_flag=$i; shift
                 addhost_r_arg=$1; shift
-                ;;
-            -c)
-                addhost_c_flag=$i; shift
-                addhost_c_arg=$1; shift
                 ;;
             --)
                 shift;break
@@ -2853,77 +2789,79 @@ addhost()
         exit 2
     fi
 
-    if [ -z "$addhost_u_flag" ]; then
-        echo "You must specify a uname with the -u flag"
-        exit 2
-    fi
 
-    addhost_hostname=$1; shift 
-    addhost_hostname1=`_validate_fqdn ${addhost_hostname} nowarn` 
+    addhost_hostname=$1; shift
 #M
-#M The given hostname is validated against DNS. If the B<-f> flag is not given
+#M If given, the dns is validated against DNS. If the B<-f> flag is not given
 #M the DNS canonical name will be used. If  the B<-f> flag is given
 #M and the canonical name differs from the given name, the given name is nevertheless
 #M used and a warning is issued.
 #M
-   if [ -n "$addhost_hostname1" -a "$addhost_hostname1" != "$addhost_hostname" ]; then
-	if [ -z "$addhost_f_flag" ]; then
-                echo Using the fully qualified name "'${addhost_hostname1}'" instead of "'${addhost_hostname}'" 
-		addhost_hostname=$addhost_hostname1
-	else
-		echo Warning: The given host name "'$addhost_hostname'" differs from the DNS canonical name "'$addhost_hostname1'"
-		echo Using the given name anyway.
-		addhost_hostname1=$addhost_hostname
-	fi
-   fi
+	if [ -n "$addhost_d_flag" ]; then
+		addhost_dnsname=$addhost_d_arg
+		addhost_dnsname1=`_validate_fqdn ${addhost_dnsname} nowarn`
+		if [ -n "$addhost_dnsname1" -a "$addhost_dnsname1" != "$addhost_dnsname" ]; then
+			if [ -z "$addhost_f_flag" ]; then
+                echo Using the fully qualified name "'${addhost_dnsname1}'" instead of "'${addhost_dnsname}'" 
+				addhost_dnsname=$addhost_dnsname1
+			else
+				echo Warning: The given DNS name "'$addhost_dnsname'" differs from the DNS canonical name "'$addhost_dnsname1'"
+				echo Using the given name anyway.
+				addhost_dnsname1=$addhost_dnsname
+			fi
+		fi
+	
     
 #M
 #M If the B<-f> flag is not given, the command will abort under
 #M any of the following conditions:
 #M 
 #M =over
-   if [ -n "$addhost_hostname1" ]; then
-       addhost_hostname=$addhost_hostname1;
-   else
+		if [ -n "$addhost_dnsname1" ]; then
+			addhost_dnsname=$addhost_dnsname1;
+		else
 #M
 #M =item 1
 #M
-#M The host name cannot be looked up using I<dig(1)>
-        if [ -z "$addhost_f_flag" ]; then
-            echo "The host name specified is invalid. Use -f to override"
-            exit 1
-        else
-            echo "WARNING: The host name specified is invalid - using force"
-        fi
-    fi
+#M The given DNS name cannot be looked up using I<dig(1)>
+        	if [ -z "$addhost_f_flag" ]; then
+            	echo "The DNS name specified is invalid. Use -f to override"
+            	exit 1
+        	else
+            	echo "WARNING: The host name specified is invalid - using force"
+        	fi
+    	fi
 #M
 #M =item 2
 #M
-#M The host's IP address is not within a configured subnet.
+#M The DNS name's IP address is not within a configured subnet.
 #M
-    if _validate_host_in_subnet "${addhost_hostname}" nowarn >/dev/null; then
-        :
-    else
-        if [ -z  "$addhost_f_flag" ]; then
-            echo "The host's IP address is not within a configured subnet. Use -f to override"
-        exit 1
-        else
-            echo "Warning: The host's IP address is not within a configured subnet"
-            echo "DHCP services will not work"
-        fi
-    fi 
+		trace "Validating DNS within subnet"
+    	if _validate_host_in_subnet "${addhost_dnsname}" nowarn >/dev/null; then
+        	:
+    	else
+        	if [ -z  "$addhost_f_flag" ]; then
+            	echo "The host's IP address is not within a configured subnet. Use -f to override"
+        		exit 1
+        	else
+            	echo "Warning: The host's IP address is not within a configured subnet"
+            	echo "DHCP services will not work"
+        	fi
+    	fi 
 #M
 #M =item 3
 #M
-#M The host is active and ansers to a ping request
-    if /usr/sbin/ping ${addhost_hostname} 1 >/dev/null 2>&1; then
-        if [ -z "$addhost_f_flag" ]; then
-            echo "The host is in use. Use -f to override"
-            exit 1
-        else
-            echo "WARNING: The host is in use - using force"
-        fi
-    fi
+#M There is a host at the given DNS name that is active and answers to a ping request
+		trace "Pinging"
+		if /usr/sbin/ping ${addhost_dnsname} 1 >/dev/null 2>&1; then
+        	if [ -z "$addhost_f_flag" ]; then
+            	echo "The host is in use. Use -f to override"
+            	exit 1
+        	else
+            	echo "WARNING: The host is in use - using force"
+        	fi
+    	fi
+	fi
 #M
 #M =item 4
 #M
@@ -2995,14 +2933,6 @@ addhost()
         echo "WARNING: The given MAC address is already present in the database"
     fi
 #M
-#M If the B<-u> I<username> argument is given, I<username> is checked against Chalmers LDAP directory
-    if [ -n "${addhost_u_arg}" ]; then
-	if [ -z "`_validate_username ${addhost_u_arg}`" ]; then
-	    exit 1
-#M if it is not found,
-#M or if its numeric uid is less than 200, the command is aborted with an error message.
-        fi
-    fi
 #M 
 #M If the B<-r> I<room> argument is given, the room code is checked against the available room code rules.
 #M
@@ -3014,7 +2944,7 @@ addhost()
         fi
     fi
 
-    db_hostadd ${addhost_hostname} ${addhost_macaddr} ${addhost_g_arg} "${addhost_e_arg}" "${addhost_s_arg}" "${addhost_u_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_a_arg}" "${addhost_c_arg}"
+db_hostadd ${addhost_hostname} ${addhost_macaddr} "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_r_arg}" "${addhost_i_arg}"
 
 }
 
@@ -3211,16 +3141,9 @@ addroom()
 
 
 #S chgroup;cg;Change group data;1;1;group;Change the attributes of a group;42
-#O chgroup;hotbeat_class;class;Change or attach to a hotbeat class;;hotbeat_class
 #O chgroup;I;group_info;Change group info
-#O chgroup;F;filename;Change filename
-#O chgroup;s;server_name;Change server_name
-#O chgroup;S;server_identifier_ip;Change server_identifier
-#O chgroup;N;next_server_ip;Change next-server
 #O chgroup;O;option_space;Change option space
 #O chgroup;P;parent_group;Change parent group
-#O chgroup;C;config_class;Change configuration class
-#O chgroup;a;Mount_class;Change mount class
 #M
 #M =head2 I<Description>
 #M
@@ -3240,41 +3163,9 @@ chgroup()
                 chgroup_O_flag=$i; shift
                 chgroup_O_arg=$1; shift
                 ;;
-            -o)
-                chgroup_o_flag=$i; shift
-                chgroup_o_arg=$1; shift
-                ;;
-            -N)
-                chgroup_N_flag=$i; shift
-                chgroup_N_arg=$1; shift
-                ;;
-            -S)
-                chgroup_S_flag=$i; shift
-                chgroup_S_arg=$1; shift
-                ;;
-            -s)
-                chgroup_s_flag=$i; shift
-                chgroup_s_arg=$1; shift
-                ;;
-            -F)
-                chgroup_F_flag=$i; shift
-                chgroup_F_arg=$1; shift
-                ;;
             -I)
                 chgroup_I_flag=$i; shift
                 chgroup_I_arg=$1; shift
-                ;;
-            -a)
-                chgroup_a_flag=$i; shift
-                chgroup_a_arg=$1; shift
-                ;;
-            -C)
-                chgroup_C_flag=$i; shift
-                chgroup_C_arg=$1; shift
-                ;;
-            --hotbeat_class)
-                chgroup_hotbeat_class_flag=$i; shift
-                chgroup_hotbeat_class_arg=$1; shift
                 ;;
             --)
                 shift;break
@@ -3295,13 +3186,15 @@ chgroup()
         echo "The group $chgroup_groupname is not defined in the database"
         exit 2
     fi
-
+	proxy_start
+	proxy_call "update_template={}"
     tosql="update \`groups\` set changed_by = '$USER'";
-
+	#proxy_call "update_template={}"
     if [ -n "$chgroup_P_flag" ];then
         _chgroup_foundaflag
         if db_groupexists "$chgroup_P_arg"; then
             tosql="$tosql parent_group = '$chgroup_P_arg' "
+            proxy_call "update_template['parent']='$chgroup_P_arg'"
         else
             echo "The parent group $chgroup_P_arg is unknown in the database"
             exit 2
@@ -3312,68 +3205,9 @@ chgroup()
         _chgroup_foundaflag
         if db_spaceexists "$chgroup_O_arg"; then
             tosql="$tosql optionspace = '$chgroup_O_arg' "
+            proxy_call "update_template['optionspace']='$chgroup_O_arg'"
         else
             echo "The specified option space $chgroup_O_arg is unknown in the database"
-            exit 1
-        fi
-    fi
-
-    if [ -n "$chgroup_N_flag" ]; then
-        _chgroup_foundaflag
-        if _validate_fqdn "$chgroup_N_arg" >/dev/null; then
-            tosql="$tosql next_server = '$chgroup_N_arg' "
-        else
-            echo "The specified next-server $chgroup_N_arg is unknown, should be registered in DNS"
-            exit 1
-        fi
-    fi
-
-    if [ -n "$chgroup_s_flag" ]; then
-        _chgroup_foundaflag
-        if _validate_fqdn "$chgroup_s_arg" >/dev/null; then
-            tosql="$tosql \`server_name\` = '$chgroup_s_arg' "
-        else
-            echo "Host $chgroup_s_arg is unknown"
-            exit 1
-        fi
-    fi
-
-    if [ -n "$chgroup_a_flag" ]; then
-        _chgroup_foundaflag
-        if db_mountclassexists $chgroup_a_arg; then
-            tosql="$tosql \`mountclass\` = '$chgroup_a_arg' "
-        else
-            echo "The access group $chgroup_a_arg is not defined in the database"
-            exit 2
-        fi
-    fi
-
-    if [ -n "$chgroup_C_flag" ]; then
-        _chgroup_foundaflag
-        if db_configexists $chgroup_C_arg; then
-            tosql="$tosql \`config_group\` = '$chgroup_C_arg' "
-        else
-            echo "The configuration class $chgroup_C_arg is not defined in the database"
-            exit 2
-        fi
-    fi
-
-    if [ -n "$chgroup_S_flag"  ]; then
-        _chgroup_foundaflag
-        if _validate_fqdn "$chgroup_S_arg" >/dev/null; then
-            tosql="$tosql \`server_identifier\` = '$chgroup_S_arg' "
-        else
-            echo "The specified server-id $chgroup_S_arg is unknown, should be registered in DNS"
-            exit 1
-        fi
-    fi
-
-    if [ -n "$chgroup_F_flag"  ]; then
-        _chgroup_foundaflag
-        if [ -n "$chgroup_F_arg" ]; then
-            tosql="$tosql \`filename\` = '$chgroup_F_arg' "
-        else
-            echo "You must specify a file name"
             exit 1
         fi
     fi
@@ -3381,8 +3215,9 @@ chgroup()
     if [ -n "$chgroup_I_flag"  ]; then
         _chgroup_foundaflag
         if [ -n "$chgroup_I_arg" ]; then
-            :
+            proxy_call "update_template['info']='$chgroup_I_arg'"
         else
+        	proxy_call "update_template['info']=None"
             echo "You just erased the information on the group ${chgroup_groupname}, hope that is OK"
         fi
         tosql="$tosql \`info\` = '$chgroup_I_arg' "
@@ -3395,14 +3230,10 @@ chgroup()
    
     if [ -n "$chgroup_anyflag" ]; then
         tosql=" $tosql where groupname = '${chgroup_groupname}' limit 1";
-        sql "$tosql" 2 1
+        server_call "group_update('${chgroup_groupname}', update_template)"
+        #sql "$tosql" 2 1
     fi
 
-    if [ -n "${chgroup_hotbeat_class_flag}" ]; then
-        _q="insert into heartbeat_class_members (tied_to,tied_to_type,value,changed_by) values('${chgroup_groupname}','group','${chgroup_hotbeat_class_arg}', '$USER') on duplicate key update value='${chgroup_hotbeat_class_arg}', changed_by='$USER'"
-	echo $_q
-	sql "$_q" 2 1
-    fi
 }
 
 _chgroup_foundaflag()
@@ -3411,18 +3242,12 @@ _chgroup_foundaflag()
     chgroup_anyflag=1
 }
 #S chhost;;Change data for a host;1;1;hostname;Change the different data associated with a host;23
-#O chhost;a;Mount_class;Change host's mount class
-#O chhost;b;Boot_mode;Change host's boot action (disk or install)
-#O chhost;l;Login_class;Change host's login class
+#O chhost;d;dns;Change the DNS name
 #O chhost;r;room;Change the owner room number
-#O chhost;u;uname;Change the owner uname
 #O chhost;g;group;Change the group
-#O chhost;e;expdate;Change the expiry date
 #O chhost;m;mac-address;Change the mac address;;mac_address
 #O chhost;s;entry_status;Change the entry's status
-#O chhost;c;category;Change the host's category
 #O chhost;i;info;Change the information about the host
-#O chhost;C;group;Change the Configuration class
 #M
 #M =head2 I<Description>
 #M
@@ -3434,33 +3259,17 @@ chhost()
 
     for i in "$@"; do
         case "$i" in
-            -a)
-                chhost_a_flag=$i; shift
-                chhost_a_arg=$1; shift
-                ;;
-            -b)
-                chhost_b_flag=$i; shift
-                chhost_b_arg=$1; shift
+        	-d)
+                chhost_d_flag=$i; shift
+                chhost_d_arg=$1; shift
                 ;;
             -m)
                 chhost_m_flag=$i; shift
                 chhost_m_arg=$1; shift
                 ;;
-            -l)
-                chhost_l_flag=$i; shift
-                chhost_l_arg=$1; shift
-                ;;
-            -e)
-                chhost_e_flag=$i; shift
-                chhost_e_arg=$1; shift
-                ;;
             -g)
                 chhost_g_flag=$i; shift
                 chhost_g_arg=$1; shift
-                ;;
-            -u)
-                chhost_u_flag=$i; shift
-                chhost_u_arg=$1; shift
                 ;;
             -r)
                 chhost_r_flag=$i; shift
@@ -3470,17 +3279,9 @@ chhost()
                 chhost_s_flag=$i; shift
                 chhost_s_arg=$1; shift
                 ;;
-            -c)
-                chhost_c_flag=$i; shift
-                chhost_c_arg=$1; shift
-                ;;
             -i)
                 chhost_i_flag=$i; shift
                 chhost_i_arg=$1; shift
-                ;;
-            -C)
-                chhost_C_flag=$i; shift
-                chhost_C_arg=$1; shift
                 ;;
             --)
                 shift;break
@@ -3496,133 +3297,48 @@ chhost()
     fi
     chhost_hostname=$1; shift
 
-    if [ -z "`_validate_fqdn ${chhost_hostname}`" ]; then
-        echo "WARNING: The host name specified is invalid"
-    fi
-
     if db_hostindb ${chhost_hostname}; then
         :
     else
         echo "The host specified is unknown to the database"
         exit 1
+    fi  
+    
+	proxy_start
+	proxy_call "update_template={}"
+	
+	if [ -n "$chhost_d_flag" ];then
+        _chhost_foundaflag
+        validated_dns_arg=`_validate_fqdn $chhost_d_arg`
+        if [ -z "$validated_dns_arg" ]; then
+        	echo "WARNING: The DNS name specified is invalid"
+        fi
+        proxy_call "update_template['dns']='$chhost_d_arg'"
     fi
-#M
-#M Machines whose status are Precious or Delicate, may only be changed by their owner.
-#M
-    if check_change_allowed ${chhost_hostname}; then
-        :
-    else
-        exit 1
-    fi
-
-    tosql="update hostlist set changed_by = '$USER'";
-
+    
     if [ -n "$chhost_m_flag" ];then
         _chhost_foundaflag
         chhost_m_arg=`_validate_mac_address $chhost_m_arg`
         if [ -z "$chhost_m_arg" ]; then
             exit 1
         fi
-            tosql="$tosql mac = '$chhost_m_arg' "
-    fi
-
-    if [ -n "$chhost_e_flag" ]; then
-        _chhost_foundaflag
-        if check_date $chhost_e_arg; then
-            tosql="$tosql expdate = '$chhost_e_arg' "
-        else
-            exit 1
-        fi
+        proxy_call "update_template['mac']='$chhost_m_arg'"
     fi
 
     if [ -n "$chhost_g_flag" ]; then
         _chhost_foundaflag
         if db_groupexists $chhost_g_arg; then
-            tosql="$tosql \`group\` = '$chhost_g_arg' "
+        	proxy_call "update_template['group']='$chhost_g_arg'"
         else
             echo "The group $chhost_g_arg is not defined in the database"
             exit 2
         fi
     fi
-
-    if [ -n "$chhost_a_flag" ]; then
-        _chhost_foundaflag
-        if [ -n "$chhost_a_arg" ]; then
-            if db_mountclassexists $chhost_a_arg; then
-                tosql="$tosql \`mountclass\` = '$chhost_a_arg' "
-            else
-                echo "The access group $chhost_a_arg is not defined in the database"
-                exit 2
-            fi
-        else
-            tosql="$tosql \`mountclass\` = NULL"
-        fi
-    fi
-
-    if [ -n "$chhost_l_flag" ]; then
-        _chhost_foundaflag
-        if [ -n "$chhost_l_arg" ]; then
-            if db_loginclassexists $chhost_l_arg; then
-                tosql="$tosql \`loginclass\` = '$chhost_l_arg' "
-            else
-                echo "The login class $chhost_l_arg is not defined in the database"
-                exit 2
-            fi
-        else
-            tosql="$tosql \`loginclass\` = NULL"
-        fi
-    fi
-
-    if [ -n "$chhost_C_flag" ]; then
-        _chhost_foundaflag
-        if [ -n "$chhost_C_arg" ]; then
-            if db_configexists $chhost_C_arg; then
-                tosql="$tosql \`config_group\` = '$chhost_C_arg' "
-            else
-                echo "The configuration class $chhost_C_arg is not defined in the database"
-                exit 2
-            fi
-        else
-            tosql="$tosql \`config_group\` = NULL "
-        fi
-    fi
-
     if [ -n "$chhost_r_flag" ]; then
         _chhost_foundaflag
         if check_room "$chhost_r_arg"; then
-            tosql="$tosql \`room\` = '$chhost_r_arg' "
+        	proxy_call "update_template['room']='$chhost_r_arg'"
         else
-            exit 1
-        fi
-    fi
-
-    if [ -n "$chhost_u_flag" ]; then
-        _chhost_foundaflag
-	if [ -n "${chhost_u_arg}" ]; then
-	    if [ -z "`_validate_username ${chhost_u_arg}`" ]; then 
-		exit 1
-	    fi
-	fi 
-        tosql="$tosql \`owner_CID\` =  '$chhost_u_arg' "
-    fi
-
-    if [ -n "$chhost_b_flag"  ]; then
-        _chhost_foundaflag
-#M
-#M Boot mode=installed may not be set for machines with status=Delicate. For machines
-#M whose status are Precious or Critical,  Boot mode=installed may only be set by their
-#M owners.
-#M
-        if check_bootmode "$chhost_b_arg"; then
-            if check_bootmode_allowed "$chhost_b_arg" "${chhost_hostname}"; then
-                :
-            else
-                exit 1
-            fi
-            tosql="$tosql \`bootmode\` = '$chhost_b_arg' "
-        else
-            echo "The boot mode value given is not valid"
-            echo "valid values are:"; sql 'select mode,info from bootmodes where internal=0';
             exit 1
         fi
     fi
@@ -3630,51 +3346,22 @@ chhost()
     if [ -n "$chhost_s_flag"  ]; then
         _chhost_foundaflag
         if check_entry_status "$chhost_s_arg"; then
-            tosql="$tosql \`entry_status\` = '$chhost_s_arg' "
+        	proxy_call "update_template['status']='$chhost_s_arg'"
         else
             echo "The entry status value given is not valid"
-            echo "valid values are:"; sql 'select id,info from entry_statuslist';
-            exit 1
-        fi
-    fi
-
-    if [ -n "$chhost_c_flag"  ]; then
-        _chhost_foundaflag
-        if check_category "$chhost_c_arg"; then
-            if check_info_req "$chhost_c_arg"; then
-                if [ -z "$chhost_i_flag" -a -z "`sql \"select info from hostlist where id='$chhost_hostname'\" | sed 's/NULL//'`" ]; then
-                    chhost_noinfo='Y';
-                    :
-                fi
-
-                if [ -n "$chhost_i_flag" -a -z "$chhost_i_arg" ]; then
-                    chhost_noinfo='Y';
-                fi
-
-                if [ -n "$chhost_noinfo" ]; then
-                    echo "Changing category to $chhost_c_arg requires the info field to be set. Use chhost -i"
-                    exit 1
-                fi
-                :
-            fi
-            tosql="$tosql \`category\` = '$chhost_c_arg' "
-        else
-            echo "The category value given is not valid"
-            echo "valid values are:"
-            lscategories -i
+            echo "valid values are: Active, Inactive or Dead"
             exit 1
         fi
     fi
 
     if [ -n "$chhost_i_flag" ]; then
         _chhost_foundaflag
-        if [ -z "$chhost_i_arg"  -a -z  "$chhost_c_flag" ]; then
-            if check_info_req "`sql \"select category from hostlist where id='$chhost_hostname'\"  | sed 's/NULL//' 2`"; then
-                echo "The category prohibits the removal of the host information"
-                exit 1;
-            fi
-        fi
-        tosql="$tosql \`info\` = '$chhost_i_arg' "
+        if [ -n "$chhost_i_arg" ]; then
+            proxy_call "update_template['info']='$chhost_i_arg'"
+    	else  
+        	proxy_call "update_template['info']=None"
+            echo "You just erased the information on the host ${chhost_hostname}, hope that is OK"
+    	fi
     fi
 
     if [ -z "$chhost_anyflag" ]; then
@@ -3682,9 +3369,7 @@ chhost()
         exit 0
     fi
    
-    tosql=" $tosql where id = '${chhost_hostname}' limit 1";
-
-    sql "$tosql" 2 
+    server_call "host_update('${chhost_hostname}', update_template)"
 }
 
 _categorylist_fmt()
@@ -3694,7 +3379,6 @@ _categorylist_fmt()
 
 _chhost_foundaflag()
 {
-    tosql="$tosql, "
     chhost_anyflag=1
 }
 
@@ -4008,6 +3692,7 @@ deletegroup()
             exit 2
         fi
     #deletegroup_memlist=`sql "select id from hostlist where \\\`group\\\` = '$deletegroup_groupname'"`
+	proxy_start
     deletegroup_memlist=`server_call "host_dig({'group':'$deletegroup_groupname'}, {'host':True})"`
     if [ -n "$deletegroup_memlist" ]; then
         echo "The group must be empty to be deleted. It contains the following hosts:"
@@ -4024,10 +3709,8 @@ deletegroup()
 #M
 #M
 #M The deletehost subcommand deletes a host completely from the DHCP database. The host name
-#M I<must> match the host name in the database exactly. No attempt is done to rewrite the
-#M given input to a FQDN.
+#M I<must> match the host name in the database exactly. 
 #M
-#M Machines whose status is Precious or Delicate, may only be deleted by their owner.
 #M
 deletehost()
 {
@@ -4036,14 +3719,6 @@ deletehost()
         exit 2
     fi
     _deletehost_hostname=$1; shift
-#
-# Check write access
-#
-    if check_change_allowed ${_deletehost_hostname}; then
-        :
-    else
-        exit 1
-    fi
 
 
     if db_hostdelete $_deletehost_hostname; then
@@ -4116,6 +3791,7 @@ lsclasses()
         echo "Class name	Vendor class id	Option space" | _lsclasses_fmt
     fi
 
+	proxy_start
     #sql "select $format from classes" 2 1 | egrep "$pattern" | _lsclasses_fmt
     server_call "host_class_dig({}, {$format})" | egrep "$pattern" | _lsclasses_fmt
     exit 0
@@ -4169,6 +3845,7 @@ lsgroups()
         echo "Group name	Parent group	Option space	Info" | _lsgroups_fmt
     fi
     if [ -n "$lsgroups_R_flag" ]; then
+		proxy_start
         matching_groups=`server_call 'group_dig({}, {"group":True})' | egrep "$pattern"`
         #echo MG $matching_groups
         #matching_groups=`sql "select groupname from groups" | egrep "$pattern"`
@@ -4177,6 +3854,7 @@ lsgroups()
         done
     else
         #sql "select $format from groups" 2 1 | egrep "$pattern" | _lsgroups_fmt
+		proxy_start
 		server_call "group_dig({}, {$data_template} )" | egrep "$pattern" | _lsgroups_fmt
     fi
     exit 0
@@ -4187,6 +3865,7 @@ _lsgroup()
     lsgroups_g=$1
     #echo "LSGroups_g=" $lsgroups_g >&2
     #sql "select $format from groups where groupname = '$lsgroups_g'" | _lsgroups_fmt
+	proxy_start
     server_call "group_fetch('$lsgroups_g', {$data_template})" | _lsgroups_fmt
     #g_parent=`sql "select parent_group from groups where groupname = '$lsgroups_g'"`
     g_parent=`server_call "group_fetch('$lsgroups_g', {'parent':True})"`
@@ -4393,6 +4072,7 @@ lshosts()
     sql="select $format from hostlist $where"
     #echo $sql
     if [ -n "$lshosts_L_flag" -o -n "$lshosts:L_flag" ]; then
+		proxy_start
     	server_call "host_dig({$search_exp}, {$data_template})"  |  egrep "$pattern"  | _lshosts_L_fmt
 	fi
 
@@ -4453,6 +4133,7 @@ lsnetworks()
 {
     echo "Network	Auth	Info" | _lsnetworks_fmt
     #sql "select id,subnet_mask,next_server,server_name,authoritative,info from networks"  2 1 | _lsnetworks_fmt
+	proxy_start
     server_call "network_dig({}, {'network':True, 'authoritative':True, 'info':True})" | egrep "$pattern" | _lsnetworks_fmt
 }
 
@@ -4706,7 +4387,9 @@ find_subnet()
         return 1
     fi
     fs_ip=`dig +short $1` 
-    sn=`sql "select id from subnetworks where (INET_ATON('$fs_ip') & INET_ATON(netmask)) = INET_ATON(id)"`
+    proxy_start
+    sn=`server_call "subnetwork_dig({'subnetwork_covers':'$fs_ip'},{'subnetwork':True})"`
+    #sn=`sql "select id from subnetworks where (INET_ATON('$fs_ip') & INET_ATON(netmask)) = INET_ATON(id)"`
     if [ -n "$sn" ]; then
         echo $sn
         return 0
@@ -4836,6 +4519,7 @@ lspools()
     echo "Pool name	Members	Network	Max. lease	Info" | _lspools_fmt
     echo "Range served by	Range Start	Range End" | _lspoolrange_fmt
     
+    proxy_start
     pools=`server_call 'pool_dig({},{"pool":True})'`
     #pools=`$MY_PATH/mync.py 'pool_dig' '{}' '{"pool":True}'`
     
@@ -4866,6 +4550,7 @@ lsrooms()
     pattern="^[^	]*${1-.*}"
     echo "ID	Printer	Info"  | _lsrooms_fmt
     #sql "select id,printer,info from rooms" | egrep "$pattern" | _lsrooms_fmt
+	proxy_start
     server_call "room_dig({'info_not_like': 'Auto inserted%'}, {'room':True, 'printers':True, 'info':True})" | egrep "$pattern" | _lsrooms_fmt
 }
 
@@ -4906,6 +4591,7 @@ lssubnetworks()
 {
     echo "Id	Netmask	Network	Info" | _lssubnetworks_fmt
     #sql "select id,netmask,network,info from subnetworks"  | _lssubnetworks_fmt
+	proxy_start
     server_call "subnetwork_dig({}, {'subnetwork':True,'network':True,'info':True})" | egrep "$pattern" | _lssubnetworks_fmt
 }
 
@@ -4981,6 +4667,7 @@ mkgroup()
         echo "The parent group $mkgroup_P_arg does not exist"
         exit 2
     fi
+    proxy_start
 	server_call "group_create('$mkgroup_groupname', '$mkgroup_P_arg', '$mkgroup_i_arg', {})"
     #sql "insert into \`groups\` ( \`groupname\`,\`parent_group\`,\`changed_by\` ) values ('$mkgroup_groupname','$mkgroup_P_arg','$USER' );"
 }
@@ -5000,7 +4687,7 @@ _check_free()
             return 1
         fi
     fi
-    if db_hostindb $1; then
+    if db_hostindb `echo $1 | tr '.' '_'`; then
         return 1
     fi
     if ping -c 1 ${1} >/dev/null 2>&1; then
@@ -5016,7 +4703,7 @@ _ip2i()
     _ip2i3=`echo $1  | cut -f3 -d'.'`
     _ip2i4=`echo $1  | cut -f4 -d'.'`
 
-    /usr/bin/expr $_ip2i1 \* 16777216 + $_ip2i2 \* 65536 + $_ip2i3 \* 256 + $_ip2i4
+    /bin/expr $_ip2i1 \* 16777216 + $_ip2i2 \* 65536 + $_ip2i3 \* 256 + $_ip2i4
     
 }
 
@@ -5082,12 +4769,9 @@ _progbar_zap()
 #S mkhost;;Make a new host entry;1;3;network [mac-address [pattern]];Find a free hostname in a network and enter it into the DHCP database;22
 #O mkhost;n;;Do not add any host, just display a free hostname
 #O mkhost;A;;Do not stop looking for free hosts when one is found - implies -n
-#O mkhost;u;uname;Assign user name (mandatory);M
 #O mkhost;s;entry_status;Specify entry status[Active|Inactive]
 #O mkhost;r;room;Assign room number
-#O mkhost;e;expdate;Specify expiry date
 #O mkhost;g;group;Specify group
-#O mkhost;a;mount_class;Specify file mount class
 #O mkhost;i;info;Specify information about the host
 #O mkhost;f;;Force - bypass checks
 #M
@@ -5144,10 +4828,6 @@ mkhost()
             -f)
                 mkhost_f_flag=$i; shift
                 ;;
-            -a)
-                mkhost_a_flag=$i; shift
-                mkhost_a_arg=$1; shift
-                ;;
             -g)
                 mkhost_g_flag=$i; shift
                 mkhost_g_arg=$1; shift
@@ -5156,10 +4836,6 @@ mkhost()
                 mkhost_i_flag=$i; shift
                 mkhost_i_arg=$1; shift
                 ;;
-            -e)
-                mkhost_e_flag=$i; shift
-                mkhost_e_arg=$1; shift
-                ;;
             -r)
                 mkhost_r_flag=$i; shift
                 mkhost_r_arg=$1; shift
@@ -5167,10 +4843,6 @@ mkhost()
             -s)
                 mkhost_s_flag=$i; shift
                 mkhost_s_arg=$1; shift
-                ;;
-            -u)
-                mkhost_u_flag=$i; shift
-                mkhost_u_arg=$1; shift
                 ;;
             -n)
                 mkhost_n_flag=$i; shift
@@ -5181,23 +4853,16 @@ mkhost()
         esac
     done
 
-    if [ -z "$mkhost_u_flag" ]; then
-        echo "You must specify a uname using the -u flag"
-        exit 2
-    fi
-
     mkhost_net=$1; shift
-    #if [ -z "$mkhost_n_flag" ]; then
-        mkhost_mac=`_validate_mac_address $1`;
-        if [ -z "$mkhost_mac" ]; then
-            exit 2
-        fi
-    #fi
+	mkhost_mac=`_validate_mac_address $1`;
+	if [ -z "$mkhost_mac" ]; then
+	    exit 2
+	fi
     
     mkhost_pattern=$2
     #echo  "Mkhost pattern=$mkhost_pattern"
-
-    mkhost_subnetworks=`sql "select id from subnetworks where network = '$mkhost_net'"`;
+	proxy_start
+	mkhost_subnetworks=`server_call "subnetwork_dig({'network':'$mkhost_net'}, {'subnetwork':True})"`
 
     if [ -z "$mkhost_subnetworks" ]; then
         echo "The Network $mkhost_net is empty or is undefined";
@@ -5208,18 +4873,11 @@ mkhost()
     mkhost_naddrlist=""
 
     for mkhost_subnetwork in $mkhost_subnetworks; do
-        mkhost_netmask=`sql "select netmask from subnetworks where id = '$mkhost_subnetwork'"`
-        #echo $mkhost_subnetwork $mkhost_netmask
-        mkhost_netmask1=`echo $mkhost_netmask | cut -f1 -d'.'`
-        mkhost_netmask2=`echo $mkhost_netmask | cut -f2 -d'.'`
-        mkhost_netmask3=`echo $mkhost_netmask | cut -f3 -d'.'`
-        mkhost_netmask4=`echo $mkhost_netmask | cut -f4 -d'.'`
+        
 #
-# Compute how many addresses there are in the subnetwork
+# Get the size of the addresses there are in the subnetwork
 #
-#        mkhost_naddrs=`perl -e "printf '%d', ~(($mkhost_netmask1<<24)+($mkhost_netmask2<<16)+($mkhost_netmask3<<8)+$mkhost_netmask4)+1;"`
-        mkhost_naddrs=$(( (((${mkhost_netmask1}<<24)+(${mkhost_netmask2}<<16)+(${mkhost_netmask3}<<8)+${mkhost_netmask4})^4294967295)+1 ))
-#        echo Nhosts=$mkhost_naddrs;
+		mkhost_naddrs=`server_call "subnetwork_fetch('$mkhost_subnetwork', {'size': True})"`
         mkhost_tothosts=`expr $mkhost_tothosts + $mkhost_naddrs`;
 #
 # Save # of hosts in a list to be used later
@@ -5233,7 +4891,8 @@ mkhost()
 #
     mkhost_naddrlist=`echo $mkhost_naddrlist`
 
-    for mkhost_subnetwork in $mkhost_subnetworks; do
+    for mkhost_subnetwork_id in $mkhost_subnetworks; do
+    	mkhost_subnetwork=`server_call "subnetwork_fetch('$mkhost_subnetwork_id', {'start_ip':True})"`
         mkhost_naddrs=`echo $mkhost_naddrlist | cut -f1 -d' '`
 #
 # Convert the first IP addres to a decimal number, then use that number for counting IP addresses
@@ -5253,7 +4912,7 @@ mkhost()
                 if [ -z "$mkhost_n_flag" ]; then
                     addhost $mkhost_f_flag $mkhost_r_flag $mkhost_r_arg $mkhost_u_flag $mkhost_u_arg $mkhost_s_flag $mkhost_s_arg \
                     $mkhost_e_flag $mkhost_e_arg $mkhost_g_flag $mkhost_g_arg $mkhost_a_flag $mkhost_a_arg $mkhost_i_flag "$mkhost_i_arg" \
-                    $mkhost_fqdn $mkhost_mac
+                    -d $mkhost_fqdn `echo $mkhost_fqdn | tr '.' '_'` $mkhost_mac
                     exit $?
                 fi
                 if [ -z "$mkhost_A_flag" ]; then
@@ -6180,6 +5839,8 @@ _chsubnetwork_foundaflag()
 # Run the command
 #proxy_start
 #server_call "session_start()"
+export copin="/tmp/dhcp2_in_$$"
+export copout="/tmp/dhcp2_out_$$"
 main "$@" 
 #M
 #M =head1 EXAMPLES

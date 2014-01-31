@@ -8,9 +8,10 @@ import sys
 
 
 def template2keys(template, indent=1):
-    #print >>sys.stderr, "    " * indent + "Template2keys: template=", template
+    #print >>sys.stderr, "    " * indent + "Template2keys: template=", template, "indent=", indent
     kvtuples = []
-    for k in template.split(","):
+    ltemplate = template
+    for k in ltemplate.split(","):
         if k:
             k = k.strip()
         if k.startswith('{'): 
@@ -28,7 +29,7 @@ def template2keys(template, indent=1):
         if key.endswith('"') or key.endswith("'"):
             key = key[:-1]
         kvtuples.append((key, val))
-    #print >>sys.stderr, "    " * indent +"Template2keys: kvtuples=", kvtuples
+    #print >>sys.stderr, "    " * indent + "Template2keys: kvtuples=", kvtuples
     return kvtuples
 
 
@@ -37,7 +38,7 @@ def print_struct_in_order(x, kvtuples, template, output, indent=1):
     values = []
     for kvtuple in kvtuples:
         key = kvtuple[0]
-        keyval = kvtuple[1]
+        keyval = kvtuple[1].strip()
         if keyval == "False":  # Hmm, this is probably not supported
             raise ValueError("Never use False as a value to _dig or _fetch functions")
         if keyval == "True":
@@ -59,8 +60,8 @@ def print_object_in_template_order(obj, template, output, indent=1):
             print_object_in_template_order(o, template, output, indent + 1)
             print >>output
     else:
-        keys = template2keys(template, indent)
-        print_struct_in_order(obj, keys, template, output, indent=indent)
+        kvtuples = template2keys(template, indent)
+        print_struct_in_order(obj, kvtuples, template, output, indent=indent)
  
  
 def process(command, output):
@@ -73,13 +74,13 @@ def process(command, output):
     #print >>sys.stderr, cmd, sep, arg
     global srv
     
-    args = arg.split(",",1)
+    args = arg.split(",", 1)
     
     try:
         if not srv:
             srv = rpcc_client.RPCC("http://localhost:12121")
         
-        s = "res = srv." + cmd + "(" +",".join(args) + ")"
+        s = cmd + "(" + ",".join(args) + ")"
         
         #print >> sys.stderr, "CMD=%s" % cmd
         #print >> sys.stderr, "EXEC: %s" % s
@@ -125,6 +126,9 @@ import rpcc_client
 
 fifo_in = sys.argv[1]
 fifo_out = sys.argv[2]
+
+update_template = {}  # For use by dhcp2
+options = {}  # For use by dhcp2
 
 while True:
     fin = open(fifo_in, "r")
