@@ -6,7 +6,7 @@ from framework import *
 from util import *
 
 
-class T0500_OptionspaceList(UnAuthTests):
+class T0600_OptionspaceList(UnAuthTests):
     """ Test optionspace listing """
 
     def do(self):
@@ -18,7 +18,7 @@ class T0500_OptionspaceList(UnAuthTests):
                 #print ds.type, ds.optionspace, ds.info
   
   
-class T0510_OptionspaceFetch(UnAuthTests):
+class T0610_OptionspaceFetch(UnAuthTests):
     """ Test optionspace_fetch """
     
     def do(self):
@@ -31,7 +31,7 @@ class T0510_OptionspaceFetch(UnAuthTests):
             assert "optionspace" in ret, "Key optionspace missing in returned struct from optionspace_fetch"
             
             
-class T0520_OptionspaceCreate(AuthTests):
+class T0620_OptionspaceCreate(AuthTests):
     """ Test optionspace_create """
     
     def do(self):
@@ -56,7 +56,7 @@ class T0520_OptionspaceCreate(AuthTests):
                 pass
             
         
-class T0530_OptionspaceDestroy(AuthTests):
+class T0630_OptionspaceDestroy(AuthTests):
     """ Test optionspace destroy """
     
     def do(self):
@@ -74,7 +74,7 @@ class T0530_OptionspaceDestroy(AuthTests):
                 pass
         
         
-class T0540_OptionspaceSetName(AuthTests):
+class T0640_OptionspaceSetName(AuthTests):
     """ Test setting optionspace of an optionspace"""
     
     def do(self):
@@ -97,7 +97,7 @@ class T0540_OptionspaceSetName(AuthTests):
                     pass
                 
                 
-class T0550_OptionspaceSetInfo(AuthTests):
+class T0650_OptionspaceSetInfo(AuthTests):
     """ Test setting info on an optionspace"""
     
     def do(self):
@@ -113,7 +113,7 @@ class T0550_OptionspaceSetInfo(AuthTests):
                 self.superuser.optionspace_destroy('ACME')
                 
                 
-class T0550_OptionspaceSetType(AuthTests):
+class T0650_OptionspaceSetType(AuthTests):
     """ Test setting type on an optionspace"""
     
     def do(self):

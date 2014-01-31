@@ -46,6 +46,7 @@ class ExtPoolCreateOptions(ExtStruct):
     
     optional = {
                 "optionspace": (ExtOptionspace, "Whether the pool should declare an option space"),
+                "max_lease_time": (ExtInteger, "Maximum lease time for the pool. Default 600 seconds")
                 }
     
     
@@ -111,6 +112,7 @@ class Pool(Model):
         self.oid = a.pop(0)
         self.network = a.pop(0)
         self.optionspace = a.pop(0)
+        self.max_lease_time = a.pop(0)
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
@@ -126,6 +128,10 @@ class Pool(Model):
     @template("optionspace", ExtOrNullOptionspace)
     def get_optionspace(self):
         return self.optionspace
+    
+    @template("max_lease_time", ExtInteger)
+    def get_max_lease_time(self):
+        return self.max_lease_time
 
     @template("info", ExtString)
     def get_info(self):
@@ -172,14 +178,18 @@ class Pool(Model):
         q = "UPDATE pools SET network=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
         
-        
     @update("optionspace", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
-        q = "UPDATE pooles SET optionspace=:value WHERE poolname=:name"
+        q = "UPDATE pools SET optionspace=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
         
-
+    @update("max_lease_time", ExtInteger)
+    @entry(AuthRequiredGuard)
+    def set_max_lease_time(self, value):
+        q = "UPDATE pools SET max_lease_time=:value WHERE poolname=:name"
+        self.db.put(q, name=self.oid, value=value)
+        
 
 class PoolManager(Manager):
     name = "pool_manager"
@@ -191,7 +201,7 @@ class PoolManager(Manager):
         self._model_cache = {}
         
     def base_query(self, dq):
-        dq.select("g.poolname", "g.network", "g.optionspace",
+        dq.select("g.poolname", "g.network", "g.optionspace", "g.max_lease_time",
                   "g.info", "g.mtime", "g.changed_by")
         dq.table("pools g")
         return dq
@@ -213,17 +223,29 @@ class PoolManager(Manager):
         dq.table("pools g")
         return "g.network"
     
+    @search("info", StringMatch)
+    def s_info(self, dq):
+        dq.table("pools g")
+        return "g.info"
+    
+    @search("max_lease_time", IntegerMatch)
+    def s_max_lease_time(self, dq):
+        dq.table("pools g")
+        return "g.max_lease_time"
+    
     @entry(AuthRequiredGuard)
     def create_pool(self, fun, pool_name, network, info, options):
         if options == None:
             options = {}
         optionspace = options.get("optionspace", None)
+        max_lease_time = options.get("max_lease_time", 600)
             
-        q = """INSERT INTO pools (poolname, network, optionspace, info, changed_by) 
-               VALUES (:pool_name, :network, :optionspace, :info, :changed_by)"""
+        q = """INSERT INTO pools (poolname, network, optionspace, max_lease_time, info, changed_by) 
+               VALUES (:pool_name, :network, :optionspace, :max_lease_time, :info, :changed_by)"""
         try:
-            self.db.insert("id", q, pool_name=pool_name, network=network.oid, optionspace=optionspace,
-                       info=info, changed_by=fun.session.authuser)
+            self.db.insert("id", q, pool_name=pool_name, network=network.oid, 
+                           optionspace=optionspace, max_lease_time=max_lease_time,
+                           info=info, changed_by=fun.session.authuser)
             #print "Pool created, name=", pool_name
             
         except IntegrityError, e:
@@ -237,7 +259,6 @@ class PoolManager(Manager):
             raise ExtPoolInUseError()
         self.db.put(q, poolname=pool.oid)
         #print "Pool destroyed, name=", pool.oid
-        
         
     def rename_pool(self, obj, newname):
         oid = obj.oid

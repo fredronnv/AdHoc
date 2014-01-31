@@ -8,6 +8,7 @@ from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
 from rpcc.database import IntegrityError
 from pool_range import ExtIpV4Address
+import socket, struct
 
 
 class ExtNoSuchSubnetworkError(ExtLookupError):
@@ -19,18 +20,28 @@ class ExtSubnetworkAlreadyExistsError(ExtLookupError):
 
     
 class ExtSubnetworkInUseError(ExtValueError):
-    desc = "The subnetwork is referred to by other objects. It cannot be destroyed"    
+    desc = "The subnetwork is referred to by other objects. It cannot be destroyed"  
+    
+class ExtSubnetworkInvalidError(ExtValueError):
+    desc = "the subnetwork specifcation is invalid"  
 
 
 class ExtSubnetworkID(ExtString):
     name = "subnetwork-id"
-    desc = "ID of a subnetwork"
+    desc = "ID of a subnetwork in CIDR notation. [ipaddress/bitcount]"
     regexp = r"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$"
+
+    def lookup(self, fun, cval):
+        (_ip, n) = cval.split("/", 1)
+        n = int(n)
+        if n < 1 or n > 31:
+            raise ExtSubnetworkInvalidError("The bitcount of the subnetwork specification is out of range, should be between 1 and 31")
+        return cval
 
 
 class ExtSubnetwork(ExtSubnetworkID):
     name = "subnetwork"
-    desc = "A defined subnetwork"
+    desc = "A defined subnetwork in CIDR notation. [ipaddress/bitcount]"
 
     def lookup(self, fun, cval):
         return fun.subnetwork_manager.get_subnetwork(str(cval))
@@ -98,23 +109,43 @@ class Subnetwork(Model):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
-    @template("subnetwork", ExtSubnetwork)
+    @template("subnetwork", ExtSubnetwork, desc="The subnetwork")
     def get_subnetwork(self):
         return self
 
-    @template("network", ExtNetworkName)
+    @template("network", ExtNetworkName, desc="Which shared network the subnetwork belongs to")
     def get_network(self):
         return self.network
-
-    @template("info", ExtString)
+    
+    @template("netmask", ExtIpV4Address, desc="The netmask corresponding to bit count of the subnetwork")
+    def get_netmask(self):
+        (_ip, n) = self.oid.split('/', 1)
+        bits = 0xffffffff ^ (1 << 32 - n) - 1
+        return socket.inet_ntoa(struct.pack('>I', bits))
+    
+    @template("start_ip", ExtIpV4Address, desc="The start IP address of the subnetwork")
+    def get_start_ip(self):
+        (ip, _n) = self.oid.split('/', 1)
+        return ip
+    
+    @template("size", ExtInteger, desc="The number of IP addresses covered by the subnetwork")
+    def get_size(self):
+        (_ip, n) = self.oid.split('/', 1)
+        n = int(n)
+        print "Subnetwork get_size: n=", n, "_ip=", _ip
+        if n >= 32:
+            return 0
+        return (1 << 32 - n)
+        
+    @template("info", ExtString, desc="Subnetwork description")
     def get_info(self):
         return self.info
     
-    @template("mtime", ExtDateTime)
+    @template("mtime", ExtDateTime, desc="Time of last change")
     def get_mtime(self):
         return self.mtime
     
-    @template("changed_by", ExtString)
+    @template("changed_by", ExtString, desc="User who did the last change")
     def get_changed_by(self):
         return self.changed_by
     
@@ -181,14 +212,24 @@ class SubnetworkManager(Manager):
         dq.select("nw.id")
 
     @search("subnetwork", StringMatch)
-    def s_net(self, dq):
+    def s_snet(self, dq):
         dq.table("subnetworks nw")
         return "nw.id"
     
-    @search("subnetwork", IPV4Match)
+    @search("subnetwork", IPV4Match, desc="Subnetworks covering a given IP address")
     def s_anet(self, dq):
         dq.table("subnetworks nw")
         return "nw.id"
+    
+    @search("network", StringMatch)
+    def s_net(self, dq):
+        dq.table("subnetworks nw")
+        return "nw.network"
+    
+    @search("info", StringMatch)
+    def s_info(self, dq):
+        dq.table("subnetworks nw")
+        return "nw.info"
     
     @entry(AuthRequiredGuard)
     def create_subnetwork(self, fun, id, network, info):

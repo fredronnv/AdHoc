@@ -37,7 +37,7 @@ class PoolRangeTests():
         
     def setup_pool(self, poolname="testpool"):  
         self.setup_network()
-        print "NETWORK READY"
+        #print "NETWORK READY"
         try:
             self.superuser.pool_create(poolname, self.testnetwork, "TestPool", {})
         except:
@@ -68,14 +68,14 @@ class PoolRangeTests():
             start_ip = self.testrange
         if end_ip is None:
             end_ip = self.testrange_end
-        print "SETTING UP POOL RANGE ", start_ip, end_ip
+        #print "SETTING UP POOL RANGE ", start_ip, end_ip
         self.setup_dhcp_server()
-        print "DHCP SERVER READY"
+        #print "DHCP SERVER READY"
         
         self.setup_pool()
-        print "POOL READY"
+        #print "POOL READY"
         self.superuser.pool_range_create(start_ip, end_ip, self.testpool, "Q")
-        print "POOL RANGE READY"
+        #print "POOL RANGE READY"
 
     def teardown_pool_range(self):
         

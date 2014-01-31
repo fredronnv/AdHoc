@@ -209,7 +209,7 @@ class GroupManager(Manager):
     @search("parent", StringMatch)
     def s_parent(self, dq):
         dq.table("groups g")
-        return "g.parent"
+        return "g.parent_group"
     
     @entry(AuthRequiredGuard)
     def create_group(self, fun, group_name, parent, info, options):

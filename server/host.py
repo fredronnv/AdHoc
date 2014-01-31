@@ -8,7 +8,7 @@ from rpcc.function import SessionedFunction
 from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
 from group import ExtGroup
-from room import ExtRoomName
+from room import ExtRoomName, ExtRoom
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
 
@@ -93,8 +93,9 @@ class ExtHostCreateOptions(ExtStruct):
                 "optionspace": (ExtOptionspace, "Whether the host should declare an option space"),
                 "dns": (ExtDNSName, "A DNS name to be used as a fixed address"),
                 "group": (ExtGroup, "A Host group to which the host will belong. Default is the group 'plain'"),
-                "room": (ExtRoomName, "A room name signifying the location of the host"),
+                "room": (ExtRoom, "A room name signifying the location of the host"),
                 "info": (ExtString, "Information about the host"),
+                "status": (ExtHostStatus, "Initial status of the host, default=Active"),
                 }
     
     
@@ -316,6 +317,31 @@ class HostManager(Manager):
         dq.table("hosts h")
         return "h.`group`"
     
+    @search("status", StringMatch)
+    def s_status(self, dq):
+        dq.table("hosts h")
+        return "h.`entry_status`"
+    
+    @search("info", StringMatch)
+    def s_info(self, dq):
+        dq.table("hosts h")
+        return "h.`info`"
+    
+    @search("room", StringMatch)
+    def s_room(self, dq):
+        dq.table("hosts h")
+        return "h.`room`"
+    
+    @search("mac", StringMatch)
+    def s_mac(self, dq):
+        dq.table("hosts h")
+        return "h.`mac`"
+    
+    @search("dns", StringMatch)
+    def s_dns(self, dq):
+        dq.table("hosts h")
+        return "h.`dns`"
+    
     @entry(AuthRequiredGuard)
     def create_host(self, fun, host_name, mac, options):
         if options == None:
@@ -325,14 +351,21 @@ class HostManager(Manager):
         dns = options.get("dns", None)
         group = options.get("group", self.group_manager.get_group(u"plain"))
         room = options.get("room", None)
+        if room:
+            room = room.oid
         info = options.get("info", None)
+        status = options.get("status", "Active")
             
-        q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, changed_by) 
-               VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :changed_by)"""
+        q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, entry_status, changed_by) 
+               VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :entry_status, :changed_by)"""
         try:
-            self.db.put(q, host_name=host_name, dns=dns, group=group.oid, mac=mac, room=room, optionspace=optionspace,
-                       info=info, changed_by=fun.session.authuser)
+            self.db.put(q, host_name=host_name, dns=dns, group=group.oid, 
+                        mac=mac, room=room, optionspace=optionspace,
+                        info=info, changed_by=fun.session.authuser,
+                        entry_status=status)
+            
         except IntegrityError, e:
+            print e
             raise ExtHostAlreadyExistsError()
         
     @entry(AuthRequiredGuard)

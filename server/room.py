@@ -164,6 +164,16 @@ class RoomManager(Manager):
         dq.table("rooms r")
         return "r.id"
     
+    @search("info", StringMatch)
+    def s_info(self, dq):
+        dq.table("rooms r")
+        return "r.info"
+    
+    @search("printers", StringMatch)
+    def s_sprinters(self, dq):
+        dq.table("rooms r")
+        return "r.printers"
+    
     @entry(AuthRequiredGuard)
     def create_room(self, fun, room_name, printers, info):
         q = "INSERT INTO rooms (id, printers, info, changed_by) VALUES (:id, :printers, :info, :changed_by)"

@@ -1,4 +1,4 @@
 export ADHOC_RUNTIME_HOME=/Users/bernerus/work/proj/workspace/AdHoc
 . $ADHOC_RUNTIME_HOME/server/testing/.server_conf
 cd $ADHOC_RUNTIME_HOME
-/usr/bin/python -u bin/adhocserv.py $port
+/usr/bin/python -u bin/adhocserv.py $port >>~/tmp/adhoctest.out 2>&1

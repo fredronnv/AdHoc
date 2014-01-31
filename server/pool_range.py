@@ -2,10 +2,8 @@
 
 from rpcc.model import *
 from rpcc.exttype import *
-from rpcc.function import SessionedFunction
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
-from rpcc.database import IntegrityError
 from pool import *
 from dhcp_server import *
 
@@ -113,9 +111,15 @@ class PoolRange(Model):
     def get_pool(self):
         return self.pool_manager.get_pool(self.pool)
 
-    @template("served_by", ExtDHCPServer)
+    #@template("served_by", ExtDHCPServer)
+    #def get_served_by(self):
+        #return self.dhcp_server_manager.get_dhcp_server(self.served_by)
+    
+    @template("served_by", ExtDHCPServer, model="dhcp_server")
     def get_served_by(self):
-        return self.dhcp_server_manager.get_dhcp_server(self.served_by)
+        q = "SELECT id FROM dhcp_servers WHERE id=:served_by"
+        return self.dhcp_server_manager.model(self.db.get_all(q, served_by=self.served_by)[0][0])
+        #return [self.dhcp_server_manager.model(a) for (a,) in self.db.get(q, served_by=self.served_by)]
     
     @template("mtime", ExtDateTime)
     def get_mtime(self):
@@ -184,6 +188,17 @@ class PoolRangeManager(Manager):
         dq.table("pool_ranges pr")
         return "pr.start_ip"
     
+    @search("pool", StringMatch)
+    def s_pool(self, dq):
+        dq.table("pool_ranges pr")
+        return "pr.pool"
+    
+    @search("served_by", StringMatch, manager_name="dhcp_server_manager")
+    def s_served_by(self, q):
+        q.table("dhcp_server dc")
+        q.where("dc.id = pr.served_by")
+        return "dc.id"
+    
     @entry(AuthRequiredGuard)
     def create_pool_range(self, fun, start_ip, end_ip, pool, served_by):
         q = "INSERT INTO pool_ranges (start_ip, end_ip, pool, served_by, changed_by) VALUES (:start_ip, :end_ip, :pool, :served_by, :changed_by)"
@@ -217,8 +232,6 @@ class PoolRangeManager(Manager):
                 (INET_ATON(end_ip) BETWEEN INET_ATON(:start_ip) AND INET_ATON(:end_ip))
                 """
         overlaps = self.db.get_all(q, start_ip=start_ip, end_ip=end_ip)
-        q1 = """SELECT start_ip, end_ip FROM pool_ranges"""
-        ranges = self.db.get_all(q1)
         return overlaps
     
     def checkoverlaps(self, start_ip, end_ip):

@@ -92,15 +92,15 @@ class DHCPServer(Model):
     @template("changed_by", ExtString)
     def get_changed_by(self):
         return self.changed_by
-    
-    @entry(SuperuserGuardProxy)
+
     @update("dns", ExtString)
+    @entry(SuperuserGuardProxy)
     def set_dns(self, dns):
         q = "UPDATE dhcp_servers SET name=:name WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, name=dns)
         
-    @entry(SuperuserGuardProxy)
     @update("info", ExtString)
+    @entry(SuperuserGuardProxy)
     def set_info(self, info):
         q = "UPDATE dhcp_servers SET info=:info WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, info=info)
