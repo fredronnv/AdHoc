@@ -5,6 +5,7 @@ from rpcc.exttype import *
 from rpcc.function import SessionedFunction
 from rpcc.access import *
 from rpcc.database import IntegrityError
+from option_def import ExtNoSuchOptionDefError
 
 
 class ExtNoSuchGlobalOptionError(ExtLookupError):
@@ -100,6 +101,13 @@ class GlobalOption(Model):
     @template("mtime", ExtDateTime)
     def get_mtime(self):
         return self.mtime
+    
+    @template("info", ExtOrNull(ExtString))
+    def get_info(self):
+        try:
+            return self.option_def_manager.get_option_def(self.name).info
+        except ExtNoSuchOptionDefError:
+            return None
     
     @template("changed_by", ExtString)
     def get_changed_by(self):
