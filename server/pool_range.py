@@ -6,6 +6,7 @@ from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
 from pool import *
 from dhcp_server import *
+import socket
 
 
 class ExtNoSuchPoolRangeError(ExtLookupError):
@@ -65,7 +66,7 @@ class PoolRangeCreate(SessionedFunction):
 
     def do(self):
         
-        if (self.end_ip < self.start_ip):
+        if (socket.inet_aton(self.end_ip) < socket.inet_aton(self.start_ip)):
             raise ExtPoolRangeReversedError()
         
         self.pool_range_manager.create_pool_range(self, self.start_ip, 
@@ -183,8 +184,8 @@ class PoolRangeManager(Manager):
         dq.table("pool_ranges pr")
         dq.select("pr.start_ip")
 
-    @search("pool_range", StringMatch)
-    def s_pool_range(self, dq):
+    @search("start_ip", StringMatch)
+    def s_start_ip(self, dq):
         dq.table("pool_ranges pr")
         return "pr.start_ip"
     
@@ -202,7 +203,8 @@ class PoolRangeManager(Manager):
     @entry(AuthRequiredGuard)
     def create_pool_range(self, fun, start_ip, end_ip, pool, served_by):
         q = "INSERT INTO pool_ranges (start_ip, end_ip, pool, served_by, changed_by) VALUES (:start_ip, :end_ip, :pool, :served_by, :changed_by)"
-        if end_ip < start_ip:
+        
+        if socket.inet_aton(end_ip) < socket.inet_aton(start_ip):
             raise ExtPoolRangeReversedError()
         self.checkoverlaps(start_ip, end_ip)
         try:
