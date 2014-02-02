@@ -1859,6 +1859,34 @@ _validate_ipaddr()
     echo "$vi_out" | sed 's/\.$//'
 }
 #C
+#C Validator for CIDR-notation
+#C
+_validate_cidr()
+{
+	trace "Validating CIDR '$1'"
+	_validate_cidr_arg=$1
+	_validate_cidr_ip=`echo ${_validate_cidr_arg} | cut -f1 -d/`
+	_validate_cidr_bits=`echo ${_validate_cidr_arg} | cut -f2 -d/`
+	
+	_validated_cidr_ip=`_validate_ipaddr "$_validate_cidr_ip"`
+	
+	if [ -z "$_validated_cidr_ip" ]; then
+		return
+	fi
+	
+	if [ -z "$_validate_cidr_bits" ]; then
+		echo "CIDR must contain a / followed by a number between 1 and 31" >&2
+		return
+	fi
+	
+	if [ $_validate_cidr_bits -lt 1 -o $_validate_cidr_bits -gt 31 ]; then
+		echo "CIDR size must be between 1 and 31" >&2
+		return
+	fi
+	
+	echo "${_validated_cidr_ip}/${_validate_cidr_bits}"
+}
+#C
 #C Validator for leasetime
 #C
 _validate_leasetime()
@@ -1912,8 +1940,9 @@ _validate_description()
 _validate_dhcpserver()
 {
     _validate_dhcpserver_arg=$1
-
-    did=`sql "select id from dhcp_servers where id='$_validate_dhcpserver_arg'"`
+	proxy_start
+	
+	did=`server_call "dhcp_server_dig({'dhcp_server':'$_validate_dhcpserver_arg'}, {'dhcp_server':True})"`
 
     if [ x"$_validate_dhcpserver_arg" != x"$did" ]; then
         echo "Invalid DHCP server specifier '$_validate_dhcpserver_arg'" >&2
@@ -2043,7 +2072,7 @@ proxy_call()
 	#echo "copin=" $copin >&2
     trace "server_call: ""$@"
     echo "$@" >"$copin"
-    cat $copout
+	cat $copout
     #result=`cat $copout`
     #echo "Result='"$result"'" >&2
 }
@@ -2159,20 +2188,21 @@ db_hostgroup()
 	proxy_start
     if [ -z "$2" ]; then
     	server_call "host_dig({'host':'$1'}, {'group':True})"
-        #sql "select \`group\` from hostlist where id='$1'"
     else
     	server_call "host_update('$1', {'group':'$2'})"
-        #sql "update \`hostlist\` set \`group\` = '$2', \`changed_by\` = '$USER'  where \`id\` = '$1' limit 1"
         echo $2
     fi
 }
 
 db_hostmac()
 {
+	proxy_start
     if [ -z "$2" ]; then
-        sql "select \`mac\` from hostlist where id='$1' limit 1"
+    	server_call "host_fetch('$1', {'mac':True})"
+        #sqql "select \`mac\` from hostlist where id='$1' limit 1"
     else
-        sql "update hostlist set \`mac\` = '$2', \`changed_by\` = '$USER' where \`id\` = '$1' limit 1"
+    	server_call "host_update('$1', {'mac':'$2'})"
+        #sqql "update hostlist set \`mac\` = '$2', \`changed_by\` = '$USER' where \`id\` = '$1' limit 1"
         echo $2
     fi
 }
@@ -2231,28 +2261,16 @@ db_addroom()
 
     echo "Adding room $rname ($rinfo) into the database" >&2
 
-    sql "insert into rooms (id,info,printer) values ('$rname','$rinfo','$rprint')"
+	proxy_start
+	server_call "room_create('$rname','$rprint','$rinfo')"
 }
         
 db_spaceexists()
 {
 	proxy_start
 	_sname=`server_call "optionspace_dig({'optionspace':'$1'}, {'optionspace':True})"`
-    #_sname=`sql "select value from optionspaces where value = '$1'"`
 
     if [ "$_sname"  = "$1" ]; then
-        return 0
-    fi
-    return 1
-}
-
-db_poolexists()
-{
-	proxy_start
-	_cname=`server_call "pool_dig({'pool':'$1'}, {'pool':True})"`
-    #_cname=`sql "select poolname from pools where poolname = '$1'"`
-
-    if [ "$_cname"  = "$1" ]; then
         return 0
     fi
     return 1
@@ -2261,8 +2279,7 @@ db_poolexists()
 db_poolrangeexists()
 {
 	proxy_start
-	_cname=`server_call "pool_range_dig({'start_ip':'$1'}, {'start_ip':True})"`
-    #_rname=`sql "select start_ip from pool_ranges where start_ip = '$1'"`
+	_rname=`server_call "pool_range_dig({'start_ip':'$1'}, {'start_ip':True})"`
 
     if [ "$_rname"  = "$1" ]; then
         return 0
@@ -2274,7 +2291,6 @@ db_classexists()
 {
 	proxy_start
 	_cname=`server_call "host_class_dig({'host_class':'$1'}, {'host_class':True})"`
-    #_cname=`sql "select classname from classes where classname = '$1'"`
 
     if [ "$_cname"  = "$1" ]; then
         return 0
@@ -2285,9 +2301,7 @@ db_classexists()
 db_grouphasmembers()
 {
 	proxy_start
-	_hnames=`server_call "host_dig({'group':'$1'}, {'host'}"`
-    #_sql="select id from hostlist where \`group\` = '$1'"
-    _hnames=`sql "$_sql"`
+	_hnames=`server_call "host_dig({'group':'$1'}, {'host':True})"`
 
     if [ -n "$_hnames" ]; then
         return 0
@@ -2299,8 +2313,17 @@ db_groupexists()
 {
 	proxy_start
 	_gname=`server_call "group_dig({'group':'$1'}, {'group':True})"`
-    #_gname=`sql "select groupname from groups where groupname = '$1'"`
     if [ "$_gname"  = "$1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+db_optionspaceexists()
+{
+	proxy_start
+	_osname=`server_call "optionspace_dig({'optionspace':'$1'}, {'optionspace':True})"`
+    if [ "$_osname"  = "$1" ]; then
         return 0
     fi
     return 1
@@ -2308,7 +2331,9 @@ db_groupexists()
 
 db_optionexists()
 {
-    _oname=`sql "select name from dhcp_option_defs where name = '$1'"`
+	proxy_start
+	_oname=`server_call "option_def_dig({'option_def':'$1'}, {'option_def':True})"` 
+    #_oname=`sqql "select name from dhcp_option_defs where name = '$1'"`
     
     if [ "$_oname"  = "$1" ]; then
         return 0
@@ -2320,7 +2345,6 @@ db_roomexists()
 {
 	proxy_start
 	_rname=`server_call "room_dig({'room':'$1'}, {'room':True})"`
-    #_rname=`sql "select id from rooms where id = '$1'"`
     
     if [ "$_rname"  = "$1" ]; then
         return 0
@@ -2332,7 +2356,6 @@ db_poolexists()
 {
 	proxy_start
 	_pname=`server_call "pool_dig({'pool':'$1'}, {'pool':True})"`
-    #_pname=`sql "select poolname from pools where poolname = '$1'"`
 
     if [ "$_pname"  = "$1" ]; then
         return 0
@@ -2344,8 +2367,6 @@ db_macindb()
 {
 	proxy_start
 	_hnames=`server_call "host_dig({'mac':'$1'}, {'host':True})"`
-    #_sql="select id from hostlist where \`mac\` = '$1'"
-    #_hnames=`sql "$_sql"`
 
     if [ -n "$_hnames" ]; then
         return 0
@@ -2369,8 +2390,6 @@ db_hostdelete()
         rv=$?
         proxy_start
         server_call "host_destroy('$1')"
-        #sql "delete from \`hostlist\` where \`id\` = '$1' limit 1"
-        db_dirty
     else
         rv=$?
     fi
@@ -2381,17 +2400,16 @@ db_networkexists()
 {
 	proxy_start
 	_nname=`server_call "network_dig({'network':'$1'},{'network':True})"`
-    #_nname=`sql "select id from networks where id = '$1'"`
     
     if [ "$_nname"  = "$1" ]; then
         return 0
     fi
     return 1
 }
+
 db_subnetworkexists()
 {	proxy_start
 	_snname=`server_call "subnetwork_dig({'subnetwork':'$1'},{'subnetwork':True})"`
-    #_snname=`sql "select id from subnetworks where id = '$1'"`
     
     if [ "$_snname"  = "$1" ]; then
         return 0
@@ -2451,6 +2469,12 @@ db_exists()
             fi
             return 1
             ;;
+        optionspace)
+        	if db_optionspaceexists $2; then
+        		return 0
+        	fi
+        	return 1
+        	;;
         host)
             if db_hostindb $2; then
                 return 0
@@ -2469,7 +2493,7 @@ db_exists()
 db_dirty()
 {
     :
-    #sql "update \`timestamp\` set \`timestamp\` = now(), uname='$USER' where  \`id\` = 'modified' limit 1"
+    #sqql "update \`timestamp\` set \`timestamp\` = now(), uname='$USER' where  \`id\` = 'modified' limit 1"
 }
 #
 # This routine formats a line in the subcommands list in a relatively nice way.
@@ -2574,90 +2598,6 @@ dhcp2_get_conffile()
 #M =back
 #M
 
-check_bootmode()
-{
-    trace "Checking bootmode value $1"
-    _bname=`sql "select mode from bootmodes where mode = '$1' and internal = 0"`
-
-    if [ "$_bname"  = "$1" ]; then
-        return 0
-    fi
-    return 1
-}
-
-check_info_req()
-{
-    trace "Checking if info is required for category $1"
-
-    _sname=`sql "select id from categories where id='$1' and info_req='Y'" 2`
-    if [ -n "$_sname" ]; then
-        return 0
-    fi
-    return 1
-}
-
-check_change_allowed()
-{
-    trace "Checking if change is allowed for host $1"
-
-    _bname=`sql "select hostlist.id from categories,hostlist where categories.id=hostlist.category and categories.change_data='Owner' and hostlist.id='$1'" 2`
-    if [ -n "$_bname" ]; then
-        _owner=`sql "select owner_CID from hostlist where id = '$1'"`
-        if [ "$USER" != "$_owner" ]; then
-            echo "Only the owner ($_owner) of $1 may change data"
-            return 1
-        fi
-    fi
-    return 0
-}
-
-check_bootmode_allowed()
-{
-    trace "Checking if bootmode $1 is allowed for host $2"
-    _bname=`sql "select hostlist.id from categories,hostlist where categories.id=hostlist.category and (categories.manual_install='N' or categories.install_ok='N') and hostlist.id='$2'" 2`
-
-    if [ -n "$_bname" -a "$1" = "install" ]; then
-        echo "Setting boot mode to $1 for host $2 is prohibited"
-        return 1
-    fi
-
-    _bname=`sql "select hostlist.id from categories,hostlist where categories.id=hostlist.category and categories.install_ok='Owner' and hostlist.id='$2'" 2`
-    if [ -n "$_bname" -a "$1" = "install" ]; then
-        _owner=`sql "select owner_CID from hostlist where id = '$2'"`
-        if [ $USER != $_owner ]; then
-            echo "Only the owner ($_owner) of $2 may set the install boot mode"
-            return 1
-        fi
-    fi
-
-    if [ "$1" != "disk" ]; then
-        _bname=`sql "select id from hostlist where id='$2' and bootmode = '$1'" 2`
-        if [ -n "$_bname" -a "$1" ]; then
-	    echo "The boot mode $1 is already set for host $2, it is not allowed to set the same mode again"
-	    return 1
-        fi
-
-    	_bname=`sql "select hostlist.id from hostlist where hostlist.id='$2' and bootmode != 'disk'" 2`
-	if [ -n "$_bname" -a "$1" ]; then
-		echo "Setting boot mode to $1 for host $2 is not allowed unless its current boot mode is 'disk'"
-		return 1
-	fi
-    fi
-	
-    return 0
-}
-
-check_category()
-{
-    trace "Checking category value $1"
-    _sname=`sql "select id from  categories where id = '$1'" 2`
-
-    if [ "$_sname"  = "$1" ]; then
-        return 0
-    fi
-    return 1
-}
-
 check_entry_status()
 {
     trace "Checking entry status value $1"
@@ -2679,7 +2619,6 @@ check_room()
     trace "Checking room $1"
 	proxy_start
 	buildings=`server_call "building_dig({}, {'re':True})"`
-    #buildings=`sql "select re from buildings"`
     trace "Found buildings=$buildings"
     for re in $buildings; do
         rv=`echo  $1 | egrep "^$re"`
@@ -2690,10 +2629,10 @@ check_room()
     done
 
     echo "The room number seems to be invalid"
-
-    for bid in `sql "select id from buildings"`; do
-        binfo=`sql "select info from buildings where id='$bid'"`
-        bre=`sql "select re from buildings where id='$bid'"`
+	server_call "building_dig({},{'info':True, 're':True})" | while read bid ; do
+    	#echo "$bid" | hexdump -C
+    	binfo=`echo "$bid" | cut -f1`
+    	bre=`echo "$bid" | cut -f2`
         echo "  Room" numbers in $binfo should match $bre
     done
     return 1
@@ -3084,7 +3023,7 @@ _addoption()
 }
 
 #S addroom;ar;Add a room;1;2;roomcode [info];Add a room to the DHCP database;101
-#O addroom;p;printer;Assign a default printer
+#O addroom;p;printer;Assign a default printer set
 #M =head2 I<Description>
 #M
 #M The addroom subcommand adds a room to the dhcp database.
@@ -3464,32 +3403,21 @@ chroom()
         exit 1
     fi
 
-    _chroom_sql="update rooms set "
+	proxy_call "options={}"
 
     if [ -n "$chroom_p_flag" ]; then
         if check_printer "$chroom_p_arg"; then
-            :
+            proxy_call "options['printers']='$chroom_p_arg'"
         else
             exit 1
-        fi
-
-        _chroom_sql="$_chroom_sql printer = '$chroom_p_arg' "
-        chroom_p_flag=
-        if [ -n "$chroom_p_flag$chroom_i_flag" ]; then
-            _chroom_sql="$_chroom_sql ,"
-        fi
+        fi	
     fi
 
     if [ -n "$chroom_i_flag" ]; then
-        _chroom_sql="$_chroom_sql info = '$chroom_i_arg' "
-        chroom_i_flag=
-        if [ -n "$chroom_p_flag$chroom_i_flag" ]; then
-            _chroom_sql="$_chroom_sql ,"
-        fi
+        proxy_call "options['info']='$chroom_i_arg'"
     fi
 
-    _chroom_sql="$_chroom_sql where id = '$_chroom_id' limit 1"
-    sql  "$_chroom_sql"
+	server_call "room_update('$_chroom_id', options)"
 }
 
 #S defoption;;Define an option;2;3;name type [info];Define a new option;83
@@ -3598,22 +3526,42 @@ defoption()
     sql  "$_sql"
 }
 #S defspace;;Define namespace;1;2;name [info];Define an option namespace;81
+#O defoption;s;;Create a site namespace. Default is a vendor namespace
+#O defspace;;
 #M
 #M =head2 I<Description>
 #M
-#M The defspace subcommand degines an option namespace. Option namespaces must be defined before they are used.
+#M The defspace subcommand defines an option namespace. Option namespaces must be defined before they are used.
 #M
 defspace()
 {
+	
+	for i in "$@"; do
+        case "$i" in
+            -s)
+                defspace_s_flag=$i; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+    
     _defspace_name=$1
     _defspace_info=$2
+    
+    
 
     if db_spaceexists $_defspace_name; then
         echo "The space $_defspace_name is already defined"
         return
     fi
+    _defspace_type='vendor'
+    if [ -n "$defspace_s_flag" ]; then
+    	_defspace_type='site'
+	fi		
     
-    sql "insert into optionspaces set value='$_defspace_name',info='$_defspace_info'";
+    server_call "optionspace_create('$_defspace_name', '$_defspace_type', '$_defspace_info')"
 }
 #S deleteoption;;Delete an option;1;1;name;Delete an option definition;84
 #M
@@ -3631,9 +3579,8 @@ deleteoption()
         echo "The option '$_deleteoption_name' is not defined"
         return
     fi
-
-    sql "delete from dhcp_option_defs where name='$_deleteoption_name' limit 1"
-    db_dirty
+	proxy_start
+	server_call "option_destroy('$_deleteoption_name')"
 }
 #S deleteroom;;Delete a room;1;1;room_id;Delete a room entry in the database;103
 #M
@@ -3651,9 +3598,8 @@ deleteroom()
         echo "The room $_deleteroom_name' is not defined"
         return
     fi
-
-    sql "delete from rooms where id='$_deleteroom_name' limit 1"
-    db_dirty
+	proxy_start
+	server_call "room_destroy('$_deleteroom_name')"
 }
 #S deletespace;;Delete namespace;1;1;name;Delete an option namespace;82
 #M
@@ -3671,9 +3617,8 @@ deletespace()
         echo "The namespace '$_deletespace_name' is not defined"
         return
     fi
-
-    sql "delete from optionspaces where value='$_deletespace_name' limit 1"
-    db_dirty
+	proxy_start
+	server_call "optionspace_destroy('$_deletespace_name')"
 }
 
 #S deletegroup;dg;Delete a group;1;1;group_name;Delete a host group;43
@@ -3700,9 +3645,8 @@ deletegroup()
         exit 2
     fi
     
-    #sql "delete from \`groups\` where \`groupname\` = '$deletegroup_groupname' limit 1"
+    proxy_start
 	server_call "group_destroy('$deletegroup_groupname')"
-    db_dirty
 }
 #S deletehost;dh;Delete a host;1;1;hostname;Delete a host from the configuration;24
 #M =head2 I<Description>
@@ -3792,7 +3736,6 @@ lsclasses()
     fi
 
 	proxy_start
-    #sql "select $format from classes" 2 1 | egrep "$pattern" | _lsclasses_fmt
     server_call "host_class_dig({}, {$format})" | egrep "$pattern" | _lsclasses_fmt
     exit 0
 }
@@ -3848,12 +3791,10 @@ lsgroups()
 		proxy_start
         matching_groups=`server_call 'group_dig({}, {"group":True})' | egrep "$pattern"`
         #echo MG $matching_groups
-        #matching_groups=`sql "select groupname from groups" | egrep "$pattern"`
         for g in "$matching_groups"; do
             _lsgroup $g
         done
     else
-        #sql "select $format from groups" 2 1 | egrep "$pattern" | _lsgroups_fmt
 		proxy_start
 		server_call "group_dig({}, {$data_template} )" | egrep "$pattern" | _lsgroups_fmt
     fi
@@ -3863,11 +3804,8 @@ lsgroups()
 _lsgroup()
 {
     lsgroups_g=$1
-    #echo "LSGroups_g=" $lsgroups_g >&2
-    #sql "select $format from groups where groupname = '$lsgroups_g'" | _lsgroups_fmt
 	proxy_start
     server_call "group_fetch('$lsgroups_g', {$data_template})" | _lsgroups_fmt
-    #g_parent=`sql "select parent_group from groups where groupname = '$lsgroups_g'"`
     g_parent=`server_call "group_fetch('$lsgroups_g', {'parent':True})"`
     if [ -n "$g_parent" -a "$lsgroups_g" != 'plain' ]; then 
         _lsgroup $g_parent;
@@ -4069,8 +4007,6 @@ lshosts()
     where="$where )"
     #echo F $search_exp
 
-    sql="select $format from hostlist $where"
-    #echo $sql
     if [ -n "$lshosts_L_flag" -o -n "$lshosts:L_flag" ]; then
 		proxy_start
     	server_call "host_dig({$search_exp}, {$data_template})"  |  egrep "$pattern"  | _lshosts_L_fmt
@@ -4132,7 +4068,6 @@ _lshosts_L_fmt()
 lsnetworks()
 {
     echo "Network	Auth	Info" | _lsnetworks_fmt
-    #sql "select id,subnet_mask,next_server,server_name,authoritative,info from networks"  2 1 | _lsnetworks_fmt
 	proxy_start
     server_call "network_dig({}, {'network':True, 'authoritative':True, 'info':True})" | egrep "$pattern" | _lsnetworks_fmt
 }
@@ -4241,24 +4176,15 @@ lsoptions()
 # All defined options
     if [ -z "$lsoptions_gtype" ]; then
         echo "Name	Option space	DHCP code	Type	Info" | _lsoptions_all_fmt
-        sql "select name,optionspace,code,type,info from dhcp_option_defs order by code" | _lsoptions_all_fmt
+        proxy_start
+        server_call "option_def_dig({}, {'option_def':True, 'optionspace':True, 'code':True, 'type':True, 'info':True})" | sort -n -k 3 -t '	' | _lsoptions_all_fmt
         return
     fi
 
 # Globally defined options
     if [ -n "$lsoptions_G_flag" ]; then
-        found_options=`sql "select id from optionlist where gtype = '$lsoptions_gtype' order by name" `
-        if [ -n "$found_options" ]; then
-            echo "Name	Global Value" | _lsoptions_group_fmt
-            for o in $found_options; do
-                sql="select name,value from optionlist where id=$o"
-                val=`sql "$sql"`
-                name=`echo $val | cut -f1 -d' '`
-                value=`echo $val | cut -f2 -d' '`
-                info=`sql "select info from dhcp_option_defs where name='$name'"`
-                echo "$name	$value	$info" | _lsoptions_group_fmt
-            done
-        fi
+    	proxy_start
+    	server_call "global_option_dig({}, {'name':True, 'value':True, 'info':True})" | _lsoptions_group_fmt
     fi
 
 # Options defined for a group
@@ -4269,7 +4195,8 @@ lsoptions()
             echo "No such group: $lsoptions_g_arg"
             return;
         fi
-
+		proxy_start
+		server_call "group_options_dig()"
         seen_options=
         found_options=`_hasoptions_group $lsoptions_g_arg group`
         if [ -n "$found_options" ]; then
@@ -4476,7 +4403,7 @@ _lsoptions_group_fmt()
     
 _lsoptions_all_fmt()
 {
-    sed s/NULL//g | awk -F'	' '{printf("%-25s %15s %9s %-20s - %s\n",$1,$2,$3,$4,$5,$6);}' |  sed 's/ *$//'
+    sed s/NULL//g | awk -F'	' '{printf("%-28s %15s %9s %-20s - %s\n",$1,$2,$3,$4,$5,$6);}' |  sed 's/ *$//'
 }
 #S lspools;;List pools;0;0;;List IP number pools;71
 #M
@@ -4983,12 +4910,9 @@ _rmoption()
 #T Buildings;110
 
 #S addnetwork;;Create a network;1;1;network_name;Create a new shared network definition;61
-#O addnetwork;subnet_mask;subnet_mask;Specify subnet mask;;netmask
 #O addnetwork;i;desc;Network description;M;
 #O addnetwork;A;;Make server authoritative for the network (default) (excludes the use of --noA);;
 #O addnetwork;noA;;Do not make the server authoritative for the network (excludes the use of -A);;
-#O addnetwork;server_name;server_name;Specify server name;;fqdn
-#O addnetwork;next_server;next_server;Specify next-server name;;ipaddr
 #M =head2 I<Description>
 #M
 #M The addnetwork subcommand defines a shared network to the DHCP database. 
@@ -5003,24 +4927,12 @@ addnetwork()
 
     for i in "$@"; do
         case "$i" in
-            --next_server)
-                addnetwork_next_server_flag=$i; shift
-                addnetwork_next_server_arg=$1; shift
-                ;;
-            --server_name)
-                addnetwork_server_name_flag=$i; shift
-                addnetwork_server_name_arg=$1; shift
-                ;;
             -A)
                 addnetwork_A_flag=$i; shift
                 ;;
             -i)
                 addnetwork_i_flag=$i; shift
                 addnetwork_i_arg=$1; shift
-                ;;
-            --subnet_mask)
-                addnetwork_subnet_mask_flag=$i; shift
-                addnetwork_subnet_mask_arg=$1; shift
                 ;;
             --noA)
                 addnetwork_noA_flag=$i; shift
@@ -5049,38 +4961,26 @@ addnetwork()
 	exit 1
     fi
 
-    _addnetwork_authoritative=1
+    _addnetwork_authoritative='True'
     if [ -n "$addnetwork_noA_flag" ];then
-        _addnetwork_authoritative=0
+        _addnetwork_authoritative='False'
     fi
   
     if [ -z "$addnetwork_i_arg" ]; then
         echo "Please specify some sensible information about the network"
         exit 1
     fi
-
-    sql "insert into networks (id,authoritative,info) values('$addnetwork_network',$_addnetwork_authoritative,'$addnetwork_i_arg')"
-    if [ "$addnetwork_subnet_mask_flag" ]; then
-        sql "update networks set subnet_mask='$addnetwork_subnet_mask_arg' where id='$addnetwork_network'"
-    fi
-    if [ "$addnetwork_server_name_flag" ]; then
-        sql "update networks set server_name='$addnetwork_server_name_arg' where id='$addnetwork_network'"
-    fi
-    if [ "$addnetwork_next_server_flag" ]; then
-        sql "update networks set next_server='$addnetwork_next_server_arg' where id='$addnetwork_network'"
-    fi
+    
+	server_call "network_create('$addnetwork_network', $_addnetwork_authoritative, '$addnetwork_i_arg')"
+    #sql "insert into networks (id,authoritative,info) values('$addnetwork_network',$_addnetwork_authoritative,'$addnetwork_i_arg')"
+    
 }
 #S addsubnetwork;;Add a subnetwork;2;2;IP-address network;Add a new subnetwork to a network;66
 #O addsubnetwork;i;info;Subnetwork description;M;
-#O addsubnetwork;server_name;servername;Specify server_name to clients;;fqdn
-#O addsubnetwork;next_server;address;Specify next_server to clients;;ipaddr
-#O addsubnetwork;server_identifier;address;Specify server identifier to clients;;ipaddr
-#O addsubnetwork;subnet_mask;mask;Specify subnet mask to clients, other than netmask;;netmask
-#O addsubnetwork;netmask;mask;Specify netmask, default is 255.255.255.192;;netmask
 #M =head2 I<Description>
 #M
 #M The addsubnetwork subcommand adds a subnetwork to an already defined shared network. The subnetwork identifier is the lowest IP
-#M address of the subnetwork. At Chalmers this address is typically ending with 0, 64, 128 or 192.
+#M address of the subnetwork combined with tne number of bits in the network part of the address separated by a slash(/), a notation commonly known as CIDR-notation.
 #M You must also specify which shared network the subnetwork should be attached to.
 #M
 addsubnetwork()
@@ -5088,26 +4988,6 @@ addsubnetwork()
 
     for i in "$@"; do
         case "$i" in
-            --netmask)
-                addsubnetwork_netmask_flag=$i; shift
-                addsubnetwork_netmask_arg=$1; shift
-                ;;
-            --subnet_mask)
-                addsubnetwork_subnet_mask_flag=$i; shift
-                addsubnetwork_subnet_mask_arg=$1; shift
-                ;;
-            --next_server)
-                addsubnetwork_next_server_flag=$i; shift
-                addsubnetwork_next_server_arg=$1; shift
-                ;;
-            --server_identifier)
-                addsubnetwork_server_identifier_flag=$i; shift
-                addsubnetwork_server_identifier_arg=$1; shift
-                ;;
-            --server_name)
-                addsubnetwork_server_name_flag=$i; shift
-                addsubnetwork_server_name_arg=$1; shift
-                ;;
             -i)
                 addsubnetwork_i_flag=$i; shift
                 addsubnetwork_i_arg=$1; shift
@@ -5118,10 +4998,10 @@ addsubnetwork()
         esac
     done
 
-    addsubnetwork_sql="insert into subnetworks set ";
-    addsubnetwork_id=`_validate_ipaddr $1`
+    addsubnetwork_id=`_validate_cidr $1`
 
     if [ -z "$addsubnetwork_id" ]; then
+    	echo "No subnetwork?"
         return;
     fi
 
@@ -5130,7 +5010,6 @@ addsubnetwork()
         exit 1
     fi
 
-    addsubnetwork_sql="$addsubnetwork_sql id='$addsubnetwork_id'"
 
     if db_exists network $2; then
         addsubnet_network=$2
@@ -5138,43 +5017,8 @@ addsubnetwork()
         echo "The specified network is unknown"
         exit 1
     fi
-    addsubnetwork_sql="$addsubnetwork_sql, network='$addsubnet_network'"
-
-    if [ -n "$addsubnetwork_netmask_flag" ]; then
-        addsubnetwork_sql="$addsubnetwork_sql, netmask='$addsubnetwork_netmask_arg'"
-    else
-    	addsubnetwork_netmask_arg="255.255.255.192"
-    fi
-
-    addsubnetwork_id=`_validate_subnetwork_id $addsubnetwork_id $addsubnetwork_netmask_arg`
-
-    if [ -z "$addsubnetwork_id" ]; then
-        return;
-    fi
-
-    if [ -n "$addsubnetwork_subnet_mask_flag" ]; then
-        addsubnetwork_sql="$addsubnetwork_sql, subnet_mask='$addsubnetwork_subnet_mask_arg'"
-    fi
-
-    if [ -n "$addsubnetwork_next_server_flag" ]; then
-        addsubnetwork_sql="$addsubnetwork_sql, next_server='$addsubnetwork_next_server_arg'";
-    fi
-
-    if [ -n "$addsubnetwork_server_identifier_flag" ]; then
-        addsubnetwork_sql="$addsubnetwork_sql, server_identifier='$addsubnetwork_server_identifier_arg'";
-    fi
-
-    if [ -n "$addsubnetwork_server_name_flag" ]; then
-        addsubnetwork_sql="$addsubnetwork_sql, server_name='$addsubnetwork_server_name_arg'";
-    fi
-
-    if [ -n "$addsubnetwork_i_flag" ]; then
-        addsubnetwork_sql="$addsubnetwork_sql, info='$addsubnetwork_i_arg'";
-    fi
-
-    addsubnetwork_sql="$addsubnetwork_sql, changed_by='$USER'";
-
-    sql "$addsubnetwork_sql";
+	
+    server_call "subnetwork_create('$addsubnetwork_id', '$addsubnet_network', '$addsubnetwork_i_arg')"
 
 }
 #S deletesubnetwork;;Delete a subnetwork;1;1;IP-address;Delete a subnetwork;68
@@ -5185,10 +5029,10 @@ addsubnetwork()
 #M
 deletesubnetwork()
 {
-    deletesubnetwork_subnetwork=`_validate_ipaddr $1`;
+    deletesubnetwork_subnetwork=`_validate_cidr $1`;
  
     if [ -z "$deletesubnetwork_subnetwork" ]; then
-        echo "You must specify a network ID"
+        echo "You must specify a subnetwork CODR"
         exit 1
     fi
 
@@ -5199,7 +5043,7 @@ deletesubnetwork()
         exit 1
     fi
 
-    sql "delete from subnetworks where id='$deletesubnetwork_subnetwork'"
+	server_call "subnetwork_destroy('$deletesubnetwork_subnetwork')"
 }
 #S deletenetwork;;Delete a network;1;1;network-name;Delete a network from the database;63
 #M =head2 I<Description>
@@ -5223,8 +5067,8 @@ deletenetwork()
         echo "The network '$deletenetwork_network' does not exist"
         exit 1
     fi
-
-    sql "delete from networks where id='$deletenetwork_network'"
+	
+	server_call "network_destroy('$deletenetwork_network')"
 
 }
 #S mkpool;;Create a pool;1;1;pool-name;Create a dynamic address pool;72
@@ -5232,11 +5076,10 @@ deletenetwork()
 #O mkpool;i;info;Pool description;M;description
 #O mkpool;network;network;Network where pool is active;M;
 #O mkpool;optionspace;optionspace;Option space to activate;;
-#O mkpool;members;class;Class members to consider;;
 #M =head2 I<Description>
 #M
-#M The mkpool subcommand creates a poo. A pool is used to assign IP addresses dynamically.
-#M This commans creates the framework. No IP addresses will be assigned until you create one or more
+#M The mkpool subcommand creates a pool. A pool is used to assign IP addresses dynamically.
+#M This command creates the framework. No IP addresses will be assigned until you create one or more
 #M IP ranges using the addrange subcommand.
 #M
 mkpool()
@@ -5244,10 +5087,6 @@ mkpool()
 
     for i in "$@"; do
         case "$i" in
-            --members)
-                mkpool_members_flag=$i; shift
-                mkpool_members_arg=$1; shift
-                ;;
             --optionspace)
                 mkpool_optionspace_flag=$i; shift
                 mkpool_optionspace_arg=$1; shift
@@ -5279,29 +5118,20 @@ mkpool()
 	echo "You must supply a valid pool name"
 	exit 1
     fi
-    mkpool_sql="insert into pools set poolname='$mkpool_poolname' "
+    proxy_call "options={}"
 
     if [ -n "$mkpool_optionspace_flag" ]; then
         if db_exists optionspace $mkpool_optionspace_arg; then
-            mkpool_sql="$mkpool_sql , optionspace='$mkpool_optionspace_arg'"
+        	proxy_call "options['optionspace']='$mkpool_optionspace_arg'"
         else
             echo "The optionspace '$mkpool_optionspace_arg' is unknown";
             exit 1
         fi
     fi
-
-    if [ -n "$mkpool_members_flag" ]; then
-        if db_exists class $mkpool_members_arg; then
-                mkpool_sql="$mkpool_sql , members='$mkpool_members_arg'"
-        else
-                echo "The class '$mkpool_members_arg' is not defined";
-                exit 1
-        fi
-    fi
     
     if [ -n "$mkpool_network_flag" ]; then
         if db_exists network $mkpool_network_arg; then
-            mkpool_sql="$mkpool_sql , network='$mkpool_network_arg'"
+            :
         else
             echo "The network '$mkpool_network_arg' is unknown";
             exit 1
@@ -5312,19 +5142,17 @@ mkpool()
     fi
 
     if [ -n "$mkpool_max_lease_flag" ]; then
-        mkpool_sql="$mkpool_sql , max_lease_time=$mkpool_max_lease_arg";
+    	proxy_call "options['max_lease_time']=$mkpool_max_lease_arg"
     fi
 
     if [ -n "$mkpool_i_flag" ]; then
-        mkpool_sql="$mkpool_sql , info='$mkpool_i_arg'"
+        :
     else
         echo "You must describe the pool using -i"
         exit
     fi
 
-    mkpool_sql="$mkpool_sql , changed_by='$USER'";
-
-    sql "$mkpool_sql"
+    server_call "pool_create('$mkpool_poolname', '$mkpool_network_arg', '$mkpool_i_arg', options)"
 }
 #S deletepool;;Delete a pool;1;1;pool-name;Deleta a dynamic address pool;73
 #M =head2 I<Description>
@@ -5342,16 +5170,14 @@ deletepool()
         exit 1
     fi
 
-    sql "delete from pools where poolname='$deletepool_pool'";
-: # Enter the code for deletepool here
+    server_call "pool_destroy('$1')"
 }
 #S addrange;;Add an address range;3;3;pool from_address to_address;Add an IP address range to a pool;74
-#O addrange;dhcp_server;server_code;Specify which DHCP server will serve the range;;dhcpserver
+#O addrange;dhcp_server;server_code;Specify which DHCP server will serve the range;M;dhcpserver
 #M =head2 I<Description>
 #M
-#M The addrange subcommand adds a new IP number range to an already existing pool. You may use the --dhcp_server
-#M option to specify which DHCP server should handle the pool. If you not do that, your pool may not work the way 
-#M you expect. I<server_code> is an uppercase character, A, B or C.
+#M The addrange subcommand adds a new IP number range to an already existing pool. You must use the --dhcp_server
+#M option to specify which DHCP server should handle the pool. I<server_code> is an uppercase character, A, B or C.
 #M
 addrange()
 {
@@ -5386,19 +5212,13 @@ addrange()
     _addrange_end_num=`ip2num $addrange_end`
 
 ## Must use /usr/bin/test here !!!
-    if /usr/bin/test $_addrange_start_num -gt $_addrange_end_num ; then
+    if /bin/test $_addrange_start_num -gt $_addrange_end_num ; then
         echo "Start address must be less or equal to the end address"
         exit 1
     fi
-
-    addrange_sql="insert into pool_ranges set pool='$addrange_pool', start_ip='$addrange_start', end_ip='$addrange_end', changed_by='$USER'";
-
-    if [ -n "$addrange_dhcp_server_flag" ]; then
-        addrange_sql="$addrange_sql ,served_by='$addrange_dhcp_server_arg'"
-    fi
-
-    sql "$addrange_sql"
+	server_call "pool_range_create('$addrange_start', '$addrange_end', '$addrange_pool', '$addrange_dhcp_server_arg')"
 }
+
 #S rmrange;;Remove an address range;1;1;From_address;Remove an IP address range from a pool;75
 #M =head2 I<Description>
 #M
@@ -5420,14 +5240,13 @@ rmrange()
         exit 1
     fi
 
-    sql "delete from pool_ranges where start_ip='$rmrange_start' limit 1"
+	server_call "pool_range_destroy('$rmrange_start')"
 }
 #S chpool;;Change pool configuration;1;1;pool_name;Change the configuration of a pool;76
 #O chpool;max_lease;seconds;Specify maximum lease time;;leasetime
 #O chpool;i;info;Pool description;;description
 #O chpool;network;network;Network where pool is active;;
 #O chpool;optionspace;optionspace;Option space to activate;;
-#O chpool;members;class;Class members to consider;;
 #M =head2 I<Description>
 #M
 #M The chpool subcommand lets you change the parameters of a DHCP pool.
@@ -5436,10 +5255,6 @@ chpool()
 {
     for i in "$@"; do
         case "$i" in
-            --members)
-                chpool_members_flag=$i; shift
-                chpool_members_arg=$1; shift
-                ;;
             --optionspace)
                 chpool_optionspace_flag=$i; shift
                 chpool_optionspace_arg=$1; shift
@@ -5470,11 +5285,12 @@ chpool()
     fi
 
     chpool_poolname=$1
-    chpool_sql="update pools set poolname='$chpool_poolname' "
+    proxy_start
+    proxy_call "options={}"
 
     if [ -n "$chpool_optionspace_flag" ]; then
         if db_exists optionspace $chpool_optionspace_arg; then
-            chpool_sql="$chpool_sql , optionspace='$chpool_optionspace_arg'"
+            proxy_call "options['optionspace']='$chpool_optionspace_arg'"
         else
             echo "The optionspace '$chpool_optionspace_arg' is unknown";
             exit 1
@@ -5483,33 +5299,23 @@ chpool()
     
     if [ -n "$chpool_network_flag" ]; then
         if db_exists network $chpool_network_arg; then
-            chpool_sql="$chpool_sql , network='$chpool_network_arg'"
+            proxy_call "options['network']='$chpool_network_arg'"
         else
             echo "The network '$chpool_network_arg' is unknown";
             exit 1
         fi
     fi
 
-    if [ -n "$chpool_members_flag" ]; then
-        if db_exists class $chpool_members_arg; then
-            chpool_sql="$chpool_sql , members='$chpool_members_arg'"
-        else
-            echo "The class '$chpool_members_arg' is not defined";
-            exit 1
-        fi
-    fi
-
     if [ -n "$chpool_max_lease_flag" ]; then
         chpool_sql="$chpool_sql , max_lease_time=$chpool_max_lease_arg";
+        proxy_call "options['max_lease_time']=$chpool_max_lease_arg"
     fi
 
     if [ -n "$chpool_i_flag" ]; then
-        chpool_sql="$chpool_sql , info='$chpool_i_arg'"
+        proxy_call "options['info']='$chpool_i_arg'"
     fi
 
-    chpool_sql="$chpool_sql , changed_by='$USER' where poolname='$chpool_poolname'";
-
-    sql "$chpool_sql"
+	server_call "pool_update('$chpool_poolname', options)"
 }
 #S chrange;;Change range;1;3;range_start [new_start [new_end]];Change data of a range;77
 #O chrange;dhcp_server;server_code;Specify which DHCP server will serve the range;;dhcpserver
@@ -5565,7 +5371,8 @@ chrange()
     if [ -n "$chrange_new_start" ]; then
         _chrange_start_num=`ip2num $chrange_new_start`
         if [ -z "$chrange_new_end" ]; then
-            chrange_new_end=`sql "select a.end_ip from pool_ranges as a where a.start_ip='$chrange_start' limit 1"`       
+        	proxy_start
+        	chrange_new_end=`server_call "pool_range_fetch('$chrange_start', {'end_ip':True})"`      
         fi
         _chrange_end_num=`ip2num $chrange_new_end`
         if /usr/bin/test $_chrange_start_num -gt $_chrange_end_num; then
@@ -5577,20 +5384,22 @@ chrange()
 
     dochange=0
     chrange_sql="update pool_ranges set changed_by='$USER' "
+    proxy_start
+    proxy_call "options={}"
     if [ -n "$chrange_new_start" ]; then
-        chrange_sql="$chrange_sql, start_ip='$chrange_new_start', end_ip='$chrange_new_end'";
+        proxy_call "options['start_ip']='$chrange_new_start'"
+        proxy_call "options['end_ip']='$chrange_new_end'"
         dochange=1
     fi
 
     if [ -n "$chrange_dhcp_server_flag" ]; then
-        chrange_sql="$chrange_sql ,served_by='$chrange_dhcp_server_arg'"
+        proxy_call "options['served_by']='$chrange_dhcp_server_arg'"
         dochange=1
     fi
     
-    chrange_sql="$chrange_sql where start_ip='$chrange_start' limit 1"
     
     if [ $dochange = "1" ]; then
-        sql "$chrange_sql"
+        server_call "pool_range_update('$chrange_start', options)"
     fi
 }
 #S reload;;Reload DHCP servers;0;0;;Trigger a reload of the DHCP server configurations;002
@@ -5605,10 +5414,7 @@ reload()
 #S chnetwork;;Change network;1;1;network-name;Change name and parameters of an already defined network;62
 #O chnetwork;A;;Turn on authoritativity for the network (excludes the use of --noA);;
 #O chnetwork;noA;;Turn off authoritativity for the network (excludes the use of -A);;
-#O chnetwork;next_server;new_next_server;Change next-server;;ipaddr
-#O chnetwork;server_name;new_server_name;Change server;;host_in_db
 #O chnetwork;i;new-description;Change description;;description
-#O chnetwork;subnet_mask;new-mask;Change subnet mask;;netmask
 #O chnetwork;n;new-name;Change network name;;network_name
 #M =head2 I<Description>
 #M
@@ -5623,21 +5429,9 @@ chnetwork()
                 chnetwork_n_flag=$i; shift
                 chnetwork_n_arg=$1; shift
                 ;;
-            --subnet_mask)
-                chnetwork_subnet_mask_flag=$i; shift
-                chnetwork_subnet_mask_arg=$1; shift
-                ;;
             -i)
                 chnetwork_i_flag=$i; shift
                 chnetwork_i_arg=$1; shift
-                ;;
-            --server_name)
-                chnetwork_server_name_flag=$i; shift
-                chnetwork_server_name_arg=$1; shift
-                ;;
-            --next_server)
-                chnetwork_next_server_flag=$i; shift
-                chnetwork_next_server_arg=$1; shift
                 ;;
             --noA)
                 chnetwork_noA_flag=$i; shift
@@ -5670,47 +5464,34 @@ chnetwork()
         echo "The specified network is unknown"
         exit 1
     fi
-
-    tosql="update networks set changed_by = '$USER'";
+	
+	proxy_start
+	proxy_call "options = {}"
 
     if [ -n "$chnetwork_n_flag" ];then
         _chnetwork_foundaflag
-         tosql="$tosql id = '$chnetwork_n_arg' "
-    fi
-
-    if [ -n "$chnetwork_subnet_mask_flag" ];then
-        _chnetwork_foundaflag
-         tosql="$tosql subnet_mask = '$chnetwork_subnet_mask_arg' "
+        tosql="$tosql id = '$chnetwork_n_arg' "
+        proxy_call "options['network'] = '$chnetwork_n_arg'"
     fi
 
     if [ -n "$chnetwork_i_flag" ];then
         _chnetwork_foundaflag
-         tosql="$tosql \`info\` = '$chnetwork_i_arg' "
-    fi
-
-    if [ -n "$chnetwork_server_name_flag" ];then
-        _chnetwork_foundaflag
-         tosql="$tosql server_name = '$chnetwork_server_name_arg' "
-    fi
-
-    if [ -n "$chnetwork_next_server_flag" ];then
-        _chnetwork_foundaflag
-         tosql="$tosql next_server = '$chnetwork_next_server_arg' "
+        proxy_call "options['info'] = '$chnetwork_i_arg'"
     fi
 
     if [ -n "$chnetwork_noA_flag" ]; then
         _chnetwork_foundaflag
-         tosql="$tosql authoritative = 0 "
+        proxy_call "options['authoritative'] = False"
     fi
 
     if [ -n "$chnetwork_A_flag" ]; then
         _chnetwork_foundaflag
-         tosql="$tosql authoritative = 1 "
+        proxy_call "options['authoritative'] = True"
     fi
 
-    tosql="$tosql WHERE id='${chnetwork_network}' LIMIT 1 "
-
-    sql "$tosql"
+	if [ -n "$chnetwork_anyflag" ]; then
+		server_call "network_update('$chnetwork_network', options)"
+	fi
 
 }
 
@@ -5720,13 +5501,9 @@ _chnetwork_foundaflag()
     chnetwork_anyflag=1
 }
 
-#S chsubnetwork;;Change subnetwork;1;1;IP-address;Change parameters of a subnetwork;67
+#S chsubnetwork;;Change subnetwork;1;1;subnetwork_cidr;Change parameters of a subnetwork;67
 #O chsubnetwork;network_name;network_name;Change network attachment for the subnetwork;;network_name
-#O chsubnetwork;netmask;mask;Change netmask for the subnetwork;;netmask
-#O chsubnetwork;subnet_mask;mask;Change subnet mask to clients;;netmask
-#O chsubnetwork;server_identifier;address;Change server identifier to clients;;ipaddr
-#O chsubnetwork;next_server;address;Change next_server to clients;;ipaddr
-#O chsubnetwork;server_name;servername;Change server name to clients;;fqdn
+#O chsubnetwork;n;cidr;Change subnetwork ID;;cidr
 #O chsubnetwork;i;description;Change description;;description
 #M =head2 I<Description>
 #M
@@ -5737,29 +5514,13 @@ chsubnetwork()
 
     for i in "$@"; do
         case "$i" in
+        	-n)
+                chsubnetwork_n_flag=$i; shift
+                chsubnetwork_n_arg=$1; shift
+                ;;
             -i)
                 chsubnetwork_i_flag=$i; shift
                 chsubnetwork_i_arg=$1; shift
-                ;;
-            --server_name)
-                chsubnetwork_server_name_flag=$i; shift
-                chsubnetwork_server_name_arg=$1; shift
-                ;;
-            --next_server)
-                chsubnetwork_next_server_flag=$i; shift
-                chsubnetwork_next_server_arg=$1; shift
-                ;;
-            --server_identifier)
-                chsubnetwork_server_identifier_flag=$i; shift
-                chsubnetwork_server_identifier_arg=$1; shift
-                ;;
-            --subnet_mask)
-                chsubnetwork_subnet_mask_flag=$i; shift
-                chsubnetwork_subnet_mask_arg=$1; shift
-                ;;
-            --netmask)
-                chsubnetwork_netmask_flag=$i; shift
-                chsubnetwork_netmask_arg=$1; shift
                 ;;
             --network_name)
                 chsubnetwork_network_name_flag=$i; shift
@@ -5774,56 +5535,42 @@ chsubnetwork()
     chsubnetwork__anyflag=
 
     if [ -z "$1" ]; then
-        echo "No network name specified"
+        echo "No subnetwork cidr specified"
         exit 2
     fi
 
     if db_exists subnetwork $1; then
-        chsubnetwork_network=$1
+        chsubnetwork_subnetwork=$1
     else
         echo "The specified subnetwork is unknown"
         exit 1
     fi
 
-    tosql="update subnetworks set changed_by = '$USER'";
+    proxy_call "options={}"
 
     if [ -n "$chsubnetwork_network_name_flag" ];then
-        _chsubnetwork_foundaflag
-         tosql="$tosql network = '$chsubnetwork_network_name_arg' "
+    	if db_exists network $chsubnetwork_network_name_arg; then
+        	_chsubnetwork_foundaflag
+        	proxy_call "options['network']='$chsubnetwork_network_name_arg'"
+    	else
+    		echo "The specified network does not exist" >&2
+    		exit 1
+    	fi
     fi
 
-    if [ -n "$chsubnetwork_subnet_mask_flag" ];then
-        _chsubnetwork_foundaflag
-         tosql="$tosql subnet_mask = '$chsubnetwork_subnet_mask_arg' "
-    fi
-
-    if [ -n "$chsubnetwork_netmask_flag" ];then
-        _chsubnetwork_foundaflag
-         tosql="$tosql netmask = '$chsubnetwork_netmask_mask_arg' "
-    fi
     if [ -n "$chsubnetwork_i_flag" ];then
         _chsubnetwork_foundaflag
-         tosql="$tosql \`info\` = '$chsubnetwork_i_arg' "
+        proxy_call "options['info']='$chsubnetwork_i_arg'"
     fi
+    
+    if [ -n "$chsubnetwork_n_flag" ]; then
+    	if [ -n `_validate_cidr $chsubnetwork_n_arg` ]; then
+    		_chsubnetwork_foundaflag
+    		proxy_call "options['subnetwork']='$chsubnetwork_n_arg'"
+    	fi
+	fi
 
-    if [ -n "$chsubnetwork_server_name_flag" ];then
-        _chsubnetwork_foundaflag
-         tosql="$tosql server_name = '$chsubnetwork_server_name_arg' "
-    fi
-
-    if [ -n "$chsubnetwork_server_identifier_flag" ];then
-        _chsubnetwork_foundaflag
-         tosql="$tosql server_identifier = '$chsubnetwork_server_identifier_arg' "
-    fi
-
-    if [ -n "$chsubnetwork_next_server_flag" ];then
-        _chsubnetwork_foundaflag
-         tosql="$tosql next_server = '$chsubnetwork_next_server_arg' "
-    fi
-
-    tosql="$tosql WHERE id='${chsubnetwork_network}' LIMIT 1 "
-
-    sql "$tosql"
+    server_call "subnetwork_update('$chsubnetwork_subnetwork', options)"
 
 }
 
