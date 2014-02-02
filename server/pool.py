@@ -153,9 +153,9 @@ class Pool(Model):
         for opt in res:
             ret[opt[0]] = opt[1]
         return ret
-    
+  
     @update("pool", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(AuthRequiredGuard)  
     def set_pool(self, pool_name):
         nn = str(pool_name)
         q = "UPDATE pools SET poolname=:value WHERE poolname=:name LIMIT 1"
@@ -163,29 +163,29 @@ class Pool(Model):
         
         #print "Pool %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_pool(self, nn)
-        
+   
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(AuthRequiredGuard)     
     def set_info(self, value):
         q = "UPDATE pools SET info=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
         
         #print "Pool %s changed Info to %s" % (self.oid, value)
-    
+  
     @update("network", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(AuthRequiredGuard)  
     def set_network(self, value):
         q = "UPDATE pools SET network=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        
+ 
     @update("optionspace", ExtOrNullOptionspace)
-    @entry(AuthRequiredGuard)
+    @entry(AuthRequiredGuard)       
     def set_optionspace(self, value):
         q = "UPDATE pools SET optionspace=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        
+ 
     @update("max_lease_time", ExtInteger)
-    @entry(AuthRequiredGuard)
+    @entry(AuthRequiredGuard)       
     def set_max_lease_time(self, value):
         q = "UPDATE pools SET max_lease_time=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
@@ -238,6 +238,8 @@ class PoolManager(Manager):
         if options == None:
             options = {}
         optionspace = options.get("optionspace", None)
+        if optionspace:
+            optionspace = optionspace.oid
         max_lease_time = options.get("max_lease_time", 600)
             
         q = """INSERT INTO pools (poolname, network, optionspace, max_lease_time, info, changed_by) 
