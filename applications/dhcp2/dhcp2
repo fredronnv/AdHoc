@@ -2085,68 +2085,6 @@ server_call()
     #echo "Result='"$result"'" >&2
 }
 
-sql()
-{
-    if [ -z "$DHCP2_CONFFILE" ]; then
-        dhcp2_get_conffile
-    fi
-    if [ -n "$DHCP2_CONFFILE" ]; then
-        if [ -z "$_db_major_version" ]; then
-            _db_major_version=`mysql --defaults-file=${DHCP2_CONFFILE} --batch -N <<EOF
-select version_number from database_version where version_tag = 'major_version';
-quit
-EOF`
-        fi
-        if [ -z "$_db_minor_version" ]; then
-        _db_minor_version=`mysql --defaults-file=${DHCP2_CONFFILE} --batch -N <<EOF
-select version_number from database_version where version_tag = 'minor_version';
-quit
-EOF`
-        fi
-        min_major_version=$2
-        min_minor_version=$3
-        if [ -n "$min_major_version" ]; then
-            if [ $_db_major_version -lt $min_major_version ]; then
-                echo "This version of dhcp2 requires at least version $min_major_version of the database. Current version is $_db_major_version" >&2
-                exit 
-            else
-                if [ -n "$min_minor_version" ]; then
-                    if [ $_db_major_version -eq $min_major_version ]; then
-                        if [ $_db_minor_version -lt $min_minor_version ]; then
-                            echo "This version of dhcp2 requires at least version $_db_major_version.$_db_minor_version of the database. Current version is $_db_major_version.$_db_minor_version" >&2
-                            exit 
-                        fi
-                    fi
-                fi
-            fi
-        fi
-        xsql=$1
-        trace "Executing sql: $xsql" >&2
-
-        if mysql --defaults-file=${DHCP2_CONFFILE} --batch -N <<EOF
-${xsql};
-quit
-EOF
-        then
-            #echo $xsql >&2
-            if echo $xsql | egrep -i '^(update|insert) ' >/dev/null 2>&1; then
-                if [ -z "$RELOADING" ]; then
-                    #Prevent infinite recursion
-                    RELOADING="YES"
-                    #reload
-                    # Could have used reload here again, but that costs many trips to the database
-                    ysql="update optionlist set value = '`date +%FT%T`' where \`group\` = '' and gtype = 'global' and name = 'dhcp2_timestamp'"
-                    sql "$ysql"
-                    RELOADING=""
-                fi
-            fi
-        else
-            exit
-        fi
-    else
-        exit
-    fi
-}
 
 adhoc()
 {
@@ -3127,12 +3065,10 @@ chgroup()
     fi
 	proxy_start
 	proxy_call "update_template={}"
-    tosql="update \`groups\` set changed_by = '$USER'";
 	#proxy_call "update_template={}"
     if [ -n "$chgroup_P_flag" ];then
         _chgroup_foundaflag
         if db_groupexists "$chgroup_P_arg"; then
-            tosql="$tosql parent_group = '$chgroup_P_arg' "
             proxy_call "update_template['parent']='$chgroup_P_arg'"
         else
             echo "The parent group $chgroup_P_arg is unknown in the database"
@@ -3143,7 +3079,6 @@ chgroup()
     if [ -n "$chgroup_O_flag" ]; then
         _chgroup_foundaflag
         if db_spaceexists "$chgroup_O_arg"; then
-            tosql="$tosql optionspace = '$chgroup_O_arg' "
             proxy_call "update_template['optionspace']='$chgroup_O_arg'"
         else
             echo "The specified option space $chgroup_O_arg is unknown in the database"
@@ -3159,7 +3094,6 @@ chgroup()
         	proxy_call "update_template['info']=None"
             echo "You just erased the information on the group ${chgroup_groupname}, hope that is OK"
         fi
-        tosql="$tosql \`info\` = '$chgroup_I_arg' "
     fi
 
     if [ -z "$chgroup_anyflag" -a -z "${chgroup_hotbeat_class_flag}" ]; then
@@ -3168,16 +3102,13 @@ chgroup()
     fi
    
     if [ -n "$chgroup_anyflag" ]; then
-        tosql=" $tosql where groupname = '${chgroup_groupname}' limit 1";
         server_call "group_update('${chgroup_groupname}', update_template)"
-        #sql "$tosql" 2 1
     fi
 
 }
 
 _chgroup_foundaflag()
 {
-    tosql="$tosql, "
     chgroup_anyflag=1
 }
 #S chhost;;Change data for a host;1;1;hostname;Change the different data associated with a host;23
@@ -3636,7 +3567,6 @@ deletegroup()
             echo "The group $deletegroup_groupname does not exist"
             exit 2
         fi
-    #deletegroup_memlist=`sql "select id from hostlist where \\\`group\\\` = '$deletegroup_groupname'"`
 	proxy_start
     deletegroup_memlist=`server_call "host_dig({'group':'$deletegroup_groupname'}, {'host':True})"`
     if [ -n "$deletegroup_memlist" ]; then
@@ -4316,7 +4246,6 @@ find_subnet()
     fs_ip=`dig +short $1` 
     proxy_start
     sn=`server_call "subnetwork_dig({'subnetwork_covers':'$fs_ip'},{'subnetwork':True})"`
-    #sn=`sql "select id from subnetworks where (INET_ATON('$fs_ip') & INET_ATON(netmask)) = INET_ATON(id)"`
     if [ -n "$sn" ]; then
         echo $sn
         return 0
@@ -4358,19 +4287,6 @@ _lsoptions_group()
 
         for o in $unseen; do
             case $o in
-                heartbeat_class)
-                    hbc=`sql "select value from heartbeat_class_members where tied_to = '$1' and tied_to_type = '$_lsoptions_group_gtype'"`
-                    hbt=`sql "select type from heartbeat_classes where value='$hbc'"`
-                    info=`sql "select info from heartbeat_classes where value='$hbc'"`
-                    case $hbt in
-                        hotbeat*)
-                            echo "hotbeat_class	$hbc	$info" | _lsoptions_group_fmt
-                            ;;
-                        heartbeat*)
-                            echo "heartbeat_class	$hbc	$info" | _lsoptions_group_fmt
-                            ;;
-                    esac
-                    ;;
                  *)
                     sql="select value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name='$o'"
                     val=`sql "$sql"`
@@ -4476,7 +4392,6 @@ lsrooms()
 {
     pattern="^[^	]*${1-.*}"
     echo "ID	Printer	Info"  | _lsrooms_fmt
-    #sql "select id,printer,info from rooms" | egrep "$pattern" | _lsrooms_fmt
 	proxy_start
     server_call "room_dig({'info_not_like': 'Auto inserted%'}, {'room':True, 'printers':True, 'info':True})" | egrep "$pattern" | _lsrooms_fmt
 }
@@ -4517,7 +4432,6 @@ _lsrooms_fmt()
 lssubnetworks()
 {
     echo "Id	Netmask	Network	Info" | _lssubnetworks_fmt
-    #sql "select id,netmask,network,info from subnetworks"  | _lssubnetworks_fmt
 	proxy_start
     server_call "subnetwork_dig({}, {'subnetwork':True,'network':True,'info':True})" | egrep "$pattern" | _lssubnetworks_fmt
 }
@@ -4596,8 +4510,7 @@ mkgroup()
     fi
     proxy_start
 	server_call "group_create('$mkgroup_groupname', '$mkgroup_P_arg', '$mkgroup_i_arg', {})"
-    #sql "insert into \`groups\` ( \`groupname\`,\`parent_group\`,\`changed_by\` ) values ('$mkgroup_groupname','$mkgroup_P_arg','$USER' );"
-}
+  }
 ##
 ## Utilities for mkhost
 ##
@@ -4972,7 +4885,6 @@ addnetwork()
     fi
     
 	server_call "network_create('$addnetwork_network', $_addnetwork_authoritative, '$addnetwork_i_arg')"
-    #sql "insert into networks (id,authoritative,info) values('$addnetwork_network',$_addnetwork_authoritative,'$addnetwork_i_arg')"
     
 }
 #S addsubnetwork;;Add a subnetwork;2;2;IP-address network;Add a new subnetwork to a network;66
@@ -5307,7 +5219,6 @@ chpool()
     fi
 
     if [ -n "$chpool_max_lease_flag" ]; then
-        chpool_sql="$chpool_sql , max_lease_time=$chpool_max_lease_arg";
         proxy_call "options['max_lease_time']=$chpool_max_lease_arg"
     fi
 
@@ -5383,7 +5294,6 @@ chrange()
     fi
 
     dochange=0
-    chrange_sql="update pool_ranges set changed_by='$USER' "
     proxy_start
     proxy_call "options={}"
     if [ -n "$chrange_new_start" ]; then
@@ -5470,7 +5380,6 @@ chnetwork()
 
     if [ -n "$chnetwork_n_flag" ];then
         _chnetwork_foundaflag
-        tosql="$tosql id = '$chnetwork_n_arg' "
         proxy_call "options['network'] = '$chnetwork_n_arg'"
     fi
 
@@ -5497,7 +5406,6 @@ chnetwork()
 
 _chnetwork_foundaflag()
 {
-    tosql="$tosql, "
     chnetwork_anyflag=1
 }
 
@@ -5576,7 +5484,6 @@ chsubnetwork()
 
 _chsubnetwork_foundaflag()
 {
-    tosql="$tosql, "
     chsubnetwork_anyflag=1
 }
 ##SGIP Subcommand generation insertion point, do not delete!!
