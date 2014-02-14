@@ -170,6 +170,14 @@ class DynamicQuery(object):
     def subquery(self, onexpr):
         """Return a DynamicQuery which uses the same database values and
         is executed as a subquery (implicit condition: <onexpr> IN (<subq string>))
+        
+        Usage:
+          dynq.table(...)
+          dynq.wher(...)
+          subq = dynq.subquery('foo.x')
+          subq.table(...)
+          subq.where(...)
+
         """
         subq = self.__class__(self.link, self)
         self.subqueries.append((onexpr, subq))
@@ -275,7 +283,7 @@ class DynamicQuery(object):
 
         q += " FROM " + ",".join(tbls + last)
         for (a, x) in self.outers:
-            q += " LEFT OUTER JOIN %s ON %s" % (a, x)
+            q += " LEFT OUTER JOIN %s ON (%s)" % (a, x)
         for (onexpr, subq) in self.subqueries:
             self.where(onexpr + " IN (" + subq.query() + ")")
         if self.conditions:
@@ -402,6 +410,8 @@ class DatabaseLink(object):
                     q = self.convert(query)
                     v = kwargs
                 self.execute(curs, q, v)
+                if self.database.debug:
+                    print id(self), "-> ", curs.rowcount
                 return curs.rowcount
             except Exception as e:
                 self.exception(e, q, v)
@@ -602,6 +612,7 @@ class OracleDatabase(Database):
 class MySQLDynamicQuery(DynamicQuery):
     def dbvar(self, name):
         return "%(" + name + ")s"
+        #return ":" + name
 
     def dblimit(self, limit):
         return "LIMIT %d" % (limit,)
@@ -713,6 +724,7 @@ class MySQLDatabase(Database):
             raw_link = mysql.connector.connect(**self.connect_args)
             return self.link_class(self, raw_link)
         except:
+            raise
             raise exterror.ExtRuntimeError("Database has gone away")
 
     def return_link(self, link):

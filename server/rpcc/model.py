@@ -483,12 +483,13 @@ class Model(object):
 # method to call for setting up the attribute, the Match object and
 # method on it to call to add the comparison.
 class _SearchKey(object):
-    def __init__(self, key, manager_method, match_callable, exttype, desc):
+    def __init__(self, key, manager_method, match_callable, exttype, desc, kwargs):
         self.key = key
         self.manager_method = manager_method
         self.match_callable = match_callable
         self.exttype = exttype
         self.desc = desc
+        self.kwargs = kwargs
 
     def get_key(self):
         return self.key
@@ -499,7 +500,7 @@ class _SearchKey(object):
     def use(self, dynamic_query, manager, searchval):
         # The manager modifies the dynamic query as needed to define
         # the match expression and then returns it (e.g. "p.firstname").
-        match_expr = self.manager_method(manager, dynamic_query)
+        match_expr = self.manager_method(manager, dynamic_query, **self.kwargs)
 
         # The matcher modifies the dynamic query by adding the match
         # operation with the match expression returned above and the
@@ -578,7 +579,7 @@ class Match(object):
         else:
             raise ValueError("%s is neither a Match instance nor a Match subclass" % (thing,))
 
-    def keys_for_attribute(self, manager_method, api_version, name, desc):
+    def keys_for_attribute(self, manager_method, api_version, name, desc, kwargs):
         ret = []
         prefixes = {}
         suffixes = {}
@@ -613,7 +614,7 @@ class Match(object):
                 if m["desc"]:
                     desc = desc + "(" + m["desc"] + ")"
 
-                ret.append(_SearchKey(key, manager_method, candidate, m["exttype"], desc))
+                ret.append(_SearchKey(key, manager_method, candidate, m["exttype"], desc, kwargs))
                 #ret.append( (key, candidate, m["exttype"], desc) )
         return ret
 
@@ -630,7 +631,24 @@ class EqualityMatchMixin(object):
     @suffix("not_equal", ExtString)
     def neq(self, fun, q, expr, val):
         q.where(expr + "<>" + q.var(val))
-        
+
+
+class NullMatchMixin(object):
+    @suffix("is_set", ExtBoolean)
+    def set(self, fun, q, expr, val):
+        if val:
+            q.where(expr + " IS NOT NULL")
+        else:
+            q.where(expr + " IS NULL")
+
+    @suffix("is_not_set", ExtBoolean)
+    def not_set(self, fun, q, expr, val):
+        if val:
+            q.where(expr + " IS NULL")
+        else:
+            q.where(expr + " IS NOT NULL")
+
+    
 class StringMatch(EqualityMatchMixin, Match):
     @suffix("maxlen", ExtInteger)
     def maxlen(self, fun, q, expr, val):
@@ -660,6 +678,23 @@ class StringMatch(EqualityMatchMixin, Match):
     def regexp(self, fun, q, expr, val):
         q.where(expr + "REGEXP " + q.var(val))
 
+    @suffix("pattern", ExtString)
+    def pattern(self, fun, q, expr, val):
+        # Convert the * / ? pattern to a % / _ one.
+        val = val.replace('%', '\\%').replace('_', '\\_')
+        val = val.replace('*', '%').replace('?', '_')
+        q.where(expr + " LIKE " + q.var(val) + " ESCAPE '\\\\'")
+
+    @suffix("not_pattern", ExtString)
+    def not_pattern(self, fun, q, expr, val):
+        # Convert the * / ? pattern to a % / _ one.
+        val = val.replace('%', '\\%').replace('_', '\\_')
+        val = val.replace('*', '%').replace('?', '_')
+        q.where(expr + " NOT LIKE " + q.var(val) + " ESCAPE '\\\\'")
+
+
+class NullableStringMatch(NullMatchMixin, StringMatch):
+    pass
 
 class IntegerMatch(EqualityMatchMixin, Match):
     @prefix("max", ExtInteger)
@@ -670,6 +705,8 @@ class IntegerMatch(EqualityMatchMixin, Match):
     def min(self, fun, q, expr, val):
         q.where(expr + ">=" + q.var(val))
 
+class NullableIntegerMatch(NullMatchMixin, IntegerMatch):
+    pass
 
 class _SearchSpec(object):
     """Represents one @search decorator and the data in it."""
@@ -693,20 +730,19 @@ class _SearchSpec(object):
         """Return the _SearchKey instances representing each
         combination of manager_method and the matchers match 
         methods, for a particular api version.
-
         """
 
         if not self.covers_api_version(api_version):
             raise ValueError("This cannot happen, but anyways...")
         
         matcher = Match.instance(self.matcher)
-        keys = matcher.keys_for_attribute(manager_method, api_version, self.name, self.desc)
+        keys = matcher.keys_for_attribute(manager_method, api_version, self.name, self.desc, self.kwargs)
 
         if self.manager_name:
             subsearcher = _Subsearch(self.manager_name)
             subkeyname = self.name + "_in"
             
-            keys.append(_SearchKey(subkeyname, manager_method, subsearcher.subsearch, _TmpReference(self.manager_name, nullable=False), self.desc))
+            keys.append(_SearchKey(subkeyname, manager_method, subsearcher.subsearch, _TmpReference(self.manager_name, nullable=False), self.desc, kwargs=self.kwargs))
 
         return keys
 
@@ -811,15 +847,13 @@ class Manager(object):
 
         for meth in cls._search_methods():
             for searchspec in meth._searches:
-                if searchspec.covers_api_version(api_version):
-                    break
-            else:
-                continue
-
-            for skey in searchspec.search_keys(meth, api_version):
-                if skey.key in cls._search_lookup[api_version]:
-                    raise ValueError("Search key %s defined twice, second time for %s" % (skey.key, meth))
-                cls._search_lookup[api_version][skey.key] = skey
+                if not searchspec.covers_api_version(api_version):
+                    continue
+                
+                for skey in searchspec.search_keys(meth, api_version):
+                    if skey.key in cls._search_lookup[api_version]:
+                        raise ValueError("Search key %s defined twice, second time for %s" % (skey.key, meth))
+                    cls._search_lookup[api_version][skey.key] = skey
 
     @classmethod
     def _get_search_key(cls, api_version, key):
@@ -913,7 +947,7 @@ class Manager(object):
 
         if oid not in self._model_cache:
             if not isinstance(oid, self.manages.id_type):
-                print "AAAA", self.manages, self.manages.id_type, type(oid)
+                #print "AAAA", self.manages, self.manages.id_type, type(oid)
                 raise ValueError("%s id is of type %s, but must be of type %s - supplied value %s isn't" % (self.manages.__name__, type(oid), self.manages.id_type, oid))
             args = self.args_for_model(oid)
             kwargs = self.kwargs_for_model(oid) or {}
@@ -952,7 +986,7 @@ class Manager(object):
         res = []
         #allargs = dq.run()
         extras = self.kwargs_for_result(rid)
-        for args in dq.run():
+        for args in list(dq.run()):
             oid = args[0]
             if not oid in self._model_cache:
                 if extras:
@@ -979,6 +1013,8 @@ class Manager(object):
             self.db.put(q, r=expired)
             q = "DELETE FROM rpcc_result_int WHERE resid=:r"
             self.db.put(q, r=expired)
+            q = "DELETE FROM rpcc_result WHERE resid=:r"
+            self.db.put(q, r=expired)
 
         while 1:
             rid = random.randint(0, 1 << 31)
@@ -991,6 +1027,13 @@ class Manager(object):
         self.db.put(q, r=rid, m=self._shortname(), e=self.function.started_at() + datetime.timedelta(hours=1))
 
         return rid
+
+    # A search method is defined as:
+    # @search("name", StringMatch)
+    # def search_name(self, dq):
+    #     dq.table("sometable s_name")
+    #     dq.where("s_name.link_field = search_select_alias.id")
+    #     return "s_name.value_field"
 
     def search_select(self, dq):
         raise NotImplementedError()

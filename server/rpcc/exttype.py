@@ -33,6 +33,10 @@ convert values from that type-space to XML.
 As long as you compose your external interfaces from subtypes of the 
 ExtType bases, you needn't worry about more than implementing .lookup() 
 and .output().
+
+ExtTypes are normally defined using subclasses. But to support dynamic 
+type creation, you can also create an instance of an ExtType class, and 
+that instance will be its own type.
 """
 
 
@@ -78,6 +82,16 @@ class ExtType(object):
     _instance_cache = dict()
     _list_cache = dict()
     _ornull_cache = dict()
+
+    def __init__(self, **kwargs):
+        if "name" in kwargs:
+            self.name = kwargs.pop("name")
+        if "desc" in kwargs:
+            self.desc = kwargs.pop("desc")
+        if "from_version" in kwargs:
+            self.from_version = kwargs.pop("from_version")
+        if "to_version" in kwargs:
+            self.to_version = kwargs.pop("to_version")
 
     def parse(self, function, rawval):
         self.check(function, rawval)
@@ -331,6 +345,15 @@ class ExtString(ExtType):
     # are NOT stored as such).
     only_iso_chars = False
 
+    def __init__(self, **kwargs):
+        if "regexp" in kwargs:
+            self.regexp = kwargs.pop("regexp")
+        if "regexp_flags" in kwargs:
+            self.regexp_flags = kwargs.pop("regexp_flags")
+        if "maxlen" in kwargs:
+            self.maxlen = kwargs.pop("maxlen")
+        ExtType.__init__(self, **kwargs)
+
     def _regexp(self):
         if self.regexp:
             rexp = self.regexp
@@ -407,6 +430,11 @@ class ExtEnum(ExtString):
     name = "enum"
     #desc = "A string with a number of valid values"
 
+    def __init__(self, **kwargs):
+        if "values" in kwargs:
+            self.values = kwargs.pop("values")
+        ExtString.__init__(self, **kwargs)
+
     # SOAP
     def xsd(self):
         xsd = self.xsd_simple_type()
@@ -448,6 +476,11 @@ class ExtInteger(ExtType):
     range = None
     name = 'integer'
     #desc = "Signed Integer"
+
+    def __init__(self, **kwargs):
+        if "range" in kwargs:
+            self.range = kwargs.pop("range")
+        ExtType.__init__(self, **kwargs)
 
     def check(self, function, rawval):
         if not isinstance(rawval, int):
@@ -524,7 +557,7 @@ class ExtBoolean(ExtType):
 class ExtNull(ExtType):
     name = 'null'
     #desc = 'Null type'
-    
+
     def check(self, function, rawval):
         if not rawval is None:
             raise ExtExpectedNullError(value=rawval)
@@ -600,11 +633,12 @@ class ExtStruct(ExtType):
     #mandatory = {}
     #optional = {}
     
-    def __init__(self, mandatory={}, optional={}):
-        if mandatory:
-            self.mandatory = mandatory
-        if optional:
-            self.optional = optional
+    def __init__(self, **kwargs):
+        if "mandatory" in kwargs:
+            self.mandatory = kwargs.pop("mandatory")
+        if "optional" in kwargs:
+            self.optional = kwargs.pop("optional")
+        ExtType.__init__(self, **kwargs)
 
     def __getattr__(self, name):
         if name == 'mandatory':
@@ -851,11 +885,15 @@ class ExtStruct(ExtType):
 class ExtOrNull(ExtType):
     typ = None
 
-    def __init__(self, typ=None):
+    def __init__(self, typ=None, **kwargs):
         if typ is not None:
             if self.typ is not None:
                 raise TypeError("When an ExtOrNull subclass has its .typ set, you cannot override it on instantiation. You use an ExtOrNull subclass just like an ExtString or ExtInteger subclass.")
             self.typ = typ
+            
+        if "typ" in kwargs:
+            self.typ = kwargs.pop("typ")
+
         # Use the original object's class name as prefix for the "|null" if present, Otherwise name clashes will occur when typ
         # is set explicitly and not via this constructor.
         if self.name:
@@ -932,16 +970,17 @@ class ExtOrNull(ExtType):
 class ExtList(ExtType):
     typ = None
     
-    def __init__(self, typ=None):            
+    def __init__(self, typ=None, **kwargs):            
         if typ is not None:
             if self.typ is not None:
                 raise TypeError("When an ExtList subclass has its .typ set, you cannot override it on instantiation. You use an ExtList subclass just like an ExtString or ExtInteger subclass.")            
             self.typ = typ
 
+        if "typ" in kwargs:
+            self.typ = kwargs.pop("typ")
+
         if self.typ is not None:
             self.name = self.typ.name + '-list'
-        else:
-            self.name = None
 
     def _name(self):
         return ExtList.instance(self.typ)._name() + "-list"

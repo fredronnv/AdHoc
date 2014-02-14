@@ -19,12 +19,6 @@ class APIHandler(object):
         self.apis = [base_api]
         self.store_soap_data(base_api)
 
-    def reboot(self):
-        self.initialize()
-        for funclass in self.all_funclasses_added:
-            self.add_function(funclass)
-        self.generate_model_stuff()
-
     def store_soap_data(self, api):
         for path in api.get_all_wsdl_paths():
             self.api_by_wsdl_path[path] = api

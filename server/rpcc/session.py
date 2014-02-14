@@ -221,16 +221,17 @@ class DatabaseBackedSessionManager(SessionManager):
             self.destroy_session(sid)
 
 
-class MemoryBackedSessionManager(SessionManager):
+# This isn't working.
+class XXMemoryBackedSessionManager(SessionManager):
     def init(self):
         self.session_data = {}
         self.lock = threading.Lock()
 
     def model(self, sid):
         try:
-            return Session(sid, self.session_data[sid]["expires"])
+            return Session(self, sid, self.session_data[sid]["expires"])
         except:
-            raise self.model_lookup_error(sid)
+            raise self.model_lookup_error(value=sid)
 
     def get_session_values(self, sid):
         with self.lock:
@@ -242,6 +243,7 @@ class MemoryBackedSessionManager(SessionManager):
         expires = self.function.started_at() + self.session_lifetime
         with self.lock:
             self.session_data[newid] = {"oid": newid, "expires": expires}
+            print "LKJ", self.session_data
         return newid
         
     def destroy_session(self, sid):

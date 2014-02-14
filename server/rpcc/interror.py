@@ -13,3 +13,5 @@ class IntAPINotFoundError(ValueError):
 class IntAPIValidationError(ValueError):
     pass
 
+class IntInvalidUsageError(TypeError):
+    pass
