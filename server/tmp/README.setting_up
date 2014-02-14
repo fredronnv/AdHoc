@@ -1,0 +1,199 @@
+
+* Skapa datamodellen.
+
+  - Optset skall innehålla en uppsättning optioner. Varje option är
+    heltal, sträng, IPv4-adress eller bool. Det kan finnas regexp för
+    strängar och range:ar för heltal.
+
+  - Varje option definieras med typ, begränsningar, och möjligen
+    namnet på en guard som krävs för att manipulera just den
+    optionen.
+
+    Helst ville jag kalla den "option" men det är ett reserverat ord i
+    mysql och då blir det så jobbigt att komma ihåg att citera det
+    jämnt, så jag bytte till option_base. Samma gäller
+    regexp_constraint - "regexp" är reserverat ord.
+
+  CREATE TABLE option_base (
+    id INTEGER NOT NULL AUTO_INCREMENT,
+    PRIMARY KEY (id),
+
+    name VARCHAR(64),
+    UNIQUE INDEX(name),
+
+    description VARCHAR(1024),
+    guard VARCHAR(64),
+
+    from_api SMALLINT NOT NULL DEFAULT 0,
+    to_api SMALLINT NOT NULL DEFAULT 10000
+  ) TYPE=InnoDB;
+
+  CREATE TABLE str_option (
+    id INT NOT NULL AUTO_INCREMENT,
+      PRIMARY KEY (id),
+
+    option_base INTEGER NOT NULL,
+      FOREIGN KEY (option_base) REFERENCES option_base(id),
+
+    regexp_constraint VARCHAR(128)
+  ) TYPE=InnoDB;
+
+  CREATE TABLE int_option (
+    id INT NOT NULL AUTO_INCREMENT,
+      PRIMARY KEY (id),
+
+    option_base INTEGER NOT NULL,
+      FOREIGN KEY (option_base) REFERENCES option_base(id),
+
+    minval INTEGER,
+    maxval INTEGER
+  ) TYPE=InnoDB;
+
+  CREATE TABLE bool_option (
+    id INT NOT NULL AUTO_INCREMENT,
+      PRIMARY KEY (id),
+
+    option_base INTEGER NOT NULL,
+      FOREIGN KEY (option_base) REFERENCES option_base(id)
+  ) TYPE=InnoDB;
+
+  CREATE TABLE optionset (
+    id INT NOT NULL AUTO_INCREMENT,
+      PRIMARY KEY(id)
+  ) TYPE=InnoDB;
+
+  CREATE TABLE optionset_strval (
+    str_option INT NOT NULL,
+      FOREIGN KEY (str_option) REFERENCES str_option(id),
+
+    optionset INT NOT NULL,
+      FOREIGN KEY (optionset) REFERENCES optionset(id),
+
+    UNIQUE INDEX (str_option, optionset),
+
+    value VARCHAR(1024) NOT NULL
+  ) TYPE=InnoDB;
+
+  CREATE TABLE optionset_intval (
+    int_option INT NOT NULL,
+      FOREIGN KEY (int_option) REFERENCES int_option(id),
+
+    optionset INT NOT NULL,
+      FOREIGN KEY (optionset) REFERENCES optionset(id),
+
+    UNIQUE INDEX (int_option, optionset),
+
+    value INT NOT NULL
+  ) TYPE=InnoDB;
+
+  CREATE TABLE optionset_boolval (
+    bool_option INT NOT NULL,
+      FOREIGN KEY (bool_option) REFERENCES bool_option(id),
+
+    optionset INT NOT NULL,
+      FOREIGN KEY (optionset) REFERENCES optionset(id),
+
+    UNIQUE INDEX (bool_option, optionset),
+
+    value CHAR NOT NULL
+  ) TYPE=InnoDB;
+
+    
+    
+* Skapa modellen.
+
+  - Bestäm namnet. Här Optionset.
+
+  - Skapa den publika datatypen. Normalt sett är namnet Ext<namn>.
+
+     class ExtOptionset(rpcc.ExtInteger):
+        name = "optionset"
+
+	def lookup(self, fun, cval):
+	   return fun.optionset_manager.get_optionset(cval)
+
+	def output(self, fun, obj):
+	   return obj.oid
+
+     class ExtNoSuchOptionsetError(rpcc.ExtLookupError):
+        desc = "No such optionset exists"
+
+  - Definiera modellklassen.
+
+     class Optionset(rpcc.Model):
+        name = "optionset"
+        exttype = ExtOptionset
+
+  - Definiera managerklassen.
+
+     class OptsetManager(rpcc.Manager):
+        name = "optionset_manager"
+        manages = Optionset
+	model_lookup_error = ExtNoSuchOptionsetError
+
+  - Bestäm vilka attribut som skall finnas på "alla" modellinstanser
+    (normalt sett kolumnerna i den definierande tabellen). De slår
+    managern upp. För optionsets är det egentligen enbart deras ID.
+
+  - Definiera utifrån detta modellens .init()-metod och managerns
+    .base_query() som tillsammans används för att skapa
+    Model-instanser.
+
+  - När det gäller optionernas värden, så är frågan hur uppslag
+    "normalt" kommer att ske. Konfigfilsgeneratorn kommer att läsa
+    alla optioner i klump. dhcp2-kommandot likaså.
+
+    Det mest effektiva bör sannolikt vara att hämta alla satta
+    optioner när Optionset-instansen skapas. Det normala
+    användningsfallet är en _dig() eller _fetch() som hämtar många
+    attribut.
+
+  - Definiera en Optionset.load_options() som läser in samtliga
+    optioner och lagrar dem i self.options.
+
+  - För att läsa en option behöver den bara slås upp i
+    self.options. Finns den där returneras värdet, annars returneras
+    None. En metod Optionset.get_option() gör detta uppslag.
+
+  - För att sätta en option behövs lite mer, så Optionset.set_option()
+    blir mer komplicerad. Först och främst kan ju värdet ligga i en av
+    flera tabeller, så set_option() måste få veta vilken tabell den
+    skall skriva i. För det andra så måste det gå att radera en option
+    (vilket görs genom att skriva ett NULL till den), och det innebär
+    ett UPDATE-query. För det tredje så skall man antingen göra en
+    UPDATE eller en INSERT beroende på om värdet redan finns eller
+    inte.
+
+  - Lägg till @template och @update för optionerna - görs i
+    OptionsetManager.on_register(). Den skall läsa ut alla
+    optionstyperna ur *_option-tabellerna. För varje sådan optionstyp
+    skall den skapa en ExtType-instans som motsvarar de (eventuella)
+    begränsningar som finns i tabellen (t.ex. regexp).
+
+    Därefter skall, för varje optionstyp, Optionset.get_option()
+    dekoreras med en @template och Optionset.set_option() dekoreras
+    med en @update. Inuti en template/update kan man ange attributet
+    "kwargs", som skickas med till metoden.
+
+  - Nu finns, genom automagi, optionset_fetch() och
+    optionset_update().
+
+  - Lägg till @search. Sökningen skall göra en join med
+    optionset_*val, under ett alldeles eget alias per
+    optionsnamn. Optionsnamnet och tabellnamnet behöver alltså skickas
+    som kwargs till sökmetoden.
+
+    Skall det gå att söka ut att optionen inte är satt (dvs att den
+    skulle returneras som None)? Det verkar rimligt, eftersom None
+    faktiskt är ett korrekt returvärde (samtidigt som det verkar lite
+    tveksamt att man verkligen vill göra en sådan sökning).
+
+    För att slippa OUTER JOIN:a in multipla tabeller, vilket
+    DynamicQuery inte stödjer (fast min hjärna stödjer det inte heller
+    å andra sidan) så skickar vi in option-id:t (id-kolumnen i
+    t.ex. str_option) som kwargs till sökmetoden.
+
+    Sökmetoden blir liten och söt, och OptionsetManager.on_register()
+    blir inte SÅ mycket hemskare den heller.
+
+
