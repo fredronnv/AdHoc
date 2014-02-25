@@ -25,13 +25,11 @@ Models it has created are deallocated.
 """
 
 import types
-import random
-import datetime
-import functools
 
 from error import IntAPIValidationError, IntInvalidUsageError
 from exttype import *
 from default_type import *
+
 
 class _TmpReference(object):
     def __init__(self, other, nullable=False, islist=False):
@@ -40,6 +38,7 @@ class _TmpReference(object):
         self.name = other
         self.nullable = nullable
         self.islist = islist
+
 
 class ExternalAttribute(object):
     def __init__(self, extname, exttype, method=None, desc=None, model=None, default=False, minv=0, maxv=10000, kwargs={}):
@@ -159,6 +158,7 @@ def template(extname, exttype, **kwargs):
         return decorated
     return decorate
 
+
 def auto_template(decorated):
     """This decorator needs to be placed on all methods that are passed to
     the Foo.bar = template(...)(Foo.bar) pattern, to indicate that there
@@ -166,6 +166,7 @@ def auto_template(decorated):
 
     decorated._auto_templatable = None
     return decorated
+
 
 def update(extname, exttype, **kwargs):
     def decorate(decorated):
@@ -190,6 +191,7 @@ def update(extname, exttype, **kwargs):
 
         return decorated
     return decorate
+
 
 def auto_update(decorated):
     """This decorator needs to be placed on all methods that are passed to
@@ -306,7 +308,7 @@ class Model(object):
         # Note: the result is cached in the _class_ object. If you have
         # a changing API in your development server, you need to empty
         # that cache using ._reboot().
-
+        
         try:
             return cls._attributes_cache[api_version]
         except KeyError:
@@ -315,6 +317,7 @@ class Model(object):
             cls._attributes_cache = {api_version: ({}, {})}
 
         for candname in dir(cls):
+            #print "Candidate: ", candname
             candidate = getattr(cls, candname)
 
             if hasattr(candidate, "_templates"):
@@ -330,6 +333,7 @@ class Model(object):
                 continue
 
             for attr in attrs:
+                #print "Attr=", attr
                 if api_version < attr.minv or api_version > attr.maxv:
                     continue
 
@@ -696,6 +700,7 @@ class StringMatch(EqualityMatchMixin, Match):
 class NullableStringMatch(NullMatchMixin, StringMatch):
     pass
 
+
 class IntegerMatch(EqualityMatchMixin, Match):
     @prefix("max", ExtInteger)
     def max(self, fun, q, expr, val):
@@ -705,8 +710,10 @@ class IntegerMatch(EqualityMatchMixin, Match):
     def min(self, fun, q, expr, val):
         q.where(expr + ">=" + q.var(val))
 
+
 class NullableIntegerMatch(NullMatchMixin, IntegerMatch):
     pass
+
 
 class _SearchSpec(object):
     """Represents one @search decorator and the data in it."""
@@ -746,6 +753,7 @@ class _SearchSpec(object):
 
         return keys
 
+
 class _ComputedSearchSpec(_SearchSpec):
     pass
 
@@ -762,7 +770,6 @@ def search(name, matchcls, minv=0, maxv=10000, desc=None, manager_name=None, kwa
             if not hasattr(decorated, "_auto_searchable"):
                 raise IntAPIValidationError("Searches can only be dynamically added to methods decorated with the @auto_search decorator, %s isn't (adding the %s search name)" % (decorated, name))
 
-
         newsobj = _SearchSpec(minv, maxv, name, matchcls, desc, manager_name, kwargs)
         if hasattr(decorated, "_searches"):
             decorated._searches.append(newsobj)
@@ -770,6 +777,7 @@ def search(name, matchcls, minv=0, maxv=10000, desc=None, manager_name=None, kwa
             decorated._searches = [newsobj]
         return decorated
     return decorate
+
 
 def auto_search(decorated):
     decorated._auto_searchable = None
