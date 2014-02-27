@@ -81,8 +81,8 @@ class DHCPManager(Manager):
         # All tables of one stratum must be completely transferred before beginning the transfer of any
         # tables in a subsequent stratum.
         
-        # Stratum 1: optionspaces, networks, dhcp_servers, global_options, optionset,  buildings and rooms
-        # Stratum 2: subnetworks, option_base, option_defs, groups, pools and classes
+        # Stratum 1: optionspaces, networks, dhcp_servers, global_options, optionset, buildings and rooms
+        # Stratum 2: subnetworks, option_base, groups, pools and classes
         # Stratum 3: group_options, pool_options, network_options, subnetwork_options, pool_ranges, 
         #            group_literal_options, pool_literal_options, class_literal_options, class_options,
         #            bool_option, str_option, int_option and hosts
@@ -102,11 +102,13 @@ class DHCPManager(Manager):
         self.db.put("TRUNCATE TABLE groups")
         self.db.put("SET foreign_key_checks=1")
         
-        for table in ["option_defs", "option_base", "pools", "classes", "subnetworks"]:
+        for table in ["option_base", "pools", "classes", "subnetworks"]:
             self.db.put("TRUNCATE TABLE %s" % table)
             
         for table in ["optionspaces", "networks", "dhcp_servers", "global_options", "buildings", "rooms", "optionset"]:
             self.db.put("TRUNCATE TABLE %s" % table)
+            
+        
         #
         # Now build the tables in normal stratum order
         # buildings
@@ -191,19 +193,16 @@ class DHCPManager(Manager):
             self.db.insert("id", qp, id=my_id, network=network,
                            info=info, changedby=changed_by, mtime=mtime, optset=optset)
             
-        #option_defs and option_base are both built from the dhcp_option_defs table
+        # option_base is built from the dhcp_option_defs table
         print "OPTION DEFINITIONS"
         qf = """SELECT id, name, code, qualifier, type, optionspace, info, changed_by, mtime 
                 FROM dhcp_option_defs WHERE scope='dhcp'"""
-        qp = """INSERT INTO option_defs (id, name, code, qualifier, type, optionspace, info, changed_by, mtime) 
-                               VALUES(:id, :name, :code, :qualifier, :type, :optionspace, :info, :changedby, :mtime)"""
         qp2 = """INSERT INTO option_base (name, code, qualifier, type, optionspace, info, changed_by, mtime)
                                VALUES(:name, :code, :qualifier, :type, :optionspace, :info, :changedby, :mtime)"""
                                
         for(my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime) in self.odb.get(qf):
             #print my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime
-            self.db.insert("id", qp, id=my_id, name=name, code=code, qualifier=qualifier, type=my_type, optionspace=optionspace, 
-                           info=info, changedby=changed_by, mtime=mtime)
+            
             id = self.db.insert("id", qp2, name=name, code=code, qualifier=qualifier, type=my_type, optionspace=optionspace,
                            info=info, changedby=changed_by, mtime=mtime)
             if my_type.startswith("integer") or my_type.startswith("unsigned"):
