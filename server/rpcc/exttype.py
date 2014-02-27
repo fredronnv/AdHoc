@@ -893,6 +893,9 @@ class ExtOrNull(ExtType):
             
         if "typ" in kwargs:
             self.typ = kwargs.pop("typ")
+            
+        if "desc" in kwargs:
+            self.desc = kwargs["desc"]
 
         # Use the original object's class name as prefix for the "|null" if present, Otherwise name clashes will occur when typ
         # is set explicitly and not via this constructor.
