@@ -88,6 +88,7 @@ class ExtDocTypename(exttype.ExtString):
 
 class ExtDocParamname(ExtDocTypename):
     name = "doc-parameter-name"
+    regexp = r"^[-A-Za-z0-9_|]+$"
 
 
 class ExtDocBasetype(exttype.ExtEnum):
