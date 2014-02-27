@@ -57,7 +57,7 @@ class ExtIPAddress(ExtString):
     name = "ip-address"
     desc = "An IP address specified either as a numeric IP Address or a DNS name"
     regexp_num = "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
-    regexp_dns = "(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,6})"
+    regexp_dns = "(?=^.{1,254}$)(^(?:(?!\d+\.)[a-zA-Z0-9_\-]{1,63}\.?)+(?:[a-zA-Z]{2,})$)"
     regexp = "^" + regexp_num + "|" + regexp_dns + "$"
     
     def lookup(self, fun, cval):
@@ -71,3 +71,21 @@ class ExtIPAddress(ExtString):
         except socket.gaierror:
             raise ExtNoSuchDNSNameError()
         return cval
+
+
+class ExtOptionList(ExtList):
+    typ = ExtString
+    name = "option-list"
+    desc = "A list of option names"
+
+    def __init__(self, typ=None, **kwargs):            
+        if typ is not None:
+            if self.typ is not None:
+                raise TypeError("When an ExtList subclass has its .typ set, you cannot override it on instantiation. You use an ExtList subclass just like an ExtString or ExtInteger subclass.")            
+            self.typ = typ
+
+        if "typ" in kwargs:
+            self.typ = kwargs.pop("typ")
+
+        if self.typ is not None:
+            self.name = "option" + '-list'
