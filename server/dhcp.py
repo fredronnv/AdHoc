@@ -83,18 +83,18 @@ class DHCPManager(Manager):
         
         # Stratum 1: optionspaces, networks, dhcp_servers, global_options, optionset, buildings and rooms
         # Stratum 2: subnetworks, option_base, groups, pools and classes
-        # Stratum 3: group_options, pool_options, network_options, subnetwork_options, pool_ranges, 
-        #            group_literal_options, pool_literal_options, class_literal_options, class_options,
+        # Stratum 3:  pool_ranges, 
+        #            group_literal_options, pool_literal_options, class_literal_options,
         #            bool_option, str_option, int_option and hosts
-        # Stratum 4: host_literal_options, optionset_boolval, optionset:strval, optionset_intval and host_options
+        # Stratum 4: host_literal_options, optionset_boolval, optionset:strval and optionset_intval
         
         # Truncate all tables first, in reverse stratum order
         
-        for table in ["host_literal_options", "host_options", "optionset_boolval", "optionset_strval", "optionset_intval", "optionset_ipaddrval"]:
+        for table in ["host_literal_options", "optionset_boolval", "optionset_strval", "optionset_intval", "optionset_ipaddrval"]:
             self.db.put("TRUNCATE TABLE %s;" % table)
             
-        for table in ["group_options", "pool_options", "network_options", "subnetwork_options", "pool_ranges", 
-                      "group_literal_options", "pool_literal_options", "class_literal_options", "class_options", "hosts",
+        for table in ["pool_ranges", 
+                      "group_literal_options", "pool_literal_options", "class_literal_options", "hosts",
                       "bool_option", "str_option", "int_option", "ipaddr_option"]:
             self.db.put("TRUNCATE TABLE %s;" % table)
         
@@ -289,7 +289,7 @@ class DHCPManager(Manager):
         # Stratum 3: group_options, pool_options, network_options, subnetwork_options, pool_ranges, 
         #            pool_literal_options, class_literal_optrions, class_options and hosts
         #group_options
-        #pool_options
+        #pool
         #network_options
         #subnetwork_options
         #class_options
@@ -300,8 +300,8 @@ class DHCPManager(Manager):
                     ("class", "classes", "classname")]:
             qf = """SELECT o.`group`, o.name, o.value, o.changed_by, o.mtime, o.id FROM optionlist o, dhcp_option_defs d
                     WHERE o.name=d.name AND d.scope='dhcp' AND o.gtype='%s'""" % tbl[0]
-            qp = """INSERT INTO %s_options (`for`, name, value, changed_by, mtime, id) 
-                           VALUES (:address, :name, :value, :changedby, :mtime, :id)""" % tbl[0]
+            #qp = """INSERT INTO %s_options (`for`, name, value, changed_by, mtime, id) 
+            #VALUES (:address, :name, :value, :changedby, :mtime, :id)""" % tbl[0]
             print
             print "OPTION TABLE FOR %s" % tbl[0]
             targets = {}
@@ -419,8 +419,6 @@ class DHCPManager(Manager):
         # host_options
         qf = """SELECT o.`group`, o.name, o.value, o.changed_by, o.mtime, o.id FROM optionlist o, dhcp_option_defs d
                     WHERE o.name=d.name AND d.scope='dhcp' AND o.gtype='host'"""
-        qp = """INSERT INTO host_options (`for`, name, value, changed_by, mtime, id) 
-                       VALUES (:address, :name, :value, :changedby, :mtime, :id)"""
         #print
         print "OPTION TABLE FOR host"
         #using targets from last operation
@@ -448,18 +446,16 @@ class DHCPManager(Manager):
         print "GROUP PARAMETERS:"        
         for(name, filename, next_server, server_name, server_identifier) in self.odb.get(qf):
             #print name, filename, next_server, server_name, server_identifier
+            target = self.group_manager.get_group(unicode(name))
+            oset = target.get_optionset()
             if filename:
-                self.db.put("""INSERT INTO group_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "filename", :value, "dhcp2-ng")""", name=name, value=filename)
+                oset.set_option_by_name("filename", filename)
             if next_server:
-                self.db.put("""INSERT INTO group_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "next-server", :value, "dhcp2-ng")""", name=name, value=next_server)
+                oset.set_option_by_name("next-server", next_server)
             if server_name:
-                self.db.put("""INSERT INTO group_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "server-name", :value, "dhcp2-ng")""", name=name, value=server_name)
+                oset.set_option_by_name("server-name", server_name)
             if server_identifier:
-                self.db.put("""INSERT INTO group_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "server-identifier", :value, "dhcp2-ng")""", name=name, value=server_identifier)
+                oset.set_option_by_name("server-identifier", server_identifier)
                 
         qf = """SELECT classname, filename, next_server, server_name, server_identifier FROM classes
                 WHERE filename IS NOT NULL OR next_server IS NOT NULL OR server_name IS NOT NULL OR server_identifier IS NOT NULL"""
@@ -467,18 +463,14 @@ class DHCPManager(Manager):
         print "CLASS PARAMETERS"
         for(name, filename, next_server, server_name, server_identifier) in self.odb.get(qf):
             #print name, filename, next_server, server_name, server_identifier
+            target = self.host_class_manager.get_host_class(unicode(name))
+            oset = target.get_optionset()
             if filename:
-                #print name, "filename=", filename
-                self.db.put("""INSERT INTO class_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "filename", :value, "dhcp2-ng")""", name=name, value=filename)
+                oset.set_option_by_name("filename", filename)
             if next_server:
-                #print name, "next_server=", next_server
-                self.db.put("""INSERT INTO class_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "next-server", :value, "dhcp2-ng")""", name=name, value=next_server)
+                oset.set_option_by_name("next-server", next_server)
             if server_name:
-                #print name, "server_name=", server_name
-                self.db.put("""INSERT INTO class_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "server-name", :value, "dhcp2-ng")""", name=name, value=server_name)
+                oset.set_option_by_name("server-name", server_name)
         
         qf = """SELECT id, subnet_mask, next_server, server_name FROM networks
                 WHERE  server_name IS NOT NULL """
@@ -486,17 +478,14 @@ class DHCPManager(Manager):
         print "NETWORK PARAMETERS"
         for(name, subnet_mask, next_server, server_name) in self.odb.get(qf):
             #print name, subnet_mask, next_server, server_name
+            target = self.network_manager.get_network(unicode(name))
+            oset = target.get_optionset()
             if subnet_mask:
-                #print name, "subnet_mask=", subnet_mask
-                self.db.put("""INSERT INTO network_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "subnet-mask", :value, "dhcp2-ng")""", name=name, value=subnet_mask)
+                oset.set_option_by_name("subnet-mask", subnet_mask)
             if next_server:
-                #print name, "next_server=", next_server
-                self.db.put("""INSERT INTO network_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "next-server", :value, "dhcp2-ng")""", name=name, value=next_server)
+                oset.set_option_by_name("next-server", next_server)
             if server_name:
-                self.db.put("""INSERT INTO network_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "server-name", :value, "dhcp2-ng")""", name=name, value=server_name)
+                oset.set_option_by_name("server-name", server_name)
         
         qf = """SELECT id, netmask, subnet_mask, next_server, server_name, server_identifier FROM subnetworks
                 WHERE subnet_mask IS NOT NULL OR next_server IS NOT NULL OR server_name IS NOT NULL OR server_identifier IS NOT NULL"""
@@ -505,15 +494,14 @@ class DHCPManager(Manager):
         for(my_id, netmask, subnet_mask, next_server, server_name, server_identifier) in self.odb.get(qf):
             my_id = self.m2cidr(my_id, netmask)
             #print my_id, subnet_mask, next_server, server_name, server_identifier
+            target = self.subnetwork_manager.get_subnetwork(my_id)
+            oset = target.get_optionset()
             if subnet_mask:
-                self.db.put("""INSERT INTO subnetwork_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "subnet-mask", :value, "dhcp2-ng")""", name=my_id, value=subnet_mask)
+                oset.set_option_by_name("subnet-mask", subnet_mask)
             if next_server:
-                self.db.put("""INSERT INTO subnetwork_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "next-server", :value, "dhcp2-ng")""", name=my_id, value=next_server)
+                oset.set_option_by_name("next-server", next_server)
             if server_name:
-                self.db.put("""INSERT INTO subnetwork_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "server-name", :value, "dhcp2-ng")""", name=my_id, value=server_name)
+                oset.set_option_by_name("server-name", server_name)
         
         qf = """SELECT poolname, max_lease_time FROM pools
                 WHERE max_lease_time IS NOT NULL"""
@@ -521,9 +509,10 @@ class DHCPManager(Manager):
         print "POOL PARAMETERS"
         for(name, max_lease_time) in self.odb.get(qf):
             #print name, max_lease_time
+            target = self.pool_manager.get_pool(unicode(name))
+            oset = target.get_optionset()
             if max_lease_time:
-                self.db.put("""INSERT INTO pool_options (`for`, name, value, changed_by) 
-                               VALUES(:name, "max-lease-time", :value, "dhcp2-ng")""", name=name, value=max_lease_time)
+                oset.set_option_by_name("max-lease-time", max_lease_time)
          
         return None
               
