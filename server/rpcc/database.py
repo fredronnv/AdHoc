@@ -358,9 +358,12 @@ class DatabaseLink(object):
             This is needed when looping over a result and the loop body is doing writes
             to the database.
         """
-        return list(self.get(query, **kwargs))
-
+        return list(self._get(query, **kwargs))
+    
     def get(self, query, **kwargs):
+        return self.get_all(query, **kwargs)
+
+    def _get(self, query, **kwargs):
         if not self.open:
             raise LinkClosedError()
 
