@@ -7,13 +7,15 @@ import struct
 from rpcc.exttype import *
 from rpcc.model import *
 import rpcc.database
+import optionset
+import sys
 
 
 class DhcpdConf(Function):
     extname = "dhcpd_config"
     params = [("server_id", ExtString),
               ]
-    returns = (ExtString, "A full dhcpd.conf file contents")
+    returns = ExtString
 
     def do(self):
         s = self.dhcp_manager.make_dhcpd_conf(self.server_id)
@@ -25,7 +27,7 @@ class DhcpXfer(Function):
     returns = ExtNull
     
     def do(self):
-        self.dhcp_manager.transfer_from_old_database()
+        self.dhcp_manager.transfer_from_old_database(self.optionset_manager)
  
         
 class DHCPManager(Manager):
@@ -58,13 +60,14 @@ class DHCPManager(Manager):
         
         return '.'.join(net_start) + '/' + netsize
              
-    def transfer_from_old_database(self):
+    def transfer_from_old_database(self, optionset_manager):
         """ This method clears the DHCP database completely and transfers all of the data
             from the old database while observing the changes in syntac and semantics.
             
             This code is rough and unpolished as it is dead as soon as the new database goes into production
         """
             
+        self.optionsetManager = optionset_manager
         user = self.server.config("ODB_USER")
         password = self.server.config("ODB_PASSWORD")
         db = self.server.config("ODB_DATABASE")
@@ -78,35 +81,37 @@ class DHCPManager(Manager):
         # All tables of one stratum must be completely transferred before beginning the transfer of any
         # tables in a subsequent stratum.
         
-        # Stratum 1: optionspaces, networks, dhcp_servers, global_options, buildings and rooms
-        # Stratum 2: subnetworks, option_defs, groups, pools and classes
+        # Stratum 1: optionspaces, networks, dhcp_servers, global_options, optionset,  buildings and rooms
+        # Stratum 2: subnetworks, option_base, option_defs, groups, pools and classes
         # Stratum 3: group_options, pool_options, network_options, subnetwork_options, pool_ranges, 
-        #            group_literal_options, pool_literal_options, class_literal_optrions, class_options and hosts
-        # Stratum 4: host_literal_options and host_options
+        #            group_literal_options, pool_literal_options, class_literal_options, class_options,
+        #            bool_option, str_option, int_option and hosts
+        # Stratum 4: host_literal_options, optionset_boolval, optionset:strval, optionset_intval and host_options
         
         # Truncate all tables first, in reverse stratum order
         
-        for table in ["host_literal_options", "host_options"]:
-            self.db.put("TRUNCATE TABLE %s" % table)
+        for table in ["host_literal_options", "host_options", "optionset_boolval", "optionset_strval", "optionset_intval", "optionset_ipaddrval"]:
+            self.db.put("TRUNCATE TABLE %s;" % table)
             
         for table in ["group_options", "pool_options", "network_options", "subnetwork_options", "pool_ranges", 
-                      "group_literal_options", "pool_literal_options", "class_literal_options", "class_options", "hosts"]:
-            self.db.put("TRUNCATE TABLE %s" % table)
+                      "group_literal_options", "pool_literal_options", "class_literal_options", "class_options", "hosts",
+                      "bool_option", "str_option", "int_option", "ipaddr_option"]:
+            self.db.put("TRUNCATE TABLE %s;" % table)
         
         self.db.put("SET foreign_key_checks=0")
         self.db.put("TRUNCATE TABLE groups")
         self.db.put("SET foreign_key_checks=1")
         
-        for table in ["option_defs", "pools", "classes", "subnetworks"]:
+        for table in ["option_defs", "option_base", "pools", "classes", "subnetworks"]:
             self.db.put("TRUNCATE TABLE %s" % table)
             
-        for table in ["optionspaces", "networks", "dhcp_servers", "global_options", "buildings", "rooms"]:
+        for table in ["optionspaces", "networks", "dhcp_servers", "global_options", "buildings", "rooms", "optionset"]:
             self.db.put("TRUNCATE TABLE %s" % table)
         #
         # Now build the tables in normal stratum order
         # buildings
-        #print 
-        #print "BUILDINGS"
+        print 
+        print "BUILDINGS"
         qf = "SELECT id,re,info,changed_by,mtime from buildings"
         qp = "INSERT INTO buildings (`id`,`re`,`info`,`changed_by` ,`mtime` ) VALUES(:id,:re,:info,:changedby,:mtime)"
         
@@ -114,10 +119,9 @@ class DHCPManager(Manager):
             #print my_id, re, info, changed_by, mtime
             self.db.insert(my_id, qp, id=my_id, re=re, info=info, changedby=changed_by, mtime=mtime)
         
-        
         #rooms
-        #print 
-        #print "ROOMS"
+        print 
+        print "ROOMS"
         rooms = set()  # Save set of rooms for hosts insertions later on
         qf = "SELECT id, info, printer, changed_by, mtime from rooms"
         qp = "INSERT INTO rooms (id, info, printers, changed_by, mtime) VALUES(:id, :info, :printers, :changedby, :mtime)"
@@ -125,111 +129,163 @@ class DHCPManager(Manager):
             #print my_id, info, printers, changed_by, mtime
             my_id = my_id.upper()
             rooms.add(my_id)
-            self.db.insert(id, qp, id=my_id, info=info, printers=printers, changedby=changed_by, mtime=mtime)
+            self.db.insert("id", qp, id=my_id, info=info, printers=printers, changedby=changed_by, mtime=mtime)
     
         #global_options takes input also from the table basic
-        #print 
-        #print "GLOBAL OPTIONS"
+        print 
+        print "GLOBAL OPTIONS"
         qf = "SELECT command, arg, mtime, id FROM basic "
         qp = "INSERT INTO global_options (name, value, changed_by, mtime, id) VALUES (:name, :value, :changedby, :mtime, :id)"
         for(name, value, mtime, my_id) in self.odb.get(qf):
             #print name, value, mtime, my_id
             if name == 'ddns-update-style' and value == 'ad-hoc':
                 continue  # This mode is not supported in later versions of the dhcpd server
-            self.db.insert(id, qp, name=name, value=value, changedby="DHCP2-ng", mtime=mtime, id=my_id)
+            self.db.insert("id", qp, name=name, value=value, changedby="DHCP2-ng", mtime=mtime, id=my_id)
         
         qf = "SELECT name, value, changed_by, mtime, id FROM optionlist WHERE gtype='global'"
         qp = "INSERT INTO global_options (name, value, changed_by, mtime, id) VALUES (:name, :value, :changedby, :mtime, :id)"
         for(name, value, changedby, mtime, my_id) in self.odb.get(qf):
             #print name, value, changedby, mtime, my_id
-            self.db.insert(id, qp, name=name, value=value, changedby=changedby, mtime=mtime, id=my_id)
+            self.db.insert("id", qp, name=name, value=value, changedby=changedby, mtime=mtime, id=my_id)
         
         #dhcp_servers
-        #print 
-        #print "DHCP SERVERS"
+        print 
+        print "DHCP SERVERS"
         qf = "SELECT id, name, info, changed_by, mtime from dhcp_servers"
         qp = "INSERT INTO dhcp_servers (id, name, info, changed_by, mtime) VALUES (:id, :name, :info, :changedby, :mtime)"
         for(my_id, name, info, changed_by, mtime) in self.odb.get(qf):
             #print my_id, name, info, changed_by, mtime
-            self.db.insert(id, qp, id=my_id, name=name, info=info, changedby=changed_by, mtime=mtime)
+            self.db.insert("id", qp, id=my_id, name=name, info=info, changedby=changed_by, mtime=mtime)
         
         #networks
-        #print 
-        #print "NETWORKS"
+        print 
+        print "NETWORKS"
         qf = "SELECT id, authoritative, info, changed_by, mtime FROM networks"
-        qp = "INSERT INTO networks (id, authoritative, info, changed_by, mtime) VALUES (:id, :authoritative, :info, :changedby, :mtime)"
+        qp = "INSERT INTO networks (id, authoritative, info, changed_by, mtime, optionset) VALUES (:id, :authoritative, :info, :changedby, :mtime, :optset)"
         for(my_id, authoritative, info, changed_by, mtime) in self.odb.get(qf):
             #print my_id, authoritative, info, changed_by, mtime
-            self.db.insert(id, qp, id=my_id, authoritative=authoritative, info=info, changedby=changed_by, mtime=mtime)
+            optset = self.optionset_manager.create_optionset()
+            self.db.insert("id", qp, id=my_id, authoritative=authoritative, info=info, changedby=changed_by, mtime=mtime, optset=optset)
         
         #optionspaces
-        #print 
-        #print "OPTION SPACES"
+        print 
+        print "OPTION SPACES"
         qf = "SELECT id, type, value, info, changed_by, mtime FROM optionspaces"
         qp = "INSERT INTO optionspaces (id, type, value, info, changed_by, mtime) VALUES (:id, :type, :value, :info, :changedby, :mtime)"
         for(my_id, my_type, value, info, changed_by, mtime) in self.odb.get(qf):
             #print my_id, my_type, value, info, changed_by, mtime
-            self.db.insert(id, qp, id=my_id, type=my_type, value=value, info=info, changedby=changed_by, mtime=mtime)
+            self.db.insert("id", qp, id=my_id, type=my_type, value=value, info=info, changedby=changed_by, mtime=mtime)
+            
+        # Table optionset is built when importing other objects.
         
         # Stratum 2:
         #subnetworks
-        #print 
-        #print "SUBNETWORKS"
+        print 
+        print "SUBNETWORKS"
         qf = "SELECT id, netmask, network, info, changed_by, mtime FROM subnetworks"
-        qp = "INSERT INTO subnetworks (id, network, info, changed_by, mtime) VALUES(:id, :network, :info, :changedby, :mtime)"
+        qp = "INSERT INTO subnetworks (id, network, info, changed_by, mtime, optionset) VALUES(:id, :network, :info, :changedby, :mtime, :optset)"
         for(my_id, netmask, network, info, changed_by, mtime) in self.odb.get(qf):
             my_id = self.m2cidr(my_id, netmask)
             #print my_id, netmask, network, info, changed_by, mtime
-            self.db.insert(id, qp, id=my_id, network=network,
-                           info=info, changedby=changed_by, mtime=mtime)
-        #option_defs
-        #print "OPTION DEFINITIONS"
+            optset = self.optionset_manager.create_optionset()
+            self.db.insert("id", qp, id=my_id, network=network,
+                           info=info, changedby=changed_by, mtime=mtime, optset=optset)
+            
+        #option_defs and option_base are both built from the dhcp_option_defs table
+        print "OPTION DEFINITIONS"
         qf = """SELECT id, name, code, qualifier, type, optionspace, info, changed_by, mtime 
                 FROM dhcp_option_defs WHERE scope='dhcp'"""
         qp = """INSERT INTO option_defs (id, name, code, qualifier, type, optionspace, info, changed_by, mtime) 
                                VALUES(:id, :name, :code, :qualifier, :type, :optionspace, :info, :changedby, :mtime)"""
+        qp2 = """INSERT INTO option_base (name, code, qualifier, type, optionspace, info, changed_by, mtime)
+                               VALUES(:name, :code, :qualifier, :type, :optionspace, :info, :changedby, :mtime)"""
+                               
         for(my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime) in self.odb.get(qf):
             #print my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime
-            self.db.insert(id, qp, id=my_id, name=name, code=code, qualifier=qualifier, type=my_type, optionspace=optionspace, 
+            self.db.insert("id", qp, id=my_id, name=name, code=code, qualifier=qualifier, type=my_type, optionspace=optionspace, 
                            info=info, changedby=changed_by, mtime=mtime)
+            id = self.db.insert("id", qp2, name=name, code=code, qualifier=qualifier, type=my_type, optionspace=optionspace,
+                           info=info, changedby=changed_by, mtime=mtime)
+            if my_type.startswith("integer") or my_type.startswith("unsigned"):
+                qp3 = """INSERT INTO int_option (option_base, minval, maxval) 
+                         VALUES (:option_base, :minval, :maxval)"""
+
+                if my_type.endswith(' 8'):
+                    u_maxval = 255
+                    i_maxval = 127
+                    i_minval = -127
+                if my_type.endswith(' 16'):
+                    u_maxval = 16383
+                    i_maxval = 8191
+                    i_minval = -8191
+                if my_type.endswith(' 32'):
+                    u_maxval = 4294967295
+                    i_maxval = 2147483647
+                    i_minval = -2147483647
+                if my_type.startswith("unsigned"):
+                    minval = 0
+                    maxval = u_maxval
+                else:
+                    minval = i_minval
+                    maxval = i_maxval
+                self.db.put(qp3, option_base=id, minval=minval, maxval=maxval)
+            
+            if my_type == 'string' or my_type == 'text':
+                qp3 = """INSERT INTO str_option (option_base) 
+                         VALUES (:option_base)"""
+                self.db.put(qp3, option_base=id)
+            
+            if my_type == 'boolean':
+                qp3 = """INSERT INTO bool_option (option_base) 
+                         VALUES (:option_base)"""
+                self.db.put(qp3, option_base=id)
+                
+            if my_type == 'ip-address':
+                qp3 = """INSERT INTO ipaddr_option (option_base) 
+                         VALUES (:option_base)"""
+                self.db.put(qp3, option_base=id)
+        
+        optionset.OptionsetManager.init_class(self.db)  # Reinitialize class with new options in the table
         #groups
-        #print 
-        #print "GROUPS"
+        print 
+        print "GROUPS"
         group_targets = set()  # Save set of groups for checking insertions later on
         qf = "SELECT groupname, parent_group, optionspace, info, changed_by, mtime FROM groups"
-        qp = """INSERT INTO groups (groupname,  parent_group, optionspace, info, changed_by, mtime)
-                       VALUES(:groupname, :parentgroup, :optionspace, :info, :changedby,:mtime)"""
+        qp = """INSERT INTO groups (groupname,  parent_group, optionspace, info, changed_by, mtime, optionset)
+                       VALUES(:groupname, :parentgroup, :optionspace, :info, :changedby, :mtime, :optset)"""
         self.db.put("SET foreign_key_checks=0")
         for(groupname, parent_group, optionspace, info, changed_by, mtime) in self.odb.get(qf):
             #print groupname, parent_group, optionspace, info, changed_by, mtime
             if not parent_group:
                 parent_group = 'plain'
             group_targets.add(groupname)
-            self.db.insert(id, qp, groupname=groupname, parentgroup=parent_group, 
-                           optionspace=optionspace, info=info, changedby=changed_by, mtime=mtime)
+            optset = self.optionsetManager.create_optionset()
+            self.db.insert("id", qp, groupname=groupname, parentgroup=parent_group, 
+                           optionspace=optionspace, info=info, changedby=changed_by, mtime=mtime, optset=optset)
         self.db.put("SET foreign_key_checks=1")
 
         #pools
-        #print 
-        #print "POOLS"
+        print 
+        print "POOLS"
         qf = "SELECT poolname, optionspace, network, info, changed_by, mtime FROM pools"
-        qp = """INSERT INTO pools (poolname, optionspace, network, info, changed_by, mtime)
-                       VALUES(:poolname, :optionspace, :network, :info, :changedby, :mtime)"""
+        qp = """INSERT INTO pools (poolname, optionspace, network, info, changed_by, mtime, optionset)
+                       VALUES(:poolname, :optionspace, :network, :info, :changedby, :mtime, :optset)"""
         for(poolname, optionspace, network, info, changed_by, mtime) in self.odb.get(qf):
+            optset = self.optionsetManager.create_optionset()
             #print poolname, optionspace, network, info, changed_by, mtime
-            self.db.insert(id, qp, poolname=poolname, optionspace=optionspace, 
-                           network=network, info=info, changedby=changed_by, mtime=mtime)
+            self.db.insert("id", qp, poolname=poolname, optionspace=optionspace, 
+                           network=network, info=info, changedby=changed_by, mtime=mtime, optset=optset)
         #classes
-        #print 
-        #print "CLASSES"
+        print 
+        print "CLASSES"
         qf = "SELECT classname, optionspace, vendor_class_id, info, changed_by, mtime FROM classes"
-        qp = """INSERT INTO classes (classname, optionspace, vendor_class_id, info, changed_by, mtime)
-                       VALUES(:classname, :optionspace, :vendorclassid, :info, :changedby, :mtime)"""
+        qp = """INSERT INTO classes (classname, optionspace, vendor_class_id, info, changed_by, mtime, optionset)
+                       VALUES(:classname, :optionspace, :vendorclassid, :info, :changedby, :mtime, :optset)"""
         for(classname, optionspace, vendor_class_id, info, changed_by, mtime) in self.odb.get(qf):
+            optset = self.optionsetManager.create_optionset()
             #print classname, optionspace, network, info, changed_by, mtime
-            self.db.insert(id, qp, classname=classname, optionspace=optionspace, 
-                           vendorclassid=vendor_class_id, info=info, changedby=changed_by, mtime=mtime)
-        
+            self.db.insert("id", qp, classname=classname, optionspace=optionspace, 
+                           vendorclassid=vendor_class_id, info=info, changedby=changed_by, mtime=mtime, optset=optset)
         
         # Stratum 3: group_options, pool_options, network_options, subnetwork_options, pool_ranges, 
         #            pool_literal_options, class_literal_optrions, class_options and hosts
@@ -247,10 +303,10 @@ class DHCPManager(Manager):
                     WHERE o.name=d.name AND d.scope='dhcp' AND o.gtype='%s'""" % tbl[0]
             qp = """INSERT INTO %s_options (`for`, name, value, changed_by, mtime, id) 
                            VALUES (:address, :name, :value, :changedby, :mtime, :id)""" % tbl[0]
-            #print
-            #print "OPTION TABLE FOR %s" % tbl[0]
+            print
+            print "OPTION TABLE FOR %s" % tbl[0]
             targets = {}
-            rows = self.db.get("SELECT %s from %s" % (tbl[2], tbl[1]))
+            rows = self.db.get_all("SELECT %s from %s" % (tbl[2], tbl[1]))
             for row in rows:
                 if tbl[0] == "subnetwork":
                     (ip, size) = row[0].split("/")
@@ -261,16 +317,28 @@ class DHCPManager(Manager):
             for(address, name, value, changed_by, mtime, my_id) in self.odb.get(qf):
                 if address in targets:
                     #print address, name, value, changed_by, mtime, my_id
-                    if tbl[0] == "subnetwork":
+                    
+                    if tbl[0] == 'group':
+                        target = self.group_manager.get_group(unicode(address))
+                    if tbl[0] == 'pool':
+                        target = self.pool_manager.get_pool(unicode(address))
+                    if tbl[0] == 'network':
+                        target = self.network_manager.get_network(unicode(address))
+                    if tbl[0] == 'subnetwork':
                         address = address + '/' + targets[address]
-                    self.db.insert(id, qp, address=address, name=name, value=value, changedby=changed_by, mtime=mtime, id=my_id)
+                        target = self.subnetwork_manager.get_subnetwork(address)
+                    if tbl[0] == 'class':
+                        target = self.host_class_manager.get_host_class(unicode(address))
+                        
+                    if address in targets:
+                        target.get_optionset().set_option_by_name(name, value)
         
         #pool_ranges
         qf = "SELECT pool, start_ip, end_ip, served_by, changed_by, mtime FROM pool_ranges"
         qp = """INSERT INTO pool_ranges (pool, start_ip, end_ip, served_by, changed_by, mtime)
                 VALUES (:pool, :start_ip, :end_ip, :served_by, :changed_by, :mtime)"""
-        #print 
-        #print "POOL RANGES"
+        print 
+        print "POOL RANGES"
         for (pool, start_ip, end_ip, served_by, changed_by, mtime) in self.odb.get(qf):
             #print pool, start_ip, end_ip, served_by, changed_by, mtime
             self.db.insert(start_ip, qp, pool=pool, start_ip=start_ip, end_ip=end_ip, 
@@ -286,10 +354,10 @@ class DHCPManager(Manager):
             qf = """SELECT `owner`, value, changed_by, mtime  FROM literal_options WHERE owner_type='%s'""" % tbl[0]
             qp = """INSERT INTO %s_literal_options (`for`, value, changed_by, mtime) 
                            VALUES (:address, :value, :changed_by, :mtime)""" % tbl[0]
-            #print
-            #print "LITERAL OPTIONS TABLE FOR %s" % tbl[0]
+            print
+            print "LITERAL OPTIONS TABLE FOR %s" % tbl[0]
             targets = set()
-            rows = self.db.get("SELECT %s from %s" % (tbl[2], tbl[1]))
+            rows = self.db.get_all("SELECT %s from %s" % (tbl[2], tbl[1]))
             for row in rows:
                 if tbl[0] == "subnetwork":
                     targets.add(row[0].split("/")[0])
@@ -303,10 +371,10 @@ class DHCPManager(Manager):
         
         #hosts
         qf = "SELECT id, `group`, mac, room, optionspace, changed_by, mtime, info, entry_status FROM hostlist"
-        qp = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, changed_by, mtime, info, entry_status)
-        VALUES (:id, :dns, :group, :mac, :room, :optionspace, :changed_by, :mtime, :info, :entry_status)"""
-        #print
-        #print "HOSTS"
+        qp = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, changed_by, mtime, info, entry_status, optionset)
+        VALUES (:id, :dns, :group, :mac, :room, :optionspace, :changed_by, :mtime, :info, :entry_status, :optset)"""
+        print
+        print "HOSTS"
         for(my_id, group, mac, room, optionspace, changed_by, mtime, info, entry_status) in self.odb.get(qf):
             dns = my_id
             my_id = dns.replace('.', '_')
@@ -320,20 +388,22 @@ class DHCPManager(Manager):
                 self.db.insert(id, "INSERT INTO rooms (id, info, changed_by) VALUES (:id, :info, :changed_by)",
                                id=room, info="Auto inserted on hosts migration", changed_by="dhcp2-ng")
                 rooms.add(room)
-                
+            
+            optset = self.optionsetManager.create_optionset()
+            
             #print "'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s'" % (my_id, dns, group, mac, room, optionspace, changed_by, mtime, info, entry_status)
             #print my_id, dns, group, mac, room, optionspace, changed_by, mtime, info, entry_status
             self.db.insert(id, qp, id=my_id, dns=dns, group=group, mac=mac, room=room, 
-                               optionspace=optionspace, changed_by=changed_by, mtime=mtime, info=info, entry_status=entry_status)
+                               optionspace=optionspace, changed_by=changed_by, mtime=mtime, info=info, entry_status=entry_status, optset=optset)
         
         # Stratum 4: host_literal_options and host_options
         qf = """SELECT `owner`, value, changed_by, mtime  FROM literal_options WHERE owner_type='host'"""
         qp = """INSERT INTO host_literal_options (`for`, value, changed_by, mtime) 
                        VALUES (:address, :value, :changed_by, :mtime)"""
-        #print
-        #print "LITERAL OPTIONS TABLE FOR hosts"
+        print
+        print "LITERAL OPTIONS TABLE FOR hosts"
         targets = set()
-        rows = self.db.get("SELECT id from hosts")
+        rows = self.db.get_all("SELECT id from hosts")
         for row in rows:
                 targets.add(row[0])
         #print targets 
@@ -342,22 +412,27 @@ class DHCPManager(Manager):
             if address in targets:
                 #print address, value, changed_by, mtime
                 self.db.put(qp, address=address, value=value, changed_by=changed_by, mtime=mtime)
-        
+                
+            if address in targets:
+                #print address, name, value, changed_by, mtime, my_id
+                self.db.put(qp, address=address, value=value, changed_by=changed_by, mtime=mtime)
+                 
         # host_options
         qf = """SELECT o.`group`, o.name, o.value, o.changed_by, o.mtime, o.id FROM optionlist o, dhcp_option_defs d
                     WHERE o.name=d.name AND d.scope='dhcp' AND o.gtype='host'"""
         qp = """INSERT INTO host_options (`for`, name, value, changed_by, mtime, id) 
                        VALUES (:address, :name, :value, :changedby, :mtime, :id)"""
         #print
-        #print "OPTION TABLE FOR host"
+        print "OPTION TABLE FOR host"
         #using targets from last operation
         #print targets 
         for(address, name, value, changed_by, mtime, my_id) in self.odb.get(qf):
             address = address.replace('.', '_')
+            
             if address in targets:
-                #print address, name, value, changed_by, mtime, my_id
-                self.db.insert(id, qp, address=address, name=name, value=value, changedby=changed_by, mtime=mtime, id=my_id)
-    
+                host = self.host_manager.get_host(unicode(address))
+                host.get_optionset().set_option_by_name(name, value)
+               
         # Pick up options formerly encoded in the data model tables:
         # groups had: filename, next_server, server_name, server_identifier
         # classes had filename, next_server, server_name
@@ -370,8 +445,8 @@ class DHCPManager(Manager):
         qf = """SELECT groupname, filename, next_server, server_name, server_identifier FROM groups
                 WHERE filename IS NOT NULL OR next_server IS NOT NULL OR server_name IS NOT NULL OR server_identifier IS NOT NULL"""
         
-        #print
-        #print "GROUP PARAMETERS:"        
+        print
+        print "GROUP PARAMETERS:"        
         for(name, filename, next_server, server_name, server_identifier) in self.odb.get(qf):
             #print name, filename, next_server, server_name, server_identifier
             if filename:
@@ -389,8 +464,8 @@ class DHCPManager(Manager):
                 
         qf = """SELECT classname, filename, next_server, server_name, server_identifier FROM classes
                 WHERE filename IS NOT NULL OR next_server IS NOT NULL OR server_name IS NOT NULL OR server_identifier IS NOT NULL"""
-        #print
-        #print "CLASS PARAMETERS"
+        print
+        print "CLASS PARAMETERS"
         for(name, filename, next_server, server_name, server_identifier) in self.odb.get(qf):
             #print name, filename, next_server, server_name, server_identifier
             if filename:
@@ -408,8 +483,8 @@ class DHCPManager(Manager):
         
         qf = """SELECT id, subnet_mask, next_server, server_name FROM networks
                 WHERE  server_name IS NOT NULL """
-        #print
-        #print "NETWORK PARAMETERS"
+        print
+        print "NETWORK PARAMETERS"
         for(name, subnet_mask, next_server, server_name) in self.odb.get(qf):
             #print name, subnet_mask, next_server, server_name
             if subnet_mask:
@@ -426,8 +501,8 @@ class DHCPManager(Manager):
         
         qf = """SELECT id, netmask, subnet_mask, next_server, server_name, server_identifier FROM subnetworks
                 WHERE subnet_mask IS NOT NULL OR next_server IS NOT NULL OR server_name IS NOT NULL OR server_identifier IS NOT NULL"""
-        #print
-        #print "SUBNETWORK PARAMETERS"
+        print
+        print "SUBNETWORK PARAMETERS"
         for(my_id, netmask, subnet_mask, next_server, server_name, server_identifier) in self.odb.get(qf):
             my_id = self.m2cidr(my_id, netmask)
             #print my_id, subnet_mask, next_server, server_name, server_identifier
@@ -443,8 +518,8 @@ class DHCPManager(Manager):
         
         qf = """SELECT poolname, max_lease_time FROM pools
                 WHERE max_lease_time IS NOT NULL"""
-        #print
-        #print "POOL PARAMETERS"
+        print
+        print "POOL PARAMETERS"
         for(name, max_lease_time) in self.odb.get(qf):
             #print name, max_lease_time
             if max_lease_time:
@@ -473,7 +548,7 @@ class DHCPManager(Manager):
 
     def dhcp_group(self, host):
         q = "SELECT `group` FROM hosts WHERE id=:host limit 1"
-        dhcp_group = self.db.get(q, host=host)
+        dhcp_group = self.db.get_all(q, host=host)
         return dhcp_group
     
     def dhcp_parent_group(self, dhcp_group):
@@ -483,15 +558,14 @@ class DHCPManager(Manager):
     
     def lookup(self, table, key, where):
         q = "SELECT :key FROM :table WHERE :where LIMIT 1"
-        row = self.db.get(q, key=key, table=table, where=where)[0]
+        row = self.db.get_all(q, key=key, table=table, where=where)[0]
         return row
 
     def make_dhcpd_conf(self, serverID=None):
-
         timing_array = []
-        b4start =  datetime.datetime.now()
+        b4start = datetime.datetime.now()
         
-        timing_array.append(("Start", datetime.datetime.now(), datetime.datetime.now()-datetime.datetime.now()))
+        timing_array.append(("Start", datetime.datetime.now(), datetime.datetime.now() - datetime.datetime.now()))
         
         self.serverID = serverID
         self.dhcpd_conf = []  # Array where we collect the config output strings
@@ -537,7 +611,7 @@ class DHCPManager(Manager):
                 spacearr.append(space)
         #print "SPACEARR=", spacearr    
         if spacearr:
-            q = "SELECT name,code,qualifier,type FROM option_defs WHERE optionspace IS NULL AND code IS NOT NULL"
+            q = "SELECT name,code,qualifier,type FROM option_base WHERE optionspace IS NULL AND code IS NOT NULL"
             for (name, code, qual, option_type) in self.db.get_all(q):
                 """ NOTE The following prevents us from overloading the vendor-encapsulated-options option.
                     If this is to be used define vendor-encapsulated-options with code 43 in the database and use that option. 
@@ -555,7 +629,7 @@ class DHCPManager(Manager):
             for space in spacearr:
                 self.emit("option space %s;" % space)
                 
-                q = "SELECT name, code, qualifier, type FROM option_defs WHERE optionspace=:space"
+                q = "SELECT name, code, qualifier, type FROM option_base WHERE optionspace=:space"
                 for (name, code, qual, option_type) in self.db.get_all(q, space=space):
                     if qual == 'array':
                         self.emit("option %s.%s code %s = array of %s;" % (space, name, code, option_type))
@@ -571,18 +645,21 @@ class DHCPManager(Manager):
         timing_array.append(("Networks", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
         b4groups = datetime.datetime.now()
         self.emit_groups(timing_array=timing_array)
-        aftgroups =datetime.datetime.now()
+        aftgroups = datetime.datetime.now()
         timing_array.append(("Groups", datetime.datetime.now(), datetime.datetime.now() - b4groups))
         endtime = datetime.datetime.now()
         timing_array.append(("Total", datetime.datetime.now(), datetime.datetime.now() - b4start))
         timing_array.sort(key=lambda tup: tup[2])
-        #for (what, when, time) in timing_array:
+        for (what, when, time) in timing_array:
+            pass
             #print what, when, time
-        grouptime = aftgroups-b4groups
-        tottime = endtime-b4start
+        grouptime = aftgroups - b4groups
+        tottime = endtime - b4start
         groupsshare = grouptime.total_seconds() / tottime.total_seconds()
         #print "Groups share=", groupsshare
-        return u"".join(self.dhcpd_conf)
+        s = u"".join(self.dhcpd_conf)
+        #print s
+        return s
 
     def emit_classes(self):
         q = "SELECT classname, optionspace, vendor_class_id FROM classes"
@@ -592,53 +669,25 @@ class DHCPManager(Manager):
                 self.emit_class(classname, optionspace, vendorclass)
 
     def emit_networks(self):
-        q = """SELECT n.id, n.authoritative, n.info, s.id, s.info, no.name, no.value, od.optionspace, od.type, od.qualifier
-               FROM networks AS n 
-               LEFT OUTER JOIN subnetworks AS s ON s.network = n.id
-               LEFT OUTER JOIN network_options AS no ON n.id = no.`for`
-               LEFT OUTER JOIN option_defs AS od ON od.name = no.name
-               ORDER BY (CONVERT(n.id USING latin1) COLLATE latin1_swedish_ci)"""
-        old_netid = None
-        old_subnetid = None
-        braces_open = 0
-        for (netid, authoritative, net_info, sub_id, sub_info, opt_name, opt_value, opt_space, opt_type, opt_qual) in self.db.get_all(q):
-            if netid != old_netid:
-                
-                if braces_open:
-                        self.emit_pools(old_netid, 0)
-                        self.emit("}")
-                        braces_open -= 1
-                old_netid = netid
-                if  net_info:
-                    self.emit("# " + net_info)
-                #q = "SELECT id, network, info FROM subnetworks WHERE network=:network"
-                #if self.db.get_all(q, network=netid) or self.has_pools(netid):
-                if sub_id or self.has_pools(netid):
-                    for poolname in self.get_network_pools(netid):
-                        self.emit_allowed_classes(poolname, 0)
-                    self.emit("shared-network %s {" % netid)
-                    braces_open = True
-                    if authoritative:
-                        self.emit("    authoritative;")
-                    
-                    self.emit_option(opt_name, opt_value, opt_space, opt_type, opt_qual, 1)
-                    #self.emit_option_list(netid, '', 1, 'network')
-                    if sub_id:
-                        if sub_id != old_subnetid:
-                            old_subnetid = sub_id
-                            #print "Emit subnetwork ", netid, sub_id
-                            self.emit_subnetwork(sub_id, netid, sub_info, 0)
-                    
-                else:
-                    self.emit("#shared-network %s {} # Empty, no pools or subnetworks" % id)
+        q = "SELECT id, authoritative, info FROM networks ORDER BY (CONVERT(id USING latin1) COLLATE latin1_swedish_ci)"
+        for (netid, authoritative, info) in self.db.get_all(q):
+            if info:
+                self.emit("# " + info)
+            q = "SELECT id, network, info FROM subnetworks WHERE network=:network"
+            if self.db.get_all(q, network=netid) or self.has_pools(netid):
+                for poolname in self.get_network_pools(netid):
+                    self.emit_allowed_classes(poolname, 0)
+                self.emit("shared-network %s {" % netid)
+                if authoritative:
+                    self.emit("    authoritative;")
+                network = self.network_manager.get_network(netid)
+                self.emit_optlist(network, 1)
+                #self.emit_option_list(netid, '', 1, 'network')
+                self.emit_subnetworks(netid, 0)
+                self.emit_pools(netid, 0)
+                self.emit("}")
             else:
-                if sub_id and sub_id != old_subnetid:
-                    old_subnetid = sub_id
-                    self.emit_subnetwork(sub_id, netid, sub_info, 0)
-            
-        if braces_open:
-            self.emit("}", 0)
-            braces_open -= 1
+                self.emit("#shared-network %s {} # Empty, no pools or subnetworks" % id)
 
     def emit_groups(self, parent=None, indent=0, timing_array=None):
         
@@ -657,7 +706,7 @@ class DHCPManager(Manager):
             self.emit_literal_options(groupname, 'group', indent + 1)
             self.emit_groups(groupname, indent + 1, timing_array=timing_array)
             self.emit_group_hosts(groupname, indent + 1)
-            self.emit_group_trailer(groupname, indent, parent)
+            self.emit_group_footer(groupname, indent, parent)
             timing_array.append(("Group %s" % groupname, datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
  
     def emit_literal_options(self, ownername, ownertype, indent):
@@ -667,46 +716,38 @@ class DHCPManager(Manager):
             self.emit(value, 4 * indent)
     
     def emit_group_hosts(self, groupname, indent):
-        q = """SELECT h.id, h.dns, h.mac, h.room, h.optionspace, h.entry_status, ho.name, ho.value, od.optionspace, od.type, od.qualifier
-               FROM hosts AS h 
-               LEFT OUTER JOIN host_options AS ho ON h.id = ho.`for`
-               LEFT OUTER JOIN option_defs AS od ON od.name = ho.name
-               WHERE h.`group`=:groupname 
-               ORDER BY (CONVERT(h.id USING latin1) COLLATE latin1_swedish_ci)"""
+        q = "SELECT id, dns, mac, room, optionspace, entry_status, info FROM hosts WHERE `group`= :groupname"
     
-        old_hostid = None
-        braces_open = False
-        for (hostid, dns, mac, room, optionspace, entry_status, opt_name, opt_value, opt_space, opt_type, opt_qual) in self.db.get_all(q, groupname=groupname):
-            if hostid != old_hostid:
-                if braces_open:
-                        self.emit("}", 4 * indent)
-                        braces_open = False
-                old_hostid = hostid
-                comment = ""
-                if room:
-                    comment += "# Room %s" % room
-                    
-                if entry_status == 'Active':
-                    if not opt_name:
-                        self.emit("host %s { hardware ethernet %s; fixed-address %s;} %s" % (hostid, mac, dns, comment), 4 * indent)
-                    else:
-                        self.emit("host %s %s" % (hostid, comment), 4 * indent)
-                        self.emit("{", 4 * indent)
-                        braces_open = True
-                        self.emit("hardware ethernet %s;" % mac, 4 * (indent + 1))
-                        self.emit("fixed-address %s;" % dns, 4 * (indent + 1))
-                        self.emit_option_space(optionspace, (4 * (indent + 1)))
-                        self.emit_option(opt_name, opt_value, opt_space, opt_type, opt_qual, indent + 1)
-                        
-                if entry_status == "Inactive":
-                        self.emit("#host %s { hardware ethernet %s; fixed-address %s;} # %s,  %s" % (hostid, mac, dns, entry_status, comment), 4 * indent - 1)
+        for (hostid, dns, mac, room, optionspace, entry_status, info) in self.db.get(q, groupname=groupname):
+            self.emit_host(hostid, dns, mac, room, entry_status, optionspace, info, indent)
+        
+    def emit_host(self, hostid, dns, mac, room, entry_status, optionspace, info, indent):
+        
+        comment = ""
+        if info:
+            comment = info
+        
+        if room:
+            comment += "# Room %s" % room
+            
+        if entry_status == 'Active':
+            host = self.host_manager.get_host(hostid)
+            if self.has_optlist(host):
+                self.emit("host %s %s" % (hostid, comment), 4 * indent)
+                self.emit("{", 4 * indent)
+                self.emit("hardware ethernet %s" % mac, 4 * (indent + 1))
+                self.emit("fixed-address %s;" % dns, 4 * (indent + 1))
+                self.emit_option_space(optionspace, (4 * (indent + 1)))
+                self.emit_optlist(host, indent + 1)
+                #self.emit_option_list(hostid, optionspace, indent + 1, 'host')
+                self.emit("}", 4 * indent)
             else:
-                if entry_status == 'Active':
-                    self.emit_option(opt_name, opt_value, opt_space, opt_type, opt_qual, indent + 1)
-                    
-        if braces_open:
-            self.emit("}", 4 * indent)
-            braces_open = False
+                self.emit("host %s { hardware ethernet %s; fixed-address %s;} %s" % (hostid, mac, dns, comment), 4 * indent)
+            return
+    
+        if entry_status == "Inactive":
+            self.emit("#host %s { hardware ethernet %s; fixed-address %s;} # %s,  %s" % (hostid, mac, dns, entry_status, comment), 4 * indent - 1)
+            return
    
     def emit_pool(self, poolid, indent):
         
@@ -721,7 +762,7 @@ class DHCPManager(Manager):
         row = self.db.get_all("SELECT value FROM pool_options WHERE `for`= :poolid AND name = 'max-lease-time'", 
                                poolid=poolid)
         if row:
-            maxlease=row[0]
+            maxlease = row[0]
             
         if maxlease or self.has_allowed_group(poolid):
 
@@ -738,7 +779,9 @@ class DHCPManager(Manager):
             self.emit("{", 4 * (indent + 1))
             #if maxlease: self.emit("max-lease-time %s;" % maxlease[0] ,4 * (indent+2))
             self.emit_option_space(optionspace, 4 * (indent + 2))
-            self.emit_option_list(poolid, optionspace, indent + 2, 'pool')
+            pool = self.pool_manager.get_pool(poolname)
+            self.emit_optlist(pool, indent + 2)
+            #self.emit_option_list(poolid, optionspace, indent + 2, 'pool')
             self.emit_ranges(poolid, 4 * (indent + 2))
             self.emit_allow_classes(poolid, 4 * (indent + 2))
             self.emit("}", 4 * (indent + 1))
@@ -811,11 +854,13 @@ class DHCPManager(Manager):
             (subnet_addr, mask_length) = subnet_id.split('/')
             subnet_mask = socket.inet_ntoa(struct.pack(">L", (1 << 32) - (1 << 32 >> int(mask_length))))
             
-            if self.has_option_list(subnet_id, '', 1, 'subnetwork'):
+            subnetwork = self.subnetwork_manager.get_subnetwork(subnet_id)
+            if self.has_optlist(subnetwork):
                 self.emit("subnet %s netmask %s     %s" % (subnet_addr, subnet_mask, info), 4 * (indent + 1))
                 self.emit("{", 4 * (indent + 1))
                 #self.emit("option subnet-mask %s;" % subnet_mask, 4 * (indent + 2))
-                self.emit_option_list(subnet_id, '', indent + 2, 'subnetwork')
+                self.emit_optlist(subnetwork, indent + 1)
+                #self.emit_option_list(subnet_id, '', indent + 2, 'subnetwork')
                 self.emit("}", 4 * (indent + 1))
             
             else:
@@ -825,23 +870,7 @@ class DHCPManager(Manager):
         q = "SELECT id, network, info FROM subnetworks WHERE `network`=:network ORDER BY (CONVERT(id USING latin1) COLLATE latin1_swedish_ci)"
     
         for (subnet_id, network, info) in self.db.get_all(q, network=network):
-            # network_id = "%-15s" % subnet_id
-            if info:
-                info = "# " + info
-            else:
-                info = ""
-            (subnet_addr, mask_length) = subnet_id.split('/')
-            subnet_mask = socket.inet_ntoa(struct.pack(">L", (1 << 32) - (1 << 32 >> int(mask_length))))
-            
-            if self.has_option_list(subnet_id, '', 1, 'subnetwork'):
-                self.emit("subnet %s netmask %s     %s" % (subnet_addr, subnet_mask, info), 4 * (indent + 1))
-                self.emit("{", 4 * (indent + 1))
-                #self.emit("option subnet-mask %s;" % subnet_mask, 4 * (indent + 2))
-                self.emit_option_list(subnet_id, '', indent + 2, 'subnetwork')
-                self.emit("}", 4 * (indent + 1))
-            
-            else:
-                self.emit("subnet %s netmask %s { } %s" % (subnet_addr, subnet_mask, info), 4 * (indent + 1))
+            self.emit_subnetwork(subnet_id, network, info, indent)
 
     def emit_class(self, classname, optionspace, vendor_class_id):
 
@@ -854,7 +883,9 @@ class DHCPManager(Manager):
         
         self.emit_option_space(optionspace, 4)
         self.emit_literal_options(classname, 'class', 1)
-        self.emit_option_list(classname, optionspace, 1, 'class')
+        host_class = self.host_class_manager.get_host_class(classname)
+        self.emit_optlist(host_class, 1)
+        #self.emit_option_list(classname, optionspace, 1, 'class')
         self.emit("}", 0)
 
     def emit_option_space(self, optionspace, indent):
@@ -878,9 +909,11 @@ class DHCPManager(Manager):
             self.emit("group \"%s\"" % groupname, 4 * indent)
             self.emit("{", 4 * indent)
             self.emit_option_space(optionspace, 4 * (indent + 1))
-            self.emit_option_list(groupname, optionspace, indent + 1, 'group')
+            group = self.group_manager.get_group(groupname)
+            self.emit_optlist(group, indent + 1)
+            #self.emit_option_list(groupname, optionspace, indent + 1, 'group')
     
-    def emit_group_trailer(self, groupname, indent, parent):
+    def emit_group_footer(self, groupname, indent, parent):
         if parent and groupname != 'plain':
             self.emit("}", 4 * indent)
 
@@ -895,42 +928,15 @@ class DHCPManager(Manager):
         if not poolname:
             return False
         return bool(self.db.get_all("SELECT groupname FROM pool_group_map WHERE `poolname` = :poolname", poolname=poolname))
-
-    def has_option_list(self, optionlist, optionspace, indent, gtype):
-
-        if not optionlist:
+            
+    def emit_optlist(self, object, indent):
+        option_names = object.list_options()
+        if len(option_names) == 0:
             return False
-    
-        table = gtype + "_options"
-            
-        return bool(self.db.get_all("SELECT name FROM %s WHERE `for` = :optionlist" % table, optionlist=optionlist))
-    
-    def emit_option(self, name, value, space, opt_type, qual, indent):
-            
-        opt = ""
-        if qual != "parameter" and qual != "parameter-array":
-            opt = "option "
-        if space:
-            space += "."
-        else:
-            space = ""
-        if opt_type == 'text':
-            self.emit("%s%s%s \"%s\";" % (opt, space, name, value), 4 * indent)
-        
-        else:
-            self.emit("%s%s%s %s;" % (opt, space, name, value), 4 * indent)
-                
-    def emit_option_list(self, optionlist, optionspace, indent, gtype):
-
-        if not optionlist:
-            return False
-    
-        table = gtype + "_options"
-        
-        for (name, value) in self.db.get_all("SELECT name, value FROM %s WHERE `for` = :optionlist ORDER BY (CONVERT(name USING latin1) COLLATE latin1_swedish_ci)" % table, optionlist=optionlist):
-        
-            (space, opt_type, qual) = self.db.get_all("SELECT optionspace, type, qualifier FROM option_defs WHERE name = :name ", name=name)[0]
-            
+        optionset = object.get_optionset()
+        for name in option_names:
+            value = optionset.get_option(name)
+            (space, opt_type, qual) = self.db.get_all("SELECT optionspace, type, qualifier FROM option_base WHERE name = :name ", name=name)[0]
             opt = ""
             if qual != "parameter" and qual != "parameter-array":
                 opt = "option "
@@ -940,9 +946,14 @@ class DHCPManager(Manager):
                 space = ""
             if opt_type == 'text':
                 self.emit("%s%s%s \"%s\";" % (opt, space, name, value), 4 * indent)
-            
             else:
                 self.emit("%s%s%s %s;" % (opt, space, name, value), 4 * indent)
+            
+    def has_optlist(self, object):
+        option_names = object.list_options()
+        if len(option_names) == 0:
+            return False
+        return True
             
     def emit(self, msg, indent=0):
         #msg = msg.rstrip() + "\n"

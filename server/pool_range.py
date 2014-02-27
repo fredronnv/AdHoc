@@ -6,6 +6,7 @@ from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
 from pool import *
 from dhcp_server import *
+from util import *
 import socket
 
 
@@ -27,12 +28,6 @@ class ExtPoolRangeReversedError(ExtValueError):
     
 class ExtPoolRangeOverlapError(ExtValueError):
     decs = "The specified pool range overlaps another pool range"
-
-
-class ExtIpV4Address(ExtString):
-    name = "ipv4-address"
-    desc = "An IPv4 address using dotted decimal representation"
-    regexp = "^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
 
 
 class ExtPoolRangeName(ExtIpV4Address):

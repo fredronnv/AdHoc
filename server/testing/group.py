@@ -12,7 +12,8 @@ data_template = {
                  "group": True,
                  "changed_by": True,
                  "mtime": True,
-                 "options": True
+                 "optionset_data": {"_": True, "_remove_nulls": True},
+                 "optionset": True,
                  }
 
 
@@ -30,7 +31,7 @@ class T1100_GroupList(UnAuthTests):
   
 class T1110_GroupFetch(UnAuthTests):
     """ Test group_fetch """
-    
+
     def do(self):
         groups = [x.group for x in self.superuser.group_dig({}, data_template)]
         
@@ -145,7 +146,7 @@ class T1150_GroupSetParent(AuthTests):
                     pass
                 
                 
-class T0460_GroupSetOption(AuthTests):
+class T1160_GroupSetOption(AuthTests):
     """ Test setting options on a group"""
     
     def do(self):
@@ -158,11 +159,13 @@ class T0460_GroupSetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.group_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                self.proxy.group_options_update("QZ1243A", {"subnet-mask": "255.255.255.0"})
+                #self.proxy.network_option_set("network_test", "subnet-mask", "255.255.255.0")
                 nd = self.superuser.group_fetch('QZ1243A', data_template)
+            
                 assert nd.group == "QZ1243A", "Bad group id"
                 assert nd.info == "TestGroup", "Bad info"
-                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                assert nd.optionset_data["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
                 
             finally:
                 try:
@@ -171,7 +174,7 @@ class T0460_GroupSetOption(AuthTests):
                     pass
                 
                 
-class T0470_GroupUnsetOption(AuthTests):
+class T1170_GroupUnsetOption(AuthTests):
     """ Test unsetting options on a group"""
     
     def do(self):
@@ -179,12 +182,12 @@ class T0470_GroupUnsetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.group_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
-                self.proxy.group_option_unset("QZ1243A", "subnet-mask")
+                self.proxy.group_options_update("QZ1243A", {"subnet-mask": "255.255.255.0"})
+                self.proxy.group_options_update("QZ1243A", {"subnet-mask": None})
                 nd = self.superuser.group_fetch("QZ1243A", data_template)
                 assert nd.group == "QZ1243A", "Bad group id"
                 assert nd.info == "TestGroup", "Bad info"
-                assert "subnet-mask" not in nd.options, "Subnet-mask still in options"
+                assert "subnet-mask" not in nd.optionset_data, "Subnet-mask still in options"
                 
             finally:
                 try:

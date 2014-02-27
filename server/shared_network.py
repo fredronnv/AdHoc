@@ -6,6 +6,8 @@ from rpcc.function import SessionedFunction
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
 from rpcc.database import IntegrityError
+from optionset import *
+from option_def import *
 
 
 class ExtNoSuchNetworkError(ExtLookupError):
@@ -62,25 +64,24 @@ class NetworkDestroy(NetworkFunBase):
         self.network_manager.destroy_network(self, self.network)
 
 
-class NetworkOptionSet(NetworkFunBase):
-    extname = "network_option_set"
-    desc = "Set an option value on a network"
-    params = [("option_name", ExtOptionDef, "Option name"),
-              ("value", ExtString, "Option value")]
+class NetworkOptionsUpdate(NetworkFunBase):
+    extname = "network_options_update"
+    desc = "Update option value(s) on a shared network"
     returns = (ExtNull)
     
-    def do(self):
-        self.network_manager.set_option(self, self.network, self.option_name, self.value)
-
-
-class NetworkOptionUnset(NetworkFunBase):
-    extname = "network_option_unset"
-    desc = "Unset an option value on a network"
-    params = [("option_name", ExtOptionDef, "Option name")]
-    returns = (ExtNull)
+    @classmethod
+    def get_parameters(cls):
+        pars = super(NetworkOptionsUpdate, cls).get_parameters()
+        ptype = Optionset._update_type(0)
+        ptype.name = "network-" + ptype.name
+        pars.append(("updates", ptype, "Fields and updates"))
+        return pars
     
     def do(self):
-        self.network_manager.unset_option(self, self.network, self.option_name)
+        omgr = self.optionset_manager
+        optionset = omgr.get_optionset(self.network.optionset)
+        for (key, value) in self.updates.iteritems():
+            optionset.set_option_by_name(key, value)
 
 
 class Network(Model):
@@ -95,6 +96,7 @@ class Network(Model):
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
+        self.optionset = a.pop(0)
 
     @template("network", ExtNetwork)
     def get_network(self):
@@ -116,14 +118,13 @@ class Network(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @template("options", ExtOptions)
-    def get_options(self):
-        q = "SELECT name, value FROM network_options WHERE `for`=:id"
-        ret = {}
-        res = self.db.get_all(q, id=self.oid)
-        for opt in res:
-            ret[opt[0]] = opt[1]
-        return ret
+    @template("options", ExtOptionKeyList, desc="List of options defined for this network")
+    def list_options(self):
+        return self.get_optionset().list_options()
+    
+    @template("optionset", ExtOptionset, model=Optionset)
+    def get_optionset(self):
+        return self.optionset_manager.get_optionset(self.optionset)
     
     @update("network", ExtNetworkName)
     @entry(AuthRequiredGuard)
@@ -139,14 +140,12 @@ class Network(Model):
         q = "UPDATE networks SET authoritative=:authoritative WHERE id=:id"
         self.db.put(q, id=self.oid, authoritative=newauthoritative)
         
-        
     @update("info", ExtString)
     @entry(AuthRequiredGuard)
     def set_info(self, newinfo):
         q = "UPDATE networks SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
         
-
 
 class NetworkManager(Manager):
     name = "network_manager"
@@ -159,7 +158,7 @@ class NetworkManager(Manager):
         
     def base_query(self, dq):
         dq.table("networks nw")
-        dq.select("nw.id", "nw.authoritative", "nw.info", "nw.mtime", "nw.changed_by")
+        dq.select("nw.id", "nw.authoritative", "nw.info", "nw.mtime", "nw.changed_by", "nw.optionset")
         return dq
 
     def get_network(self, network_name):
@@ -176,9 +175,14 @@ class NetworkManager(Manager):
     
     @entry(AuthRequiredGuard)
     def create_network(self, fun, network_name, authoritative, info):
-        q = "INSERT INTO networks (id, authoritative, info, changed_by) VALUES (:id, :authoritative, :info, :changed_by)"
+        
+        optionset = self.optionset_manager.create_optionset()
+        
+        q = """INSERT INTO networks (id, authoritative, info, changed_by, optionset) 
+               VALUES (:id, :authoritative, :info, :changed_by, :optionset)"""
         try:
-            self.db.put(q, id=network_name, authoritative=authoritative, info=info, changed_by=fun.session.authuser)
+            self.db.put(q, id=network_name, authoritative=authoritative, 
+                        info=info, changed_by=fun.session.authuser, optionset=optionset)
         except IntegrityError:
             raise ExtNetworkAlreadyExistsError()
         
@@ -186,6 +190,9 @@ class NetworkManager(Manager):
         
     @entry(AuthRequiredGuard)
     def destroy_network(self, fun, network):
+        
+        network.get_optionset().destroy()
+        
         try:
             q = "DELETE FROM networks WHERE id=:id LIMIT 1"
         except IntegrityError:

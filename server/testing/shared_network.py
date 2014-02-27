@@ -113,7 +113,7 @@ class T0450_networkSetInfo(AuthTests):
                 
 class T0460_NetworkSetOption(AuthTests):
     """ Test setting options on a network"""
-    
+
     def do(self):
         try:
             self.superuser.network_destroy('network_test')
@@ -124,15 +124,16 @@ class T0460_NetworkSetOption(AuthTests):
         
         try:
             with AssertAccessError(self):
-                self.proxy.network_option_set("network_test", "subnet-mask", "255.255.255.0")
-                nd = self.superuser.network_fetch('network_test', {"info": True, "network": True, "options": True})
+                self.proxy.network_options_update("network_test", {"subnet-mask": "255.255.255.0"})
+                nd = self.superuser.network_fetch('network_test', {"info": True, "network": True, "optionset": True, "optionset_data": {"subnet-mask": True}})
                 assert nd.network == "network_test", "Bad network id"
                 assert nd.info == "Testnätverk 2", "Bad info"
-                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                assert nd.optionset_data["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
                 
         finally:
             try:
                 self.superuser.network_destroy('network_test')
+                pass
             except:
                 pass
                 
@@ -146,12 +147,13 @@ class T0470_NetworkUnsetOption(AuthTests):
         try:
             with AssertAccessError(self):
 
-                self.proxy.network_option_set("network_test", "subnet-mask", "255.255.255.0")
-                self.proxy.network_option_unset("network_test", "subnet-mask")
-                nd = self.superuser.network_fetch("network_test", {"info": True, "network": True, "options": True})
+                self.proxy.network_options_update("network_test", {"subnet-mask": "255.255.255.0"})
+                self.proxy.network_options_update("network_test", {"subnet-mask": None})
+                
+                nd = self.superuser.network_fetch("network_test", {"info": True, "network": True, "optionset_data": {"subnet-mask": True, "_remove_nulls": True}})
                 assert nd.network == "network_test", "Bad network id"
                 assert nd.info == "Testnätverk 2", "Bad info"
-                assert "subnet-mask" not in nd.options, "Subnet-mask still in options"
+                assert "subnet-mask" not in nd.optionset_data, "Subnet-mask still in optionset_data"
                 
         finally:
             try:

@@ -12,7 +12,7 @@ data_template = {
                  "pool": True,
                  "changed_by": True,
                  "mtime": True,
-                 "options": True
+                 "optionset_data": {"_": True, "_remove_nulls": True}
                  }
 
 
@@ -187,12 +187,12 @@ class T1260_PoolSetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.pool_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                self.proxy.pool_options_update('QZ1243A', {"subnet-mask": "255.255.255.0"})
                 nd = self.superuser.pool_fetch('QZ1243A', data_template)
                 assert nd.pool == "QZ1243A", "Bad pool id"
                 assert nd.network == 'network_test', "Bad network"
                 assert nd.info == "TestPool", "Bad info"
-                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                assert nd.optionset_data["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in optionset_data"
                 
             finally:
                 try:
@@ -211,13 +211,13 @@ class T1270_PoolUnsetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.superuser.pool_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
-                self.proxy.pool_option_unset("QZ1243A", "subnet-mask")
+                self.proxy.pool_options_update('QZ1243A', {"subnet-mask": "255.255.255.0"})
+                self.proxy.pool_options_update('QZ1243A', {"subnet-mask": None})
                 nd = self.superuser.pool_fetch('QZ1243A', data_template)
                 assert nd.pool == "QZ1243A", "Bad pool id"
                 assert nd.network == 'network_test', "Bad network"
                 assert nd.info == "TestPool", "Bad info"
-                assert "subnet-info" not in nd.options, "Subnet-mask still in options"
+                assert "subnet-mask" not in nd.optionset_data, "Subnet-mask still in optionset_data"
                 
             finally:
                 try:

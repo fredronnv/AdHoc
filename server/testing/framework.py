@@ -335,17 +335,27 @@ class MyTests(object):
         """ Asserts that 'value' is a RPCC Attribute dictionary and that it contains exactly the items given in the list 'items'
             To make the test more lenient and allow more items, set 'exact' to False"""
         assert type(value) is rpcc_client.AttrDict, "%s response is not a RPCC attribute dictionary, it is a %s" % (self.function(), type(value))
-        minval = len(items)
+        
+        minval = 0
+        for item in items:
+            if not item.startswith('_'):
+                minval += 1
         if exact:
-            maxval = len(items) + len(optional)
+            maxval = minval + len(optional)
+            if "_remove_nulls" in items:
+                minval = 0
             if(len(value) < minval or len(value) > maxval):
                 pprint.pprint(value)
+                pprint.pprint(items)
             assert len(value) >= minval and len(value) <= maxval, "%s returns %d items, should be between %d and %d" % (self.function(), len(value), minval, maxval)
         else:
             assert len(value) >= minval, "%s returns %d items, should be at least %d" % (self.function(), len(value), minval)
-
-        for item in items:
-            assert item in value, "Mandatory %s not returned by %s" % (item, self.function())
+        
+        if not "_remove_nulls" in items:
+            for item in items:
+                if item.startswith('_'):
+                    continue
+                assert item in value, "Mandatory %s not returned by %s" % (item, self.function())
 
         if(exact):
             for item in value:

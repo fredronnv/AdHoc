@@ -7,6 +7,8 @@ from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
+from optionset import *
+from option_def import *
 
 
 class ExtNoSuchGroupError(ExtLookupError):
@@ -74,25 +76,24 @@ class GroupDestroy(GroupFunBase):
         self.group_manager.destroy_group(self, self.group)
 
 
-class GroupOptionSet(GroupFunBase):
-    extname = "group_option_set"
-    desc = "Set an option value on a group"
-    params = [("option_name", ExtOptionDef, "Option name"),
-              ("value", ExtString, "Option value")]
+class GroupOptionsUpdate(GroupFunBase):
+    extname = "group_options_update"
+    desc = "Update option value(s) on a group"
     returns = (ExtNull)
     
-    def do(self):
-        self.group_manager.set_option(self, self.group, self.option_name, self.value)
-
-
-class GroupOptionUnset(GroupFunBase):
-    extname = "group_option_unset"
-    desc = "Unset an option value on a group"
-    params = [("option_name", ExtOptionDef, "Option name")]
-    returns = (ExtNull)
+    @classmethod
+    def get_parameters(cls):
+        pars = super(GroupOptionsUpdate, cls).get_parameters()
+        ptype = Optionset._update_type(0)
+        ptype.name = "group-" + ptype.name
+        pars.append(("updates", ptype, "Fields and updates"))
+        return pars
     
     def do(self):
-        self.group_manager.unset_option(self, self.group, self.option_name)
+        omgr = self.optionset_manager
+        optionset = omgr.get_optionset(self.group.optionset)
+        for (key, value) in self.updates.iteritems():
+            optionset.set_option_by_name(key, value)
 
 
 class Group(Model):
@@ -109,6 +110,7 @@ class Group(Model):
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
+        self.optionset = a.pop(0)
 
     @template("group", ExtGroup)
     def get_group(self):
@@ -136,15 +138,14 @@ class Group(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @template("options", ExtOptions)
-    def get_options(self):
-        q = "SELECT name, value FROM group_options WHERE `for`=:id"
-        ret = {}
-        res = self.db.get_all(q, id=self.oid)
-        for opt in res:
-            ret[opt[0]] = opt[1]
-        return ret
-
+    @template("options", ExtOptionKeyList, desc="List of options defined for this group")
+    def list_options(self):
+        return self.get_optionset().list_options()
+    
+    @template("optionset", ExtOptionset, model=Optionset)
+    def get_optionset(self):
+        return self.optionset_manager.get_optionset(self.optionset)
+    
     @update("group", ExtString)
     @entry(AuthRequiredGuard)
     def set_name(self, group_name):
@@ -187,7 +188,7 @@ class GroupManager(Manager):
         
     def base_query(self, dq):
         dq.select("g.groupname", "g.parent_group", "g.optionspace",
-                  "g.info", "g.mtime", "g.changed_by")
+                  "g.info", "g.mtime", "g.changed_by", "g.optionset")
         dq.table("groups g")
         return dq
 
@@ -216,12 +217,14 @@ class GroupManager(Manager):
         if options == None:
             options = {}
         optionspace = options.get("optionspace", None)
+        
+        optionset = self.optionset_manager.create_optionset()
             
-        q = """INSERT INTO groups (groupname, parent_group, optionspace, info, changed_by) 
-               VALUES (:group_name, :parent, :optionspace, :info, :changed_by)"""
+        q = """INSERT INTO groups (groupname, parent_group, optionspace, info, changed_by, optionset) 
+               VALUES (:group_name, :parent, :optionspace, :info, :changed_by, :optionset)"""
         try:
             self.db.insert("id", q, group_name=group_name, parent=parent.oid, optionspace=optionspace,
-                       info=info, changed_by=fun.session.authuser)
+                       info=info, changed_by=fun.session.authuser, optionset=optionset)
             print "Group created, name=", group_name
             
         except IntegrityError, e:
@@ -229,6 +232,7 @@ class GroupManager(Manager):
         
     @entry(AuthRequiredGuard)
     def destroy_group(self, fun, group):
+        group.get_optionset().destroy()
         q = "DELETE FROM groups WHERE groupname=:groupname LIMIT 1"
         try:
             self.db.put(q, groupname=group.oid)

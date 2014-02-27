@@ -7,6 +7,8 @@ from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from rpcc.database import  IntegrityError
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
+from optionset import *
+from option_def import *
 
 
 class ExtNoSuchHostClassError(ExtLookupError):
@@ -40,7 +42,7 @@ class ExtHostClass(ExtHostClassName):
     
     
 class ExtHostClassCreateOptions(ExtStruct):
-    name = "host_class_create_options"
+    name = "host_class-create-options"
     desc = "Optional parameters when creating a host_class"
     
     optional = {
@@ -49,7 +51,7 @@ class ExtHostClassCreateOptions(ExtStruct):
     
     
 class ExtHostClassVendorClassID(ExtOrNull):
-    name = "host_class_vendor_class_id"
+    name = "host_class-vendor-class-id"
     desc = "An option record, or null"
     typ = ExtString
 
@@ -81,25 +83,24 @@ class HostClassDestroy(SessionedFunction):
         self.host_class_manager.destroy_host_class(self, self.host_class)
 
 
-class HostClassOptionSet(HostClassFunBase):
-    extname = "host_class_option_set"
-    desc = "Set an option value on a host_class"
-    params = [("option_name", ExtOptionDef, "Option name"),
-              ("value", ExtString, "Option value")]
+class HostClassOptionsUpdate(HostClassFunBase):
+    extname = "host_class_options_update"
+    desc = "Update option value(s) on a host_class"
     returns = (ExtNull)
     
-    def do(self):
-        self.host_class_manager.set_option(self, self.host_class, self.option_name, self.value)
-
-
-class HostClassOptionUnset(HostClassFunBase):
-    extname = "host_class_option_unset"
-    desc = "Unset an option value on a host_class"
-    params = [("option_name", ExtOptionDef, "Option name")]
-    returns = (ExtNull)
+    @classmethod
+    def get_parameters(cls):
+        pars = super(HostClassOptionsUpdate, cls).get_parameters()
+        ptype = Optionset._update_type(0)
+        ptype.name = "host_class-" + ptype.name
+        pars.append(("updates", ptype, "Fields and updates"))
+        return pars
     
     def do(self):
-        self.host_class_manager.unset_option(self, self.host_class, self.option_name)
+        omgr = self.optionset_manager
+        optionset = omgr.get_optionset(self.host_class.optionset)
+        for (key, value) in self.updates.iteritems():
+            optionset.set_option_by_name(key, value)
 
 
 class HostClass(Model):
@@ -116,6 +117,7 @@ class HostClass(Model):
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
+        self.optionset = a.pop(0)
 
     @template("host_class", ExtHostClass)
     def get_host_class(self):
@@ -141,14 +143,13 @@ class HostClass(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @template("options", ExtOptions)
-    def get_options(self):
-        q = "SELECT name, value FROM class_options WHERE `for`=:id"
-        ret = {}
-        res = self.db.get_all(q, id=self.oid)
-        for opt in res:
-            ret[opt[0]] = opt[1]
-        return ret
+    @template("options", ExtOptionKeyList, desc="List of options defined for this class")
+    def list_options(self):
+        return self.get_optionset().list_options()
+    
+    @template("optionset", ExtOptionset, model=Optionset)
+    def get_optionset(self):
+        return self.optionset_manager.get_optionset(self.optionset)
     
     @update("host_class", ExtString)
     @entry(AuthRequiredGuard)
@@ -173,15 +174,13 @@ class HostClass(Model):
     def set_vendor_class_id(self, value):
         q = "UPDATE classes SET vendor_class_id=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
-        
-        
+             
     @update("optionspace", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
         q = "UPDATE host_classes SET optionspace=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
         
-
 
 class HostClassManager(Manager):
     name = "host_class_manager"
@@ -194,7 +193,7 @@ class HostClassManager(Manager):
         
     def base_query(self, dq):
         dq.select("g.classname", "g.vendor_class_id", "g.optionspace",
-                  "g.info", "g.mtime", "g.changed_by")
+                  "g.info", "g.mtime", "g.changed_by", "g.optionset")
         dq.table("classes g")
         return dq
 
@@ -220,12 +219,14 @@ class HostClassManager(Manager):
         if options == None:
             options = {}
         optionspace = options.get("optionspace", None)
-            
-        q = """INSERT INTO classes (classname, vendor_class_id, optionspace, info, changed_by) 
-               VALUES (:host_class_name, :vendor_class_id, :optionspace, :info, :changed_by)"""
+        
+        optionset = self.optionset_manager.create_optionset()
+        
+        q = """INSERT INTO classes (classname, vendor_class_id, optionspace, info, changed_by, optionset) 
+               VALUES (:host_class_name, :vendor_class_id, :optionspace, :info, :changed_by, :optionset)"""
         try:
             self.db.insert("id", q, host_class_name=host_class_name, vendor_class_id=vendor_class_id, optionspace=optionspace,
-                       info=info, changed_by=fun.session.authuser)
+                       info=info, changed_by=fun.session.authuser, optionset=optionset)
             #print "HostClass created, name=", host_class_name
             
         except IntegrityError, e:
@@ -233,6 +234,9 @@ class HostClassManager(Manager):
         
     @entry(AuthRequiredGuard)
     def destroy_host_class(self, fun, host_class):
+        
+        host_class.get_optionset().destroy()
+        
         q = "DELETE FROM classes WHERE classname=:classname LIMIT 1"
         try:
             self.db.put(q, classname=host_class.oid)

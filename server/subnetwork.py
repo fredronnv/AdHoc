@@ -9,6 +9,8 @@ from rpcc.access import *
 from rpcc.database import IntegrityError
 from pool_range import ExtIpV4Address
 import socket, struct
+from optionset import *
+from option_def import *
 
 
 class ExtNoSuchSubnetworkError(ExtLookupError):
@@ -21,6 +23,7 @@ class ExtSubnetworkAlreadyExistsError(ExtLookupError):
     
 class ExtSubnetworkInUseError(ExtValueError):
     desc = "The subnetwork is referred to by other objects. It cannot be destroyed"  
+    
     
 class ExtSubnetworkInvalidError(ExtValueError):
     desc = "the subnetwork specifcation is invalid"  
@@ -74,28 +77,27 @@ class SubnetworkDestroy(SubnetworkFunBase):
     def do(self):
         self.subnetwork_manager.destroy_subnetwork(self, self.subnetwork)
         
-
-class SubnetworkOptionSet(SubnetworkFunBase):
-    extname = "subnetwork_option_set"
-    desc = "Set an option value on a subnetwork"
-    params = [("option_name", ExtOptionDef, "Option name"),
-              ("value", ExtString, "Option value")]
+        
+class SubnetworkOptionsUpdate(SubnetworkFunBase):
+    extname = "subnetwork_options_update"
+    desc = "Update option value(s) on a subnetwork"
     returns = (ExtNull)
     
-    def do(self):
-        self.subnetwork_manager.set_option(self, self.subnetwork, self.option_name, self.value)
-
-
-class SubnetworkOptionUnset(SubnetworkFunBase):
-    extname = "subnetwork_option_unset"
-    desc = "Unset an option value on a subnetwork"
-    params = [("option_name", ExtOptionDef, "Option name")]
-    returns = (ExtNull)
+    @classmethod
+    def get_parameters(cls):
+        pars = super(SubnetworkOptionsUpdate, cls).get_parameters()
+        ptype = Optionset._update_type(0)
+        ptype.name = "subnetwork-" + ptype.name
+        pars.append(("updates", ptype, "Fields and updates"))
+        return pars
     
     def do(self):
-        self.subnetwork_manager.unset_option(self, self.subnetwork, self.option_name)
-
-
+        omgr = self.optionset_manager
+        optionset = omgr.get_optionset(self.subnetwork.optionset)
+        for (key, value) in self.updates.iteritems():
+            optionset.set_option_by_name(key, value)
+            
+            
 class Subnetwork(Model):
     name = "subnetwork"
     exttype = ExtSubnetwork
@@ -108,6 +110,7 @@ class Subnetwork(Model):
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
+        self.optionset = a.pop(0)
 
     @template("subnetwork", ExtSubnetwork, desc="The subnetwork")
     def get_subnetwork(self):
@@ -149,14 +152,13 @@ class Subnetwork(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @template("options", ExtOptions)
-    def get_options(self):
-        q = "SELECT name, value FROM subnetwork_options WHERE `for`=:id"
-        ret = {}
-        res = self.db.get_all(q, id=self.oid)
-        for opt in res:
-            ret[opt[0]] = opt[1]
-        return ret
+    @template("options", ExtOptionKeyList, desc="List of options defined for this subnetwork")
+    def list_options(self):
+        return self.get_optionset().list_options()
+    
+    @template("optionset", ExtOptionset, model=Optionset)
+    def get_optionset(self):
+        return self.optionset_manager.get_optionset(self.optionset)
     
     @update("subnetwork", ExtSubnetworkID)
     @entry(AuthRequiredGuard)
@@ -201,7 +203,7 @@ class SubnetworkManager(Manager):
         
     def base_query(self, dq):
         dq.table("subnetworks nw")
-        dq.select("nw.id", "nw.network", "nw.info", "nw.mtime", "nw.changed_by")
+        dq.select("nw.id", "nw.network", "nw.info", "nw.mtime", "nw.changed_by", "nw.optionset")
         return dq
 
     def get_subnetwork(self, id):
@@ -233,14 +235,22 @@ class SubnetworkManager(Manager):
     
     @entry(AuthRequiredGuard)
     def create_subnetwork(self, fun, id, network, info):
-        q = "INSERT INTO subnetworks (id, network, info, changed_by) VALUES (:id, :network, :info, :changed_by)"
+        
+        optionset = self.optionset_manager.create_optionset()
+        
+        q = """INSERT INTO subnetworks (id, network, info, changed_by, optionset) 
+               VALUES (:id, :network, :info, :changed_by, :optionset)"""
         try:
-            self.db.put(q, id=id, network=network, info=info, changed_by=fun.session.authuser)
+            self.db.put(q, id=id, network=network, info=info, 
+                        changed_by=fun.session.authuser, optionset=optionset)
         except IntegrityError:
             raise ExtSubnetworkAlreadyExistsError()
         
     @entry(AuthRequiredGuard)
     def destroy_subnetwork(self, fun, subnetwork):
+        
+        subnetwork.get_optionset().destroy()
+        
         q = "DELETE FROM subnetworks WHERE id=:id LIMIT 1"
         try:
             self.db.put(q, id=subnetwork.oid)

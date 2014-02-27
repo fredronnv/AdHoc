@@ -16,7 +16,7 @@ data_template = {
                  "group": True,
                  "changed_by": True,
                  "mtime": True,
-                 "options": True
+                 "optionset_data": {"_": True, "_remove_nulls": True},
                  }
 
 
@@ -290,12 +290,12 @@ class T1394_HostSetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.host_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                self.proxy.host_options_update("QZ1243A", {"subnet-mask": "255.255.255.0"})
                 nd = self.superuser.host_fetch('QZ1243A', data_template)
                 assert nd.host == "QZ1243A", "Bad host"
                 assert nd.mac == "00:01:02:03:04:05", "Bad mac"
                 assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
-                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                assert nd.optionset_data["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
                 
             finally:
                 try:
@@ -312,13 +312,13 @@ class T1395_HostUnsetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.host_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
-                self.proxy.host_option_unset("QZ1243A", "subnet-mask")
+                self.proxy.host_options_update("QZ1243A", {"subnet-mask": "255.255.255.0"})
+                self.proxy.host_options_update("QZ1243A", {"subnet-mask": None})
                 nd = self.superuser.host_fetch("QZ1243A", data_template)
                 assert nd.host == "QZ1243A", "Bad host"
                 assert nd.mac == "00:01:02:03:04:05", "Bad mac"
                 assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
-                assert "subnet-mask" not in nd.options, "Subnet-mask still in options"
+                assert "subnet-mask" not in nd.optionset_data, "Subnet-mask still in optionset_data"
                 
             finally:
                 try:

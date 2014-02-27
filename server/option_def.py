@@ -1,11 +1,8 @@
 #!/usr/bin/env python2.6
 
-from rpcc.model import *
-from rpcc.exttype import *
+from rpcc import *
 from optionspace import *
 from util import *
-from rpcc.access import *
-from rpcc.database import IntegrityError
 
 
 class ExtNoSuchOptionDefError(ExtLookupError):
@@ -65,8 +62,19 @@ class ExtOptionValue(ExtStruct):
     
 class ExtOptionValueList(ExtList):
     name = "option_value_list"
-    desc = "List of optiona and their values"
+    desc = "List of options and their values"
     typ = ExtOptionValue
+    
+    
+class ExtOptionKey(ExtString):
+    name = "option_key"
+    desc = "the name of an option"
+    
+    
+class ExtOptionKeyList(ExtList):
+    name = "option_key_list"
+    desc = "List of options and their values"
+    typ = ExtOptionKey
     
     
 class ExtOptions(ExtDict):
@@ -154,7 +162,7 @@ class OptionDefDestroy(SessionedFunction):
 class OptionDef(Model):
     name = "option_def"
     exttype = ExtOptionDef
-    id_type = str
+    id_type = unicode
 
     def init(self, *args, **kwargs):
         a = list(args)
@@ -169,6 +177,7 @@ class OptionDef(Model):
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
+        self.id = a.pop(0)
 
     @template("option_def", ExtOptionDef)
     def get_option_def(self):
@@ -227,7 +236,7 @@ class OptionDef(Model):
     @entry(AuthRequiredGuard)
     def set_option_def(self, value):
         nn = str(value)
-        q = "UPDATE option_defs SET name=:value WHERE name=:name LIMIT 1"
+        q = "UPDATE option_base SET name=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
         
         #print "OptionDef %s changed Name to %s" % (self.oid, nn)
@@ -236,7 +245,7 @@ class OptionDef(Model):
     @update("info", ExtString)
     @entry(AuthRequiredGuard)
     def set_info(self, value):
-        q = "UPDATE option_defs SET info=:value WHERE name=:name LIMIT 1"
+        q = "UPDATE option_base SET info=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
         
         #print "OptionDef %s changed Info to %s" % (self.oid, value)
@@ -244,37 +253,37 @@ class OptionDef(Model):
     @update("code", ExtString)
     @entry(AuthRequiredGuard)
     def set_code(self, value):
-        q = "UPDATE option_defs SET code=:value WHERE name=:name"
+        q = "UPDATE option_base SET code=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
              
     @update("qualifier", ExtOptionDefQualifier)
     @entry(AuthRequiredGuard)
     def set_qualifier(self, value):
-        q = "UPDATE option_defs SET qualifier=:value WHERE name=:name"
+        q = "UPDATE option_base SET qualifier=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
              
     @update("type", ExtOptionType)
     @entry(AuthRequiredGuard)
     def set_type(self, value):
-        q = "UPDATE option_defs SET type=:value WHERE name=:name"
+        q = "UPDATE option_base SET type=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
              
     @update("optionspace", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_optionspace(self, value):
-        q = "UPDATE option_defs SET encapsulate=:value WHERE name=:name"
+        q = "UPDATE option_base SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
         
     @update("encapsulate", ExtOrNullOptionspace)
     @entry(AuthRequiredGuard)
     def set_encapsulate(self, value):
-        q = "UPDATE option_defs SET encapsulate=:value WHERE name=:name"
+        q = "UPDATE option_base SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
            
     @update("struct", ExtList(ExtOptionType))
     @entry(AuthRequiredGuard)
     def set_struct(self, value):
-        q = "UPDATE option_defs SET struct=:value WHERE name=:name"
+        q = "UPDATE option_base SET struct=:value WHERE name=:name"
         
         if not value:
             struct = None  # In case there were no elements in the list
@@ -295,20 +304,20 @@ class OptionDefManager(Manager):
         
     def base_query(self, dq):
         dq.select("r.name", "r.code", "r.qualifier", "r.type", "r.optionspace",
-                  "r.encapsulate", "r.struct", "r.info", "r.mtime", "r.changed_by")
-        dq.table("option_defs r")
+                  "r.encapsulate", "r.struct", "r.info", "r.mtime", "r.changed_by", "r.id")
+        dq.table("option_base r")
         return dq
 
     def get_option_def(self, option_def_name):
-        return self.model(option_def_name)
+        return self.model(unicode(option_def_name))
 
     def search_select(self, dq):
-        dq.table("option_defs r")
+        dq.table("option_base r")
         dq.select("r.name")
     
     @search("name", StringMatch)
     def s_name(self, dq):
-        dq.table("option_defs r")
+        dq.table("option_base r")
         return "r.name"
     
     @entry(AuthRequiredGuard)
@@ -325,7 +334,7 @@ class OptionDefManager(Manager):
         else:
             struct = "{ " + ",".join([x.value for x in structlist.value]) + " }"
             
-        q = """INSERT INTO option_defs (name, code, qualifier, type, optionspace, encapsulate, struct, info, changed_by) 
+        q = """INSERT INTO option_base (name, code, qualifier, type, optionspace, encapsulate, struct, info, changed_by) 
                VALUES (:name, :code, :qualifier, :type, :optionspace, :encapsulate, :struct, :info, :changed_by)"""
         try:
             self.db.insert("id", q, name=option_def_name, code=code, 
@@ -337,7 +346,7 @@ class OptionDefManager(Manager):
               
     @entry(AuthRequiredGuard)
     def destroy_option_def(self, fun, option_def):
-        q = "DELETE FROM option_defs WHERE name=:name LIMIT 1"
+        q = "DELETE FROM option_base WHERE name=:name LIMIT 1"
         try:
             self.db.put(q, name=option_def.oid)
         except IntegrityError:

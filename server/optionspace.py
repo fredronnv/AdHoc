@@ -1,10 +1,6 @@
 #!/usr/bin/env python2.6
 
-from rpcc.model import *
-from rpcc.exttype import *
-from rpcc.function import SessionedFunction
-from rpcc.access import *
-from rpcc.database import IntegrityError
+from rpcc import *
 
 
 class ExtNoSuchOptionspaceError(ExtLookupError):

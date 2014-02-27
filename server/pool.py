@@ -8,6 +8,8 @@ from rpcc.database import  IntegrityError
 from shared_network import ExtNetwork, ExtNetworkName
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
+from optionset import *
+from option_def import *
 
 
 class ExtNoSuchPoolError(ExtLookupError):
@@ -74,31 +76,30 @@ class PoolDestroy(PoolFunBase):
 
     def do(self):
         self.pool_manager.destroy_pool(self, self.pool)
-
-
-class PoolOptionSet(PoolFunBase):
-    extname = "pool_option_set"
-    desc = "Set an option value on a pool"
-    params = [("option_name", ExtOptionDef, "Option name"),
-              ("value", ExtString, "Option value")]
-    returns = (ExtNull)
-    
-    def do(self):
-        self.pool_manager.set_option(self, self.pool, self.option_name, self.value)
         
         
 class PoolLiteralOptionAdd(PoolFunBase):
     extname = "pool_literal_option_add"
 
 
-class PoolOptionUnset(PoolFunBase):
-    extname = "pool_option_unset"
-    desc = "Unset an option value on a pool"
-    params = [("option_name", ExtOptionDef, "Option name")]
+class PoolOptionsUpdate(PoolFunBase):
+    extname = "pool_options_update"
+    desc = "Update option value(s) on a pool"
     returns = (ExtNull)
     
+    @classmethod
+    def get_parameters(cls):
+        pars = super(PoolOptionsUpdate, cls).get_parameters()
+        ptype = Optionset._update_type(0)
+        ptype.name = "pool-" + ptype.name
+        pars.append(("updates", ptype, "Fields and updates"))
+        return pars
+    
     def do(self):
-        self.pool_manager.unset_option(self, self.pool, self.option_name)
+        omgr = self.optionset_manager
+        optionset = omgr.get_optionset(self.pool.optionset)
+        for (key, value) in self.updates.iteritems():
+            optionset.set_option_by_name(key, value)
 
 
 class Pool(Model):
@@ -116,6 +117,7 @@ class Pool(Model):
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
+        self.optionset = a.pop(0)
 
     @template("pool", ExtPool)
     def get_pool(self):
@@ -145,15 +147,14 @@ class Pool(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @template("options", ExtOptions)
-    def get_options(self):
-        q = "SELECT name, value FROM pool_options WHERE `for`=:id"
-        ret = {}
-        res = self.db.get_all(q, id=self.oid)
-        for opt in res:
-            ret[opt[0]] = opt[1]
-        return ret
-  
+    @template("options", ExtOptionKeyList, desc="List of options defined for this host")
+    def list_options(self):
+        return self.get_optionset().list_options()
+    
+    @template("optionset", ExtOptionset, model=Optionset)
+    def get_optionset(self):
+        return self.optionset_manager.get_optionset(self.optionset)
+    
     @update("pool", ExtString)
     @entry(AuthRequiredGuard)  
     def set_pool(self, pool_name):
@@ -202,7 +203,7 @@ class PoolManager(Manager):
         
     def base_query(self, dq):
         dq.select("g.poolname", "g.network", "g.optionspace", "g.max_lease_time",
-                  "g.info", "g.mtime", "g.changed_by")
+                  "g.info", "g.mtime", "g.changed_by", "g.optionset")
         dq.table("pools g")
         return dq
 
@@ -241,13 +242,15 @@ class PoolManager(Manager):
         if optionspace:
             optionspace = optionspace.oid
         max_lease_time = options.get("max_lease_time", 600)
-            
-        q = """INSERT INTO pools (poolname, network, optionspace, max_lease_time, info, changed_by) 
-               VALUES (:pool_name, :network, :optionspace, :max_lease_time, :info, :changed_by)"""
+        
+        optionset = self.optionset_manager.create_optionset()
+        
+        q = """INSERT INTO pools (poolname, network, optionspace, max_lease_time, info, changed_by, optionset) 
+               VALUES (:pool_name, :network, :optionspace, :max_lease_time, :info, :changed_by, :optionset)"""
         try:
             self.db.insert("id", q, pool_name=pool_name, network=network.oid, 
                            optionspace=optionspace, max_lease_time=max_lease_time,
-                           info=info, changed_by=fun.session.authuser)
+                           info=info, changed_by=fun.session.authuser, optionset=optionset)
             #print "Pool created, name=", pool_name
             
         except IntegrityError, e:
@@ -255,6 +258,9 @@ class PoolManager(Manager):
     
     @entry(AuthRequiredGuard)
     def destroy_pool(self, fun, pool):
+        
+        pool.get_optionset().destroy()
+        
         try:
             q = "DELETE FROM pools WHERE poolname=:poolname LIMIT 1"
         except IntegrityError:

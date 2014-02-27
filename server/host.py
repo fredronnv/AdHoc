@@ -1,21 +1,16 @@
 #!/usr/bin/env python2.6
-
-from rpcc.model import *
-from rpcc.exttype import *
-from rpcc.exterror import *
-from rpcc.interror import *
-from rpcc.function import SessionedFunction
+from rpcc import *
 from optionspace import ExtOptionspace, ExtOrNullOptionspace
-from rpcc.database import  IntegrityError
 from group import ExtGroup
 from room import ExtRoomName, ExtRoom
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
-from rpcc.access import *
-
-import socket
+from optionset import *
+from util import *
+from option_def import *
 
 
 class ExtNoSuchHostError(ExtLookupError):
+
     desc = "No such host exists."
 
 
@@ -26,11 +21,7 @@ class ExtHostAlreadyExistsError(ExtLookupError):
 class ExtHostInUseError(ExtValueError):
     desc = "The host is referred to by other objects. It cannot be destroyed"    
 
-    
-class ExtNoSuchDNSNameError(ExtLookupError):
-    desc = "The DNS name cannot be looked up"
-
-
+ 
 class ExtHostName(ExtString):
     name = "host-name"
     desc = "Name of a host"
@@ -136,25 +127,24 @@ class HostDestroy(HostFunBase):
         self.host_manager.destroy_host(self, self.host)
 
 
-class HostOptionSet(HostFunBase):
-    extname = "host_option_set"
-    desc = "Set an option value on a host"
-    params = [("option_name", ExtOptionDef, "Option name"),
-              ("value", ExtString, "Option value")]
+class HostOptionsUpdate(HostFunBase):
+    extname = "host_options_update"
+    desc = "Update option value(s) on a host"
     returns = (ExtNull)
     
-    def do(self):
-        self.host_manager.set_option(self, self.host, self.option_name, self.value)
-
-
-class HostOptionUnset(HostFunBase):
-    extname = "host_option_unset"
-    desc = "Unset an option value on a host"
-    params = [("option_name", ExtOptionDef, "Option name")]
-    returns = (ExtNull)
+    @classmethod
+    def get_parameters(cls):
+        pars = super(HostOptionsUpdate, cls).get_parameters()
+        ptype = Optionset._update_type(0)
+        ptype.name = "host-" + ptype.name
+        pars.append(("updates", ptype, "Fields and updates"))
+        return pars
     
     def do(self):
-        self.host_manager.unset_option(self, self.host, self.option_name)
+        omgr = self.optionset_manager
+        optionset = omgr.get_optionset(self.host.optionset)
+        for (key, value) in self.updates.iteritems():
+            optionset.set_option_by_name(key, value)
 
 
 class Host(Model):
@@ -175,6 +165,7 @@ class Host(Model):
         self.status = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
+        self.optionset = a.pop(0)
 
     @template("host", ExtHost)
     def get_host(self):
@@ -210,22 +201,21 @@ class Host(Model):
     def get_info(self):
         return self.info
     
-    @template("mtime", ExtDateTime)
+    @template("mtime", ExtDateTime, desc="Time of last change")
     def get_mtime(self):
         return self.mtime
     
-    @template("changed_by", ExtString)
+    @template("changed_by", ExtString, desc="User who did the last change")
     def get_changed_by(self):
         return self.changed_by
     
-    @template("options", ExtOptions)
-    def get_options(self):
-        q = "SELECT name, value FROM host_options WHERE `for`=:id"
-        ret = {}
-        res = self.db.get_all(q, id=self.oid)
-        for opt in res:
-            ret[opt[0]] = opt[1]
-        return ret
+    @template("options", ExtOptionKeyList, desc="List of options defined for this host")
+    def list_options(self):
+        return self.get_optionset().list_options()
+    
+    @template("optionset", ExtOptionset, model=Optionset)
+    def get_optionset(self):
+        return self.optionset_manager.get_optionset(self.optionset)
     
     @update("host", ExtString)
     @entry(AuthRequiredGuard)
@@ -296,7 +286,7 @@ class HostManager(Manager):
     def base_query(self, dq):
         dq.select("h.id", "h.dns", "h.`group`", "h.mac", "h.room", 
                   "h.optionspace", "h.info", "h.entry_status", 
-                  "h.mtime", "h.changed_by")
+                  "h.mtime", "h.changed_by", "h.optionset")
         dq.table("hosts h")
         return dq
         
@@ -355,14 +345,17 @@ class HostManager(Manager):
             room = room.oid
         info = options.get("info", None)
         status = options.get("status", "Active")
+        
+        optionset = self.optionset_manager.create_optionset()
             
-        q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, entry_status, changed_by) 
-               VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :entry_status, :changed_by)"""
+        q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, entry_status, changed_by, optionset) 
+               VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :entry_status, :changed_by, :optionset)"""
         try:
             self.db.put(q, host_name=host_name, dns=dns, group=group.oid, 
                         mac=mac, room=room, optionspace=optionspace,
                         info=info, changed_by=fun.session.authuser,
-                        entry_status=status)
+                        entry_status=status,
+                        optionset=optionset)
             
         except IntegrityError, e:
             print e
@@ -370,11 +363,15 @@ class HostManager(Manager):
         
     @entry(AuthRequiredGuard)
     def destroy_host(self, fun, host):
+        
+        host.get_optionset().destroy()
+        
         q = "DELETE FROM hosts WHERE id=:hostname LIMIT 1"
         try:
             self.db.put(q, hostname=host.oid)
         except IntegrityError:
             raise ExtHostInUseError
+        
         #print "Host destroyed, name=", host.oid
         
     def rename_host(self, obj, newname):
@@ -382,15 +379,3 @@ class HostManager(Manager):
         obj.oid = newname
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
-             
-    @entry(AuthRequiredGuard)
-    def set_option(self, fun, host, option, value):
-        q = """INSERT INTO host_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
-               ON DUPLICATE KEY UPDATE value=:value"""
-        self.db.put(q, id=host.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
-        
-    @entry(AuthRequiredGuard)
-    def unset_option(self, fun, host, option):
-        q = """DELETE FROM host_options WHERE `for`=:id AND name=:name"""
-        if not self.db.put(q, id=host.oid, name=option.oid):
-            raise ExtOptionNotSetError()

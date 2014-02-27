@@ -1,5 +1,9 @@
 #!/usr/bin/env python2.6
-from rpcc.exttype import *
+from rpcc import *
+
+   
+class ExtNoSuchDNSNameError(ExtLookupError):
+    desc = "The DNS name is not defined"
 
 
 class ExtDict(ExtStruct):
@@ -40,4 +44,30 @@ class ExtDict(ExtStruct):
                 e.add_trace(self, "While converting key '%s'" % (key,))
                 raise
 
-        return converted 
+        return converted
+    
+    
+class ExtIpV4Address(ExtString):
+    name = "ipv4-address"
+    desc = "An IPv4 address using dotted decimal representation"
+    regexp = "^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+
+
+class ExtIPAddress(ExtString):
+    name = "ip-address"
+    desc = "An IP address specified either as a numeric IP Address or a DNS name"
+    regexp_num = "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
+    regexp_dns = "(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,6})"
+    regexp = "^" + regexp_num + "|" + regexp_dns + "$"
+    
+    def lookup(self, fun, cval):
+        
+        if re.match("^" + self.regexp_num + "$", cval):
+            return cval
+        
+        try:
+            dummy = socket.gethostbyname(cval)
+            
+        except socket.gaierror:
+            raise ExtNoSuchDNSNameError()
+        return cval

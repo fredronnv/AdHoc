@@ -6,7 +6,7 @@ from framework import *
 from util import *
 
 
-class T1100_SubnetworkList(UnAuthTests):
+class T0200_SubnetworkList(UnAuthTests):
     """ Test subnetwork listing """
 
     def do(self):
@@ -18,7 +18,7 @@ class T1100_SubnetworkList(UnAuthTests):
                 #print ds.id, ds.network, ds.info, ds.changed_by, ds.mtime
   
   
-class T1110_SubnetworkFetch(UnAuthTests):
+class T0210_SubnetworkFetch(UnAuthTests):
     """ Test subnetwork_fetch """
     
     def do(self):
@@ -35,7 +35,7 @@ class T1110_SubnetworkFetch(UnAuthTests):
                 break
             
             
-class T1120_SubnetworkCreate(AuthTests):
+class T0220_SubnetworkCreate(AuthTests):
     """ Test subnetwork_create """
     
     def do(self):  
@@ -68,7 +68,7 @@ class T1120_SubnetworkCreate(AuthTests):
                 self.superuser.network_destroy('network_test')
         
         
-class T1130_SubnetworkDestroy(AuthTests):
+class T0230_SubnetworkDestroy(AuthTests):
     """ Test subnetwork destroy """
     
     def do(self):
@@ -90,7 +90,7 @@ class T1130_SubnetworkDestroy(AuthTests):
                 pass
         
         
-class T1140_SubnetworkSetID(AuthTests):
+class T0240_SubnetworkSetID(AuthTests):
     """ Test setting id of a subnetwork"""
     
     def do(self):
@@ -115,7 +115,7 @@ class T1140_SubnetworkSetID(AuthTests):
                 self.superuser.network_destroy('network_test')
                 
                 
-class T1150_SubnetworkSetInfo(AuthTests):
+class T0250_SubnetworkSetInfo(AuthTests):
     """ Test setting info on a subnetwork"""
     
     def do(self):
@@ -137,7 +137,7 @@ class T1150_SubnetworkSetInfo(AuthTests):
                 self.superuser.network_destroy('network_test')
                 
                 
-class T1150_SubnetworkSetNetwork(AuthTests):
+class T0250_SubnetworkSetNetwork(AuthTests):
     """ Test setting network on a subnetwork"""
     
     def do(self):
@@ -160,7 +160,7 @@ class T1150_SubnetworkSetNetwork(AuthTests):
                 self.superuser.network_destroy('network_othertest')
         
 
-class T1160_SubnetworkSetOption(AuthTests):
+class T0260_SubnetworkSetOption(AuthTests):
     """ Test setting options on a subnetwork"""
     
     def do(self):
@@ -169,12 +169,14 @@ class T1160_SubnetworkSetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.subnetwork_option_set("192.5.55.0/24", "subnet-mask", "255.255.255.0")
-                nd = self.superuser.subnetwork_fetch('192.5.55.0/24', {"network": True, "info": True, "subnetwork": True, "options": True})
+                self.proxy.subnetwork_options_update('192.5.55.0/24', {"subnet-mask": "255.255.255.0"})
+                nd = self.superuser.subnetwork_fetch('192.5.55.0/24', {"network": True, "info": True, 
+                                                                       "subnetwork": True, 
+                                                                       "optionset_data": {"_": True, "_remove_nulls": True}})
                 assert nd.subnetwork == "192.5.55.0/24", "Bad subnetwork "
                 assert nd.network == 'network_test', "Bad network"
                 assert nd.info == "TestSubnetwork", "Bad info"
-                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                assert nd.optionset_data["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
                 
             finally:
                 try:
@@ -184,7 +186,7 @@ class T1160_SubnetworkSetOption(AuthTests):
                 self.superuser.network_destroy('network_test')
                 
                 
-class T1170_SubnetworkUnsetOption(AuthTests):
+class T0270_SubnetworkUnsetOption(AuthTests):
     """ Test unsetting options on a subnetwork"""
     
     def do(self):
@@ -193,13 +195,15 @@ class T1170_SubnetworkUnsetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.superuser.subnetwork_option_set("192.5.55.0/24", "subnet-mask", "255.255.255.0")
-                self.proxy.subnetwork_option_unset("192.5.55.0/24", "subnet-mask")
-                nd = self.superuser.subnetwork_fetch('192.5.55.0/24', {"network": True, "info": True, "subnetwork": True, "options": True})
+                self.proxy.subnetwork_options_update('192.5.55.0/24', {"subnet-mask": "255.255.255.0"})
+                self.proxy.subnetwork_options_update('192.5.55.0/24', {"subnet-mask": None})
+                nd = self.superuser.subnetwork_fetch('192.5.55.0/24', {"network": True, "info": True, 
+                                                                       "subnetwork": True, 
+                                                                       "optionset_data": {"_": True, "_remove_nulls": True}})
                 assert nd.subnetwork == "192.5.55.0/24", "Bad subnetwork"
                 assert nd.network == 'network_test', "Bad network"
                 assert nd.info == "TestSubnetwork", "Bad info"
-                assert "subnet-info" not in nd.options, "Subnet-mask still in options"
+                assert "subnet-mask" not in nd.optionset_data, "Subnet-mask still in options"
                 
             finally:
                 try:
@@ -208,7 +212,8 @@ class T1170_SubnetworkUnsetOption(AuthTests):
                     pass
                 self.superuser.network_destroy('network_test')
 
-class T1180_SubnetworkSearchCovering(UnAuthTests):
+
+class T0280_SubnetworkSearchCovering(UnAuthTests):
     """ Test searching a subnetwork that covers a certain IPv4 address"""
     
     def do(self):

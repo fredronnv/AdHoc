@@ -8,15 +8,15 @@ from util import *
 data_template = {
                  "optionspace": True,
                  "vendor_class_id": True,
-                 "info": True, 
+                 "info": True,
                  "host_class": True,
                  "changed_by": True,
                  "mtime": True,
-                 "options": True
+                 "optionset_data": {'_': True, "_remove_nulls": True}
                  }
 
 
-class T1100_HostClassList(UnAuthTests):
+class T0100_HostClassList(UnAuthTests):
     """ Test host_class listing """
 
     def do(self):
@@ -28,7 +28,7 @@ class T1100_HostClassList(UnAuthTests):
                 #print ds.re, ds.host_class, ds.info
   
   
-class T1110_HostClassFetch(UnAuthTests):
+class T0110_HostClassFetch(UnAuthTests):
     """ Test host_class_fetch """
     
     def do(self):
@@ -43,7 +43,7 @@ class T1110_HostClassFetch(UnAuthTests):
                 break
             
             
-class T1120_HostClassCreate(AuthTests):
+class T0120_HostClassCreate(AuthTests):
     """ Test host_class_create """
     
     def do(self):
@@ -67,7 +67,7 @@ class T1120_HostClassCreate(AuthTests):
                     pass
         
         
-class T1130_HostClassDestroy(AuthTests):
+class T0130_HostClassDestroy(AuthTests):
     """ Test host_class destroy """
     
     def do(self):
@@ -88,7 +88,7 @@ class T1130_HostClassDestroy(AuthTests):
                 pass
             
         
-class T1140_HostClassSetName(AuthTests):
+class T0140_HostClassSetName(AuthTests):
     """ Test setting the name of a host_class"""
     
     def do(self):
@@ -112,7 +112,7 @@ class T1140_HostClassSetName(AuthTests):
         
                 
                 
-class T1150_HostClassSetInfo(AuthTests):
+class T0150_HostClassSetInfo(AuthTests):
     """ Test setting info on a host_class"""
     
     def do(self):
@@ -131,7 +131,7 @@ class T1150_HostClassSetInfo(AuthTests):
                     pass
                 
                 
-class T1150_HostClassSetVendorClassID(AuthTests):
+class T0150_HostClassSetVendorClassID(AuthTests):
     """ Test setting vendor_class_id on a host_class"""
     
     def do(self):
@@ -150,7 +150,7 @@ class T1150_HostClassSetVendorClassID(AuthTests):
                     pass
 
                
-class T1160_HostClassSetOption(AuthTests):
+class T0160_HostClassSetOption(AuthTests):
     """ Test setting options on a host_class"""
     
     def do(self):
@@ -163,11 +163,14 @@ class T1160_HostClassSetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.host_class_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
+                #optset = self.proxy.host_class_fetch("QZ1243A", {"optionset": True}).optionset
+                #self.proxy.optionset_update(optset, {"subnet-mask": "255.255.255.0"})
+                self.proxy.host_class_options_update('QZ1243A', {"subnet-mask": "255.255.255.0"})
+                
                 nd = self.superuser.host_class_fetch('QZ1243A', data_template)
                 assert nd.host_class == "QZ1243A", "Bad host_class id"
                 assert nd.info == "TestHostClass", "Bad info"
-                assert nd.options["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
+                assert nd.optionset_data["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
                 
             finally:
                 try:
@@ -176,7 +179,7 @@ class T1160_HostClassSetOption(AuthTests):
                     pass
                 
                 
-class T1170_HostClassUnsetOption(AuthTests):
+class T0170_HostClassUnsetOption(AuthTests):
     """ Test unsetting options on a host_class"""
     
     def do(self):
@@ -184,12 +187,12 @@ class T1170_HostClassUnsetOption(AuthTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.host_class_option_set("QZ1243A", "subnet-mask", "255.255.255.0")
-                self.proxy.host_class_option_unset("QZ1243A", "subnet-mask")
+                self.proxy.host_class_options_update('QZ1243A', {"subnet-mask": "255.255.255.0"})
+                self.proxy.host_class_options_update('QZ1243A', {"subnet-mask": None})
                 nd = self.superuser.host_class_fetch("QZ1243A", data_template)
                 assert nd.host_class == "QZ1243A", "Bad host_class id"
                 assert nd.info == "TestHostClass", "Bad info"
-                assert "subnet-mask" not in nd.options, "Subnet-mask still in options"
+                assert "subnet-mask" not in nd.optionset_data, "Subnet-mask still in options"
                 
             finally:
                 try:

@@ -4,7 +4,7 @@
 
 from framework import *
 #from basic import *
-#from dhcpd import *
+from dhcpd import *
 from shared_network import *
 from dhcp_server import *
 from optionspace import *
