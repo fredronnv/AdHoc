@@ -154,7 +154,6 @@ def template(extname, exttype, **kwargs):
 
         if attr2:
             decorated._templates.append(attr2)
-
         return decorated
     return decorate
 
@@ -363,6 +362,7 @@ class Model(object):
         for attr in cls._read_attributes(api_version).values():
             attr.fill_template_type(tmpl)
         tmpl.optional["_"] = (ExtBoolean, "A default set of attributes will be returned. This set changes over time, so only use this key interactively. Be explicit in your scripts!")
+        tmpl.optional["_remove_nulls"] = (ExtBoolean, "Every key that would have had a null value should removed from the output")
 
         return tmpl
 
@@ -418,6 +418,12 @@ class Model(object):
             for (name, attr) in self._read_attributes(api_version).items():
                 if attr.default and name not in tmpl:
                     tmpl[name] = True
+                    
+        remove_nulls = None
+        if "_remove_nulls" in tmpl and tmpl["_remove_nulls"]:
+            tmpl = tmpl.copy()
+            remove_nulls = tmpl["_remove_nulls"]
+            dummy = tmpl.pop("_remove_nulls")
 
         out = {}
         readattrs = self._read_attributes(api_version)
@@ -433,16 +439,16 @@ class Model(object):
             value = attr.method(self, **attr.kwargs)
 
             if value is None:
-                if "_remove_nulls" in tmpl and tmpl["_remove_nulls"]:
+                if remove_nulls:
                     continue
                 out[name] = None
                 continue
 
             if attr.model:
                 subtmpl = tmpl_value
-                if "_remove_nulls" in tmpl and "_remove_nulls" not in subtmpl:
+                if remove_nulls != None and "_remove_nulls" not in subtmpl:
                     subtmpl = subtmpl.copy()
-                    subtmpl["_remove_nulls"] = tmpl["_remove_nulls"]
+                    subtmpl["_remove_nulls"] = remove_nulls
                 
                 if isinstance(ExtType.instance(attr.exttype), ExtList):
                     out[name] = [d.apply_template(api_version, subtmpl) for d in value]
