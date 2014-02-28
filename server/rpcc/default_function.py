@@ -98,7 +98,7 @@ class FunSessionInfo(SessionedFunction):
     extname = 'session_info'
     returns = (default_type.ExtSessionInfo, "Information about the supplied session")
     desc = "Returns information about the session (execution context)."
-    uses_database = False
+    uses_database = True
     log_call_event = False
     creates_event = False
 
