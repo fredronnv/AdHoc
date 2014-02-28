@@ -16,6 +16,7 @@ class FunServerURLAPI(Function):
 
     uses_database = False
     log_call_event = False
+    creates_event = False
 
     def do(self):
         return {'service': self.server.service_name,
@@ -29,6 +30,8 @@ class FunServerNodeName(Function):
     returns = exttype.ExtString
     desc = "Returns the host name of the currently connected server."
     uses_database = False  # Not needed
+    log_call_event = False
+    creates_event = False
 
     def do(self):
         import socket
@@ -40,6 +43,8 @@ class FunPing(Function):
     params = []
     rettype = exttype.ExtString
     uses_database = True  # I'll do it myself
+    log_call_event = False
+    creates_event = False
 
     desc = """Checks that the server is alive.
 
@@ -94,6 +99,8 @@ class FunSessionInfo(SessionedFunction):
     returns = (default_type.ExtSessionInfo, "Information about the supplied session")
     desc = "Returns information about the session (execution context)."
     uses_database = False
+    log_call_event = False
+    creates_event = False
 
     def do(self):
         return {'session': self.session,
@@ -138,6 +145,8 @@ class FunServerListFunctions(Function):
     desc = 'Return a list of function names available on this server.'
     grants = None
     uses_database = False
+    log_call_event = False
+    creates_event = False
 
     def do(self):
         return self.api.get_visible_function_names()
@@ -149,6 +158,8 @@ class FunServerDocumentation(Function):
     returns = exttype.ExtString
     desc = "Returns a text-version of the documentation for a function."
     uses_database = False
+    log_call_event = False
+    creates_event = False
 
     def do(self):
         return self.server.documentation.function_as_text(self.api.version, self.function)
@@ -160,6 +171,8 @@ class FunServerFunctionDefinition(Function):
     returns = default_type.ExtDocFunction
     desc = "Returns a structured definition of the named function"
     uses_database = False
+    log_call_event = False
+    creates_event = False
 
     def do(self):
         t = self.server.documentation.function_as_struct(self.api.version, self.function)
