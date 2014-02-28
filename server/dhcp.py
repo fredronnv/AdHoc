@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.6
 
-from rpcc.function import Function
+from rpcc.function import Function, SessionedFunction
 
 import socket
 import struct
@@ -22,7 +22,7 @@ class DhcpdConf(Function):
         return s
 
 
-class DhcpXfer(Function):
+class DhcpXfer(SessionedFunction):
     extname = "dhcp_xfer"
     returns = ExtNull
     
