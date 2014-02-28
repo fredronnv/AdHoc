@@ -221,10 +221,12 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             return res
 
     def function_start(self, funobj, args, starttime, api_version):
+        #print "Function_start", funobj.__dict__, args, api_version
         with self.thread_lock:
             self.running_functions[funobj] = (args, starttime, api_version)
 
     def function_stop(self, funobj):
+        #print "Function_stop", funobj.__dict__
         with self.thread_lock:
             try:
                 del self.running_functions[funobj]
@@ -275,6 +277,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                 funobj.set_db_link(db)
             else:
                 db = None
+            #print
+            #print "RPC: ", function
             self.function_start(funobj, params, start_time, api_version)
             result = funobj.call(params)
             ret = {'result': result}
@@ -295,10 +299,12 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             ret = {'error': s}
             if db:
                 db.rollback()
-                
+        
         if funobj:
             self.function_stop(funobj)
-
+        #print "RPC END:", function
+        #print
+        
         if db:
             self.database.return_link(db)
 
