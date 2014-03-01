@@ -38,23 +38,32 @@ def print_struct_in_order(x, kvtuples, template, output, indent=1):
     values = []
     for kvtuple in kvtuples:
         key = kvtuple[0]
+        if key.startswith('_'):
+            continue
         keyval = kvtuple[1].strip()
         if keyval == "False":  # Hmm, this is probably not supported
             raise ValueError("Never use False as a value to _dig or _fetch functions")
         if keyval == "True":
             if x[key]:
-                values.append(str(x[key]))
+                if type(x[key]) is list:
+                    values.append(x[key])
+                else:
+                    values.append(str(x[key]))
             else:
                 values.append("NULL")
         else:
             print_object_in_template_order(x[key], keyval, output, indent=indent + 1)
             output.write(" \t")
-            
-    output.write(" \t".join(values))
+    #print >>sys.stderr, "VALUES=", values
+    if len(values) == 1 and type(values[0]) is list:
+        #print >>sys.stderr ,"LIST=", values[0]
+        output.write("\n".join(values[0]))
+    else:  
+        output.write(" \t".join(values))
     
     
 def print_object_in_template_order(obj, template, output, indent=1):
-    #print >>sys.stderr, "    " * (indent - 1) + "  " + "print_struct_in_template_order: obj=", obj, "template=", template, "indent=", indent
+    #print >>sys.stderr, "    " * (indent - 1) + "  " + "print_object_in_template_order: obj=", obj, "template=", template, "indent=", indent
     if type(obj) is list:
         for o in obj:
             print_object_in_template_order(o, template, output, indent + 1)
@@ -87,16 +96,16 @@ def process(command, output):
         try:
             exec s 
         except Exception:
-            print >>sys.stderr, "Exception on command:", s
+            #print >>sys.stderr, "Exception on command:", s
             raise
         #print >> sys.stderr, "RES=%s" % res
         s = ""
         if cmd.endswith("_dig") or cmd.endswith("_fetch"):
-            #print >>sys.stderr, "ARGS1=",args[1]
+            #print >>sys.stderr, "ARGS1=", args[1]
             print_object_in_template_order(res, args[1], output)
             #print >>sys.stderr, output.getvalue().rstrip('\n')
             
-            #print >>sys.stderr, "OBJECT VAL='"+output.getvalue()+"'"
+            #print >>sys.stderr, "OBJECT VAL='" + output.getvalue() + "'"
             return 0
                 
         if type(res) is unicode or type(res) is str:
@@ -105,8 +114,8 @@ def process(command, output):
         if type(res) is not None:  
             output.write(s)
             
-        #print output.getvalue().rstrip('\n')
-        #print >>sys.stderr, "OBJECT VALUE='"+output.getvalue()+"'"
+        print output.getvalue().rstrip('\n')
+        #print >>sys.stderr, "OBJECT VALUE='" + output.getvalue()+"'"
         return 0
             
     except KeyError, e:

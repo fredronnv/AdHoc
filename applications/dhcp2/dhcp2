@@ -4010,8 +4010,8 @@ _lsnetworks_fmt()
 #O lsoptions;c;class;List the options for a I<class>
 #O lsoptions;g;group;List the options for a I<group>
 #O lsoptions;H;host;List the options for a I<host>
-#O lsoptions;n;host;List the options for a I<network>
-#O lsoptions;s;host;List the options for a I<subnetwork>
+#O lsoptions;n;network;List the options for a I<network>
+#O lsoptions;s;subnetwork;List the options for a I<subnetwork>
 #O lsoptions;p;pool;List the options for a I<pool>
 #O lsoptions;G;;List the global options
 #M
@@ -4125,8 +4125,6 @@ lsoptions()
             echo "No such group: $lsoptions_g_arg"
             return;
         fi
-		proxy_start
-		server_call "group_options_dig()"
         seen_options=
         found_options=`_hasoptions_group $lsoptions_g_arg group`
         if [ -n "$found_options" ]; then
@@ -4134,14 +4132,21 @@ lsoptions()
             _lsoptions_group $lsoptions_g_arg 'group' "$found_options" "$seen_options"
             seen_options="$seen_options $found_options"
         fi
-        lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$lsoptions_g_arg'"`
+        proxy_start
+        lsoptions_g_arg=`server_call "group_fetch('$lsoptions_g_arg', {'parent':True})"`
+        #lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$lsoptions_g_arg'"`
         while [ -n "$lsoptions_g_arg"  -a "$lsoptions_g_arg" != "NULL" ]; do
             found_options=`_hasoptions_group $lsoptions_g_arg group`
             if [ -n "$found_options" ]; then
                 echo
                 _lsoptions_group $lsoptions_g_arg 'group' "$found_options" "$seen_options"
             fi
-            lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$lsoptions_g_arg'"`
+            lsoptions_child=$lsoptions_g_arg
+        	lsoptions_g_arg=`server_call "group_fetch('$lsoptions_g_arg', {'parent':True})"`
+        	if [ "$lsoptions_g_arg" = "$lsoptions_child" ]; then
+        		lsoptions_g_arg=""
+    		fi
+            #lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$lsoptions_g_arg'"`
             seen_options="$seen_options $found_options"
         done
     fi
@@ -4163,7 +4168,9 @@ lsoptions()
         else
             echo "No options are defined for $lsoptions_gtype $lsoptions_arg"
         fi
-        lsoptions_arg=`sql "select network from subnetworks where id='$lsoptions_arg'"`
+        proxy_start
+        lsoptions_arg=`server_call "subnetwork_fetch('$lsoptions_arg', {'network':True})"`
+        #lsoptions_arg=`sql "select network from subnetworks where id='$lsoptions_arg'"`
         found_options=`_hasoptions_group $lsoptions_arg network`
         if [ -n "$found_options" ]; then
             echo
@@ -4212,19 +4219,26 @@ lsoptions()
     
         found_options=`_hasoptions_group $_lsoptions_g_arg group`
         if [ -n "$found_options" ]; then
-            echo
+            echo 
             _lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
             seen_options="$seen_options $found_options"
         fi
-        
-        _lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$_lsoptions_g_arg'"`
+        proxy_start
+        _lsoptions_g_arg=`server_call "group_fetch('$_lsoptions_g_arg', {'parent':True})"`
+        #_lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$_lsoptions_g_arg'"`
         while [ -n "$_lsoptions_g_arg"  -a "$_lsoptions_g_arg" != "NULL" ]; do
             found_options=`_hasoptions_group $_lsoptions_g_arg group`
             if [ -n "$found_options" ]; then
                 echo
                 _lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
             fi
-            _lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$_lsoptions_g_arg'"`
+            _lsoptions_child=$_lsoptions_g_arg
+            proxy_start
+            _lsoptions_g_arg=`server_call "group_fetch('$_lsoptions_g_arg', {'parent':True})"`
+            if [ "$_lsoptions_g_arg" = "$_lsoptions_child" ]; then
+            	_lsoptions_g_arg=""
+        	fi
+            #_lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$_lsoptions_g_arg'"`
             seen_options="$seen_options $found_options"
         done
     
@@ -4243,8 +4257,9 @@ find_subnet()
     if [ -z "$1" ]; then
         return 1
     fi
-    fs_ip=`dig +short $1` 
     proxy_start
+    hdns=`server_call "host_fetch('$1', {'dns':True})"`
+    fs_ip=`dig +short $hdns` 
     sn=`server_call "subnetwork_dig({'subnetwork_covers':'$fs_ip'},{'subnetwork':True})"`
     if [ -n "$sn" ]; then
         echo $sn
@@ -4273,7 +4288,9 @@ _lsoptions_group()
         if echo "$4" | grep $o >/dev/null; then
             :
         else
-            unseen="$unseen $o"
+        	if [ "$o" != 'NULL' ]; then
+            	unseen="$unseen $o"
+        	fi
         fi
     done
             
@@ -4281,17 +4298,21 @@ _lsoptions_group()
         _lsoptions_group_gtype=$2
 
         unseen=`echo $unseen | tr '\n' ' '` # Strips leading blank and converts newlines to blanks
-#        unseen=`echo "'$unseen'" | sed "s/ /','/g"`
-#        echo unseen=$unseen
+#       unseen=`echo "'$unseen'" | sed "s/ /','/g"`
+#       echo unseen=$unseen
         echo "Name	Value from $_lsoptions_group_gtype $1" | _lsoptions_group_fmt
 
         for o in $unseen; do
             case $o in
                  *)
-                    sql="select value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name='$o'"
-                    val=`sql "$sql"`
-                    info=`sql "select info from dhcp_option_defs where name='$o'"`
+                	proxy_start
+                    val=`server_call "${_lsoptions_group_gtype}_fetch('$1',{'optionset_data': {'$o': True}})"`
+                    #sql="select value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name='$o'"
+                    #val=`sql "$sql"`
+		    		info=`server_call "option_def_fetch('$o', {'info':True})"`
+                    #info=`sql "select info from dhcp_option_defs where name='$o'"`
                     echo "$o	$val	$info" | _lsoptions_group_fmt
+	            	
                     ;;
             esac
 #            sql "select name,value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name in ($unseen) order by name" | _lsoptions_group_fmt
@@ -4301,20 +4322,18 @@ _lsoptions_group()
 
 _hasoptions_group()
 {
-     _hasoptions_group_gtype=$2
-     s1="select name from optionlist where \`group\` = '$1' and gtype = '$_hasoptions_group_gtype' order by name"
-     v1=`sql "$s1" | tr '\n' ' '`
-     s2="select 'heartbeat_class' from heartbeat_class_members where tied_to = '$1' and tied_to_type = '$_hasoptions_group_gtype' limit 1"
-     v2=`sql "$s2" | tr '\n' ' '`
-     #echo "V1=$v1" >/dev/tty
-     #echo "V2=$v2" >/dev/tty
-     echo "$v1 $v2"
+    _hasoptions_group_gtype=$2
+    proxy_start
+     v1=`server_call "${_hasoptions_group_gtype}_fetch('$1', {'options': True})" | tr '\n' ' '`
+     #s1="select name from optionlist where \`group\` = '$1' and gtype = '$_hasoptions_group_gtype' order by name"
+     #v1=`sql "$s1" | tr '\n' ' '`
+    #echo "V1=$v1" >/dev/tty
+    echo "$v1"
 }
 
 _lsoptions_group_fmt()
 {
-    sed s/NULL//g | awk -F'	' '{printf("%25s %-48s %s\n",$1,$2,$3);}' |  sed 's/ *$//'
-
+    sed s/NULL//g | awk -F'	' '{printf("%28s %-48s %s\n",$1,$2,$3);}' |  sed 's/ *$//'
 }
     
 _lsoptions_all_fmt()
