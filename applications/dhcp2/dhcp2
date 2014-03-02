@@ -4300,8 +4300,19 @@ _lsoptions_group()
         unseen=`echo $unseen | tr '\n' ' '` # Strips leading blank and converts newlines to blanks
 #       unseen=`echo "'$unseen'" | sed "s/ /','/g"`
 #       echo unseen=$unseen
-        echo "Name	Value from $_lsoptions_group_gtype $1" | _lsoptions_group_fmt
-
+		olen=0
+		vlen=0
+		ilen=0
+		for o in $unseen; do
+			proxy_start
+			val=`server_call "${_lsoptions_group_gtype}_fetch('$1',{'optionset_data': {'$o': True}})"`
+		    		ol=`echo $o | wc -c`
+		    		olen=$((ol > olen ? ol : olen))
+		    		vl=`echo $val | wc -c`
+		    		vlen=$((vl > vlen ? vl : vlen))
+		done
+        echo "Name	Value from $_lsoptions_group_gtype $1	Description" | _lsoptions_group_fmt_var $olen $vlen  
+              	echo VLEN=$vlen >&2      	
         for o in $unseen; do
             case $o in
                  *)
@@ -4309,9 +4320,12 @@ _lsoptions_group()
                     val=`server_call "${_lsoptions_group_gtype}_fetch('$1',{'optionset_data': {'$o': True}})"`
                     #sql="select value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name='$o'"
                     #val=`sql "$sql"`
-		    		info=`server_call "option_def_fetch('$o', {'info':True})"`
+		    		#server_call "option_def_dig({'option_def':'$o'}, {'option_def':True, 'optionspace':True, 'code':True, 'type':True, 'info':True})" | sort -n -k 3 -t '	' | _lsoptions_all_fmt
+         
+		    		info=`server_call "option_def_dig({'option_def':'$o'}, {'info':True})"`
                     #info=`sql "select info from dhcp_option_defs where name='$o'"`
-                    echo "$o	$val	$info" | _lsoptions_group_fmt
+					
+                    echo $o"	"$val"	"$info | _lsoptions_group_fmt_var $olen $vlen
 	            	
                     ;;
             esac
@@ -4329,6 +4343,11 @@ _hasoptions_group()
      #v1=`sql "$s1" | tr '\n' ' '`
     #echo "V1=$v1" >/dev/tty
     echo "$v1"
+}
+
+_lsoptions_group_fmt_var()
+{
+    sed s/NULL//g | awk -F'	' '{printf("%'$1's %-'$2's %s\n",$1,$2,$3);}' |  sed 's/ *$//'
 }
 
 _lsoptions_group_fmt()
