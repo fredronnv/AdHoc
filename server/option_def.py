@@ -132,7 +132,7 @@ class ExtOptionDefCreateOptions(ExtStruct):
 
 class OptionDefCreate(SessionedFunction):
     extname = "option_def_create"
-    params = [("name", ExtOptionDefName, "OptionDef name to create"),
+    params = [("option_def", ExtOptionDefName, "OptionDef name to create"),
               ("code", ExtOptionDefCode, "DHCP code value, or Null"),
               ("type", ExtOptionType, "The type of option"),
               ("info", ExtString, "OptionDef description"),
@@ -146,7 +146,7 @@ class OptionDefCreate(SessionedFunction):
             if not qual or not qual.startswith("parameter"):
                 raise ExtOptionDefError("Codeless options must be qualified as a parameter or a parameter array")
             
-        self.option_def_manager.create_option_def(self, self.name, self.code, self.type, self.info, self.options)
+        self.option_def_manager.create_option_def(self, self.option_def, self.code, self.type, self.info, self.options)
 
 
 class OptionDefDestroy(SessionedFunction):
@@ -315,7 +315,7 @@ class OptionDefManager(Manager):
         dq.table("option_base r")
         dq.select("r.name")
     
-    @search("name", StringMatch)
+    @search("option_def", StringMatch)
     def s_name(self, dq):
         dq.table("option_base r")
         return "r.name"
