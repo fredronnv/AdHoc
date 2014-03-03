@@ -83,6 +83,7 @@ class T0050_SessionGetPrivileges(AuthTests):
 class T0092_ServerLastSourceEdit(UnAuthTests):
     """ Test server_last_source_edit"""
     skip = True
+    
     def do(self):
         with AssertAccessError(self):
             last_edit = self.proxy.server_last_source_edit()

@@ -2,15 +2,9 @@
 <?eclipse-pydev version="1.0"?>
 
 <pydev_project>
-<pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
-<path>/AdHoc</path>
-<path>/AdHoc/client</path>
-<path>/AdHoc/server/testing</path>
-<path>/AdHoc/server</path>
-<path>/AdHoc/server/rpcc</path>
-</pydev_pathproperty>
-<pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.7</pydev_property>
-<pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">Default</pydev_property>
+
+<pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.6</pydev_property>
+<pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">python26</pydev_property>
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
 <path>/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages</path>
 </pydev_pathproperty>
