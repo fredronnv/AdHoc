@@ -127,3 +127,9 @@ pre span.cmd {
 pre span.result {
   color: #060;
 }
+
+span.typename {
+   font-family: monospace;
+   font-size: 10pt;
+   color: #068
+}
