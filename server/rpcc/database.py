@@ -221,7 +221,7 @@ class DynamicQuery(object):
 
         """
         try:
-            tbl, alias = tblalias.split(" ")
+            _tbl, alias = tblalias.split(" ")
         except:
             raise ValueError("OUTER JOIN table needs to be aliased like 'tblname al', which '%s' is not" % (tblalias,))
 
@@ -234,7 +234,7 @@ class DynamicQuery(object):
         if self.outer_join_leftside is None:
             self.outer_join_leftside = leftside
             try:
-                alias, col = leftside.split(".")
+                alias, _col = leftside.split(".")
             except:
                 raise ValueError("OUTER JOIN on-expression's first leftside needs to be an alias.column value, '%s' is not." % (leftside,))
             if alias not in self.aliases:
@@ -678,8 +678,7 @@ class MySQLLink(DatabaseLink):
             if errno == 1452:
                 message = "Cannot add or update a child row: a foreign key constraint fails"
             raise IntegrityError(message, inner=inner)
-            
-            
+                   
 #         if isinstance(inner, cx_Oracle.DatabaseError):
 #             err = inner.args[0]
 #             if isinstance(err, str):

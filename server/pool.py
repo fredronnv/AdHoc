@@ -1,13 +1,7 @@
 #!/usr/bin/env python2.6
 
-from rpcc.model import *
-from rpcc.exttype import *
-from rpcc.function import SessionedFunction
-from optionspace import ExtOptionspace, ExtOrNullOptionspace
-from rpcc.database import  IntegrityError
+from rpcc import *
 from shared_network import ExtNetwork, ExtNetworkName
-from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
-from rpcc.access import *
 from optionset import *
 from option_def import *
 

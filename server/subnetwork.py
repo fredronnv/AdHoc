@@ -1,14 +1,8 @@
 #!/usr/bin/env python2.6
 
-from rpcc.model import *
-from rpcc.exttype import *
-from rpcc.function import SessionedFunction
-from shared_network import ExtNetwork, ExtNetworkName
-from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
-from rpcc.access import *
-from rpcc.database import IntegrityError
-from pool_range import ExtIpV4Address
-import socket, struct
+from rpcc import *
+from shared_network import *
+import struct
 from optionset import *
 from option_def import *
 

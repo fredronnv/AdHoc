@@ -470,4 +470,3 @@ class FunMutexWatchdogDestroy(_WatchdogFunction):
 
     def do(self):
         self.mutex.destroy_watchdog(self.watchdog.name)
-

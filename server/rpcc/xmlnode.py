@@ -1,6 +1,7 @@
 
 """Simple XML-generation."""
 
+
 class _DataNode(object):
     def __init__(self, data, _space_children=False):
         self.space_children = _space_children
@@ -12,6 +13,7 @@ class _DataNode(object):
             return s + "\n"
         else:
             return s
+
 
 class XMLNode(object):
     @classmethod
@@ -111,7 +113,7 @@ class XMLNode(object):
                 s += " %s='%s'" % (name, value)
 
         if self.subelems:
-            subxml = [sub.xml(indentation+1) for sub in self.subelems]
+            subxml = [sub.xml(indentation + 1) for sub in self.subelems]
             ss = ">" + "".join(subxml)
             s += ss
             if self.space_children and len(ss) > 80:
@@ -121,6 +123,7 @@ class XMLNode(object):
             s += "/>"
 
         return s
+
 
 class HTMLNode(XMLNode):
     tags = ["a", "abbr", "address", "area", "article", "aside", "audio",

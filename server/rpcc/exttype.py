@@ -591,7 +591,7 @@ class _StructMetaClass(type):
     access in a ExtStructType subclass, if one does not exist.
     """    
     
-    def __getattr__(cls, attr): 
+    def __getattr__(cls, attr):  # @NoSelf
         if attr == 'mandatory':
             cls.mandatory = {}
             return cls.mandatory

@@ -91,7 +91,6 @@ HTML documentation:
 
 from exttype import *
 from xmlnode import HTMLNode
-from pydoc import Doc
 
 
 class Documentation(object):

@@ -4,10 +4,10 @@
 <pydev_project>
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
 <path>/AdHoc</path>
-<path>/AdHoc/rpcc</path>
 <path>/AdHoc/client</path>
-<path>/AdHoc/server</path>
 <path>/AdHoc/server/testing</path>
+<path>/AdHoc/server</path>
+<path>/AdHoc/server/rpcc</path>
 </pydev_pathproperty>
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.7</pydev_property>
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">Default</pydev_property>

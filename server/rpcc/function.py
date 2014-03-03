@@ -5,6 +5,7 @@ import default_type
 import exterror
 import sys
 
+
 class Function(object):
     """Base class for functions exposed via the RPC server.
 

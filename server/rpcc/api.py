@@ -1,9 +1,8 @@
 
 
 from default_error import ExtNoSuchFunctionError
-from interror import IntAPINotFoundError, IntAPIValidationError
+from interror import IntAPIValidationError
 from exterror import ExtInternalError
-from function import Function
 from exttype import ExtList, ExtType, ExtNull, ExtOrNull
 from xmlnode import XMLNode
 
@@ -67,7 +66,7 @@ class API(object):
 
         self.functions[funname] = funclass
 
-        for (pname, ptype, pdesc) in funclass.get_parameters():
+        for (pname, ptype, _pdesc) in funclass.get_parameters():
             try:
                 self.add_type(ptype)
             except IntAPIValidationError as e:
@@ -376,7 +375,7 @@ class API(object):
 
             # SOAP operation
             soapaction = self.server.get_server_url() + "SOAP" + "/" + funcls.soap_name()
-            soapns = self.server.get_server_url() + "WSDL" + mssuffix
+            _soapns = self.server.get_server_url() + "WSDL" + mssuffix
             
             op2 = wsdl_binding_root.new('operation', name=funcls.soap_name())
             op2.new('soap:operation', soapAction=soapaction)

@@ -26,7 +26,7 @@ Models it has created are deallocated.
 
 import types
 
-from error import IntAPIValidationError, IntInvalidUsageError
+from error import IntInvalidUsageError
 from exttype import *
 from default_type import *
 
@@ -320,11 +320,11 @@ class Model(object):
             candidate = getattr(cls, candname)
 
             if hasattr(candidate, "_templates"):
-                attrcls = ExternalReadAttribute
+                #attrcls = ExternalReadAttribute
                 attrs = candidate._templates
                 dest = cls._attributes_cache[api_version][0]
             elif hasattr(candidate, "_updates"):
-                attrcls = ExternalWriteAttribute
+                #attrcls = ExternalWriteAttribute
                 attrs = candidate._updates
                 dest = cls._attributes_cache[api_version][1]
             else:

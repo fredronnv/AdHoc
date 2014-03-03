@@ -1,14 +1,10 @@
 
-import sys
-import time
 import random
 import string
 import datetime
 import threading
 
-import function
 import model
-import exttype
 import default_error
 import default_type
 
@@ -46,6 +42,7 @@ on disk, local to one server. The DatabaseSessionStore stores sessions
 in a database.
 
 """
+
 
 class Session(model.Model):
     """Class used for stateful interactions with an RPC client.
@@ -98,7 +95,7 @@ class SessionManager(model.Manager):
     def new_session_id(self):
         chars = string.ascii_letters + string.digits
         l = self.session_id_length
-        newid = "".join([random.choice(chars) for a in [0,]*l])
+        newid = "".join([random.choice(chars) for _a in [0, ] * l])
         return newid
 
     def get_session_values(self, sid):
@@ -276,7 +273,3 @@ class XXMemoryBackedSessionManager(SessionManager):
                     todel.append(sid)
             for sid in todel:
                 del self.session_data[sid]
-
-
-
-

@@ -59,6 +59,7 @@ class ExtName(ExtString):
     name = "name"
     desc = "A name of a person"
 
+
 class ExtPerson(ExtString):
     name = "person"
     desc = "ID of a person in the system"
@@ -350,6 +351,7 @@ class DummyFunction(Function):
 
     def do(self):
         return
+
 
 class MyServer(server.Server):
     envvar_prefix = "XMPL_"

@@ -12,6 +12,7 @@ normally call .auth_session() and .deauth_session() respectively.
 import exterror
 import model
 
+
 class AuthenticationManager(model.Manager):
     """Supplies two default methods: 
        .login(session, username, password)
@@ -55,8 +56,3 @@ class SuperuserOnlyAuthenticationManager(AuthenticationManager):
 
     def logout(self, session):
         session.unset("authuser")
-
-
-
-
-

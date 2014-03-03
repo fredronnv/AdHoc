@@ -1,9 +1,8 @@
 #!/usr/bin/env python2.6
 from rpcc import *
-from optionspace import ExtOptionspace, ExtOrNullOptionspace
+from optionspace import *
 from group import ExtGroup
-from room import ExtRoomName, ExtRoom
-from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
+from room import *
 from optionset import *
 from util import *
 from option_def import *
