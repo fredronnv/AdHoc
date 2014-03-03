@@ -1,6 +1,17 @@
 #!/usr/bin/env python2.6
 from rpcc import *
 
+
+class AdHocSuperuserGuard(Guard):
+    """This guard says yes if session.authuser is someone in the given list"""
+    
+    superusers = ["viktor", "bernerus"]
+
+    def check(self, obj, function):
+        if function.session.authuser in self.superusers:
+            return AccessGranted(CacheInFunction)
+        return DecisionReferred(CacheInFunction)
+
    
 class ExtNoSuchDNSNameError(ExtLookupError):
     desc = "The DNS name is not defined"
