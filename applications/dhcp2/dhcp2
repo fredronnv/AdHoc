@@ -2863,7 +2863,7 @@ opoption()
         case "$i" in
             -c)
                 _opoption_checkmultiple $opoption_gtype
-                opoption_gtype='class';
+                opoption_gtype='host_class';
                 shift; opoption_arg=$1; shift
                 ;;
             -g)
@@ -2943,7 +2943,7 @@ _addoption()
     _addoption_key=$2
     _addoption_value=$3
     _addoption_gtype=$4
-
+    
     if db_optionexists $_addoption_key; then
         :
     else
@@ -2951,13 +2951,18 @@ _addoption()
         return
     fi
 
-    _sql="select name from optionlist where \`group\` = '$_addoption_group' and gtype = '$_addoption_gtype' and name = '$_addoption_key'"
-    _addoption_check=`sql "$_sql"`
-    if [ -n "$_addoption_check" ]; then
+	if _hasoptions_group $_addoption_group $_addoption_gtype | grep "$_addoption_key" >/dev/null 2>&1 ; then
         echo The option $_addoption_key is already defined for the $_addoption_gtype $_addoption_group, use the choption command to change
         return
     fi
-    sql "insert into optionlist (\`group\`,\`gtype\`,\`name\`,\`value\`,\`changed_by\`,\`mtime\`) values ('$_addoption_group','$_addoption_gtype','$_addoption_key','$_addoption_value','$USER',now())"
+    proxy_start
+    otype=`server_call "option_def_fetch('$_addoption_key',{'type':True})"`
+    if echo $otype | grep integer >/dev/null 2>&1; then
+    	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':_addoption_value})
+	else
+    	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':'_addoption_value'})
+	fi	
+    #sql "insert into optionlist (\`group\`,\`gtype\`,\`name\`,\`value\`,\`changed_by\`,\`mtime\`) values ('$_addoption_group','$_addoption_gtype','$_addoption_key','$_addoption_value','$USER',now())"
 }
 
 #S addroom;ar;Add a room;1;2;roomcode [info];Add a room to the DHCP database;101
@@ -3284,14 +3289,23 @@ _choption()
         echo The option $_choption_key is undefined.
         return
     fi
-
-    _sql="select name from optionlist where \`group\` = '$_choption_group' and gtype = '$_choption_gtype' and name = '$_choption_key'"
-    _choption_check=`sql "$_sql"`
-    if [ -z "$_choption_check" ]; then
-        echo The option $_choption_key is not defined for $_choption_group, use the addoption command to add it
+    
+    if _hasoptions_group $_choption_group $_choption_gtype | grep "$_choption_key" >/dev/null 2>&1 ; then
+    	:
+	else
+        echo The option $_choption_key is not defined for the $_choption_gtype $_choption_group, use the addoption command to add it
         return
     fi
-    sql "update optionlist set value = '$_choption_value' where \`group\` = '$_choption_group' and gtype = '$_choption_gtype' and name = '$_choption_key'"
+    
+    proxy_start
+    otype=`server_call "option_def_fetch('$_choption_key',{'type':True})"`
+    if echo $otype | grep integer >/dev/null 2>&1; then
+    	server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':_choption_value})
+	else
+    	server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':'_choption_value'})
+	fi
+    
+    #sql "update optionlist set value = '$_choption_value' where \`group\` = '$_choption_group' and gtype = '$_choption_gtype' and name = '$_choption_key'"
 }
 
 #S chroom;cr;Change a room;1;1;room_code;Change the data stored for a room in the database;102
@@ -3354,6 +3368,7 @@ chroom()
 #S defoption;;Define an option;2;3;name type [info];Define a new option;83
 #O defoption;s;namespace;Assign the option to a namespace
 #O defoption;c;code;Assign a DHCP code to the option
+#O defoption;q;qualifier;Type qualifier
 #M
 #M =head2 I<Description>
 #M
@@ -3373,6 +3388,10 @@ defoption()
                 defoption_s_flag=$i; shift
                 defoption_s_arg=$1; shift
                 ;;
+            -q)
+            	defoption_q_flag=$i; shift
+            	defoption_q_arg=$1; shift
+            	;;
             --)
                 shift;break
                 ;;
@@ -3402,15 +3421,31 @@ defoption()
 #M 
 #M =item string
 #M
-#M =item encapsulate
-#M
-        text|ip-address|boolean|string|encapsulate)
+
+        text|ip-address|boolean|string)
             ;;
+#M =item encapsulate <optionspace>
+		encapsulate\ *)
+			$_defoption_encapsulate_what=`echo $_defoption_type | cut -f2- -d' '`
+			$_defoption_type = "encapsulate"
+			_defoption_optstring="'encapsulate':'$_defoption_encapsulate_what', $_defoption_optstring"
+			;;
+#M
 #M =item unsigned integer n
 #M
-#M Where n is a number specifying the number of significant bits.
+#M Where n is a number specifying the number of significant bits, 8, 16 or 32
 #M
-        unsigned\ integer\ *)
+        unsigned\ integer\ 8)
+        	;;
+        unsigned\ integer\ 16)
+        	;;
+        unsigned\ integer\ 32)
+        	;;
+        integer\ 8)
+        	;;
+        integer\ 16)
+        	;;
+        integer\ 32)
             ;;
 #M =item array of x
 #M
@@ -3429,32 +3464,73 @@ defoption()
             return
             ;;
     esac
+    
+#M The -q flag may be user to further qualify the type:
+#M
+#M =over
+#M
+#M =item array
+#M
+#M Qualifies the option as an array of the specified type.
+#M
+#M =item paramater
+#M
+#M Qualifies the option as a DHCP parameter, i.e. an option defined by the DHCP protocol.
+#;
+#M =item parameter-array
+#M
+#M Qualifies the option as a parameter that is an array of the specified type
+
+	if [ -n "$defoption_q_flag" ]; then
+		case $defoption_q_arg in
+			array)
+			_defoption_optstring="'qualifier':'$defoption_q_arg', $_defoption_optstring"
+			;;
+			parameter|parameter-array)
+			$defoption_no_code='Yes'
+			_defoption_optstring="'qualifier':'$defoption_q_arg', $_defoption_optstring"
+			;;
+		*)
+		echo "The qualifier '$defoption_q_arg' is illegal"
+			return
+			;;
+		esac
+	fi
+	
 #M
 #M =back
 #M
+	_defoption_code_py='None'
     _defoption_scope="NULL";
     if [ -n "$defoption_c_flag" -a -n "$defoption_c_arg" ]; then
+    	if [ -n "$defoption_no_code" ]; then
+    		echo "When specifying a parameter, no DHCP code may be given"
+			return
+		fi
         _defoption_code_check=`echo $defoption_c_arg | egrep '^[0-9]*$' 2>/dev/null`
         if [ -z "$_defoption_code_check" ]; then
             echo "The DHCP code must be decimal numeric"
             return
-        fi
-	_defoption_scope="'dhcp'"
+    	else
+    		_defoption_code_py=$_defoption_code_check
+    	fi
+        
+		_defoption_scope="'dhcp'"
     fi
     
-    _sql="insert into dhcp_option_defs set name='$_defoption_name',type='$_defoption_type',scope=$_defoption_scope,info='$_defoption_info'";
-    if [ -n "$defoption_c_flag" ]; then
-        _sql="$_sql,code='$defoption_c_arg'"
-    fi
     if [ -n "$defoption_s_flag" ]; then
         if db_spaceexists $defoption_s_arg; then
-            _sql="$_sql,optionspace='$defoption_s_arg'"
+        	$_defoption_optstring="optionspace='$defoption_s_arg', $_defoption_optstring"
         else
             echo "The namespace '$defoption_s_arg' is not defined. Define it using the defspace subcommand"
             return
         fi
     fi
-    sql  "$_sql"
+    
+    
+    _defoption_code='None'
+    server_call "option_def_create('$_defoption_name', $_defoption_code_py, '$_defoption_type', '$_defoption_info', {$_defoption_optstring})"
+    
 }
 #S defspace;;Define namespace;1;2;name [info];Define an option namespace;81
 #O defoption;s;;Create a site namespace. Default is a vendor namespace
@@ -3511,7 +3587,7 @@ deleteoption()
         return
     fi
 	proxy_start
-	server_call "option_destroy('$_deleteoption_name')"
+	server_call "option_def_destroy('$_deleteoption_name')"
 }
 #S deleteroom;;Delete a room;1;1;room_id;Delete a room entry in the database;103
 #M
@@ -4958,14 +5034,14 @@ _rmoption()
     _rmoption_key=$2
     _rmoption_gtype=$3
 
-    _sql="select name from optionlist where \`group\` = '$_rmoption_group' and gtype='$_rmoption_gtype' and name = '$_rmoption_key'"
-    _rmoption_check=`sql "$_sql"`
-    if [ -z "$_rmoption_check" ]; then
-        echo The option $_rmoption_key is not defined for $_rmoption_gtype $_rmoption_group
-        return
+    if _hasoptions_group $_rmoption_group $_rmoption_gtype | grep "$_rmoption_key" >/dev/null 2>&1 ; then
+    	:
+	else
+        echo The option $_rmoption_key is not defined for the $_rmoption_gtype $_rmoption_group.
     fi
-    sql "delete from optionlist where \`group\` = '$_rmoption_group' and gtype='$_rmoption_gtype' and name = '$_rmoption_key' limit 1"
-    db_dirty
+    
+    server_call "${_rmoption_gtype}_options_update('$_rmoption_group',{'$_rmoption_key':None})
+    #sql "delete from optionlist where \`group\` = '$_rmoption_group' and gtype='$_rmoption_gtype' and name = '$_rmoption_key' limit 1"
 }
 
 #T Host management;20
