@@ -59,4 +59,3 @@ class ExtNoSuchWatchdogError(ExtLookupError):
 
 class ExtWatchdogAlreadyExistsError(ExtValueError):
     desc = "A watchdog by that name already exists for that mutex"
-

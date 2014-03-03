@@ -1,6 +1,5 @@
 
 import os
-import sys
 import time
 import socket
 import traceback
@@ -11,10 +10,8 @@ import BaseHTTPServer
 import mutex
 import event
 import access
-import exttype
 import session
 import exterror
-import function
 import protocol
 import response
 import api_handler

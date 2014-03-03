@@ -385,8 +385,6 @@ class ExtString(ExtType):
             except:
                 raise ExtUnhandledCharactersError(value=rawval)
 
-            rawval = isostring
-
         if self.maxlen is not None and len(rawval) > self.maxlen:
             raise ExtStringTooLongError(self.maxlen, value=rawval)
         

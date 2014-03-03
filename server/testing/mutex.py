@@ -127,7 +127,7 @@ class MutexTests(AuthTests):
         self.relinguish_superusership()
 
 
-class MutexAdminTests(MutexTests, GroupTests):
+class MutexAdminTests(MutexTests):  # GroupTests):
     do_as_group_member_test = True
     phaseinfo = ["without mutex having access group",
                  "while being member of the mutex' access group",
@@ -142,37 +142,37 @@ class MutexAdminTests(MutexTests, GroupTests):
         username = self.proxy.username()
         self.admingroup = None
 
-        if self.testphase > 0:
-            self.admingroup = None
-            if not username and self.testphase == 1:
-                print "As access group member test is not applicable as unauthenticated"
-                return
-            self.admingroup = self.makeGroup("s_pdbapitest_guinea_pig_mutex_group")  # Make an admin group
-            pxmship = None
-            sumship = None
-
-            # self.superuser.group_set_admin_group(self.testgroup, self.admingroup)
-            if self.testphase == 1:
-                pxmship = self.superuser.membership_create(self.admingroup, username, {})
-            if self.superuser != self.proxy or self.testphase != 1:
-                sumship = self.superuser.membership_create(self.admingroup, self.superuser.username(), {})
-            self.superuser.mutex_acquire(self.testmutex, "PDBAPI superuser", None)
-            self.superuser.mutex_set_access_group(self.testmutex, self.admingroup)
-            self.superuser.mutex_release(self.testmutex)
-            # Phases 0 and 1 should succeed if authenticated
-
-            self.sufficient_privs = []
-            self.expected_access = ["anyauth"]
-            self.expected_admin = False
-            self.superuser_test_may_fail = True
-            # Phase 2 should fail
-            if self.testphase == 2:
-                if sumship:
-                    self.superuser.membership_destroy(sumship)
-                if pxmship:
-                    self.superuser.membership_destroy(pxmship)
-                self.expected_exception_name = "AccessError::MutexAccessDenied"
-        # print "   Prepared phase",self.testphase," for mutex", self.testmutex
+#         if self.testphase > 0:
+#             self.admingroup = None
+#             if not username and self.testphase == 1:
+#                 print "As access group member test is not applicable as unauthenticated"
+#                 return
+#             self.admingroup = self.makeGroup("s_pdbapitest_guinea_pig_mutex_group")  # Make an admin group
+#             pxmship = None
+#             sumship = None
+# 
+#             # self.superuser.group_set_admin_group(self.testgroup, self.admingroup)
+#             if self.testphase == 1:
+#                 pxmship = self.superuser.membership_create(self.admingroup, username, {})
+#             if self.superuser != self.proxy or self.testphase != 1:
+#                 sumship = self.superuser.membership_create(self.admingroup, self.superuser.username(), {})
+#             self.superuser.mutex_acquire(self.testmutex, "PDBAPI superuser", None)
+#             self.superuser.mutex_set_access_group(self.testmutex, self.admingroup)
+#             self.superuser.mutex_release(self.testmutex)
+#             # Phases 0 and 1 should succeed if authenticated
+# 
+#             self.sufficient_privs = []
+#             self.expected_access = ["anyauth"]
+#             self.expected_admin = False
+#             self.superuser_test_may_fail = True
+#             # Phase 2 should fail
+#             if self.testphase == 2:
+#                 if sumship:
+#                     self.superuser.membership_destroy(sumship)
+#                 if pxmship:
+#                     self.superuser.membership_destroy(pxmship)
+#                 self.expected_exception_name = "AccessError::MutexAccessDenied"
+#         # print "   Prepared phase",self.testphase," for mutex", self.testmutex
 
     def cleanup_test(self):
         # print "   Finishing phase", self.testphase
@@ -286,7 +286,7 @@ class MutexAdminTests(MutexTests, GroupTests):
 
 
 
-class T11000_MutexList(MutexTests, SuperReadTests):
+class T11000_MutexList(MutexTests, SuperUserTests):
     """ Test mutex_list."""
 
     # Preparing is unnecessary here

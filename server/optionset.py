@@ -183,7 +183,7 @@ class OptionsetManager(rpcc.Manager):
         q += "WHERE o.id = bo.option_base "
 
         for (oid, name, desc, fromv, tov) in db.get(q):
-            kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
+            kwargs = dict(name="option_" + name.lower(), desc=desc, from_version=fromv, 
                           to_version=tov)
 
             exttyp = rpcc.ExtOrNull(rpcc.ExtBoolean(**kwargs), **kwargs)
