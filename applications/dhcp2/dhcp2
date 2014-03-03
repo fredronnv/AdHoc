@@ -4066,7 +4066,7 @@ lsoptions()
             -c)
                 lsoptions_mutexcheck
                 lsoptions_c_flag=$i; shift
-                lsoptions_arg=$1; shift
+                lsoptions_c_arg=$1; shift
                 lsoptions_gtype='class';
                 ;;
             -H)
@@ -4078,19 +4078,19 @@ lsoptions()
             -p)
                 lsoptions_mutexcheck
                 lsoptions_p_flag=$i; shift
-                lsoptions_arg=$1; shift
+                lsoptions_p_arg=$1; shift
                 lsoptions_gtype='pool';
                 ;;
             -n)
                 lsoptions_mutexcheck
                 lsoptions_n_flag=$i; shift
-                lsoptions_arg=$1; shift
+                lsoptions_n_arg=$1; shift
                 lsoptions_gtype='network';
                 ;;
             -s)
                 lsoptions_mutexcheck
                 lsoptions_s_flag=$i; shift
-                lsoptions_arg=$1; shift
+                lsoptions_s_arg=$1; shift
                 lsoptions_gtype='subnetwork';
                 ;;
             -G)
@@ -4116,7 +4116,32 @@ lsoptions()
     	proxy_start
     	server_call "global_option_dig({}, {'name':True, 'value':True, 'info':True})" | _lsoptions_group_fmt
     fi
+    
+	olen=${olen:-0}
+	vlen=${olen:-0}
 
+	_lsoptions_do 
+	_lsoptions_do print
+}
+
+_lsoptions_do()
+{
+	local lsoptions_c_arg=$lsoptions_c_arg
+	local lsoptions_n_arg=$lsoptions_n_arg
+	local lsoptions_s_arg=$lsoptions_s_arg
+	local lsoptions_H_arg=$lsoptions_H_arg
+	local lsoptions_g_arg=$lsoptions_g_arg
+	local lsoptions_p_arg=$lsoptions_p_arg
+	local lsoptions_c_flag=$lsoptions_c_flag
+	local lsoptions_n_flag=$lsoptions_n_flag
+	local lsoptions_s_flag=$lsoptions_s_flag
+	local lsoptions_H_flag=$lsoptions_H_flag
+	local lsoptions_g_flag=$lsoptions_g_flag
+	local lsoptions_p_flag=$lsoptions_p_flag
+	local lsoptions_gtype=$lsoptions_gtype
+	
+	
+	_lsoptions_print=$1
 # Options defined for a group
     if [ -n "$lsoptions_g_flag" ]; then
         if db_groupexists $lsoptions_g_arg; then
@@ -4128,7 +4153,9 @@ lsoptions()
         seen_options=
         found_options=`_hasoptions_group $lsoptions_g_arg group`
         if [ -n "$found_options" ]; then
-            echo
+    		if [ -n "$_lsoptions_print" ];then
+            	echo
+        	fi
             _lsoptions_group $lsoptions_g_arg 'group' "$found_options" "$seen_options"
             seen_options="$seen_options $found_options"
         fi
@@ -4138,7 +4165,9 @@ lsoptions()
         while [ -n "$lsoptions_g_arg"  -a "$lsoptions_g_arg" != "NULL" ]; do
             found_options=`_hasoptions_group $lsoptions_g_arg group`
             if [ -n "$found_options" ]; then
-                echo
+            	if [ -n "$_lsoptions_print" ];then
+                	echo
+            	fi
                 _lsoptions_group $lsoptions_g_arg 'group' "$found_options" "$seen_options"
             fi
             lsoptions_child=$lsoptions_g_arg
@@ -4153,49 +4182,112 @@ lsoptions()
 
 # Options defined for a subnetwork
     if [ -n "$lsoptions_s_flag" ]; then
-        if db_exists $lsoptions_gtype $lsoptions_arg ; then
+        if db_exists $lsoptions_gtype $lsoptions_s_arg ; then
             :
         else
-            echo "No such $lsoptions_gtype: $lsoptions_arg"
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "No uch $lsoptions_gtype: $lsoptions_s_arg"
+        	fi
             return;
         fi
     
-        found_options=`_hasoptions_group $lsoptions_arg $lsoptions_gtype`
+        found_options=`_hasoptions_group $lsoptions_s_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
-            echo
-            _lsoptions_group $lsoptions_arg 'subnetwork' "$found_options" "$seen_options"
+        	if [ -n "$_lsoptions_print" ];then
+            	echo
+        	fi
+            _lsoptions_group $lsoptions_s_arg 'subnetwork' "$found_options" "$seen_options"
             seen_options="$seen_options $found_options"
         else
-            echo "No options are defined for $lsoptions_gtype $lsoptions_arg"
+            echo "No options are defined for $lsoptions_gtype $lsoptions_s_arg"
         fi
         proxy_start
-        lsoptions_arg=`server_call "subnetwork_fetch('$lsoptions_arg', {'network':True})"`
+        lsoptions_n_arg=`server_call "subnetwork_fetch('$lsoptions_s_arg', {'network':True})"`
         #lsoptions_arg=`sql "select network from subnetworks where id='$lsoptions_arg'"`
-        found_options=`_hasoptions_group $lsoptions_arg network`
+        found_options=`_hasoptions_group $lsoptions_n_arg network`
         if [ -n "$found_options" ]; then
-            echo
-            _lsoptions_group $lsoptions_arg 'network' "$found_options" "$seen_options"
+        	if [ -n "$_lsoptions_print" ];then
+            	echo
+        	fi
+            _lsoptions_group $lsoptions_n_arg 'network' "$found_options" "$seen_options"
         else
-            echo "No options are defined for network $lsoptions_arg"
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "No options are defined for network $lsoptions_n_arg"
+        	fi
             return
         fi
     fi
 
-# Options defined for a class, a pool or a network
-    if [ -n "$lsoptions_c_flag" -o -n "$lsoptions_p_flag" -o -n "$lsoptions_n_flag" ]; then
-        if db_exists $lsoptions_gtype $lsoptions_arg ; then
+# Options defined for a class
+    if [ -n "$lsoptions_c_flag" ]; then
+        if db_exists $lsoptions_gtype $lsoptions_c_arg ; then
             :
         else
-            echo "No such $lsoptions_gtype: $lsoptions_arg"
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "No such $lsoptions_gtype: $lsoptions_c_arg"
+        	fi
             return;
         fi
     
-        found_options=`_hasoptions_group $lsoptions_arg $lsoptions_gtype`
+        found_options=`_hasoptions_group $lsoptions_c_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
-            echo "Options for $lsoptions_gtype $lsoptions_arg"
-            _lsoptions_group $lsoptions_arg $lsoptions_gtype "$found_options" ""
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "Options for $lsoptions_gtype $lsoptions_c_arg"
+        	fi
+            _lsoptions_group $lsoptions_c_arg $lsoptions_gtype "$found_options" ""
         else
-            echo "No options are defined for $lsoptions_gtype $lsoptions_arg"
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "No options are defined for $lsoptions_gtype $lsoptions_c_arg"
+        	fi
+            return
+        fi
+    fi
+    
+# Options defined for  a pool
+    if [ -n "$lsoptions_p_flag" ]; then
+        if db_exists $lsoptions_gtype $lsoptions_p_arg ; then
+            :
+        else
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "No such $lsoptions_gtype: $lsoptions_p_arg"
+        	fi
+            return;
+        fi
+    
+        found_options=`_hasoptions_group $lsoptions_p_arg $lsoptions_gtype`
+        if [ -n "$found_options" ]; then
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "Options for $lsoptions_gtype $lsoptions_p_arg"
+        	fi
+            _lsoptions_group $lsoptions_p_arg $lsoptions_gtype "$found_options" ""
+        else
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "No options are defined for $lsoptions_gtype $lsoptions_p_arg"
+        	fi
+            return
+        fi
+    fi
+# Options defined for a network
+    if [ -n "$lsoptions_n_flag" ]; then
+        if db_exists $lsoptions_gtype $lsoptions_n_arg ; then
+            :
+        else
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "No such $lsoptions_gtype: $lsoptions_n_arg"
+        	fi
+            return;
+        fi
+    
+        found_options=`_hasoptions_group $lsoptions_n_arg $lsoptions_gtype`
+        if [ -n "$found_options" ]; then
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "Options for $lsoptions_gtype $lsoptions_n_arg"
+        	fi
+            _lsoptions_group $lsoptions_n_arg $lsoptions_gtype "$found_options" ""
+        else
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "No options are defined for $lsoptions_gtype $lsoptions_n_arg"
+        	fi
             return
         fi
     fi
@@ -4206,21 +4298,27 @@ lsoptions()
         if [ -n "$_lsoptions_g_arg" ]; then
             :
         else
-            echo "No such host: $lsoptions_H_arg"
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "No such host: $lsoptions_H_arg"
+        	fi
             return;
         fi
         seen_options=
         found_options=`_hasoptions_group $lsoptions_H_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
-            echo "Options for host $lsoptions_H_arg:"
+        	if [ -n "$_lsoptions_print" ];then
+            	echo "Options for host $lsoptions_H_arg:"
+        	fi
             _lsoptions_group $lsoptions_H_arg $lsoptions_gtype "$found_options" "$seen_options"
         fi
         seen_options=$found_options
     
         found_options=`_hasoptions_group $_lsoptions_g_arg group`
         if [ -n "$found_options" ]; then
-            echo 
-            _lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
+        	if [ -n "$_lsoptions_print" ];then
+            	echo 
+        	fi
+        	_lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
             seen_options="$seen_options $found_options"
         fi
         proxy_start
@@ -4229,7 +4327,9 @@ lsoptions()
         while [ -n "$_lsoptions_g_arg"  -a "$_lsoptions_g_arg" != "NULL" ]; do
             found_options=`_hasoptions_group $_lsoptions_g_arg group`
             if [ -n "$found_options" ]; then
-                echo
+            	if [ -n "$_lsoptions_print" ];then
+                	echo
+            	fi
                 _lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
             fi
             _lsoptions_child=$_lsoptions_g_arg
@@ -4244,10 +4344,13 @@ lsoptions()
     
         _lsoptions_subnet=`find_subnet $lsoptions_H_arg`
         if [ -n "$_lsoptions_subnet" ]; then
-            echo
-            echo The host belongs to subnet $_lsoptions_subnet
+        	if [ -n "$_lsoptions_print" ];then
+            	echo
+            	echo The host belongs to subnet $_lsoptions_subnet
+        	fi
             lsoptions_H_flag=
             lsoptions -s $_lsoptions_subnet
+            
         fi
     fi
 }
@@ -4276,6 +4379,8 @@ lsoptions_mutexcheck()
     fi
 }
 
+
+
 # This routine is used both for groups, classes and pools
 # Args: $1 = Object name
 #       $2 = Type of object
@@ -4300,45 +4405,58 @@ _lsoptions_group()
         unseen=`echo $unseen | tr '\n' ' '` # Strips leading blank and converts newlines to blanks
 #       unseen=`echo "'$unseen'" | sed "s/ /','/g"`
 #       echo unseen=$unseen
-		olen=0
-		vlen=0
-		ilen=0
-		for o in $unseen; do
-			proxy_start
-			val=`server_call "${_lsoptions_group_gtype}_fetch('$1',{'optionset_data': {'$o': True}})"`
-		    		ol=`echo $o | wc -c`
-		    		olen=$((ol > olen ? ol : olen))
-		    		vl=`echo $val | wc -c`
-		    		vlen=$((vl > vlen ? vl : vlen))
-		done
-        echo "Name	Value from $_lsoptions_group_gtype $1	Description" | _lsoptions_group_fmt_var $olen $vlen  
-              	echo VLEN=$vlen >&2      	
-        for o in $unseen; do
-            case $o in
-                 *)
-                	proxy_start
-                    val=`server_call "${_lsoptions_group_gtype}_fetch('$1',{'optionset_data': {'$o': True}})"`
-                    #sql="select value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name='$o'"
-                    #val=`sql "$sql"`
-		    		#server_call "option_def_dig({'option_def':'$o'}, {'option_def':True, 'optionspace':True, 'code':True, 'type':True, 'info':True})" | sort -n -k 3 -t '	' | _lsoptions_all_fmt
-         
-		    		info=`server_call "option_def_dig({'option_def':'$o'}, {'info':True})"`
-                    #info=`sql "select info from dhcp_option_defs where name='$o'"`
-					
-                    echo $o"	"$val"	"$info | _lsoptions_group_fmt_var $olen $vlen
-	            	
-                    ;;
-            esac
+		_lsoption_group_header="Name	Value from $_lsoptions_group_gtype $1	Description"
+		px=${_lsoptions_group_gtype}
+		if [ "$px" = "class" ]; then
+			px="host_class"
+		fi
+		if [ -z "$_lsoptions_print" ];then
+			ol=`echo "$_lsoption_group_header" | awk -F '	' '{print $1}' | wc -c`
+			vl=`echo "$_lsoption_group_header" | awk -F '	' '{print $2}' | wc -c`
+			olen=$((ol > olen ? ol : olen))
+			vlen=$((vl > vlen ? vl : vlen))
+			
+			for o in $unseen; do
+				proxy_start
+				val=`server_call "${px}_fetch('$1',{'optionset_data': {'$o': True}})"`
+			    		ol=`echo $o | wc -c`
+			    		olen=$((ol > olen ? ol : olen))
+			    		vl=`echo $val | wc -c`
+			    		vlen=$((vl > vlen ? vl : vlen))
+			done
+		else
+	        echo "$_lsoption_group_header" | _lsoptions_group_fmt_var $olen $vlen  
+	        for o in $unseen; do
+	            case $o in
+	                 *)
+	                	proxy_start
+	                    val=`server_call "${px}_fetch('$1',{'optionset_data': {'$o': True}})"`
+	                    #sql="select value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name='$o'"
+	                    #val=`sql "$sql"`
+			    		#server_call "option_def_dig({'option_def':'$o'}, {'option_def':True, 'optionspace':True, 'code':True, 'type':True, 'info':True})" | sort -n -k 3 -t '	' | _lsoptions_all_fmt
+	         
+			    		info=`server_call "option_def_dig({'option_def':'$o'}, {'info':True})"`
+	                    #info=`sql "select info from dhcp_option_defs where name='$o'"`
+						
+	                    echo $o"	"$val"	"$info | _lsoptions_group_fmt_var $olen $vlen
+		            	
+	                    ;;
+	             esac
 #            sql "select name,value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name in ($unseen) order by name" | _lsoptions_group_fmt
-        done
+	        done
+		fi
     fi
 }
 
 _hasoptions_group()
 {
     _hasoptions_group_gtype=$2
+    px=${_hasoptions_group_gtype}
+	if [ "$px" = "class" ]; then
+		px="host_class"
+	fi
     proxy_start
-     v1=`server_call "${_hasoptions_group_gtype}_fetch('$1', {'options': True})" | tr '\n' ' '`
+     v1=`server_call "${px}_fetch('$1', {'options': True})" | tr '\n' ' '`
      #s1="select name from optionlist where \`group\` = '$1' and gtype = '$_hasoptions_group_gtype' order by name"
      #v1=`sql "$s1" | tr '\n' ' '`
     #echo "V1=$v1" >/dev/tty
