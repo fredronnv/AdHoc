@@ -33,25 +33,26 @@ class T0010_ServerURLAPI(UnAuthTests):
         assert ver["service"] == "AdHoc", "Service is not AdHoc"
 
 
-class T0020_SessionGetInfo(UnAuthTests):
-    """ Test session_get_info """
-    def dont(self):
-        # Run session_get_info
+class T0020_SessionInfo(UnAuthTests):
+    """ Test session_info """  
+    
+    def do(self):
+        # Run session_info
         with AssertAccessError(self):
             res = self.proxy.session_info()
-
-        self.assertindict(res, ["authuser", "expires", "startup", "id", "temporary"])
+        self.assertindict(res, ["authuser", "expires", "session"])
         assert res["authuser"] == self.proxy.username(), "Auth user should be %s, not %s" % (self.proxy.username(), res["authuser"])
-        assert type(res["startup"]) == FloatType, "Startup time is not a float"
-        assert type(res["expires"]) == FloatType, "Expiry time is not a float"
-        assert type(res["id"]) == unicode, "ID is not a Unicode String"
-        assert type(res["temporary"]) == BooleanType, "Temporary is not a boolean"
-        assert res["id"] == self.proxy._sid, "ID does not match the session ID used"
+        assert type(res["expires"]) == unicode, "Expires is not a Unicode String"
+        assert type(res["session"]) == unicode, "ID is not a Unicode String"
+        assert res["session"] == self.proxy._session_id, "Session id does not match the session ID used, session=%s, sid=%s" % (res.session, self.proxy._session_id)
 
 
 class T0030_Sleep(AuthTests):
     """ Test the sleep function for 1 second"""
-    def dont(self):
+    
+    skip = True
+    
+    def do(self):
         # print "Sleeping for 1 second"
         with AssertAccessError(self):
             self.proxy.sleep(1)
@@ -59,7 +60,9 @@ class T0030_Sleep(AuthTests):
 
 class T0040_SessionGetAccess(AuthTests):
     """ Test session_get_access"""
-    def dont(self):
+    skip = True
+    
+    def do(self):
         # Run session_get_access
         with AssertAccessError(self):
             res = self.proxy.session_get_access()
@@ -68,7 +71,9 @@ class T0040_SessionGetAccess(AuthTests):
 
 class T0050_SessionGetPrivileges(AuthTests):
     """ Test session_get_privileges"""
-    def dont(self):
+    skip = True
+    
+    def do(self):
     # Run session_get_privileges
         with AssertAccessError(self):
             res = self.proxy.session_get_privileges()
@@ -77,8 +82,8 @@ class T0050_SessionGetPrivileges(AuthTests):
 
 class T0092_ServerLastSourceEdit(UnAuthTests):
     """ Test server_last_source_edit"""
-
-    def dont(self):
+    skip = True
+    def do(self):
         with AssertAccessError(self):
             last_edit = self.proxy.server_last_source_edit()
             # print last_edit
@@ -87,7 +92,7 @@ class T0092_ServerLastSourceEdit(UnAuthTests):
 
 class T0093_ServerListFunctions(UnAuthTests):
     """ Test server_list_functions."""
-
+    
     def do(self):
         with AssertAccessError(self):
             fnlist = self.proxy.server_list_functions()
@@ -104,7 +109,7 @@ class T0093_ServerListFunctions(UnAuthTests):
 
 class T0094_ServerNodeName(UnAuthTests):
     """ Test server_node_name."""
-
+    
     def do(self):
         with AssertAccessError(self):
             node_name = self.proxy.server_node_name()
@@ -115,7 +120,10 @@ class T0094_ServerNodeName(UnAuthTests):
 
 class T0095_SessionGetTime(AuthTests):
     """ Test session_get_time."""
-    def dont(self):
+    
+    skip = True
+    
+    def do(self):
         # local_now = datetime.datetime.now()
         with AssertAccessError(self):
             times = self.proxy.session_get_time()

@@ -5,20 +5,16 @@ from util import *
 import tempfile
 
 
-class T0300_DhcpXfer(AuthTests):
+class T0300_DhcpXfer(SuperUserTests):
     """ Test dhcpd data transfer from old database"""
-    skip = True
     
     def do(self):
-        if self.proxy != self.superuser:
-            return
         with AssertAccessError(self):
             self.proxy.dhcp_xfer()
 
 
 class T0310_DhcpdConf(AuthTests):
     """ Test dhcpd configuration"""
-    skip = True
     
     def do(self):
         if self.proxy != self.superuser:
