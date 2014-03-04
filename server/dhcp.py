@@ -192,52 +192,11 @@ class DHCPManager(Manager):
         #print "OPTION DEFINITIONS"
         qf = """SELECT id, name, code, qualifier, type, optionspace, info, changed_by, mtime 
                 FROM dhcp_option_defs WHERE scope='dhcp'"""
-        qp2 = """INSERT INTO option_base (name, code, qualifier, type, optionspace, info, changed_by, mtime)
-                               VALUES(:name, :code, :qualifier, :type, :optionspace, :info, :changedby, :mtime)"""
+        
                                
         for(my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime) in self.odb.get(qf):
             #print my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime
-            
-            id = self.db.insert("id", qp2, name=name, code=code, qualifier=qualifier, type=my_type, optionspace=optionspace,
-                           info=info, changedby=changed_by, mtime=mtime)
-            if my_type.startswith("integer") or my_type.startswith("unsigned"):
-                qp3 = """INSERT INTO int_option (option_base, minval, maxval) 
-                         VALUES (:option_base, :minval, :maxval)"""
-
-                if my_type.endswith(' 8'):
-                    u_maxval = 255
-                    i_maxval = 127
-                    i_minval = -127
-                if my_type.endswith(' 16'):
-                    u_maxval = 16383
-                    i_maxval = 8191
-                    i_minval = -8191
-                if my_type.endswith(' 32'):
-                    u_maxval = 4294967295
-                    i_maxval = 2147483647
-                    i_minval = -2147483647
-                if my_type.startswith("unsigned"):
-                    minval = 0
-                    maxval = u_maxval
-                else:
-                    minval = i_minval
-                    maxval = i_maxval
-                self.db.put(qp3, option_base=id, minval=minval, maxval=maxval)
-            
-            if my_type == 'string' or my_type == 'text':
-                qp3 = """INSERT INTO str_option (option_base) 
-                         VALUES (:option_base)"""
-                self.db.put(qp3, option_base=id)
-            
-            if my_type == 'boolean':
-                qp3 = """INSERT INTO bool_option (option_base) 
-                         VALUES (:option_base)"""
-                self.db.put(qp3, option_base=id)
-                
-            if my_type == 'ip-address':
-                qp3 = """INSERT INTO ipaddr_option (option_base) 
-                         VALUES (:option_base)"""
-                self.db.put(qp3, option_base=id)
+            self.option_def_manager.define_option(info, changed_by, mtime, name, my_type, code, qualifier, optionspace)
         
         optionset.OptionsetManager.init_class(self.db)  # Reinitialize class with new options in the table
         #groups

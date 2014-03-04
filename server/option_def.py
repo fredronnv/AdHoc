@@ -3,6 +3,7 @@
 from rpcc import *
 from optionspace import *
 from util import *
+import optionset
 
 
 class ExtNoSuchOptionDefError(ExtLookupError):
@@ -334,15 +335,70 @@ class OptionDefManager(Manager):
         else:
             struct = "{ " + ",".join([x.value for x in structlist.value]) + " }"
             
-        q = """INSERT INTO option_base (name, code, qualifier, type, optionspace, encapsulate, struct, info, changed_by) 
-               VALUES (:name, :code, :qualifier, :type, :optionspace, :encapsulate, :struct, :info, :changed_by)"""
+        self.define_option(info, fun.session.authuser, None, option_def_name, type, code, qualifier, optionspace, struct=struct, encapsulate=encapsulate)
+        optionset.OptionsetManager.init_class(self.db)  # Reinitialize class with new options in the table
+        
+    @entry(AuthRequiredGuard)
+    def define_option(self, info, changed_by, mtime, name, my_type, code, qualifier, optionspace, struct=None, encapsulate=None):
+        
+        qp1 = "INSERT INTO option_base (name, code, qualifier, type, optionspace, info, changed_by"
+        qp2 = "VALUES(:name, :code, :qualifier, :type, :optionspace, :info, :changed_by"
+        param_dict= {"name":name, "code":code, "qualifier":qualifier, "type":my_type, "optionspace":optionspace, "changed_by":changed_by, "info":info}
+        if mtime:
+            qp1 += ", mtime"
+            qp2 += ", :mtime"
+            param_dict["mtime"] = mtime
+        if struct:
+            qp1 += ", struct"
+            qp2 += ", :struct"
+            param_dict["struct"] = struct
+        if encapsulate:
+            qp1 += ", encapsulate"
+            qp2 += ", :encapsulate"
+            param_dict["encapsulate"] = encapsulate
+        qp1 += ") "
+        qp2 += ") "
+        
         try:
-            self.db.insert("id", q, name=option_def_name, code=code, 
-                           qualifier=qualifier, optionspace=optionspace,
-                           encapsulate=encapsulate, struct=struct, type=type,
-                           info=info, changed_by=fun.session.authuser)
+            id = self.db.insert("id", qp1 + qp2, **param_dict)
         except IntegrityError:
             raise ExtOptionDefAlreadyExistsError()
+        
+        if my_type.startswith("integer") or my_type.startswith("unsigned"):
+            qp3 = """INSERT INTO int_option (option_base, minval, maxval) 
+                 VALUES (:option_base, :minval, :maxval)"""
+            if my_type.endswith(' 8'):
+                u_maxval = 255
+                i_maxval = 127
+                i_minval = -127
+            if my_type.endswith(' 16'):
+                u_maxval = 16383
+                i_maxval = 8191
+                i_minval = -8191
+            if my_type.endswith(' 32'):
+                u_maxval = 4294967295
+                i_maxval = 2147483647
+                i_minval = -2147483647
+            if my_type.startswith("unsigned"):
+                minval = 0
+                maxval = u_maxval
+            else:
+                minval = i_minval
+                maxval = i_maxval
+            self.db.put(qp3, option_base=id, minval=minval, maxval=maxval)
+        if my_type == 'string' or my_type == 'text':
+            qp3 = """INSERT INTO str_option (option_base) 
+                 VALUES (:option_base)"""
+            self.db.put(qp3, option_base=id)
+        if my_type == 'boolean':
+            qp3 = """INSERT INTO bool_option (option_base) 
+                 VALUES (:option_base)"""
+            self.db.put(qp3, option_base=id)
+        if my_type == 'ip-address':
+            qp3 = """INSERT INTO ipaddr_option (option_base) 
+                 VALUES (:option_base)"""
+            self.db.put(qp3, option_base=id)
+        return id
               
     @entry(AuthRequiredGuard)
     def destroy_option_def(self, fun, option_def):
