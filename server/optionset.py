@@ -210,8 +210,8 @@ class OptionsetManager(rpcc.Manager):
         for (oid, name, desc, fromv, tov, minval, maxval) in db.get(q):
             kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
                           to_version=tov)
-            if minval is not None and maxval is not None:
-                kwargs["regexp"] = rexp
+            if minval or maxval:
+                kwargs["range"]=(minval, maxval)
 
             exttyp = rpcc.ExtOrNull(rpcc.ExtInteger(**kwargs), **kwargs)
             options.append( ("int", oid, name, exttyp, fromv, tov, desc) )
