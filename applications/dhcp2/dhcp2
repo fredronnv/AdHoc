@@ -2994,7 +2994,6 @@ _addoption()
 	else
     	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
 	fi	
-    #sql "insert into optionlist (\`group\`,\`gtype\`,\`name\`,\`value\`,\`changed_by\`,\`mtime\`) values ('$_addoption_group','$_addoption_gtype','$_addoption_key','$_addoption_value','$USER',now())"
 }
 
 #S addroom;ar;Add a room;1;2;roomcode [info];Add a room to the DHCP database;101
@@ -3336,8 +3335,6 @@ _choption()
 	else
     	server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
 	fi
-    
-    #sql "update optionlist set value = '$_choption_value' where \`group\` = '$_choption_group' and gtype = '$_choption_gtype' and name = '$_choption_key'"
 }
 
 #S chroom;cr;Change a room;1;1;room_code;Change the data stored for a room in the database;102
@@ -4309,7 +4306,6 @@ _lsoptions_do()
         fi
         proxy_start
         lsoptions_n_arg=`server_call "subnetwork_fetch('$lsoptions_s_arg', {'network':True})"`
-        #lsoptions_arg=`sql "select network from subnetworks where id='$lsoptions_arg'"`
         found_options=`_hasoptions_group $lsoptions_n_arg network`
         if [ -n "$found_options" ]; then
         	if [ -n "$_lsoptions_print" ];then
@@ -5062,7 +5058,6 @@ _rmoption()
     fi
     
     server_call "${_rmoption_gtype}_options_update('$_rmoption_group',{'$_rmoption_key':None})"
-    #sql "delete from optionlist where \`group\` = '$_rmoption_group' and gtype='$_rmoption_gtype' and name = '$_rmoption_key' limit 1"
 }
 
 #T Host management;20
