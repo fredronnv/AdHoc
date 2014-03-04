@@ -2089,7 +2089,6 @@ proxy_stop()
 			trace "Killing coprocess $coprocess_id" 
 			kill $coprocess_id 2>/dev/null
 			wait $coprocess_id 2>/dev/null
-			return
 		fi
 	
 		rm -f $copin $copout $coppid_file
