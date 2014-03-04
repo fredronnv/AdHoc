@@ -23,7 +23,7 @@ CVSversion='$Revision: 2.54 $'
 #
 #
 #
-PATH=/usr/ed-pkg/vcs-core/bin:/usr/site/sup.phc/b/binh:/usr/site/lic.phc/b/binh:/usr/ed-pkg/sup.phc/b/binh:/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/usr/local/mysql/bin:/js/tool/bin
+PATH=/usr/ed-pkg/vcs-core/bin:/usr/site/sup.phc/b/binh:/usr/site/lic.phc/b/binh:/usr/ed-pkg/sup.phc/b/binh:/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/js/tool/bin
 version=`echo "{$CVSversion}" | cut -f2 -d' '`
 verbose=0
 export verbose
@@ -666,11 +666,12 @@ do_subcmd()
                         exit 2
                     fi
 #C OK, we got an arg, shell we send it through a validator ?
+					proxy_start
                     eval _do_subcmd_validator=\"\$_${subcmd}_${_larg}_validator\"
                     if [ -n "${_do_subcmd_validator}" ]; then
 #C Yes, rewrite the syntax name to a real function name
                         eval _do_subcmd_validator="_validate_${_do_subcmd_validator}"
-#C Send the arg throug the validator
+#C Send the arg through the validator
                         _do_subcmd_tmp=`${_do_subcmd_validator} "$1"`
 #C Got something? Nothing means error
                         if [ -z "${_do_subcmd_tmp}" ]; then
@@ -689,6 +690,7 @@ do_subcmd()
                 fi
                 ;;
             -*)
+            	proxy_start
                 _sarg=${_arg:1}
                 eval _do_subcmd_tmp=\"\$_${subcmd}_${_sarg}_flag\"
                 if [ "$_do_subcmd_tmp" != "${_arg:1}" -a "$_arg" != "-h" ]; then
@@ -706,6 +708,7 @@ do_subcmd()
                     fi
                     eval _do_subcmd_validator=\"\$_${subcmd}_${_sarg}_validator\"
                     if [ -n "${_do_subcmd_validator}" ]; then
+                    	proxy_start
                         eval _do_subcmd_validator="_validate_${_do_subcmd_validator}"
                         _do_subcmd_tmp=`${_do_subcmd_validator} "$1"`
                         if [ -z "${_do_subcmd_tmp}" ]; then
@@ -1727,6 +1730,7 @@ _validate_host_in_subnet()
 #C
 _validate_host_in_db()
 {
+	
     _validate_host_in_db_arg=$1
     
     if db_exists host $_validate_host_in_db_arg ; then
@@ -1803,27 +1807,6 @@ _validate_netmask_or_null()
     _validate_netmask "$_validate_netmask_or_null_arg"
 }
 
-#C
-#C Validator for subnetworks
-#C
-_validate_subnetwork_id()
-{
-    _validate_subnetwork_id_id=$1
-    _validate_subnetwork_id_mask=$2
-#C
-#C The id netmask validator works by checking the residue host address when masked with the
-#C inverse of the mask. This is much simpler to do in SQL than in sh, and since we have a database at hand....
-#C
-    xsql="select INET_ATON('$_validate_subnetwork_id_id') & ~INET_ATON('$_validate_subnetwork_id_mask')"
-    res=`sql "$xsql"`
-#C
-    if [ "$res"  != "0" ]; then
-        echo "Invalid subnet/mask combination: $_validate_subnetwork_id_id $_validate_subnetwork_id_mask ($res)" >&2
-        echo "$xsql" >&2
-        return
-    fi
-    echo "$_validate_subnetwork_id_id"
-}
 #C
 #C Validator for IP addresses
 #C
@@ -2034,10 +2017,37 @@ _validate_hotbeat_class()
     return
 }
 ##VGIP Validator generation insertion point, do not delete!!
+
+fetch_coprocess_id()
+{
+	if [ -r ${coppid_file} ]; then
+		copid=`cat $coppid_file`
+		#echo "Fetched coprocess id=$copid from file $coppid_file" >&2
+		echo $copid
+	else
+		:
+		#echo "No coprocess_id file ${coppid_file}" >&2
+	fi
+}
+
+store_coprocess_id()
+{
+	touch ${coppid_file}
+	#echo "Created coprocess id file ${coppid_file}" >&2
+	chmod 700 ${coppid_file}
+	#echo "Chmodded coprocess id file ${coppid_file}" >&2
+	echo $1 >${coppid_file}
+	#echo "Stored coprocess id $1 into file ${coppid_file}" >&2
+}
+
 proxy_start()
 {
-	if [ -n "$coppid" ]; then
-		trace "Proxy $coppid already running" 
+	coprocess_id=`fetch_coprocess_id`
+	
+	#trace "coprocess_id A =$coprocess_id"
+	
+	if [ -n "$coprocess_id" ]; then
+		trace "Proxy $coprocess_id already running" 
 		return
 	fi
 	#echo "SERVER_CALL CMD=" "$@" >&2
@@ -2049,40 +2059,64 @@ proxy_start()
     	. $DHCP2_CONFFILE
 	fi
 	
-	trace "Starting proxy"
-				
+	#trace "Starting proxy by pid=$$"
+		 				 				
 	mkfifo $copin $copout
 	$MY_PATH/dhcp2proxy.py $copin $copout &
-	coppid=$!
 	
-	trap "proxy_stop $coppid; rm $copin $copout" INT TERM EXIT
+	store_coprocess_id $!
+	coprocess_id=`fetch_coprocess_id`
+	
+	#trace "coprocess_id B =$coprocess_id"
+	
 	
 	server_call "session_auth_login('fbq', 'fbq')" >/dev/null
+	
+	trace "coprocess_id C =$coprocess_id"
 
 }
 
 proxy_stop()
 {
-	kill ${1} 2>/dev/null
-	wait ${1} 2>/dev/null
+	#echo "proxy_stop: Subshell=${BASH_SUBSHELL},BASHPID=${BASHPID}"
+	if  [ $BASH_SUBSHELL -eq 0 ]; then
+		
+		coprocess_id=`fetch_coprocess_id`
+		
+		trace "coprocess_id Q =$coprocess_id"
+		
+		if [ -n "$coprocess_id" ]; then
+			trace "Killing coprocess $coprocess_id" 
+			kill $coprocess_id 2>/dev/null
+			wait $coprocess_id 2>/dev/null
+			return
+		fi
+	
+		rm -f $copin $copout $coppid_file
+	else
+		echo "proxy_stop: Not in main shell" >&2
+	fi
 }
 
 proxy_call()
 {
+	local result
 	#echo "copin=" $copin >&2
     trace "server_call: ""$@"
     echo "$@" >"$copin"
 	cat $copout
     #result=`cat $copout`
-    #echo "Result='"$result"'" >&2
+    #echo "$result"
+    #echo "Proxy_call Result='"$result"'" >&2
 }
 
 server_call()
 {
-	#echo "copin=" $copin >&2
-	proxy_call "res = srv.""$@"
-    #result=`cat $copout`
-    #echo "Result='"$result"'" >&2
+	local result
+	#echo "Calling proxy_call" >&2
+	result=`proxy_call "res = srv.""$@"`
+    echo "$result"
+    #echo "Returning '$result' from server_call" >&2
 }
 
 
@@ -2120,7 +2154,6 @@ num2ip()
     echo "$in1.$in2.$in3.$in4"
 }
 
-
 db_hostgroup()
 {
 	proxy_start
@@ -2128,7 +2161,7 @@ db_hostgroup()
     	server_call "host_dig({'host':'$1'}, {'group':True})"
     else
     	server_call "host_update('$1', {'group':'$2'})"
-        echo $2
+        echo "$2"
     fi
 }
 
@@ -2857,7 +2890,7 @@ addoption()
 
 opoption()
 {
-
+ 
     opoption_gtype=
     for i in "$@"; do
         case "$i" in
@@ -2958,9 +2991,9 @@ _addoption()
     proxy_start
     otype=`server_call "option_def_fetch('$_addoption_key',{'type':True})"`
     if echo $otype | grep integer >/dev/null 2>&1; then
-    	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':_addoption_value})
+    	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':${_addoption_value}})"
 	else
-    	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':'_addoption_value'})
+    	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
 	fi	
     #sql "insert into optionlist (\`group\`,\`gtype\`,\`name\`,\`value\`,\`changed_by\`,\`mtime\`) values ('$_addoption_group','$_addoption_gtype','$_addoption_key','$_addoption_value','$USER',now())"
 }
@@ -3300,9 +3333,9 @@ _choption()
     proxy_start
     otype=`server_call "option_def_fetch('$_choption_key',{'type':True})"`
     if echo $otype | grep integer >/dev/null 2>&1; then
-    	server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':_choption_value})
+    	server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':${_choption_value}})"
 	else
-    	server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':'_choption_value'})
+    	server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
 	fi
     
     #sql "update optionlist set value = '$_choption_value' where \`group\` = '$_choption_group' and gtype = '$_choption_gtype' and name = '$_choption_key'"
@@ -3934,14 +3967,14 @@ lshosts()
     format=\`id\`
     pattern="^[^	]*${1-.*}"
     
-    data_template='"dns":True'
+    data_template='"host":True'
 	search_exp=""
 	
     
     if [ -n "$lshosts_l_flag" -o -n "$lshosts_L_flag" ]; then
-    	data_template='"dns":True,"mac":True,"group":True,"status":True,"room":True,"info":True'
-        format="id,mac,\`group\`,entry_status,room,info"
-        echo "Hostname	Mac	Group	EStatus	Room	Info" | _lshosts_l_fmt
+    	data_template='"host":True,"dns":True,"mac":True,"group":True,"status":True,"room":True,"info":True'
+        format="id,dns,mac,\`group\`,entry_status,room,info"
+        echo "Hostname	DNS	Mac	Group	EStatus	Room	Info" | _lshosts_l_fmt
     fi
     
     if [ -z "$lshosts_a_flag$lshosts_i_flag$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
@@ -4023,12 +4056,12 @@ lshosts()
 
 _lshosts_l_fmt()
 {
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-32s %17s %36s %-8s %7s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7);}" |  sed 's/ *$//'
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-32s %32s %17s %36s %-8s %7s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8);}" |  sed 's/ *$//'
 }
 
 _lshosts_L_fmt()
 {
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-32s %17s %41s %-10s %-8s %-8s %7s %12s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10);}" |  sed 's/ *$//'
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-32s %32s %17s %41s %-10s %-8s %-8s %7s %12s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11);}" |  sed 's/ *$//'
 }
 #S lsnetworks;ln;List networks;0;0;;List shared networks defined in the DHCP database;64
 #M
@@ -4237,7 +4270,6 @@ _lsoptions_do()
         fi
         proxy_start
         lsoptions_g_arg=`server_call "group_fetch('$lsoptions_g_arg', {'parent':True})"`
-        #lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$lsoptions_g_arg'"`
         while [ -n "$lsoptions_g_arg"  -a "$lsoptions_g_arg" != "NULL" ]; do
             found_options=`_hasoptions_group $lsoptions_g_arg group`
             if [ -n "$found_options" ]; then
@@ -4251,7 +4283,6 @@ _lsoptions_do()
         	if [ "$lsoptions_g_arg" = "$lsoptions_child" ]; then
         		lsoptions_g_arg=""
     		fi
-            #lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$lsoptions_g_arg'"`
             seen_options="$seen_options $found_options"
         done
     fi
@@ -4399,7 +4430,6 @@ _lsoptions_do()
         fi
         proxy_start
         _lsoptions_g_arg=`server_call "group_fetch('$_lsoptions_g_arg', {'parent':True})"`
-        #_lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$_lsoptions_g_arg'"`
         while [ -n "$_lsoptions_g_arg"  -a "$_lsoptions_g_arg" != "NULL" ]; do
             found_options=`_hasoptions_group $_lsoptions_g_arg group`
             if [ -n "$found_options" ]; then
@@ -4414,7 +4444,6 @@ _lsoptions_do()
             if [ "$_lsoptions_g_arg" = "$_lsoptions_child" ]; then
             	_lsoptions_g_arg=""
         	fi
-            #_lsoptions_g_arg=`sql "select parent_group from groups where groupname = '$_lsoptions_g_arg'"`
             seen_options="$seen_options $found_options"
         done
     
@@ -4507,18 +4536,10 @@ _lsoptions_group()
 	                 *)
 	                	proxy_start
 	                    val=`server_call "${px}_fetch('$1',{'optionset_data': {'$o': True}})"`
-	                    #sql="select value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name='$o'"
-	                    #val=`sql "$sql"`
-			    		#server_call "option_def_dig({'option_def':'$o'}, {'option_def':True, 'optionspace':True, 'code':True, 'type':True, 'info':True})" | sort -n -k 3 -t '	' | _lsoptions_all_fmt
-	         
 			    		info=`server_call "option_def_dig({'option_def':'$o'}, {'info':True})"`
-	                    #info=`sql "select info from dhcp_option_defs where name='$o'"`
-						
 	                    echo $o"	"$val"	"$info | _lsoptions_group_fmt_var $olen $vlen
-		            	
 	                    ;;
 	             esac
-#            sql "select name,value from optionlist where \`group\` = '$1' and gtype = '$_lsoptions_group_gtype' and name in ($unseen) order by name" | _lsoptions_group_fmt
 	        done
 		fi
     fi
@@ -4526,16 +4547,16 @@ _lsoptions_group()
 
 _hasoptions_group()
 {
+	
     _hasoptions_group_gtype=$2
     px=${_hasoptions_group_gtype}
 	if [ "$px" = "class" ]; then
 		px="host_class"
 	fi
     proxy_start
-     v1=`server_call "${px}_fetch('$1', {'options': True})" | tr '\n' ' '`
-     #s1="select name from optionlist where \`group\` = '$1' and gtype = '$_hasoptions_group_gtype' order by name"
-     #v1=`sql "$s1" | tr '\n' ' '`
-    #echo "V1=$v1" >/dev/tty
+    #echo "Coprocess_id H=$coprocess_id" >&2
+    v1=`server_call "${px}_fetch('$1', {'options': True})" | tr '\n' ' '`
+    #echo "V1=$v1" >&2
     echo "$v1"
 }
 
@@ -5024,8 +5045,8 @@ mkhost()
 #M
 rmoption()
 {
-  option_op="remove"
-  opoption "$@"
+	option_op="remove"
+	opoption "$@"
 }
 
 _rmoption()
@@ -5033,14 +5054,15 @@ _rmoption()
     _rmoption_group=$1
     _rmoption_key=$2
     _rmoption_gtype=$3
-
+ 
     if _hasoptions_group $_rmoption_group $_rmoption_gtype | grep "$_rmoption_key" >/dev/null 2>&1 ; then
     	:
 	else
         echo The option $_rmoption_key is not defined for the $_rmoption_gtype $_rmoption_group.
+        return
     fi
     
-    server_call "${_rmoption_gtype}_options_update('$_rmoption_group',{'$_rmoption_key':None})
+    server_call "${_rmoption_gtype}_options_update('$_rmoption_group',{'$_rmoption_key':None})"
     #sql "delete from optionlist where \`group\` = '$_rmoption_group' and gtype='$_rmoption_gtype' and name = '$_rmoption_key' limit 1"
 }
 
@@ -5116,7 +5138,7 @@ addnetwork()
         exit 1
     fi
     
-	server_call "network_create('$addnetwork_network', $_addnetwork_authoritative, '$addnetwork_i_arg')"
+	server_call "network_create('$addnetwork_network', ${_addnetwork_authoritative}, '$addnetwork_i_arg')"
     
 }
 #S addsubnetwork;;Add a subnetwork;2;2;IP-address network;Add a new subnetwork to a network;66
@@ -5720,13 +5742,14 @@ _chsubnetwork_foundaflag()
 }
 ##SGIP Subcommand generation insertion point, do not delete!!
 
-
 ##SSCB2 Suite specific code begin 2
 # Run the command
 #proxy_start
 #server_call "session_start()"
 export copin="/tmp/dhcp2_in_$$"
 export copout="/tmp/dhcp2_out_$$"
+export coppid_file="/tmp/dhcp2_coppid_$$"
+trap "proxy_stop" INT TERM EXIT
 main "$@" 
 #M
 #M =head1 EXAMPLES
