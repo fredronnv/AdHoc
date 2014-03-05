@@ -232,7 +232,6 @@ class T1270_PoolUnsetOption(AuthTests):
 class T1280_PoolAllowHost(AuthTests):
     """ Test allowing two hosts into the pool"""
     
-    wip=True
     def do(self):
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
@@ -258,7 +257,6 @@ class T1280_PoolAllowHost(AuthTests):
 class T1281_PoolAllowGroup(AuthTests):
     """ Test allowing a group into the pool"""
     
-    wip=True
     def do(self):
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
@@ -282,7 +280,6 @@ class T1281_PoolAllowGroup(AuthTests):
 class T1282_PoolAllowHostClass(AuthTests):
     """ Test allowing a host_class into the pool"""
     
-    wip=True
     def do(self):
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
@@ -306,7 +303,6 @@ class T1282_PoolAllowHostClass(AuthTests):
 class T1283_PoolDisallowHost(AuthTests):
     """ Test disallowing two hosts from the pool"""
     
-    wip=True
     def do(self):
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
@@ -334,7 +330,6 @@ class T1283_PoolDisallowHost(AuthTests):
 class T1284_PoolDisallowGroup(AuthTests):
     """ Test disallowing a group from the pool"""
     
-    wip=True
     def do(self):
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
@@ -359,7 +354,6 @@ class T1284_PoolDisallowGroup(AuthTests):
 class T1285_PoolDisallowHostClass(AuthTests):
     """ Test disallowing a host_class from the pool"""
     
-    wip=True
     def do(self):
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
