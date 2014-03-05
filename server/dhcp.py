@@ -758,12 +758,14 @@ class DHCPManager(Manager):
                 self.emit("class \"%s\" {" % groupclass, 4 * indent)
                 self.emit("match pick-first-value (option dhcp-client-identifier, hardware);", 4 * (indent + 1))
                 self.emit("}", 4 * (indent))
-
-                q = "SELECT id, mac FROM hostlist WHERE `group`= :groupname"
+                g0 = "SELECT descendant FROM group_groups_flat WHERE groupname=:groupname"
+                groups = self.db.get(g0, groupname=groupname)
+                for g in groups:
+                    q = "SELECT id, mac FROM hostlist WHERE `group`= :groupname"
                 
-                for (hostid, mac) in self.db.get_all(q, groupname=groupname):
-                    self.emit("subclass \"%s\" 1:%s; # %s" % (groupclass, mac, hostid), 4 * (indent))
-            self.generated_allocation_group_classes.add(groupclass)
+                    for (hostid, mac) in self.db.get_all(q, groupname=g):
+                        self.emit("subclass \"%s\" 1:%s; # %s" % (groupclass, mac, hostid), 4 * (indent))
+                self.generated_allocation_group_classes.add(groupclass)
     
     def emit_pools(self, network, indent):
         for poolname in self.get_network_pools(network):
