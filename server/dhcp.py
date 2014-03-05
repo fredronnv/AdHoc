@@ -612,11 +612,11 @@ class DHCPManager(Manager):
         timing_array.sort(key=lambda tup: tup[2])
         for (what, when, time) in timing_array:
             pass
-            #print what, when, time
+            print what, when, time
         grouptime = aftgroups - b4groups
         tottime = endtime - b4start
         groupsshare = grouptime.total_seconds() / tottime.total_seconds()
-        #print "Groups share=", groupsshare
+        print "Groups share=", groupsshare
         s = u"".join(self.dhcpd_conf)
         #print s
         return s
@@ -676,12 +676,41 @@ class DHCPManager(Manager):
             self.emit(value, 4 * indent)
     
     def emit_group_hosts(self, groupname, indent):
-        q = "SELECT id, dns, mac, room, optionspace, entry_status, info FROM hosts WHERE `group`= :groupname"
-    
-        for (hostid, dns, mac, room, optionspace, entry_status, info) in self.db.get(q, groupname=groupname):
-            self.emit_host(hostid, dns, mac, room, entry_status, optionspace, info, indent)
+        """ The bulk of the hosts have no options, which takes a while to dig out, therefore
+            the host generation is split into two parts, the bulk is selected with one SQL qnd the rest with another."""
+            
+        qslow = """SELECT id, dns, mac, room, optionspace, entry_status, info, 'yes' FROM hosts h WHERE `group`= :groupname
+            AND  
+            ( h.entry_status = 'Active' AND
+                (
+                    EXISTS (SELECT * FROM optionset_boolval bv WHERE bv.optionset = h.optionset) OR
+                    EXISTS (SELECT * FROM optionset_strval sv WHERE sv.optionset = h.optionset) OR
+                    EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = h.optionset) OR
+                    EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = h.optionset)
+                )
+            )
+        """
+        qfast = """
+                   SELECT h.id, h.dns, h.mac, h.room, h.optionspace, h.entry_status, h.info, 'no' FROM `hosts` h
+                   WHERE `group`= :groupname AND
+                   h.entry_status != 'Dead' AND
+                   (
+                       h.entry_status = 'Inactive' OR NOT
+                       (
+                           EXISTS (SELECT * FROM optionset_boolval bv WHERE bv.optionset = h.optionset) OR
+                           EXISTS (SELECT * FROM optionset_strval sv WHERE sv.optionset = h.optionset) OR
+                           EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = h.optionset) OR
+                           EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = h.optionset)
+                       )
+                    )"""
+        allhosts = self.db.get(qfast, groupname=groupname)    
+        allhosts.extend(self.db.get(qslow, groupname=groupname))
         
-    def emit_host(self, hostid, dns, mac, room, entry_status, optionspace, info, indent):
+        # Sort them and emit
+        for (hostid, dns, mac, room, optionspace, entry_status, info, hasopts) in sorted(allhosts, key=lambda x: x[0].lower()):
+            self.emit_host(hostid, dns, mac, room, entry_status, optionspace, info, hasopts, indent)
+        
+    def emit_host(self, hostid, dns, mac, room, entry_status, optionspace, info, hasopts, indent):
         
         comment = ""
         if info:
@@ -691,13 +720,14 @@ class DHCPManager(Manager):
             comment += "# Room %s" % room
             
         if entry_status == 'Active':
-            host = self.host_manager.get_host(hostid)
-            if self.has_optlist(host):
+            #host = self.host_manager.get_host(hostid)
+            if hasopts=='yes':
                 self.emit("host %s %s" % (hostid, comment), 4 * indent)
                 self.emit("{", 4 * indent)
                 self.emit("hardware ethernet %s" % mac, 4 * (indent + 1))
                 self.emit("fixed-address %s;" % dns, 4 * (indent + 1))
                 self.emit_option_space(optionspace, (4 * (indent + 1)))
+                host = self.host_manager.get_host(hostid)
                 self.emit_optlist(host, indent + 1)
                 #self.emit_option_list(hostid, optionspace, indent + 1, 'host')
                 self.emit("}", 4 * indent)
@@ -804,7 +834,7 @@ class DHCPManager(Manager):
         for(start, end) in self.db.get_all(q, poolid=poolid, server_id=self.serverID):
             self.emit("range %s %s;" % (start, end), indent)
 
-    def emit_subnetwork(self, subnet_id, network, info, indent): 
+    def emit_subnetwork(self, subnet_id, network, info, hasopts, indent): 
             #print "em:",network,subnet_id,info  
             if info:
                 info = "# " + info
@@ -813,8 +843,8 @@ class DHCPManager(Manager):
             (subnet_addr, mask_length) = subnet_id.split('/')
             subnet_mask = socket.inet_ntoa(struct.pack(">L", (1 << 32) - (1 << 32 >> int(mask_length))))
             
-            subnetwork = self.subnetwork_manager.get_subnetwork(subnet_id)
-            if self.has_optlist(subnetwork):
+            if hasopts == 'yes':
+                subnetwork = self.subnetwork_manager.get_subnetwork(subnet_id)
                 self.emit("subnet %s netmask %s     %s" % (subnet_addr, subnet_mask, info), 4 * (indent + 1))
                 self.emit("{", 4 * (indent + 1))
                 #self.emit("option subnet-mask %s;" % subnet_mask, 4 * (indent + 2))
@@ -827,9 +857,36 @@ class DHCPManager(Manager):
                 
     def emit_subnetworks(self, network, indent):   
         q = "SELECT id, network, info FROM subnetworks WHERE `network`=:network ORDER BY (CONVERT(id USING latin1) COLLATE latin1_swedish_ci)"
-    
-        for (subnet_id, network, info) in self.db.get_all(q, network=network):
-            self.emit_subnetwork(subnet_id, network, info, indent)
+        
+        qslow = """ SELECT id, network, info, 'yes' FROM subnetworks s 
+                    WHERE `network`=:network
+                    AND  
+                        (
+                            EXISTS (SELECT * FROM optionset_boolval bv WHERE bv.optionset = s.optionset) OR
+                            EXISTS (SELECT * FROM optionset_strval sv WHERE sv.optionset = s.optionset) OR
+                            EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = s.optionset) OR
+                            EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = s.optionset)
+                        )
+                    ORDER BY (CONVERT(id USING latin1) COLLATE latin1_swedish_ci)
+                """
+        qfast = """ SELECT id, network, info, 'no' FROM subnetworks s 
+                    WHERE `network`=:network
+                    AND NOT
+                       (
+                           EXISTS (SELECT * FROM optionset_boolval bv WHERE bv.optionset = s.optionset) OR
+                           EXISTS (SELECT * FROM optionset_strval sv WHERE sv.optionset = s.optionset) OR
+                           EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = s.optionset) OR
+                           EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = s.optionset)
+                       )
+                    ORDER BY (CONVERT(id USING latin1) COLLATE latin1_swedish_ci)
+                """
+            
+        allsubnetworks = self.db.get(qfast, network=network)    
+        allsubnetworks.extend(self.db.get(qslow, network=network))
+        
+        # Sort them and emit
+        for (subnet_id, network, info, hasopts) in sorted(allsubnetworks, key=lambda x: x[0].lower()):
+            self.emit_subnetwork(subnet_id, network, info, hasopts, indent)
 
     def emit_class(self, classname, optionspace, vendor_class_id):
 
