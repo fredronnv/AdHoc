@@ -4,6 +4,9 @@ from rpcc import *
 from shared_network import ExtNetwork, ExtNetworkName
 from optionset import *
 from option_def import *
+from host import ExtHostList
+from group import ExtGroupList
+from host_class import ExtHostClassList
 
 
 class ExtNoSuchPoolError(ExtLookupError):
@@ -17,6 +20,17 @@ class ExtPoolAlreadyExistsError(ExtLookupError):
 class ExtPoolInUseError(ExtValueError):
     desc = "The pool is referred to by other objects. It cannot be destroyed"    
 
+
+class ExtHostAlreadyAllowedError(ExtValueError):
+    desc = "The host is already allowed into the pool"
+
+
+class ExtGroupAlreadyAllowedError(ExtValueError):
+    desc = "The group is already allowed into the pool"
+
+
+class ExtHostClassAlreadyAllowedError(ExtValueError):
+    desc = "The host class is already allowed into the pool"
 
 class ExtPoolName(ExtString):
     name = "pool-name"
@@ -74,6 +88,33 @@ class PoolDestroy(PoolFunBase):
         
 class PoolLiteralOptionAdd(PoolFunBase):
     extname = "pool_literal_option_add"
+    
+class PoolAllowHost(PoolFunBase):
+    extname = "pool_allow_host"
+    desc = "Allows a host to use a pool"
+    params = [("host", ExtHost, "Host to be allowed into the pool")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.pool_manager.allow_host(self, self.pool, self.host)
+        
+class PoolAllowGroup(PoolFunBase):
+    extname = "pool_allow_group"
+    desc = "Allows a group of hosts to use a pool"
+    params = [("group", ExtGroup, "Group to be allowed into the pool")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.pool_manager.allow_group(self, self.pool, self.group)
+
+class PoolAllowHostClass(PoolFunBase):
+    extname = "pool_allow_host_class"
+    desc = "Allows a host class to use a pool"
+    params = [("host_class", ExtHostClass, "Host class to be allowed into the pool")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.pool_manager.allow_host_class(self, self.pool, self.host_class)
 
 
 class PoolOptionsUpdate(PoolFunBase):
@@ -148,6 +189,24 @@ class Pool(Model):
     @template("optionset", ExtOptionset, model=Optionset)
     def get_optionset(self):
         return self.optionset_manager.get_optionset(self.optionset)
+    
+    @template("allowed_hosts", ExtHostList)
+    def get_allowed_hosts(self):
+        q = "SELECT hostname FROM pool_host_map WHERE poolname=:pool"
+        hosts = self.db.get(q, pool=self.oid)
+        return [x[0] for x in hosts]
+    
+    @template("allowed_groups", ExtGroupList)
+    def get_allowed_groups(self):
+        q = "SELECT groupname FROM pool_group_map WHERE poolname=:pool"
+        groups = self.db.get(q, pool=self.oid)
+        return [x[0] for x in groups]
+    
+    @template("allowed_host_classes", ExtHostClassList)
+    def get_allowed_groups(self):
+        q = "SELECT classname FROM pool_class_map WHERE poolname=:pool"
+        classes = self.db.get(q, pool=self.oid)
+        return [x[0] for x in classes]
     
     @update("pool", ExtString)
     @entry(AuthRequiredGuard)  
@@ -279,3 +338,31 @@ class PoolManager(Manager):
         q = """DELETE FROM pool_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=pool.oid, name=option.oid):
             raise ExtOptionNotSetError()
+        
+    @entry(AuthRequiredGuard)
+    def allow_host(self, pool, host):
+        q = """INSERT INTO pool_host_map (poolname, hostname, changed_by) 
+            VALUES (:poolname, :hostname, :changed_by)"""
+        try:
+            self.db.put(q, poolname=pool.oid, hostname=host.oid, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtHostAlreadyAllowedError()
+    
+    @entry(AuthRequiredGuard)
+    def allow_group(self, pool, group):
+        q = """INSERT INTO pool_group_map (poolname, groupname, changed_by) 
+            VALUES (:poolname, :groupname, :changed_by)"""
+        try:
+            self.db.put(q, poolname=pool.oid, groupname=group.oid, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtGroupAlreadyAllowedError()
+        
+    @entry(AuthRequiredGuard)
+    def allow_host_class(self, pool, host_class):
+        q = """INSERT INTO pool_class_map (poolname, host_class_name, changed_by) 
+            VALUES (:poolname, :host_class_name, :changed_by)"""
+        try:
+            self.db.put(q, poolname=pool.oid, host_class_name=host_class.oid, changed_by=fun.session.authuser)
+        except IntegrityError:
+            raise ExtHostClassAlreadyAllowedError()
+        

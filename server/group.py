@@ -34,7 +34,11 @@ class ExtGroup(ExtGroupName):
 
     def output(self, fun, obj):
         return obj.oid
-    
+
+class ExtGroupList(ExtList):
+    name = "group-list"
+    desc = "List of group names"
+    typ = ExtGroupName
     
 class ExtGroupCreateOptions(ExtStruct):
     name = "group_create_options"

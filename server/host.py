@@ -63,6 +63,10 @@ class ExtMacAddress(ExtString):
     regexp = r"^([0-9a-fA-F]{1,2}[\.:-]){5}([0-9A-Fa-f]{1,2})$"
     maxlen = 17
 
+class ExtHostList(ExtList):
+    name = "host-list"
+    desc = "List of host names"
+    typ = ExtHostName
 
 class ExtHost(ExtHostName):
     name = "host"

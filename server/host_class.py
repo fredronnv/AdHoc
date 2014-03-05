@@ -29,6 +29,10 @@ class ExtHostClassName(ExtString):
     regexp = "^[-a-zA-Z0-9_]+$"
     maxlen = 64
 
+class ExtHostClassList(ExtList):
+    name = "host_class-list"
+    desc = "List of classes"
+    typ = ExtHostClassName
 
 class ExtHostClass(ExtHostClassName):
     name = "host_class"
