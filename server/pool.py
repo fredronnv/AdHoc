@@ -405,10 +405,10 @@ class PoolManager(Manager):
         
     @entry(AuthRequiredGuard)
     def allow_host_class(self, pool, host_class):
-        q = """INSERT INTO pool_class_map (poolname, host_class_name, changed_by) 
-            VALUES (:poolname, :host_class_name, :changed_by)"""
+        q = """INSERT INTO pool_class_map (poolname, classname, changed_by) 
+            VALUES (:poolname, :classname, :changed_by)"""
         try:
-            self.db.put(q, poolname=pool.oid, host_class_name=host_class.oid, changed_by=fun.session.authuser)
+            self.db.put(q, poolname=pool.oid, classname=host_class.oid, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtHostClassAlreadyAllowedError()
         
@@ -428,16 +428,16 @@ class PoolManager(Manager):
         if len(pools) == 0:
             raise ExtGroupNotAllowedInPoolError()
         q = """DELETE FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname""" 
-        self.db.put(q, poolname=pool.oid, hostname=group.oid)
+        self.db.put(q, poolname=pool.oid, groupname=group.oid)
         
     @entry(AuthRequiredGuard)
     def disallow_host(self, pool, host_class):
-        q0 = "SELECT poolname FROM pool_host_map WHERE poolname=:poolname AND host_class_name=:host_class_name"
-        pools = self.db.get(q0, poolname=pool.oid, host_class_name=host_class.oid)
+        q0 = "SELECT poolname FROM pool_host_map WHERE poolname=:poolname AND classname=:classname"
+        pools = self.db.get(q0, poolname=pool.oid, classname=host_class.oid)
         if len(pools) == 0:
             raise ExtHostClassNotAllowedInPoolError()
-        q = """DELETE FROM pool_class_map WHERE poolname=:poolname AND host_class_name=:host_class_name""" 
-        self.db.put(q, poolname=pool.oid, hostname=host_class.oid)
+        q = """DELETE FROM pool_class_map WHERE poolname=:poolname AND classname=:classname""" 
+        self.db.put(q, poolname=pool.oid, classname=host_class.oid)
     
    
         
