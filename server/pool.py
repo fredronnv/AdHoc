@@ -31,6 +31,19 @@ class ExtGroupAlreadyAllowedError(ExtValueError):
 
 class ExtHostClassAlreadyAllowedError(ExtValueError):
     desc = "The host class is already allowed into the pool"
+    
+    
+class ExtHostNotAllowedInPoolError(ExtValueError):
+    desc = "The host is not currently allowed into the pool"
+    
+    
+class ExtGroupNotAllowedInPoolError(ExtValueError):
+    desc = "The group is not currently allowed into the pool"
+    
+    
+class ExtHostClassNotAllowedInPoolError(ExtValueError):
+    desc = "The host class is not currently allowed into the pool"
+
 
 class ExtPoolName(ExtString):
     name = "pool-name"
@@ -89,6 +102,7 @@ class PoolDestroy(PoolFunBase):
 class PoolLiteralOptionAdd(PoolFunBase):
     extname = "pool_literal_option_add"
     
+    
 class PoolAllowHost(PoolFunBase):
     extname = "pool_allow_host"
     desc = "Allows a host to use a pool"
@@ -97,6 +111,7 @@ class PoolAllowHost(PoolFunBase):
     
     def do(self):
         self.pool_manager.allow_host(self, self.pool, self.host)
+        
         
 class PoolAllowGroup(PoolFunBase):
     extname = "pool_allow_group"
@@ -107,6 +122,7 @@ class PoolAllowGroup(PoolFunBase):
     def do(self):
         self.pool_manager.allow_group(self, self.pool, self.group)
 
+
 class PoolAllowHostClass(PoolFunBase):
     extname = "pool_allow_host_class"
     desc = "Allows a host class to use a pool"
@@ -115,6 +131,36 @@ class PoolAllowHostClass(PoolFunBase):
     
     def do(self):
         self.pool_manager.allow_host_class(self, self.pool, self.host_class)
+        
+        
+class PoolDisallowHost(PoolFunBase):
+    extname = "pool_disallow_host"
+    desc = "Disallows a host to use a pool"
+    params = [("host", ExtHost, "Host to be disallowed from the pool")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.pool_manager.disallow_host(self, self.pool, self.host)
+
+        
+class PoolDisallowGroup(PoolFunBase):
+    extname = "pool_disallow_group"
+    desc = "Disallows a group of hosts from using a pool"
+    params = [("group", ExtGroup, "Group to be disallowed from the pool")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.pool_manager.disallow_group(self, self.pool, self.group)
+
+
+class PoolDisallowHostClass(PoolFunBase):
+    extname = "pool_allow_host_class"
+    desc = "Disallows a host class to use a pool"
+    params = [("host_class", ExtHostClass, "Host class to be disallowed from the pool")]
+    returns = (ExtNull)
+    
+    def do(self):
+        self.pool_manager.disallow_host_class(self, self.pool, self.host_class)
 
 
 class PoolOptionsUpdate(PoolFunBase):
@@ -365,4 +411,33 @@ class PoolManager(Manager):
             self.db.put(q, poolname=pool.oid, host_class_name=host_class.oid, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtHostClassAlreadyAllowedError()
+        
+    @entry(AuthRequiredGuard)
+    def disallow_host(self, pool, host):
+        q0 = "SELECT poolname FROM pool_host_map WHERE poolname=:poolname AND hostname=:hostname"
+        pools = self.db.get(q0, poolname=pool.oid, hostname=host.oid)
+        if len(pools) == 0:
+            raise ExtHostNotAllowedInPoolError()
+        q = """DELETE FROM pool_host_map WHERE poolname=:poolname AND hostname=:hostname""" 
+        self.db.put(q, poolname=pool.oid, hostname=host.oid)
+        
+    @entry(AuthRequiredGuard)
+    def disallow_group(self, pool, group):
+        q0 = "SELECT poolname FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname"
+        pools = self.db.get(q0, poolname=pool.oid, groupname=group.oid)
+        if len(pools) == 0:
+            raise ExtGroupNotAllowedInPoolError()
+        q = """DELETE FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname""" 
+        self.db.put(q, poolname=pool.oid, hostname=group.oid)
+        
+    @entry(AuthRequiredGuard)
+    def disallow_host(self, pool, host_class):
+        q0 = "SELECT poolname FROM pool_host_map WHERE poolname=:poolname AND host_class_name=:host_class_name"
+        pools = self.db.get(q0, poolname=pool.oid, host_class_name=host_class.oid)
+        if len(pools) == 0:
+            raise ExtHostClassNotAllowedInPoolError()
+        q = """DELETE FROM pool_class_map WHERE poolname=:poolname AND host_class_name=:host_class_name""" 
+        self.db.put(q, poolname=pool.oid, hostname=host_class.oid)
+    
+   
         
