@@ -140,7 +140,7 @@ class PoolDisallowHost(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.disallow_host(self, self.pool, self.host)
+        self.pool_manager.disallow_host(self.pool, self.host)
 
         
 class PoolDisallowGroup(PoolFunBase):
@@ -150,7 +150,7 @@ class PoolDisallowGroup(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.disallow_group(self, self.pool, self.group)
+        self.pool_manager.disallow_group(self.pool, self.group)
 
 
 class PoolDisallowHostClass(PoolFunBase):
@@ -160,7 +160,7 @@ class PoolDisallowHostClass(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.disallow_host_class(self, self.pool, self.host_class)
+        self.pool_manager.disallow_host_class(self.pool, self.host_class)
 
 
 class PoolOptionsUpdate(PoolFunBase):
@@ -249,7 +249,7 @@ class Pool(Model):
         return [x[0] for x in groups]
     
     @template("allowed_host_classes", ExtHostClassList)
-    def get_allowed_groups(self):
+    def get_allowed_host_classes(self):
         q = "SELECT classname FROM pool_class_map WHERE poolname=:pool"
         classes = self.db.get(q, pool=self.oid)
         return [x[0] for x in classes]
@@ -386,7 +386,7 @@ class PoolManager(Manager):
             raise ExtOptionNotSetError()
         
     @entry(AuthRequiredGuard)
-    def allow_host(self, pool, host):
+    def allow_host(self, fun, pool, host):
         q = """INSERT INTO pool_host_map (poolname, hostname, changed_by) 
             VALUES (:poolname, :hostname, :changed_by)"""
         try:
@@ -395,7 +395,7 @@ class PoolManager(Manager):
             raise ExtHostAlreadyAllowedError()
     
     @entry(AuthRequiredGuard)
-    def allow_group(self, pool, group):
+    def allow_group(self, fun, pool, group):
         q = """INSERT INTO pool_group_map (poolname, groupname, changed_by) 
             VALUES (:poolname, :groupname, :changed_by)"""
         try:
@@ -404,7 +404,7 @@ class PoolManager(Manager):
             raise ExtGroupAlreadyAllowedError()
         
     @entry(AuthRequiredGuard)
-    def allow_host_class(self, pool, host_class):
+    def allow_host_class(self, fun, pool, host_class):
         q = """INSERT INTO pool_class_map (poolname, classname, changed_by) 
             VALUES (:poolname, :classname, :changed_by)"""
         try:
@@ -431,8 +431,8 @@ class PoolManager(Manager):
         self.db.put(q, poolname=pool.oid, groupname=group.oid)
         
     @entry(AuthRequiredGuard)
-    def disallow_host(self, pool, host_class):
-        q0 = "SELECT poolname FROM pool_host_map WHERE poolname=:poolname AND classname=:classname"
+    def disallow_host_class(self, pool, host_class):
+        q0 = "SELECT poolname FROM pool_class_map WHERE poolname=:poolname AND classname=:classname"
         pools = self.db.get(q0, poolname=pool.oid, classname=host_class.oid)
         if len(pools) == 0:
             raise ExtHostClassNotAllowedInPoolError()

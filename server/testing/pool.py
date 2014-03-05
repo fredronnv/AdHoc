@@ -12,7 +12,10 @@ data_template = {
                  "pool": True,
                  "changed_by": True,
                  "mtime": True,
-                 "optionset_data": {"_": True, "_remove_nulls": True}
+                 "optionset_data": {"_": True, "_remove_nulls": True},
+                 "allowed_hosts": True,
+                 "allowed_groups": True,
+                 "allowed_host_classes": True
                  }
 
 
@@ -225,6 +228,157 @@ class T1270_PoolUnsetOption(AuthTests):
                 except:
                     pass
                 self.superuser.network_destroy('network_test')
+                
+class T1280_PoolAllowHost(AuthTests):
+    """ Test allowing two hosts into the pool"""
+    
+    wip=True
+    def do(self):
+        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
         
+        with AssertAccessError(self):
+            try:
+                pass
+                self.proxy.pool_allow_host('QZ1243A', 'sol_ita_chalmers_se')
+                self.proxy.pool_allow_host('QZ1243A', 'nile_its_chalmers_se')
+                
+                ret = self.proxy.pool_fetch('QZ1243A', data_template)
+                assert len(ret.allowed_hosts)==2, "Wrong number of allowed hosts"
+                assert "sol_ita_chalmers_se" in ret.allowed_hosts, "No sol_ita_chalmers_se in allowed hosts"
+                assert "nile_its_chalmers_se" in ret.allowed_hosts, "No nile_its_chalmers_sein allowed hosts"
+                
+            finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                self.superuser.network_destroy('network_test')
+                   
+class T1281_PoolAllowGroup(AuthTests):
+    """ Test allowing a group into the pool"""
+    
+    wip=True
+    def do(self):
+        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        
+        with AssertAccessError(self):
+            try:
+                pass
+                self.proxy.pool_allow_group('QZ1243A', 'altiris')
+                
+                ret = self.proxy.pool_fetch('QZ1243A', data_template)
+                assert len(ret.allowed_groups)==1, "Wrong number of allowed groups"
+                assert "altiris" in ret.allowed_groups, "No altiris in allowed groups"
+                
+            finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                self.superuser.network_destroy('network_test')
+                
+class T1282_PoolAllowHostClass(AuthTests):
+    """ Test allowing a host_class into the pool"""
+    
+    wip=True
+    def do(self):
+        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        
+        with AssertAccessError(self):
+            try:
+                pass
+                self.proxy.pool_allow_host_class('QZ1243A', 'Pxe-IA64-PC-linux')
+                
+                ret = self.proxy.pool_fetch('QZ1243A', data_template)
+                assert len(ret.allowed_host_classes)==1, "Wrong number of allowed host classes"
+                assert "Pxe-IA64-PC-linux" in ret.allowed_host_classes, "No Pxe-IA64-PC-linux in allowed host classes"
+                
+            finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                self.superuser.network_destroy('network_test')
+
+class T1283_PoolDisallowHost(AuthTests):
+    """ Test disallowing two hosts from the pool"""
+    
+    wip=True
+    def do(self):
+        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        
+        with AssertAccessError(self):
+            try:
+                pass
+                self.superuser.pool_allow_host('QZ1243A', 'sol_ita_chalmers_se')
+                self.superuser.pool_allow_host('QZ1243A', 'nile_its_chalmers_se')
+                self.proxy.pool_disallow_host('QZ1243A', 'sol_ita_chalmers_se')
+                self.proxy.pool_disallow_host('QZ1243A', 'nile_its_chalmers_se')
+                
+                ret = self.proxy.pool_fetch('QZ1243A', data_template)
+                assert len(ret.allowed_hosts)==0, "Wrong number of allowed hosts"
+                assert "sol_ita_chalmers_se" not in ret.allowed_hosts, "sol_ita_chalmers_se still in allowed hosts"
+                assert "nile_its_chalmers_se" not in ret.allowed_hosts, "nile_its_chalmers_se still in allowed hosts"
+                
+            finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                self.superuser.network_destroy('network_test')
+ 
+class T1284_PoolDisallowGroup(AuthTests):
+    """ Test disallowing a group from the pool"""
+    
+    wip=True
+    def do(self):
+        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        
+        with AssertAccessError(self):
+            try:
+                pass
+                self.superuser.pool_allow_group('QZ1243A', 'altiris')
+                self.proxy.pool_disallow_group('QZ1243A', 'altiris')
+                
+                ret = self.proxy.pool_fetch('QZ1243A', data_template)
+                assert len(ret.allowed_groups)==0, "Wrong number of allowed groups"
+                assert "altiris" not in ret.allowed_groups, "altiris still in allowed groups"
+                
+            finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                self.superuser.network_destroy('network_test')
+                
+class T1285_PoolDisallowHostClass(AuthTests):
+    """ Test disallowing a host_class from the pool"""
+    
+    wip=True
+    def do(self):
+        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        
+        with AssertAccessError(self):
+            try:
+                pass
+                self.superuser.pool_allow_host_class('QZ1243A', 'Pxe-IA64-PC-linux')
+                self.proxy.pool_disallow_host_class('QZ1243A', 'Pxe-IA64-PC-linux')
+                
+                ret = self.proxy.pool_fetch('QZ1243A', data_template)
+                assert len(ret.allowed_host_classes)==0, "Wrong number of allowed host classes"
+                assert "Pxe-IA64-PC-linux" not in ret.allowed_host_classes, "Pxe-IA64-PC-linux still in allowed host classes"
+                
+            finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                self.superuser.network_destroy('network_test')
 if __name__ == "__main__":
     sys.exit(main())
