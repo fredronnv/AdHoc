@@ -15,13 +15,13 @@ class T0300_DhcpXfer(SuperUserTests):
 
 class T0310_DhcpdConf(AuthTests):
     """ Test dhcpd configuration"""
-    
+    wip=True
     def do(self):
         if self.proxy != self.superuser:
             return
         with AssertAccessError(self):
+            of = open('/Users/bernerus/tmp/dhcpd.conf','w')
             ret = self.proxy.dhcpd_config("A")
-            of = tempfile.NamedTemporaryFile(mode='w+b')
             of.write(ret)
 
 if __name__ == "__main__":
