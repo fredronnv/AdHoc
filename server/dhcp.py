@@ -739,11 +739,7 @@ class DHCPManager(Manager):
             self.emit("#host %s { hardware ethernet %s; fixed-address %s;} # %s,  %s" % (hostid, mac, dns, entry_status, comment), 4 * indent - 1)
             return
    
-    def emit_pool(self, poolid, indent):
-        
-        q = "SELECT poolname, optionspace, info FROM pools WHERE poolname=:poolid"
-    
-        (poolname, optionspace, poolinfo) = self.db.get_all(q, poolid=poolid)[0]
+    def emit_pool(self, poolname, optionspace, poolinfo, indent):
         
         info = "# Pool: %s. %s" % (poolname, poolinfo)
         pool = self.pool_manager.get_pool(poolname)
@@ -756,8 +752,8 @@ class DHCPManager(Manager):
             if info:
                 self.emit("%s" % info, 4 * (indent + 1))
             
-            q = "SELECT start_ip FROM pool_ranges WHERE pool=:poolid AND (served_by=:served_by OR served_by IS NULL ) ORDER BY start_ip asc"
-            if not self.db.get_all(q, poolid=poolid, served_by=self.serverID):
+            q = "SELECT start_ip FROM pool_ranges WHERE pool=:poolname AND (served_by=:served_by OR served_by IS NULL ) ORDER BY start_ip asc"
+            if not self.db.get_all(q, poolname=poolname, served_by=self.serverID):
                 if info:
                     self.emit("# Not generated as there are no defined IP ranges", 4 * (indent + 1))
                 return
@@ -769,17 +765,16 @@ class DHCPManager(Manager):
             
             self.emit_optlist(pool, indent + 2)
             #self.emit_option_list(poolid, optionspace, indent + 2, 'pool')
-            self.emit_ranges(poolid, 4 * (indent + 2))
-            self.emit_allow_classes(poolid, 4 * (indent + 2))
+            self.emit_ranges(poolname, 4 * (indent + 2))
+            self.emit_allow_classes(poolname, 4 * (indent + 2))
             self.emit("}", 4 * (indent + 1))
 
-    def emit_allow_classes(self, poolid, indent):
-        if self.has_allowed_group(poolid):
-            q = "SELECT groupname FROM pool_group_map WHERE poolname=:poolid ORDER BY groupname ASC"
-            for (groupname,) in self.db.get_all(q, poolid=poolid):
+    def emit_allow_classes(self, poolname, indent):
+        if self.has_allowed_group(poolname):
+            q = "SELECT groupname FROM pool_group_map WHERE poolname=:poolname ORDER BY groupname ASC"
+            for (groupname,) in self.db.get_all(q, poolname=poolname):
                 groupclass = "allocation-class-group-%s" % groupname
-                self.emit("allow members of \"%s\";" % groupname, indent)
-                self.generated_allocation_group_classes.add(groupclass)
+                self.emit("allow members of \"%s\";" % groupclass, indent)
     
     def emit_allowed_classes(self, poolid, indent):
         self.generated_allocation_group_classes
@@ -807,17 +802,19 @@ class DHCPManager(Manager):
                 self.emit("match pick-first-value (option dhcp-client-identifier, hardware);", 4 * (indent + 1))
                 self.emit("}", 4 * (indent))
                 g0 = "SELECT descendant FROM group_groups_flat WHERE groupname=:groupname"
-                groups = self.db.get(g0, groupname=groupname)
+                groups = [ x[0] for x in self.db.get(g0, groupname=groupname)]
                 for g in groups:
-                    q = "SELECT id, mac FROM hostlist WHERE `group`= :groupname"
+                    q = "SELECT id, mac FROM hosts WHERE `group`= :groupname"
                 
                     for (hostid, mac) in self.db.get_all(q, groupname=g):
                         self.emit("subclass \"%s\" 1:%s; # %s" % (groupclass, mac, hostid), 4 * (indent))
                 self.generated_allocation_group_classes.add(groupclass)
     
     def emit_pools(self, network, indent):
-        for poolname in self.get_network_pools(network):
-            self.emit_pool(poolname, indent)
+        q = "SELECT poolname, optionspace, info FROM pools WHERE network=:network"
+        
+        for (poolname, optionspace, poolinfo) in  self.db.get_all(q, network=network):
+            self.emit_pool(poolname, optionspace, poolinfo, indent)
 
     def get_network_pools(self, netid):
         pools = set()
