@@ -229,6 +229,18 @@ class GroupManager(Manager):
         except IntegrityError, e:
             raise ExtGroupAlreadyExistsError()
         
+      # Build the group_groups_flat table
+        qif="INSERT INTO group_groups_flat (groupname, descendant) VALUES (:groupname, :descendant)"
+        self.db.put(qif, groupname=group_name, descendant=group_name) # The group itself
+        g2 = group_name
+        # Traverse the tree upward and fill in the group for every node traversed
+        while True:
+            parent = self.db.get("SELECT parent_group FROM groups WHERE groupname=:groupname", groupname = g2)[0][0]
+            if not parent or parent == g2:
+                break
+            self.db.put(qif, groupname=parent, descendant=group_name)
+            g2=parent
+        
     @entry(AuthRequiredGuard)
     def destroy_group(self, fun, group):
         group.get_optionset().destroy()
