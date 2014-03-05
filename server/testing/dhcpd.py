@@ -22,7 +22,7 @@ class T0310_DhcpdConf(AuthTests):
         with AssertAccessError(self):
             of = open('/Users/bernerus/tmp/dhcpd.conf','w')
             ret = self.proxy.dhcpd_config("A")
-            of.write(ret)
+            of.write(ret.encode('utf-8'))
 
 if __name__ == "__main__":
     sys.exit(main())
