@@ -2016,6 +2016,19 @@ _validate_hotbeat_class()
     fi
     return
 }
+#C
+#C Validator for group_in_db
+#C
+_validate_group_in_db()
+{
+    _validate_group_in_db_arg=$1
+    
+    if db_exists group $_validate_group_in_db_arg ; then
+        echo "$_validate_group_in_db_arg"
+    else
+        echo "The group name $_validate_group_in_db_arg is unknown in the database" >&2
+    fi
+}
 ##VGIP Validator generation insertion point, do not delete!!
 
 fetch_coprocess_id()
@@ -5733,6 +5746,62 @@ chsubnetwork()
 _chsubnetwork_foundaflag()
 {
     chsubnetwork_anyflag=1
+}
+#S allow;;Allow into pool;1;1;pool;Allow hosts or groups into a pool;78
+#O allow;g;group;Group to be allowed;;group_in_db
+#O allow;H;host;Host to be allowed;;host_in_db
+#M =head2 I<Description>
+#M
+#M The allow subcommand places a host or a group on the list of hosts or group of
+#M hosts that should be allowed to be given an IP addredd within a given pool.
+#M
+allow()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -H)
+                allow_H_flag=$i; shift
+                allow_H_arg=$1; shift
+                ;;
+            -g)
+                allow_g_flag=$i; shift
+                allow_g_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+: # Enter the code for allow here
+}
+#S disallow;;Disallow from pool;1;1;pool;Disallow hosts or groups from a pool;79
+#O disallow;g;group;Group to be disallowed;;group_in_db
+#O disallow;H;host;Host to be disallowed;;host_in_db
+#M =head2 I<Description>
+#M
+#M The disallow subcommand removes a host or a group from the list of hosts or group of
+#M hosts that should be allowed to be given an IP addredd within a given pool.
+#M
+disallow()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -H)
+                disallow_H_flag=$i; shift
+                disallow_H_arg=$1; shift
+                ;;
+            -g)
+                disallow_g_flag=$i; shift
+                disallow_g_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+: # Enter the code for disallow here
 }
 ##SGIP Subcommand generation insertion point, do not delete!!
 
