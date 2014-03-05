@@ -4,9 +4,9 @@ from rpcc import *
 from shared_network import ExtNetwork, ExtNetworkName
 from optionset import *
 from option_def import *
-from host import ExtHostList
-from group import ExtGroupList
-from host_class import ExtHostClassList
+from host import ExtHostList, ExtHost
+from group import ExtGroupList, ExtGroup
+from host_class import ExtHostClassList, ExtHostClass
 
 
 class ExtNoSuchPoolError(ExtLookupError):
@@ -154,7 +154,7 @@ class PoolDisallowGroup(PoolFunBase):
 
 
 class PoolDisallowHostClass(PoolFunBase):
-    extname = "pool_allow_host_class"
+    extname = "pool_disallow_host_class"
     desc = "Disallows a host class to use a pool"
     params = [("host_class", ExtHostClass, "Host class to be disallowed from the pool")]
     returns = (ExtNull)
