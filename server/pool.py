@@ -72,7 +72,6 @@ class ExtPoolCreateOptions(ExtStruct):
                 "max_lease_time": (ExtInteger, "Maximum lease time for the pool. Default 600 seconds")
                 }
     
-    
 class PoolFunBase(SessionedFunction):  
     params = [("pool", ExtPool, "Pool")]
     
@@ -101,7 +100,23 @@ class PoolDestroy(PoolFunBase):
         
 class PoolLiteralOptionAdd(PoolFunBase):
     extname = "pool_literal_option_add"
+    desc = "Add a literal option to a pool"
+    returns =(ExtInteger, "ID of added literal option")
+    params = [("option_text", ExtString, "Text of literal option")]
     
+    def do(self):
+        return self.pool_manager.add_literal_option(self, self.pool, self.option_text)
+    
+    
+class PoolLiteralOptionDestroy(PoolFunBase):
+    extname = "pool_literal_option_destroy"
+    desc = "Destroy a literal option from a pool"
+    returns =(ExtNull)
+    params = [("option_id", ExtInteger, "ID of literal option to destroy")]
+    
+    def do(self):
+        return self.pool_manager.destroy_literal_option(self, self.pool, self.option_id)
+        
     
 class PoolAllowHost(PoolFunBase):
     extname = "pool_allow_host"
@@ -228,7 +243,7 @@ class Pool(Model):
     def get_changed_by(self):
         return self.changed_by
     
-    @template("options", ExtOptionKeyList, desc="List of options defined for this host")
+    @template("options", ExtOptionKeyList, desc="List of options defined for this pool")
     def list_options(self):
         return self.get_optionset().list_options()
     
@@ -236,6 +251,17 @@ class Pool(Model):
     def get_optionset(self):
         return self.optionset_manager.get_optionset(self.optionset)
     
+    @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this pool")
+    def get_literal_options(self):
+        q = "SELECT value, changed_by, id FROM pool_literal_options WHERE `for`= :pool"
+        ret = []
+        for (value, changed_by, id) in self.db.get(q, pool=self.oid):
+            d = {"value":value,
+                 "changed_by":changed_by,
+                 "id": id}
+            ret.append(d)
+        return ret
+        
     @template("allowed_hosts", ExtHostList)
     def get_allowed_hosts(self):
         q = "SELECT hostname FROM pool_host_map WHERE poolname=:pool"
@@ -439,5 +465,13 @@ class PoolManager(Manager):
         q = """DELETE FROM pool_class_map WHERE poolname=:poolname AND classname=:classname""" 
         self.db.put(q, poolname=pool.oid, classname=host_class.oid)
     
-   
-        
+    @entry(AdHocSuperuserGuard)
+    def add_literal_option(self, fun, pool, option_text):
+        q = "INSERT INTO pool_literal_options (`for`, value, changed_by) VALUES (:poolname, :value, :changed_by)"
+        id = self.db.insert("id", q, poolname=pool.oid, value=option_text, changed_by=fun.session.authuser)
+        return id
+    
+    @entry(AdHocSuperuserGuard)
+    def destroy_literal_option(self, fun, pool, id):
+        q = "DELETE FROM pool_literal_options WHERE `for`=:poolname AND id=:id LIMIT 1"
+        self.db.put(q, poolname=pool.oid, id=id)

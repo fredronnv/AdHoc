@@ -14,6 +14,7 @@ data_template = {
                  "mtime": True,
                  "optionset_data": {"_": True, "_remove_nulls": True},
                  "optionset": True,
+                 "literal_options": True
                  }
 
 
@@ -70,24 +71,29 @@ class T1120_GroupCreate(AuthTests):
         
 class T1130_GroupDestroy(AuthTests):
     """ Test group destroy """
-    
+
     def do(self):
-        self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
         try:
-            with AssertAccessError(self):
-                self.proxy.group_destroy('QZ1243A')
-                with AssertRPCCError("LookupError::NoSuchGroup", True):
-                    self.superuser.group_fetch('QZ1243A', data_template)
-        finally:
+            self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
             try:
-                self.superuser.group_destroy('QZ1243A')
-            except:
-                pass
+                with AssertAccessError(self):
+                    self.proxy.group_destroy('QZ1243A')
+                    with AssertRPCCError("LookupError::NoSuchGroup", True):
+                        self.superuser.group_fetch('QZ1243A', data_template)
+            finally:
+                try:
+                    self.superuser.group_destroy('QZ1243A')
+                except:
+                    pass
+        finally:
+                try:
+                    self.superuser.group_destroy('QZ1243A')
+                except:
+                    pass
             
         
 class T1140_GroupSetName(AuthTests):
     """ Test setting group of a group"""
-    
     def do(self):
         self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
         with AssertAccessError(self):
@@ -194,6 +200,78 @@ class T1170_GroupUnsetOption(AuthTests):
                     self.superuser.group_destroy('QZ1243A')
                 except:
                     pass
+
+              
+class T1180_GroupAddLiteralOption(SuperUserTests):
+    """ Test adding a literal option to a group"""
+    wip=True
+
+    def do(self):
+        try:
+            self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
         
+            with AssertAccessError(self):
+                try:
+                    pass
+                    literal_value = "#This is a literal option"
+                    id = self.proxy.group_literal_option_add('QZ1243A', literal_value)
+                    print "Literal option ID=%d" % id
+                    opts = self.proxy.group_fetch('QZ1243A', data_template).literal_options
+                    #print opts
+                    assert id in [x.id for x in opts], "The returned id is not returned in when fetching the group"
+                    assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the group"
+                    
+                    for opt in opts:
+                        if opt.id == id:
+                            assert opt.value == literal_value, "Returned literal option has the wrong value"
+                finally:
+                    try:
+                        self.superuser.group_destroy('QZ1243A')
+                    except:
+                        pass
+        finally:
+                try:
+                    self.superuser.group_destroy('QZ1243A')
+                except:
+                    pass
+                
+                
+class T1180_GroupDestroyLiteralOption(SuperUserTests):
+    """ Test destroying a literal option from a group"""
+    wip=True
+    def do(self):
+        try:
+            self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
+        
+            with AssertAccessError(self):
+                try:
+                    pass
+                    literal_value = "#This is a literal option"
+                    id = self.superuser.group_literal_option_add('QZ1243A', literal_value)
+                    #print "Literal option ID=%d" % id
+                    opts = self.superuser.group_fetch('QZ1243A', data_template).literal_options
+                    #print opts
+                    assert id in [x.id for x in opts], "The returned id is not returned in when fetching the group"
+                    assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the group"
+                    
+                    for opt in opts:
+                        if opt.id == id:
+                            assert opt.value == literal_value, "Returned literal option has the wrong value"
+                    
+                    self.proxy.group_literal_option_destroy('QZ1243A', id)
+                    opts = self.superuser.group_fetch('QZ1243A', data_template).literal_options
+                    assert id not in [x.id for x in opts], "The returned id is still returned in when fetching the group"
+                    assert "#This is a literal option" not in [x.value for x in opts], "The literal value is still returned in when fetching the group"
+                    
+                finally:
+                    try:
+                        self.superuser.group_destroy('QZ1243A')
+                    except:
+                        pass
+        finally:
+                try:
+                    self.superuser.group_destroy('QZ1243A')
+                except:
+                    pass
 if __name__ == "__main__":
     sys.exit(main())

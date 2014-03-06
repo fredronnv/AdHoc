@@ -129,7 +129,26 @@ class HostDestroy(HostFunBase):
     def do(self):
         self.host_manager.destroy_host(self, self.host)
 
-
+class HostLiteralOptionAdd(HostFunBase):
+    extname = "host_literal_option_add"
+    desc = "Add a literal option to a host"
+    returns =(ExtInteger, "ID of added literal option")
+    params = [("option_text", ExtString, "Text of literal option")]
+    
+    def do(self):
+        return self.host_manager.add_literal_option(self, self.host, self.option_text)
+    
+    
+class HostLiteralOptionDestroy(HostFunBase):
+    extname = "host_literal_option_destroy"
+    desc = "Destroy a literal option from a host"
+    returns =(ExtNull)
+    params = [("option_id", ExtInteger, "ID of literal option to destroy")]
+    
+    def do(self):
+        return self.host_manager.destroy_literal_option(self, self.host, self.option_id)
+        
+    
 class HostOptionsUpdate(HostFunBase):
     extname = "host_options_update"
     desc = "Update option value(s) on a host"
@@ -219,6 +238,17 @@ class Host(Model):
     @template("optionset", ExtOptionset, model=Optionset)
     def get_optionset(self):
         return self.optionset_manager.get_optionset(self.optionset)
+    
+    @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this host")
+    def get_literal_options(self):
+        q = "SELECT value, changed_by, id FROM host_literal_options WHERE `for`= :host"
+        ret = []
+        for (value, changed_by, id) in self.db.get(q, host=self.oid):
+            d = {"value":value,
+                 "changed_by":changed_by,
+                 "id": id}
+            ret.append(d)
+        return ret
     
     @update("host", ExtString)
     @entry(AuthRequiredGuard)
@@ -382,3 +412,14 @@ class HostManager(Manager):
         obj.oid = newname
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
+       
+    @entry(AdHocSuperuserGuard)
+    def add_literal_option(self, fun, host, option_text):
+        q = "INSERT INTO host_literal_options (`for`, value, changed_by) VALUES (:hostname, :value, :changed_by)"
+        id = self.db.insert("id", q, hostname=host.oid, value=option_text, changed_by=fun.session.authuser)
+        return id
+    
+    @entry(AdHocSuperuserGuard)
+    def destroy_literal_option(self, fun, host, id):
+        q = "DELETE FROM host_literal_options WHERE `for`=:hostname AND id=:id LIMIT 1"
+        self.db.put(q, hostname=host.oid, id=id)

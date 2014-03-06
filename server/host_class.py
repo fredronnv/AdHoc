@@ -87,6 +87,25 @@ class HostClassDestroy(SessionedFunction):
         self.host_class_manager.destroy_host_class(self, self.host_class)
 
 
+class HostClassLiteralOptionAdd(HostClassFunBase):
+    extname = "host_class_literal_option_add"
+    desc = "Add a literal option to a host_class"
+    returns =(ExtInteger, "ID of added literal option")
+    params = [("option_text", ExtString, "Text of literal option")]
+    
+    def do(self):
+        return self.host_class_manager.add_literal_option(self, self.host_class, self.option_text)
+     
+
+class HostClassLiteralOptionDestroy(HostClassFunBase):
+    extname = "host_class_literal_option_destroy"
+    desc = "Destroy a literal option from a host_class"
+    returns =(ExtNull)
+    params = [("option_id", ExtInteger, "ID of literal option to destroy")]
+    
+    def do(self):
+        return self.host_class_manager.destroy_literal_option(self, self.host_class, self.option_id)     
+    
 class HostClassOptionsUpdate(HostClassFunBase):
     extname = "host_class_options_update"
     desc = "Update option value(s) on a host_class"
@@ -154,6 +173,17 @@ class HostClass(Model):
     @template("optionset", ExtOptionset, model=Optionset)
     def get_optionset(self):
         return self.optionset_manager.get_optionset(self.optionset)
+    
+    @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this class")
+    def get_literal_options(self):
+        q = "SELECT value, changed_by, id FROM class_literal_options WHERE `for`= :host_class"
+        ret = []
+        for (value, changed_by, id) in self.db.get(q, host_class=self.oid):
+            d = {"value":value,
+                 "changed_by":changed_by,
+                 "id": id}
+            ret.append(d)
+        return ret
     
     @update("host_class", ExtString)
     @entry(AuthRequiredGuard)
@@ -265,3 +295,14 @@ class HostClassManager(Manager):
         q = """DELETE FROM class_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=host_class.oid, name=option.oid):
             raise ExtOptionNotSetError()
+   
+    @entry(AdHocSuperuserGuard)
+    def add_literal_option(self, fun, host_class, option_text):
+        q = "INSERT INTO class_literal_options (`for`, value, changed_by) VALUES (:host_classname, :value, :changed_by)"
+        id = self.db.insert("id", q, host_classname=host_class.oid, value=option_text, changed_by=fun.session.authuser)
+        return id
+    
+    @entry(AdHocSuperuserGuard)
+    def destroy_literal_option(self, fun, host_class, id):
+        q = "DELETE FROM class_literal_options WHERE `for`=:host_classname AND id=:id LIMIT 1"
+        self.db.put(q, host_classname=host_class.oid, id=id)

@@ -82,7 +82,22 @@ class ExtIPAddress(ExtString):
         except socket.gaierror:
             raise ExtNoSuchDNSNameError()
         return cval
-
+    
+class ExtLiteralOption(ExtStruct):
+    name = "literal-option-data"
+    desc = "Data for a literal option"
+    
+    mandatory = {
+                 'value': (ExtString, "Literal text of the option"),
+                 'changed_by': (ExtString, "CID of creator"),
+                 'id': (ExtInteger)
+                 }
+    
+class ExtLiteralOptionList(ExtList):
+    name = "literal-option-list"
+    desc = "List of literal options"
+    typ = ExtLiteralOption
+    
 
 class ExtOptionList(ExtList):
     typ = ExtString

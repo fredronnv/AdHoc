@@ -52,34 +52,39 @@ class T1020_OptionDefCreate(AuthTests):
             self.superuser.option_def_destroy("QZ1243A")
         except:
             pass
-        with AssertAccessError(self):
-            try:
-                self.proxy.option_def_create('QZ1243A', 253, 'text', "TestOptionDef", {})
-                template = {
-                            "option_def": True, 
-                            "code": True,
-                            "qualifier": True,
-                            "type": True,
-                            "optionspace": True,
-                            "encapsulate": True,
-                            "struct": True,
-                            "info": True,
-                            "changed_by": True,
-                            "mtime": True
-                          }
-                ret = self.superuser.option_def_fetch('QZ1243A', template)
-                
-                self.assertindict(ret, template.keys(), exact=True)
-                
-                assert ret.option_def == "QZ1243A", "Bad option_def, is % should be %s" % (ret.option_def, "QZ1243A")
-                assert ret.code == 253, "Code is %s but should be 253" % ret.code
-                assert ret.type == "text", "Type is " + ret.type + " but should be 'text'"
-                assert ret.info == "TestOptionDef", "Info is " + ret.info + "but should be 'TestOptionDef'"
-            finally:
+            with AssertAccessError(self):
                 try:
+                    self.proxy.option_def_create('QZ1243A', 253, 'text', "TestOptionDef", {})
+                    template = {
+                                "option_def": True, 
+                                "code": True,
+                                "qualifier": True,
+                                "type": True,
+                                "optionspace": True,
+                                "encapsulate": True,
+                                "struct": True,
+                                "info": True,
+                                "changed_by": True,
+                                "mtime": True
+                              }
+                    ret = self.superuser.option_def_fetch('QZ1243A', template)
+                    
+                    self.assertindict(ret, template.keys(), exact=True)
+                    
+                    assert ret.option_def == "QZ1243A", "Bad option_def, is % should be %s" % (ret.option_def, "QZ1243A")
+                    assert ret.code == 253, "Code is %s but should be 253" % ret.code
+                    assert ret.type == "text", "Type is " + ret.type + " but should be 'text'"
+                    assert ret.info == "TestOptionDef", "Info is " + ret.info + "but should be 'TestOptionDef'"
+                finally:
+                    try:
+                        self.superuser.option_def_destroy('QZ1243A')
+                    except:
+                        pass
+        finally:
+            try:
                     self.superuser.option_def_destroy('QZ1243A')
-                except:
-                    pass
+            except:
+                pass
         
         
 class T1030_OptionDefDestroy(AuthTests):

@@ -15,7 +15,8 @@ data_template = {
                  "optionset_data": {"_": True, "_remove_nulls": True},
                  "allowed_hosts": True,
                  "allowed_groups": True,
-                 "allowed_host_classes": True
+                 "allowed_host_classes": True,
+                 "literal_options": True
                  }
 
 
@@ -33,7 +34,7 @@ class T1200_PoolList(UnAuthTests):
   
 class T1210_PoolFetch(UnAuthTests):
     """ Test pool_fetch """
-    
+
     def do(self):
         pools = [x.pool for x in self.superuser.pool_dig({}, data_template)]
         
@@ -374,5 +375,89 @@ class T1285_PoolDisallowHostClass(AuthTests):
                 except:
                     pass
                 self.superuser.network_destroy('network_test')
+                
+class T1290_PoolAddLiteralOption(SuperUserTests):
+    """ Test adding a literal option to a pool"""
+
+    def do(self):
+        try:
+            self.superuser.network_create('network_test', False, "Testnätverk 2")
+            self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        
+            with AssertAccessError(self):
+                try:
+                    pass
+                    literal_value = "#This is a literal option"
+                    id = self.proxy.pool_literal_option_add('QZ1243A', literal_value)
+                    print "Literal option ID=%d" % id
+                    opts = self.proxy.pool_fetch('QZ1243A', data_template).literal_options
+                    #print opts
+                    assert id in [x.id for x in opts], "The returned id is not returned in when fetching the pool"
+                    assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the pool"
+                    
+                    for opt in opts:
+                        if opt.id == id:
+                            assert opt.value == literal_value, "Returned literal option has the wrong value"
+                finally:
+                    try:
+                        self.superuser.pool_destroy('QZ1243A')
+                    except:
+                        pass
+                    self.superuser.network_destroy('network_test')
+        finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                try:
+                    self.superuser.network_destroy('network_test')
+                except:
+                    pass
+                
+class T1291_PoolDestroyLiteralOption(SuperUserTests):
+    """ Test destroying a literal option from a pool"""
+
+    def do(self):
+        try:
+            self.superuser.network_create('network_test', False, "Testnätverk 2")
+            self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        
+            with AssertAccessError(self):
+                try:
+                    pass
+                    literal_value = "#This is a literal option"
+                    id = self.superuser.pool_literal_option_add('QZ1243A', literal_value)
+                    #print "Literal option ID=%d" % id
+                    opts = self.superuser.pool_fetch('QZ1243A', data_template).literal_options
+                    #print opts
+                    assert id in [x.id for x in opts], "The returned id is not returned in when fetching the pool"
+                    assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the pool"
+                    
+                    for opt in opts:
+                        if opt.id == id:
+                            assert opt.value == literal_value, "Returned literal option has the wrong value"
+                    
+                    self.proxy.pool_literal_option_destroy('QZ1243A', id)
+                    opts = self.superuser.pool_fetch('QZ1243A', data_template).literal_options
+                    assert id not in [x.id for x in opts], "The returned id is still returned in when fetching the pool"
+                    assert "#This is a literal option" not in [x.value for x in opts], "The literal value is still returned in when fetching the pool"
+                    
+                   
+                finally:
+                    try:
+                        self.superuser.pool_destroy('QZ1243A')
+                    except:
+                        pass
+                    self.superuser.network_destroy('network_test')
+        finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                try:
+                    self.superuser.network_destroy('network_test')
+                except:
+                    pass
+        
 if __name__ == "__main__":
     sys.exit(main())
