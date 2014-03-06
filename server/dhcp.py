@@ -717,14 +717,19 @@ class DHCPManager(Manager):
             comment = info
         
         if room:
-            comment += "# Room %s" % room
+            if comment:
+                comment += ", "
+            comment += "Room %s" % room
+            
+        if comment:
+            comment = "# "+comment
             
         if entry_status == 'Active':
             #host = self.host_manager.get_host(hostid)
             if hasopts=='yes':
                 self.emit("host %s %s" % (hostid, comment), 4 * indent)
                 self.emit("{", 4 * indent)
-                self.emit("hardware ethernet %s" % mac, 4 * (indent + 1))
+                self.emit("hardware ethernet %s;" % mac, 4 * (indent + 1))
                 self.emit("fixed-address %s;" % dns, 4 * (indent + 1))
                 self.emit_option_space(optionspace, (4 * (indent + 1)))
                 host = self.host_manager.get_host(hostid)
@@ -747,7 +752,7 @@ class DHCPManager(Manager):
         optionset = pool.get_optionset()
         maxlease = optionset.get_option('max-lease-time')
             
-        if maxlease or self.has_allowed_group(poolid):
+        if maxlease or self.has_allowed_group(poolname):
 
             if info:
                 self.emit("%s" % info, 4 * (indent + 1))
@@ -764,7 +769,7 @@ class DHCPManager(Manager):
             self.emit_option_space(optionspace, 4 * (indent + 2))
             
             self.emit_optlist(pool, indent + 2)
-            #self.emit_option_list(poolid, optionspace, indent + 2, 'pool')
+            #self.emit_option_list(poolname, optionspace, indent + 2, 'pool')
             self.emit_ranges(poolname, 4 * (indent + 2))
             self.emit_allow_classes(poolname, 4 * (indent + 2))
             self.emit("}", 4 * (indent + 1))
@@ -773,10 +778,21 @@ class DHCPManager(Manager):
         if self.has_allowed_group(poolname):
             q = "SELECT groupname FROM pool_group_map WHERE poolname=:poolname ORDER BY groupname ASC"
             for (groupname,) in self.db.get_all(q, poolname=poolname):
-                groupclass = "allocation-class-group-%s" % groupname
+                groupclass = "allocation-class-group-%s" % (groupname)
                 self.emit("allow members of \"%s\";" % groupclass, indent)
+                
+        q = "SELECT classname FROM pool_class_map WHERE poolname=:poolname ORDER BY classname ASC"
+        for (classname,) in self.db.get_all(q, poolname=poolname):
+            self.emit("allow members of \"%s\";" % classname, indent)
+                
+        q = "SELECT hostname FROM pool_host_map WHERE poolname=:poolname"
+        hosts = self.db.get_all(q, poolname=poolname)
+        if len(hosts):
+            hostclass = "allocation-class-host-%s" % (poolname)
+            self.emit("allow members of \"%s\";" % hostclass, indent)
+            
     
-    def emit_allowed_classes(self, poolid, indent):
+    def emit_allowed_classes(self, poolname, indent):
         self.generated_allocation_group_classes
     
 #TODO: write the code to dig out the mac adderesses
@@ -791,9 +807,9 @@ class DHCPManager(Manager):
 #subclass "allocation-class-1" 1:8:0:2b:4c:39:ad;
 #subclass "allocation-class-2" 1:8:0:2b:a9:cc:e3;
 #subclass "allocation-class-2" 1:0:1c:c0:06:7e:84;
-        if self.has_allowed_group(poolid):
-            q = "SELECT groupname FROM pool_group_map WHERE poolname=:poolid ORDER BY groupname ASC"
-            for (groupname,) in self.db.get_all(q, poolid=poolid):
+        if self.has_allowed_group(poolname):
+            q = "SELECT groupname FROM pool_group_map WHERE poolname=:poolname ORDER BY groupname ASC"
+            for (groupname,) in self.db.get_all(q, poolname=poolname):
                 groupclass = "allocation-class-group-%s" % groupname
                 if groupclass in self.generated_allocation_group_classes:
                     continue
@@ -809,6 +825,21 @@ class DHCPManager(Manager):
                     for (hostid, mac) in self.db.get_all(q, groupname=g):
                         self.emit("subclass \"%s\" 1:%s; # %s" % (groupclass, mac, hostid), 4 * (indent))
                 self.generated_allocation_group_classes.add(groupclass)
+                
+        q = "SELECT hostname FROM pool_host_map WHERE poolname=:poolname"
+        hosts = self.db.get_all(q, poolname=poolname)
+        hosts = [x[0] for x in hosts]
+        if len(hosts):
+            hostclass = "allocation-class-host-%s" % (poolname)
+            if hostclass in self.generated_allocation_group_classes:
+                return
+            self.emit("class \"%s\" {" % hostclass, 4 * indent)
+            self.emit("match pick-first-value (option dhcp-client-identifier, hardware);", 4 * (indent + 1))
+            self.emit("}", 4 * (indent))
+            for h in hosts:
+                q = "SELECT id, mac FROM hosts WHERE id=:id"
+                for (hostid, mac) in self.db.get_all(q, id=h):
+                    self.emit("subclass \"%s\" 1:%s; # %s" % (hostclass, mac, hostid), 4 * (indent))
     
     def emit_pools(self, network, indent):
         q = "SELECT poolname, optionspace, info FROM pools WHERE network=:network"
@@ -824,11 +855,11 @@ class DHCPManager(Manager):
             pools.add(pool)
         return pools
 
-    def emit_ranges(self, poolid, indent):
-        q = "SELECT start_ip,end_ip FROM pool_ranges WHERE pool=:poolid "
+    def emit_ranges(self, poolname, indent):
+        q = "SELECT start_ip,end_ip FROM pool_ranges WHERE pool=:poolname "
         q += " AND (served_by=:server_id OR served_by IS NULL ) ORDER BY start_ip ASC"
 
-        for(start, end) in self.db.get_all(q, poolid=poolid, server_id=self.serverID):
+        for(start, end) in self.db.get_all(q, poolname=poolname, server_id=self.serverID):
             self.emit("range %s %s;" % (start, end), indent)
 
     def emit_subnetwork(self, subnet_id, network, info, hasopts, indent): 
@@ -845,7 +876,7 @@ class DHCPManager(Manager):
                 self.emit("subnet %s netmask %s     %s" % (subnet_addr, subnet_mask, info), 4 * (indent + 1))
                 self.emit("{", 4 * (indent + 1))
                 #self.emit("option subnet-mask %s;" % subnet_mask, 4 * (indent + 2))
-                self.emit_optlist(subnetwork, indent + 1)
+                self.emit_optlist(subnetwork, indent + 2)
                 #self.emit_option_list(subnet_id, '', indent + 2, 'subnetwork')
                 self.emit("}", 4 * (indent + 1))
             
