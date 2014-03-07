@@ -37,6 +37,8 @@ serverdir = os.path.join(scriptparent, "server")
 
 srv.register_manager(session.DatabaseBackedSessionManager)
 
+srv.register_manager(event.EventManager)
+
 # Find the server directory and register all managers and functions in the modules found.
 seen_managers = []  # Avoid duplicating registrations. This can happen if managers are imported from other objects.
 

@@ -231,9 +231,11 @@ class EventManager(Manager):
         cls.event_attributes = {}
         q = "SELECT id, name FROM rpcc_event_str_attr"
         for (aid, name) in db.get(q):
+            name = str(name)
             cls.event_attributes[name] = ("rpcc_event_str", aid)
         q = "SELECT id, name FROM rpcc_event_int_attr"
         for (aid, name) in db.get(q):
+            name = str(name)
             if name in cls.event_attributes:
                 raise ValueError("Attribute %s is both a string and an integer attribute according to the database, which is not allowed" % (name,))
             cls.event_attributes[name] = ("rpcc_event_int", aid)
@@ -254,6 +256,7 @@ class EventManager(Manager):
 
             def _get(self):
                 return getattr(self, "other").get(attr, None)
+        
             _get.__name__ = "get_" + attr
             _get.__doc__ = "auto-generated getter for %s" % (attr,)
             return template(attr, typ)(_get)
