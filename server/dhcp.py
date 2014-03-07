@@ -912,7 +912,7 @@ class DHCPManager(Manager):
                             EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = s.optionset) OR
                             EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = s.optionset) OR
                             EXISTS (SELECT * FROM optionset_ipaddrarrayval iaav WHERE iaav.optionset = s.optionset) OR
-                            EXISTS (SELECT * FROM optionset_intarrayval inav WHERE inav.optionset = h.optionset)
+                            EXISTS (SELECT * FROM optionset_intarrayval inav WHERE inav.optionset = s.optionset)
                         )
                     ORDER BY (CONVERT(id USING latin1) COLLATE latin1_swedish_ci)
                 """
@@ -925,7 +925,7 @@ class DHCPManager(Manager):
                            EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = s.optionset) OR
                            EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = s.optionset) OR
                            EXISTS (SELECT * FROM optionset_ipaddrarrayval iaav WHERE iaav.optionset = s.optionset) OR
-                           EXISTS (SELECT * FROM optionset_intarrayval inav WHERE inav.optionset = h.optionset)
+                           EXISTS (SELECT * FROM optionset_intarrayval inav WHERE inav.optionset = s.optionset)
                        )
                     ORDER BY (CONVERT(id USING latin1) COLLATE latin1_swedish_ci)
                 """
@@ -1009,6 +1009,8 @@ class DHCPManager(Manager):
                 space += "."
             else:
                 space = ""
+            if type(value) is list:
+                value = ", ".join(value)
             if opt_type == 'text':
                 self.emit("%s%s%s \"%s\";" % (opt, space, name, value), 4 * indent)
             else:
