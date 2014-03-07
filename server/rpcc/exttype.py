@@ -894,6 +894,9 @@ class ExtOrNull(ExtType):
             
         if "desc" in kwargs:
             self.desc = kwargs["desc"]
+            
+        if "name" in kwargs:
+            self.name = kwargs["name"]
 
         # Use the original object's class name as prefix for the "|null" if present, Otherwise name clashes will occur when typ
         # is set explicitly and not via this constructor.
@@ -971,7 +974,7 @@ class ExtOrNull(ExtType):
 class ExtList(ExtType):
     typ = None
     
-    def __init__(self, typ=None, **kwargs):            
+    def __init__(self, typ=None, **kwargs):
         if typ is not None:
             if self.typ is not None:
                 raise TypeError("When an ExtList subclass has its .typ set, you cannot override it on instantiation. You use an ExtList subclass just like an ExtString or ExtInteger subclass.")            

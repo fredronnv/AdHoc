@@ -83,6 +83,17 @@ class ExtIPAddress(ExtString):
             raise ExtNoSuchDNSNameError()
         return cval
     
+class ExtIPAddressList(ExtList):
+    name = "ip-address-array"
+    desc = "List of IP addresses"
+    typ = ExtIPAddress
+    
+    
+class ExtIntegerList(ExtList):
+    name = "integer-array"
+    desc = "List of integers"
+    typ = ExtInteger
+    
 class ExtLiteralOption(ExtStruct):
     name = "literal-option-data"
     desc = "Data for a literal option"

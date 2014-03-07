@@ -59,7 +59,7 @@ class DHCPManager(Manager):
     @entry(AdHocSuperuserGuard)          
     def transfer_from_old_database(self, optionset_manager):
         """ This method clears the DHCP database completely and transfers all of the data
-            from the old database while observing the changes in syntac and semantics.
+            from the old database while observing the changes in syntax and semantics.
             
             This code is rough and unpolished as it is dead as soon as the new database goes into production
         """
@@ -70,6 +70,9 @@ class DHCPManager(Manager):
         db = self.server.config("ODB_DATABASE")
         host = self.server.config("ODB_HOST")
         port = self.server.config("ODB_PORT")
+        
+        arrayoptions = []
+        optiontypes = {}
         
         self.odbase = database.MySQLDatabase(self.server, user=user, password=password, database=db, host=host, port=port)
         
@@ -87,12 +90,12 @@ class DHCPManager(Manager):
         
         # Truncate all tables first, in reverse stratum order
         
-        for table in ["host_literal_options", "optionset_boolval", "optionset_strval", "optionset_intval", "optionset_ipaddrval"]:
+        for table in ["host_literal_options", "optionset_boolval", "optionset_strval", "optionset_intval", "optionset_ipaddrval", "optionset_ipaddrarrayval", "optionset_intarrayval"]:
             self.db.put("TRUNCATE TABLE %s;" % table)
             
         for table in ["pool_ranges", 
                       "group_literal_options", "pool_literal_options", "class_literal_options", "hosts",
-                      "bool_option", "str_option", "int_option", "ipaddr_option"]:
+                      "bool_option", "str_option", "int_option", "ipaddr_option", "ipaddrarray_option", "intarray_option"]:
             self.db.put("TRUNCATE TABLE %s;" % table)
         
         self.db.put("SET foreign_key_checks=0")
@@ -199,8 +202,14 @@ class DHCPManager(Manager):
         for(my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime) in self.odb.get(qf):
             #print my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime
             self.option_def_manager.define_option(info, changed_by, mtime, name, my_type, code, qualifier, optionspace)
+            
+            # Save option info for later usage when adding options
+            optiontypes[name] = my_type
+            if qualifier and "array" in qualifier:
+                arrayoptions.append(name)
         
         optionset.OptionsetManager.init_class(self.db)  # Reinitialize class with new options in the table
+        #self.db.commit() # Warning! committing here may render your server unstartable. If that happens, manuallt trincate the option_def table, or maybe all tables.
         #groups
         #print 
         #print "GROUPS"
@@ -302,6 +311,10 @@ class DHCPManager(Manager):
                         target = self.host_class_manager.get_host_class(unicode(address))
                         
                     if address in targets:
+                        if name in arrayoptions:
+                            value = [y.strip() for y in value.split(",")]
+                            if "integer" in optiontypes[name]:
+                                value = [ int(x) for x in value]  # Convert elements to integers
                         target.get_optionset().set_option_by_name(name, value)
         
         #pool_ranges
@@ -686,7 +699,9 @@ class DHCPManager(Manager):
                     EXISTS (SELECT * FROM optionset_boolval bv WHERE bv.optionset = h.optionset) OR
                     EXISTS (SELECT * FROM optionset_strval sv WHERE sv.optionset = h.optionset) OR
                     EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = h.optionset) OR
-                    EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = h.optionset)
+                    EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = h.optionset) OR
+                    EXISTS (SELECT * FROM optionset_ipaddrarrayval iaav WHERE iaav.optionset = h.optionset) OR
+                    EXISTS (SELECT * FROM optionset_intarrayval inav WHERE inav.optionset = h.optionset)
                 )
             )
         """
@@ -700,7 +715,9 @@ class DHCPManager(Manager):
                            EXISTS (SELECT * FROM optionset_boolval bv WHERE bv.optionset = h.optionset) OR
                            EXISTS (SELECT * FROM optionset_strval sv WHERE sv.optionset = h.optionset) OR
                            EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = h.optionset) OR
-                           EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = h.optionset)
+                           EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = h.optionset) OR
+                           EXISTS (SELECT * FROM optionset_ipaddrarrayval iaav WHERE iaav.optionset = h.optionset) OR
+                           EXISTS (SELECT * FROM optionset_intarrayval inav WHERE inav.optionset = h.optionset)
                        )
                     )"""
         allhosts = self.db.get(qfast, groupname=groupname)    
@@ -893,7 +910,9 @@ class DHCPManager(Manager):
                             EXISTS (SELECT * FROM optionset_boolval bv WHERE bv.optionset = s.optionset) OR
                             EXISTS (SELECT * FROM optionset_strval sv WHERE sv.optionset = s.optionset) OR
                             EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = s.optionset) OR
-                            EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = s.optionset)
+                            EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = s.optionset) OR
+                            EXISTS (SELECT * FROM optionset_ipaddrarrayval iaav WHERE iaav.optionset = s.optionset) OR
+                            EXISTS (SELECT * FROM optionset_intarrayval inav WHERE inav.optionset = h.optionset)
                         )
                     ORDER BY (CONVERT(id USING latin1) COLLATE latin1_swedish_ci)
                 """
@@ -904,7 +923,9 @@ class DHCPManager(Manager):
                            EXISTS (SELECT * FROM optionset_boolval bv WHERE bv.optionset = s.optionset) OR
                            EXISTS (SELECT * FROM optionset_strval sv WHERE sv.optionset = s.optionset) OR
                            EXISTS (SELECT * FROM optionset_intval iv WHERE iv.optionset = s.optionset) OR
-                           EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = s.optionset)
+                           EXISTS (SELECT * FROM optionset_ipaddrval iav WHERE iav.optionset = s.optionset) OR
+                           EXISTS (SELECT * FROM optionset_ipaddrarrayval iaav WHERE iaav.optionset = s.optionset) OR
+                           EXISTS (SELECT * FROM optionset_intarrayval inav WHERE inav.optionset = h.optionset)
                        )
                     ORDER BY (CONVERT(id USING latin1) COLLATE latin1_swedish_ci)
                 """

@@ -341,6 +341,7 @@ class OptionDefManager(Manager):
     @entry(AuthRequiredGuard)
     def define_option(self, info, changed_by, mtime, name, my_type, code, qualifier, optionspace, struct=None, encapsulate=None):
         
+        
         qp1 = "INSERT INTO option_base (name, code, qualifier, type, optionspace, info, changed_by"
         qp2 = "VALUES(:name, :code, :qualifier, :type, :optionspace, :info, :changed_by"
         param_dict= {"name":name, "code":code, "qualifier":qualifier, "type":my_type, "optionspace":optionspace, "changed_by":changed_by, "info":info}
@@ -365,8 +366,6 @@ class OptionDefManager(Manager):
             raise ExtOptionDefAlreadyExistsError()
         
         if my_type.startswith("integer") or my_type.startswith("unsigned"):
-            qp3 = """INSERT INTO int_option (option_base, minval, maxval) 
-                 VALUES (:option_base, :minval, :maxval)"""
             if my_type.endswith(' 8'):
                 u_maxval = 255
                 i_maxval = 127
@@ -385,18 +384,33 @@ class OptionDefManager(Manager):
             else:
                 minval = i_minval
                 maxval = i_maxval
+                
+            table="int_option"    
+            if qualifier and "array" in qualifier:
+                table="intarray_option" 
+                   
+            qp3 = """INSERT INTO %s (option_base, minval, maxval) 
+                 VALUES (:option_base, :minval, :maxval)""" % (table)
             self.db.put(qp3, option_base=id, minval=minval, maxval=maxval)
+            
         if my_type == 'string' or my_type == 'text':
             qp3 = """INSERT INTO str_option (option_base) 
                  VALUES (:option_base)"""
             self.db.put(qp3, option_base=id)
+            
         if my_type == 'boolean':
             qp3 = """INSERT INTO bool_option (option_base) 
                  VALUES (:option_base)"""
             self.db.put(qp3, option_base=id)
+            
+        
         if my_type == 'ip-address':
-            qp3 = """INSERT INTO ipaddr_option (option_base) 
-                 VALUES (:option_base)"""
+            table="ipaddr_option"
+            if qualifier and "array" in qualifier:
+                table="ipaddrarray_option"
+                
+            qp3 = """INSERT INTO %s (option_base) 
+                 VALUES (:option_base)""" % (table)
             self.db.put(qp3, option_base=id)
         return id
               

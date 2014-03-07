@@ -107,7 +107,7 @@ class API(object):
 
         if minv > self.version or maxv < self.version:
             raise IntAPIValidationError("%s (%d-%d) invalid for version %d" % (typething, typething.from_version, typething.to_version, self.version))
-
+        
         if typename in self.types:
             if self.types[typename] == typ:
                 return
