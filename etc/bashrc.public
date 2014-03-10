@@ -1,19 +1,22 @@
 export PYTHONPATH=${INSTALL_HOME}/lib/python2.6
+export KRB5_KTNAME=$ADHOC_RUNTIME_HOME/server.keytab   
+export ADHOC_DB_URL=mysql://dconf.ita.chalmers.se:3306
+export ADHOC_DB_PASSWORD=XXX # Overridden in other bashrc
 
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"devel" ]; then
-    export ADHOC_DB_URL=mysql://dconf.ita.chalmers.se:3306
+    export ADHOC_DB_USER=$USER
+    export ADHOC_DB_DATABASE=AdHoc_devel
     export ADHOC_DB_USER=adhoc_server
-    export ADHOC_DB_PASSWORD=XXX # Overridden in other bashrc
+    export RPCC_DEBUG=1
+    export ADHOC_DEBUG_SQL=1
 fi
 
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"uat" ]; then
-    export ADHOC_DB_URL=mysql://dconf.ita.chalmers.se:3306
-    export ADHOC_DB_USER=adhoc_server
-    export ADHOC_DB_PASSWORD=XXX # Overridden in other bashrc
+    export ADHOC_DB_DATABASE=AdHoc_uat
+    export ADHOC_DB_USER=srvadhoc
 fi
 
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"prod" ]; then
-    export ADHOC_DB_URL=mysql://dconf.ita.chalmers.se:3306
-    export ADHOC_DB_USER=adhoc_server
-    export ADHOC_DB_PASSWORD=XXX # Overridden in other bashrc
+    export ADHOC_DB_DATABASE=AdHoc
+    export ADHOC_DB_USER=srvadhoc
 fi
