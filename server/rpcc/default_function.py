@@ -144,7 +144,7 @@ class FunSessionAuthLogin(SessionedFunction):
 class FunSessionAuthKerberos(SessionedFunction):
     extname = 'session_auth_kerberos'
     params = [('token', exttype.ExtString, "Kerberos token")]
-    returns = (exttype.ExtNull, "Note: Failed authentications raise an error.")
+    returns = (exttype.ExtBoolean, "Note: Failed authentications raise an error.")
 
     desc = """Authenticate a session using Kerberos.
 
@@ -156,8 +156,8 @@ If you want SPNEGO, use the session_auth_spnego call instead.
 
     def do(self):
         ath = self.authentication_manager
-        print "KERBEROS AUTH: TOKEN=",self.token
-        return ath.login_krb5(self.session, self.token)
+        ath.login_krb5(self.session, self.token)
+        return True
 
 
 class FunSessionAuthSPNEGO(SessionedFunction):

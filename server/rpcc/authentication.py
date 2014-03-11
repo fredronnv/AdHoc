@@ -86,10 +86,9 @@ class NullAuthenticationManager(AuthenticationManager):
                 if res != kerberos.AUTH_GSS_COMPLETE:
                     raise default_error.ExtAccessDeniedError()
                 
-                principal = kerberos.authGSSServerUserName(ctx)
-                sys.stderr.write("--> Kerberos SPNEGO auth: %s\n" % (authprinc,))
-                if '@' in principal:
-                    priminst, realm = authprinc.split('@')[0]
+                authprinc = kerberos.authGSSServerUserName(ctx)
+                if '@' in authprinc:
+                    priminst, realm = authprinc.split('@')
                     if "/" in priminst:
                         primary, instance = priminst.split("/")
                     else:
