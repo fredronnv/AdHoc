@@ -7,7 +7,7 @@ sys.path.append(os.environ.get("ADHOC_RUNTIME_HOME","/Users/bernerus/work/proj/w
 import rpcc_client
 import getpass
 import urllib2
-def connect(url="http://nile.its.chalmers.se:12121",api=0, user="bernerus"):
+def connect(url="http://venus.ita.chalmers.se:8877",api=0, user="bernerus"):
 
     urls = [url, "http://nile.its.chalmers.se:12121/api/0"]
 
