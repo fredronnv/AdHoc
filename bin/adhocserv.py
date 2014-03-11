@@ -12,6 +12,8 @@ os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home  # Export as env variable A
 
 sys.path.append(adhoc_home)
 sys.path.append(os.path.join(adhoc_home, 'server'))
+sys.path.append(os.path.join(adhoc_home, 'lib'))
+sys.path.append(os.path.join(adhoc_home, 'lib','python2.6'))
 
 from rpcc import *
 from util import *
@@ -26,7 +28,7 @@ class AdHocServer(Server):
     superuser_guard = AdHocSuperuserGuard
     
        
-srv = AdHocServer("localhost", 12121)
+srv = AdHocServer("nile.its.chalmers.se", 12121)
 
 srv.enable_database(MySQLDatabase)
 srv.database.check_rpcc_tables()

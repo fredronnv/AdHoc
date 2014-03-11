@@ -64,8 +64,12 @@ class NullAuthenticationManager(AuthenticationManager):
             import kerberos
             krb_realm=os.environ.get('ADHOC_KRB_REALM','CHALMERS.SE')
             service = "krbtgt/" + self.function.server.instance_address
+            # Get in control of which realm we're using"
+            if "@" in username:
+                (username,) = username.split('@')
             if kerberos.checkPassword(username, password, service, krb_realm):
                     session.set("authuser", username)
+                    session.set("authrealm", realm)
             else:
                 raise exterror.ExtAuthenticationFailedError()
         else:
@@ -73,30 +77,34 @@ class NullAuthenticationManager(AuthenticationManager):
 
     def login_krb5(self, session, token):
         ctx = None
-        try:
-            server_principal = "HTTP@" + self.function.server.instance_address
-            (res, ctx) = kerberos.authGSSServerInit(server_principal)
-            res = kerberos.authGSSServerStep(ctx, token)
-            if res != kerberos.AUTH_GSS_COMPLETE:
-                raise default_error.ExtAccessDeniedError()
-            
-            principal = kerberos.authGSSServerUserName(ctx)
-            sys.stderr.write("--> Kerberos SPNEGO auth: %s\n" % (authprinc,))
-            if '@' in principal:
-                priminst, realm = authprinc.split('@')[0]
-                if "/" in priminst:
-                    primary, instance = priminst.split("/")
+        if AuthenticationManager.has_krb5():
+            import kerberos
+            try:
+                server_principal = "HTTP@" + self.function.server.instance_address
+                (res, ctx) = kerberos.authGSSServerInit(server_principal)
+                res = kerberos.authGSSServerStep(ctx, token)
+                if res != kerberos.AUTH_GSS_COMPLETE:
+                    raise default_error.ExtAccessDeniedError()
+                
+                principal = kerberos.authGSSServerUserName(ctx)
+                sys.stderr.write("--> Kerberos SPNEGO auth: %s\n" % (authprinc,))
+                if '@' in principal:
+                    priminst, realm = authprinc.split('@')[0]
+                    if "/" in priminst:
+                        primary, instance = priminst.split("/")
+                    else:
+                        primary, instance = priminst, ""
                 else:
-                    primary, instance = priminst, ""
-            else:
-                primary, instance, realm = principal, "", ""
-
-            session.set("authuser", primary)
-            session.set("authinst", instance)
-            session.set("authrealm", realm)
-        finally:
-            if ctx:
-                kerberos.authGSSServerClean(ctx)
+                    primary, instance, realm = principal, "", ""
+    
+                session.set("authuser", primary)
+                session.set("authinst", instance)
+                session.set("authrealm", realm)
+            finally:
+                if ctx:
+                    kerberos.authGSSServerClean(ctx)
+        else:
+            raise exterror.ExtAuthenticationFailedError()
 
     def logout(self, session):
         session.unset("authuser")

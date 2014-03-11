@@ -41,7 +41,7 @@ class FunServerNodeName(Function):
 class FunPing(Function):
     extname = 'server_ping'
     params = []
-    rettype = exttype.ExtString
+    rettype = exttype.ExtNull
     uses_database = True  # I'll do it myself
     log_call_event = False
     creates_event = False
@@ -52,17 +52,33 @@ class FunPing(Function):
     connection is working."""
 
     def do(self):
-        db = None
-        try:
-            db = self.server.database.get_link()
-            db.get('SELECT 1')
-            #self.server.db_handler.restart_passive_links()
-        except:
-            raise exttype.ExtRuntimeError("Database link not working")
-        
-        finally:
-            if db:
-                self.server.database.return_link(db)
+        for api in self.server.api_handler.apis:
+            print api.get_version_string()
+ 
+        self.db.get('SELECT 1')
+
+class FunServerListAPIVersions(Function):
+    extname = 'server_list_api_versions'
+    params = []
+    returns = exttype.ExtList(default_type.ExtAPIVersionInfo)
+    uses_database = False
+
+    desc = """Returns a list of all API versions, together with their
+current state and public comments."""
+
+    def do(self):
+        ret = []
+        states = {"X": "Experimental",
+                  "P": "Production",
+                  "D": "Deprecated",
+                  "R": "Removed"}
+        for api in self.server.api_handler.apis:
+            ret.append({"version": api.version,
+                        "state": states[api.state],
+                        "comment": api.comment})
+
+        return ret
+
 
 
 class FunSessionStart(Function):
@@ -124,6 +140,44 @@ class FunSessionAuthLogin(SessionedFunction):
         ath = self.authentication_manager
         ath.login(self.session, self.username, self.password)
         return True
+    
+class FunSessionAuthKerberos(SessionedFunction):
+    extname = 'session_auth_kerberos'
+    params = [('token', exttype.ExtString, "Kerberos token")]
+    returns = (exttype.ExtNull, "Note: Failed authentications raise an error.")
+
+    desc = """Authenticate a session using Kerberos.
+
+The argument to the call is the same authentication token you would send
+in an SPNEGO Authorization header.
+
+If you want SPNEGO, use the session_auth_spnego call instead.
+"""
+
+    def do(self):
+        ath = self.authentication_manager
+        print "KERBEROS AUTH: TOKEN=",self.token
+        return ath.login_krb5(self.session, self.token)
+
+
+class FunSessionAuthSPNEGO(SessionedFunction):
+    extname = 'session_auth_spnego'
+    params = []
+    returns = (exttype.ExtNull, "Note: Failed authentications raise an error.")
+
+    desc = """Authenticate a session using HTTP Negotiate (SPNEGO) Kerberos authentication.
+
+When calling this method, the 'Authorization' HTTP header must be set,
+to 'negotiate' and an authentication token. If that header is not set,
+a 401 HTTP response is sent with the 'WWW-Authentication' header set to
+'negotiate'.
+
+If the token checks out, the session is authenticated and True is returned.
+Otherwise False is returned and the session continues to be un-authenticated.
+"""
+
+    def do(self):
+        pass
 
 
 class FunSessionDeauth(SessionedFunction):

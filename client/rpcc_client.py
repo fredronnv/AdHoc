@@ -31,6 +31,9 @@ filled in using getpass.
 
 The proxy uses JSON when communicating with the server.
 
+If the Python kerberos module is installed, the client will perform
+a GSSAPI authentication to the server by implicitly adding the 'token'
+argument to the session_auth_kerberos call.
 """
 
 import re
@@ -38,7 +41,22 @@ import json
 import time
 import getpass
 import urllib2
+import inspect
+import os
+import sys
 
+env_prefix = "ADHOC_"
+
+
+# Automagic way to find out the home of adhoc.
+adhoc_home = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/.."
+#print "ADHOC_HOME=", adhoc_home
+os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home  # Export as env variable ADHOC_RUNTIME_HOME if needed outside server
+
+sys.path.append(adhoc_home)
+sys.path.append(os.path.join(adhoc_home, 'client'))
+sys.path.append(os.path.join(adhoc_home, 'lib'))
+sys.path.append(os.path.join(adhoc_home, 'lib','python2.6'))
 
 class AttrDict(dict):
     """A dictionary where keys can also be accessed as attributes."""
@@ -99,6 +117,21 @@ class RPCCRuntimeError(RPCCErrorMixin, RuntimeError):
         self.init(err)
 
 
+def error_object(ret, pyexc=True):
+    name = ret["name"]
+    if pyexc:
+        if name.startswith("LookupError"):
+            return RPCCLookupError(ret)
+        elif name.startswith("ValueError"):
+            return RPCCValueError(ret)
+        elif name.startswith("TypeError"):
+            return RPCCTypeError(ret)
+        elif name.startswith("RuntimeError"):
+            return RPCCRuntimeError(ret)
+    
+    return RPCCError(ret)
+
+
 class RPCC(object):
     """RPCC client proxy."""
 
@@ -120,8 +153,9 @@ class RPCC(object):
         self._fundefs = {}
         if url[-1] != '/':
             url += "/"
-        self._url = url + "json?v%d" % (api_version,)
-        self._purl = url.replace("http://", "").replace("https://", "") + "#%d" % (api_version,)
+        self._url = url + "json?v%s" % (api_version,)
+        self._purl = url.replace("http://", "").replace("https://", "") + "#%s" % (api_version,)
+        self._host = url.replace("http://", "").replace("https://", "").split(":")[0]
         self._api = api_version
         self._auth = None
         self.reset()
@@ -136,12 +170,12 @@ class RPCC(object):
         return json.loads(retstr.decode("utf-8"))
 
     def _fundef(self, fun):
-        try:
-            if fun not in self._fundefs:
-                self._fundefs[fun] = self._rawcall("server_function_definition", fun)["result"]
-            return self._fundefs[fun]
-        except KeyError:
-            raise LookupError("No function %s is defined on the server" % (fun,))
+        if fun not in self._fundefs:
+            ret = self._rawcall("server_function_definition", fun)
+        if "result" not in ret:
+            raise error_object(ret["error"], self._pyexceptions)
+        self._fundefs[fun] = ret["result"]
+        return self._fundefs[fun]
 
     def _function_is_sessioned(self, fun):
         fundef = self._fundef(fun)
@@ -157,7 +191,11 @@ class RPCC(object):
     
     def _get_session(self):
         if self._session_id is None:
-            self._session_id = self._rawcall("session_start")["result"]
+            ret = self._rawcall("session_start")
+            print ret
+            if "error" in ret and ret["error"]["name"] == "LookupError::NoSuchFunction":
+                raise ValueError("Session support has not been enabled in the server")
+            self._session_id = ret["result"]
         return self._session_id
 
     def _call(self, fun, *args):
@@ -172,6 +210,18 @@ class RPCC(object):
                 args.append({'_': True})
             elif isinstance(args[2], str) or isinstance(args[2], unicode):
                 args[2] = self._parse_digstr(args[2])
+
+        if fun == "session_auth_kerberos":
+            try:
+                import kerberos
+            except:
+                raise ValueError("No kerberos module installed - cannot perform kerberos authentication")
+
+            (res, ctx) = kerberos.authGSSClientInit("HTTP@" + self._host)
+            kerberos.authGSSClientStep(ctx, "")
+            token = kerberos.authGSSClientResponse(ctx)
+            print "TOKEN=",token
+            args.append(token)
 
         # Perform call, measuring passed time.
         start_time = time.time()
@@ -202,16 +252,7 @@ class RPCC(object):
                 err = self._convert_to_attrdicts(err)
 
             errname = err['name']
-            if self._pyexceptions and errname.startswith('ValueError'):
-                raise RPCCValueError(err)
-            elif self._pyexceptions and errname.startswith('LookupError'):
-                raise RPCCLookupError(err)
-            elif self._pyexceptions and errname.startswith('RuntimeError'):
-                raise RPCCRuntimeError(err)
-            elif self._pyexceptions and errname.startswith('TypeError'):
-                raise RPCCTypeError(err)
-            else:
-                raise RPCCError(err)
+            raise error_object(err, self._pyexceptions)
 
     def _convert_to_attrdicts(self, val):
         if isinstance(val, dict):

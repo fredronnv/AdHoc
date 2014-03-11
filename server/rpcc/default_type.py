@@ -14,6 +14,24 @@ class ExtFunctionName(exttype.ExtString):
         if fun.api.has_function(cval):
             return cval
         raise default_error.ExtNoSuchFunctionError(value=cval)
+  
+    
+class ExtAPIVersionState(exttype.ExtEnum):
+    name = "api-version-state"
+    desc = "State of an API version"
+
+    values = ["Experimental", "Production", "Deprecated", "Removed"]
+
+
+class ExtAPIVersionInfo(exttype.ExtStruct):
+    name = "api-version-info"
+    desc = "Information about one particular API version"
+
+    mandatory = {
+        "version": exttype.ExtInteger,
+        "state": ExtAPIVersionState,
+        "comment": exttype.ExtString
+        }
 
 
 class ExtSession(exttype.ExtString):
