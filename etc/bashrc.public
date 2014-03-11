@@ -1,7 +1,8 @@
 export PYTHONPATH=${INSTALL_HOME}/lib/python2.6
 export ADHOC_RUNTIME_HOME=${INSTALL_HOME}
 export KRB5_KTNAME=$ADHOC_RUNTIME_HOME/server.keytab   
-export ADHOC_DB_URL=mysql://dconf.ita.chalmers.se:3306
+export ADHOC_DB_HOST=dconf.ita.chalmers.se
+export ADHOC_DB_PORT=3306
 export ADHOC_DB_PASSWORD=XXX # Overridden in other bashrc
 
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"devel" ]; then

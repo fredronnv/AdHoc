@@ -32,29 +32,16 @@ class AdHocServer(Server):
 class StartMe(object):
     def __init__(self, host, port, generic_password=None, enable_ssl=False):
 
+	ssl_config = None
         if enable_ssl:
             print "Enabling SSL"
             keyfile = os.environ.get('RPCC_SERVER_SSL_KEYFILE', 'etc/xmlrpc_server.key')
             certfile = os.environ.get('RPCC_SERVER_SSL_CERTFILE', 'etc/xmlrpc_server.cert')
             chainfile = os.environ.get('RPCC_SERVER_SSL_CHAINFILE', None)
 
-            #print "Keyfile =",keyfile
-            #print "Certfile =",certfile
-            #print "Chainfile =",chainfile
-        else: 
-            certfile = None
-            chainfile = None
-            keyfile = None
-            print "Disabling SSL"
-    
-        srv = AdHocServer(host,
-                                  port,
-                                  keyfile, 
-                                  certfile,
-                                  chainfile=chainfile,
-                                  session_class=pdbrpc.PDBRPCSession,
-                                  disable_ssl=not enable_ssl,
-                                  generic_password=generic_password)
+	    ssl_config = SSLConfig(keyfile, cerftfine, chainfile)
+
+        srv = AdHocServer(host, port, ssl_config)
 
         srv.enable_database(MySQLDatabase)
         srv.database.check_rpcc_tables()
