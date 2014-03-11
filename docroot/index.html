@@ -19,7 +19,9 @@ generated from the RPCC server, guaranteeing up-to-date information.
 
 <div class="lvl2">
 
-<p>This server serves the Advanced DHCP online configuration system (ADHoc). 
+<p>This server serves the Advanced DHCP online configuration system (AdHoc). The server exports a set of API's designed
+to mediate between different user interfaces and the detailed configuration of a number of more or less redundant
+ISC DHCP server instances.
 
 </div>
 
@@ -55,18 +57,15 @@ your code.
 
 <div class="lvl3">
   <ol>
-    <li>Install <tt>Frontier::Client</tt> using CPAN</li>
-    <li>Download and install the patches <a
-  href="../lib/perl5/Client.pm.patch">Client.pm.patch</a> and <a 
-  href="../lib/perl5/RPC2.pm.patch">RPC2.pm.patch</a></dd>
-    <li>Download and install <a href="../lib/perl5//RPCC.pm">RPCC.pm</a>
+    There is unfortunately no Perl client module developed. However the PDB.pm module may be of help in
+    developing such a module. See https://cdks.chalmers.se:4434 for more info on this.
   </ol>
 </div>
 
 <div class="lvl2">
 
-<p>For examples, see <a
-href="client_examples.html">client_examples.html</a> (in swedish).
+<p>There are no specific programming examples for AdHoc yet. However the examples for PDB might help:<a
+href="client_examples.html">https://cdks.chalmers.se:4434/client_examples.html</a> (in swedish).
 
 </div>
 
@@ -109,7 +108,7 @@ time - a call either succeeded or it did not.
 <p>The error struct contains, among others, the keys 
 <dl>
   <dt>name</dt>
-  <dd>the error name, for example "LookupError::NoSuchAccount"
+  <dd>the error name, for example "LookupError::NoSuchHost"
 
   <dt>desc</dt>
   <dd>A more verbose error description <b>for programmers</b>. You
@@ -146,11 +145,15 @@ which you include as first parameter to all functions that require a
 session context.
 
 <p>Most functions also require the session to be
-authenticated. Currently there is only one call for this,
-<tt>session_auth_login(session_id, username, password)</tt>. The
+authenticated. Currently there are two calls for this,
+<tt>session_auth_login(session_id, username, password)</tt> and 
+<tt>session_auth_kerberos(session_id, token)</tt>. The
 <i>username</i> parameter accepts any Kerberos principals, including
 e.g. <tt>/admin</tt>-principals, but the part of the principal name
 before any slash needs to be an existing PDB account.
+The <tt>token</tt> parameter shiould be fetched with the appropriate GSSAPI functions.
+See the python code within the rpcc client for details.
+
 
 </div>
 
@@ -160,30 +163,24 @@ before any slash needs to be an existing PDB account.
 
 <p>Different functions require different privileges on the
 server. Some older functions also filter input or output depending on
-whether the caller has a particular privilege or not.
-
+whether the caller has a particular privilege or not.</p>
 <p>The online documentation contains information about which
 privileges are required for a function. It is the owner of the
-authenticated account whose privileges count.
-
-<p>Note that in order to make use of most higher-level privileges, the
-session must have been authenticated with a <tt>/admin</tt>-principal
-belonging to the privileged owner.
-
+authenticated account whose privileges count.</p>
 </div>
 
 <h2>Online documentation</h2>
 
 <div class="lvl2">
 
-<p>You can get the online documentation for every function via XMLRPC
+<p>You can get the online documentation for every RPCC function via
 using the <tt>server_documentation(function_name)</tt> function
 (returns a formatted string) or
 <tt>server_documentation_struct(function_name)</tt> function (returns
 a structure with the same information), and list all available
 functions using <tt>server_list_functions()</tt>.
 
-<p>You can also use your web browser to contact the XMLRPC server, and
+<p>You can also use your web browser to contact the RPCC server, and
 go to the <tt>http://host:port/api/0/<i>function_name</i></tt>
 page.
 
