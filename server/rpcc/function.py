@@ -334,6 +334,8 @@ class Function(object):
             self.parse_args(args)
             self.check_access()
             ret = self.do()
+            #import pprint
+            #pprint.pprint(ret)
             response = ExtType.instance(self.returns).output(self, ret)
             call_success = True
             return response
