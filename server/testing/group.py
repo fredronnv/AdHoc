@@ -214,7 +214,7 @@ class T1180_GroupAddLiteralOption(SuperUserTests):
                     pass
                     literal_value = "#This is a literal option"
                     id = self.proxy.group_literal_option_add('QZ1243A', literal_value)
-                    print "Literal option ID=%d" % id
+                    #print "Literal option ID=%d" % id
                     opts = self.proxy.group_fetch('QZ1243A', data_template).literal_options
                     #print opts
                     assert id in [x.id for x in opts], "The returned id is not returned in when fetching the group"
