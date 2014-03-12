@@ -195,8 +195,8 @@ class T1440_PoolRangeSetRange(AuthTests, PoolRangeTests):
             
             
 class T1441_PoolRangeSetReversedRange(AuthTests, PoolRangeTests):
-    """ Test setting the range of a pool_range"""
-    
+    """ Test reversing the range of a pool_range"""
+    #wip=True
     def do(self):
         self.setup_pool_range()
         try:
@@ -211,7 +211,7 @@ class T1441_PoolRangeSetReversedRange(AuthTests, PoolRangeTests):
             except:
                 pass
             try:
-                self.superuser.pool_range_destroy(self.testrange2)
+                self.superuser.pool_range_destroy(self.testrange2_end)
             except:
                 pass
             self.teardown_pool_range()
