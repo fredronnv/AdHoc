@@ -95,6 +95,8 @@ class Optionset(rpcc.Model):
             str = str.lstrip("<ul><li>")
             str = str.rstrip("</li></ul>")
             values = str.split("</li><li>")
+            if typ.startswith("int"):
+                values = [int(x) for x in values]
             return values
         else:
             return self.options.get(opt, None)
