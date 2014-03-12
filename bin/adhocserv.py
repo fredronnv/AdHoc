@@ -89,7 +89,6 @@ if __name__ == "__main__":
     
     if len(sys.argv) > 1:
         if ':' in sys.argv[1]:
-	    print  sys.argv[1]
             host, port = sys.argv[1].split(':')
             port = int(port)
         else:
