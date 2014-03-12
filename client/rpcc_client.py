@@ -192,7 +192,6 @@ class RPCC(object):
     def _get_session(self):
         if self._session_id is None:
             ret = self._rawcall("session_start")
-            print ret
             if "error" in ret and ret["error"]["name"] == "LookupError::NoSuchFunction":
                 raise ValueError("Session support has not been enabled in the server")
             self._session_id = ret["result"]
