@@ -5,6 +5,12 @@ export ADHOC_DB_HOST=dconf.ita.chalmers.se
 export ADHOC_DB_PORT=3306
 export ADHOC_DB_PASSWORD=XXX # Overridden in other bashrc
 
+export ADHOC_ODB_USER=adhoc
+export ADHOC_ODB_DATABASE=a_dhcp_new
+export ADHOC_ODB_HOST=enoki.medic.chalmers.se
+export ADHOC_ODB_PORT=3306
+
+
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"devel" ]; then
     export ADHOC_DB_USER=$USER
     export ADHOC_DB_DATABASE=AdHoc_devel
