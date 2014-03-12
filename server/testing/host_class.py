@@ -204,7 +204,6 @@ class T0170_HostClassUnsetOption(AuthTests):
              
 class T1180_HostClassAddLiteralOption(SuperUserTests):
     """ Test adding a literal option to a host_class"""
-    wip=True
 
     def do(self):
         try:
@@ -238,7 +237,6 @@ class T1180_HostClassAddLiteralOption(SuperUserTests):
                 
 class T1180_HostClassDestroyLiteralOption(SuperUserTests):
     """ Test destroying a literal option from a host_class"""
-    wip=True
     def do(self):
         try:
             self.superuser.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
