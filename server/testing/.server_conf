@@ -8,9 +8,11 @@ export ADHOC_DB_USER=bernerus
 export ADHOC_DB_DATABASE=AdHoc
 export ADHOC_DB_HOST=dconf.ita.chalmers.se
 export ADHOC_DB_PORT=3306
-#export RPCC_DEBUG=1
-#export ADHOC_DEBUG_SQL=1
-export ADHOC_SERVER_URL="http://nile.its.chalmers.se:$port"
+export RPCC_DEBUG=1
+export ADHOC_DEBUG_SQL=1
+export ADHOC_SERVER_HOST=`hostname`
+export ADHOC_SERVER_URL="http://${ADHOC_SERVER_HOST}:$port"
+export ADHOC_GENERIC_PASSWORD=1qaz2wsx.
 export KRB5_KTNAME=$ADHOC_RUNTIME_HOME/etc/server.keytab
 
 export ADHOC_TEST_MODE=1
