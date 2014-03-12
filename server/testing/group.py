@@ -204,7 +204,6 @@ class T1170_GroupUnsetOption(AuthTests):
               
 class T1180_GroupAddLiteralOption(SuperUserTests):
     """ Test adding a literal option to a group"""
-    wip=True
 
     def do(self):
         try:
@@ -238,7 +237,6 @@ class T1180_GroupAddLiteralOption(SuperUserTests):
                 
 class T1180_GroupDestroyLiteralOption(SuperUserTests):
     """ Test destroying a literal option from a group"""
-    wip=True
     def do(self):
         try:
             self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})

@@ -329,7 +329,6 @@ class T1395_HostUnsetOption(AuthTests):
               
 class T1396_HostAddLiteralOption(SuperUserTests):
     """ Test adding a literal option to a host"""
-    wip=True
 
     def do(self):
         try:
@@ -362,7 +361,6 @@ class T1396_HostAddLiteralOption(SuperUserTests):
                 
 class T1397_HostDestroyLiteralOption(SuperUserTests):
     """ Test destroying a literal option from a host"""
-    wip=True
     def do(self):
         try:
             self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
