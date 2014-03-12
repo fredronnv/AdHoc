@@ -172,9 +172,9 @@ class RPCC(object):
     def _fundef(self, fun):
         if fun not in self._fundefs:
             ret = self._rawcall("server_function_definition", fun)
-        if "result" not in ret:
-            raise error_object(ret["error"], self._pyexceptions)
-        self._fundefs[fun] = ret["result"]
+            if "result" not in ret:
+                raise error_object(ret["error"], self._pyexceptions)
+            self._fundefs[fun] = ret["result"]
         return self._fundefs[fun]
 
     def _function_is_sessioned(self, fun):
