@@ -21,4 +21,5 @@ from pool_range import *
 #from mutex import *
 
 if __name__ == "__main__":
+    import sys
     sys.exit(main())
