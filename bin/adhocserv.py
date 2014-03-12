@@ -53,6 +53,7 @@ class StartMe(object):
         srv.register_manager(session.DatabaseBackedSessionManager)
         
         srv.register_manager(event.EventManager)
+        srv.generic_password=generic_password
         
         # Find the server directory and register all managers and functions in the modules found.
         seen_managers = []  # Avoid duplicating registrations. This can happen if managers are imported from other objects.
@@ -73,7 +74,6 @@ class StartMe(object):
                                 print "Failed to register manager ", obj, " in module", mo.group(1)
                                 raise
             srv.register_functions_from_module(module)
-                     
         
         srv.register_manager(authentication.NullAuthenticationManager)
         srv.enable_global_functions()
@@ -81,6 +81,7 @@ class StartMe(object):
         srv.enable_static_documents(os.path.join(adhoc_home, 'docroot'))
         srv.enable_digs_and_updates()
         srv.serve_forever()
+        
 
 
 if __name__ == "__main__":
@@ -88,6 +89,7 @@ if __name__ == "__main__":
     
     if len(sys.argv) > 1:
         if ':' in sys.argv[1]:
+	    print  sys.argv[1]
             host, port = sys.argv[1].split(':')
             port = int(port)
         else:
