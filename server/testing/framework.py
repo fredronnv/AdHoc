@@ -202,12 +202,13 @@ class MyTests(object):
             proxies so that the tests may use the superuser's privileges to set up and tear down things for the tests"""
         
         adhoc_superuser = os.environ.get("ADHOC_SUPERUSER", "bernerus")
+        generic_password = os.environ.get("ADHOC_GENERIC_PASSWORD", None)
         url = None
         
         try:
             self.nouser = test_rpcc_client.RPCC(None, "", None, 0, basic_exceptions=False)
-            self.superuser = test_rpcc_client.RPCC(url, adhoc_superuser, None, 0, basic_exceptions=False)
-            self.reguser = test_rpcc_client.RPCC(url, "fbq", "fbq", 0, basic_exceptions=False, superuser=self.superuser)
+            self.superuser = test_rpcc_client.RPCC(url, adhoc_superuser, generic_password, 0, basic_exceptions=False)
+            self.reguser = test_rpcc_client.RPCC(url, "fbq", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
             
             regular_users = (self.reguser,)
             #for px in regular_users:
