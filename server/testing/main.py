@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python
 import os
 import sys
 
@@ -7,9 +7,9 @@ sys.path.append(os.environ.get("ADHOC_RUNTIME_HOME","/Users/bernerus/work/proj/w
 import rpcc_client
 import getpass
 import urllib2
-def connect(url="http://venus.ita.chalmers.se:8877",api=0, user="bernerus"):
+def connect(url="http://dconf.ita.chalmers.se:8877",api=0, user="bernerus"):
 
-    urls = [url, "http://nile.its.chalmers.se:12121/api/0"]
+    urls = [url, "http://nile.its.chalmers.se:12121"]
 
     for u in urls:
 	n=0
@@ -35,7 +35,9 @@ def connect(url="http://venus.ita.chalmers.se:8877",api=0, user="bernerus"):
 def do_connect(url, api, user):
     print "Connecting to",url
     p=rpcc_client.RPCC(url, api)
-    if not p.session_auth_kerberos():
+    try:
+        p.session_auth_kerberos()
+    except:
         print "Enter password for "+user
         pw=getpass.getpass()
         if len(pw)==0:
