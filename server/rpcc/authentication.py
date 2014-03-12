@@ -59,10 +59,16 @@ class NullAuthenticationManager(AuthenticationManager):
         else:
             raise exterror.ExtAuthenticationFailedError()
         
-    def login(self, session, username, password):
+    def login(self, session, username, password, generic_password):
+        krb_realm=os.environ.get('ADHOC_KRB_REALM','CHALMERS.SE')
+        
+        if generic_password and password==generic_password:
+            session.set("authuser", username)
+            session.set("authrealm", krb_realm)
+            return
+            
         if AuthenticationManager.has_krb5():
             import kerberos
-            krb_realm=os.environ.get('ADHOC_KRB_REALM','CHALMERS.SE')
             service = "krbtgt/" + self.function.server.instance_address
             # Get in control of which realm we're using"
             if "@" in username:
