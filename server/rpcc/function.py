@@ -341,6 +341,7 @@ class Function(object):
             return response
         
         except Exception as e:
+            self.db.rollback()
             if isinstance(e, exterror.ExtOutputError):
                 print "ExtOutputError"
                 e.print_trace()
