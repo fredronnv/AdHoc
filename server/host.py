@@ -7,6 +7,8 @@ from optionset import *
 from util import *
 from option_def import *
 
+g_read = AnyGrants(AllowUserWithPriv("read_all_hosts"), AdHocSuperuserGuard)
+g_write = AnyGrants(AllowUserWithPriv("write_all_hosts"), AdHocSuperuserGuard)
 
 class ExtNoSuchHostError(ExtLookupError):
 
@@ -251,7 +253,7 @@ class Host(Model):
         return ret
     
     @update("host", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_name(self, host_name):
         nn = str(host_name)
         q = "UPDATE hosts SET id=:value WHERE id=:name LIMIT 1"
@@ -260,32 +262,32 @@ class Host(Model):
         self.manager.rename_host(self, nn)
         
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_info(self, value):
         q = "UPDATE hosts SET info=:value WHERE id=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
         #print "Host %s changed Info to %s" % (self.oid, value)
     
     @update("group", ExtGroup)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_parent(self, value):
         q = "UPDATE hosts SET `group`=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value.oid)
         
     @update("optionspace", ExtOrNullOptionspace)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_optionspace(self, value):
         q = "UPDATE hosts SET optionspace=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         
     @update("mac", ExtMacAddress)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_mac(self, value):
         q = "UPDATE hosts SET mac=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
     
     @update("room", ExtRoomName)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_room(self, value):
         try:
             q = "UPDATE hosts SET room=:value WHERE id=:name"
@@ -295,13 +297,13 @@ class Host(Model):
             self.db.put(q, name=self.oid, value=value)
             
     @update("dns", ExtDNSName)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_dns(self, value):
         q = "UPDATE hosts SET dns=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         
     @update("status", ExtHostStatus)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_status(self, value):
         q = "UPDATE hosts SET entry_status=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
@@ -365,7 +367,7 @@ class HostManager(Manager):
         dq.table("hosts h")
         return "h.`dns`"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_host(self, fun, host_name, mac, options):
         if options == None:
             options = {}
@@ -394,7 +396,7 @@ class HostManager(Manager):
             print e
             raise ExtHostAlreadyExistsError()
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_host(self, fun, host):
         
         host.get_optionset().destroy()
@@ -413,13 +415,13 @@ class HostManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
        
-    @entry(AdHocSuperuserGuard)
+    @entry(g_write_literal_option)
     def add_literal_option(self, fun, host, option_text):
         q = "INSERT INTO host_literal_options (`for`, value, changed_by) VALUES (:hostname, :value, :changed_by)"
         id = self.db.insert("id", q, hostname=host.oid, value=option_text, changed_by=fun.session.authuser)
         return id
     
-    @entry(AdHocSuperuserGuard)
+    @entry(g_write_literal_option)
     def destroy_literal_option(self, fun, host, id):
         q = "DELETE FROM host_literal_options WHERE `for`=:hostname AND id=:id LIMIT 1"
         self.db.put(q, hostname=host.oid, id=id)

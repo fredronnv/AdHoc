@@ -1,11 +1,11 @@
 #!/usr/bin/env python2.6
 
-from rpcc.model import *
-from rpcc.exttype import *
-from rpcc.function import SessionedFunction
-from rpcc.access import *
-from rpcc.database import IntegrityError
+from rpcc import *
+from util import *
 
+
+g_read = AnyGrants(AllowUserWithPriv("read_all_buildings"), AdHocSuperuserGuard)
+g_write = AnyGrants(AllowUserWithPriv("write_all_buildings"), AdHocSuperuserGuard)
 
 class ExtNoSuchBuildingError(ExtLookupError):
     desc = "No such building exists."
@@ -101,7 +101,7 @@ class Building(Model):
         return self.changed_by
     
     @update("building", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_building(self, newbuilding):
         nn = str(newbuilding)
         q = "UPDATE buildings SET id=:newbuilding WHERE id=:id LIMIT 1"
@@ -111,13 +111,13 @@ class Building(Model):
         self.manager.rename_building(self, nn)
         
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_info(self, newinfo):
         q = "UPDATE buildings SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
         
     @update("re", ExtBuildingRe)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_re(self, newre):
         q = "UPDATE buildings SET re=:re WHERE id=:id"
         self.db.put(q, id=self.oid, re=newre)
@@ -149,7 +149,7 @@ class BuildingManager(Manager):
         dq.table("buildings r")
         return "r.id"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_building(self, fun, building_name, re, info):
         q = "INSERT INTO buildings (id, re, info, changed_by) VALUES (:id, :re, :info, :changed_by)"
         try:
@@ -157,7 +157,7 @@ class BuildingManager(Manager):
         except IntegrityError:
             raise ExtBuildingAlreadyExistsError()
                
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_building(self, fun, building):
         q = "DELETE FROM buildings WHERE id=:id LIMIT 1"
         try:

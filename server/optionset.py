@@ -4,11 +4,13 @@ import sys
 
 sys.path.append("/home/viktor/AdHoc/trunk/server")
 sys.path.append("/home/viktor/mysql-connector-python-1.1.5/build/lib")
-import rpcc
+from rpcc import *
 from util import *
 
 
-class ExtOptionset(rpcc.ExtInteger):
+g_write = AnyGrants(AllowUserWithPriv("write_all_optionsets"), AdHocSuperuserGuard)
+
+class ExtOptionset(ExtInteger):
     name = "optionset"
     desc = "The ID of an optionset"
 
@@ -19,15 +21,15 @@ class ExtOptionset(rpcc.ExtInteger):
         return obj.oid
 
 
-class ExtNoSuchOptionsetError(rpcc.ExtLookupError):
+class ExtNoSuchOptionsetError(ExtLookupError):
     desc = "No such optionset exists"
     
     
-class ExtNoSuchOptionError(rpcc.ExtLookupError):
+class ExtNoSuchOptionError(ExtLookupError):
     desc = "No such options is defined for the api current API"
 
 
-class Optionset(rpcc.Model):
+class Optionset(Model):
     name = "optionset"
     exttype = ExtOptionset
     id_type = int
@@ -69,7 +71,7 @@ class Optionset(rpcc.Model):
         for (name, value) in self.db.get(intarrayq, oset=self.oid):
             self.options[name] = (value)
 
-    @rpcc.template("optionset", ExtOptionset)
+    @template("optionset", ExtOptionset)
     def get_optionset(self):
         return self
     
@@ -85,7 +87,7 @@ class Optionset(rpcc.Model):
                 f.append(key[0])
         return f        
 
-    @rpcc.auto_template
+    @auto_template
     def get_option(self, opt):
         (typ, optid, _name, _exttyp, _fromv, _tov, _desc) = self.optionset_manager.get_option_details_by_name(opt, self.manager.function.api.version)
         if "array" in typ:
@@ -109,8 +111,8 @@ class Optionset(rpcc.Model):
     def destroy(self):
         self.optionset_manager.destroy_optionset(self)
       
-    @rpcc.auto_update
-    @rpcc.entry(rpcc.AuthRequiredGuard)
+    @auto_update
+    @entry(g_write)
     def set_option(self, value, typ, optid):
         if value is None:
             q = "DELETE FROM optionset_%sval " % (typ,)
@@ -140,7 +142,7 @@ class Optionset(rpcc.Model):
         q += "VALUES (:optid, :os, :val) "
         try:
             self.db.put(q, optid=optid, os=self.oid, val=value)
-        except rpcc.IntegrityError:
+        except IntegrityError:
             q = "UPDATE optionset_%sval " % (typ,)
             q += "  SET value = :val "
             q += "WHERE %s_option = :optid " % (typ,)
@@ -154,16 +156,16 @@ class Optionset(rpcc.Model):
         # number of MATCHED rows...
 
 
-class NullableBoolCharMatch(rpcc.NullMatchMixin, rpcc.Match):
-    @rpcc.suffix("equal", rpcc.ExtBoolean)
-    @rpcc.suffix("", rpcc.ExtBoolean)
+class NullableBoolCharMatch(NullMatchMixin, Match):
+    @suffix("equal", ExtBoolean)
+    @suffix("", ExtBoolean)
     def eq(self, fun, q, expr, val):
         if val:
             q.where(expr + " = 'Y'")
         else:
             q.where(expr + " <> 'Y'")
 
-    @rpcc.suffix("not_equal", rpcc.ExtBoolean)
+    @suffix("not_equal", ExtBoolean)
     def neq(self, fun, q, expr, val):
         if val:
             q.where(expr + " <> 'Y'")
@@ -171,52 +173,52 @@ class NullableBoolCharMatch(rpcc.NullMatchMixin, rpcc.Match):
             q.where(expr + " = 'Y'")
 
 
-class NullableIpAddrMatch(rpcc.NullMatchMixin, rpcc.Match):
-    @rpcc.suffix("equal", ExtIPAddress)
-    @rpcc.suffix("", ExtIPAddress)
+class NullableIpAddrMatch(NullMatchMixin, Match):
+    @suffix("equal", ExtIPAddress)
+    @suffix("", ExtIPAddress)
     def eq(self, fun, q, expr, val):
             q.where(expr + " = " + val)
             
-    @rpcc.suffix("not_equal", ExtIPAddress)
+    @suffix("not_equal", ExtIPAddress)
     def neq(self, fun, q, expr, val):
             q.where(expr + " <> " + val)
             
-class NullableIpAddrArrayMatch(rpcc.NullMatchMixin, rpcc.Match):
-    @rpcc.suffix("contains", ExtIPAddress)
+class NullableIpAddrArrayMatch(NullMatchMixin, Match):
+    @suffix("contains", ExtIPAddress)
     def contains(self, fun, q, expr, val):
             q.where(expr + "LIKE " + "'%<li>"+ val + "</li>%'")
             
-    @rpcc.suffix("not_contains", ExtIPAddress)
+    @suffix("not_contains", ExtIPAddress)
     def ncontains(self, fun, q, expr, val):
         q.where(expr + "NOT LIKE " + "'%<li>"+ val + "</li>%'")
         
-    @rpcc.suffix("empty", ExtBoolean)
+    @suffix("empty", ExtBoolean)
     def empty(self, fun, q, expr, val):
         q.where(expr + " = '<ul></ul>' OR " + expr + " = ''")
         
-    @rpcc.suffix("not_empty", ExtBoolean)
+    @suffix("not_empty", ExtBoolean)
     def nempty(self,fun, q, expr, val):
         q.where(expr + " <> '<ul></ul>' AND " + expr + " <> ''")
         
-class NullableIntArrayMatch(rpcc.NullMatchMixin, rpcc.Match):
-    @rpcc.suffix("contains", ExtInteger)
+class NullableIntArrayMatch(NullMatchMixin, Match):
+    @suffix("contains", ExtInteger)
     def contains(self, fun, q, expr, val):
             q.where(expr + "LIKE " + "'%<li>"+ str(val) + "</li>%'")
             
-    @rpcc.suffix("not_contains", ExtInteger)
+    @suffix("not_contains", ExtInteger)
     def ncontains(self, fun, q, expr, val):
         q.where(expr + "NOT LIKE " + "'%<li>"+ str(val) + "</li>%'")
         
-    @rpcc.suffix("empty", ExtBoolean)
+    @suffix("empty", ExtBoolean)
     def empty(self, fun, q, expr, val):
         q.where(expr + " = '<ul></ul>' OR " + expr + " = ''")
         
-    @rpcc.suffix("not_empty", ExtBoolean)
+    @suffix("not_empty", ExtBoolean)
     def nempty(self,fun, q, expr, val):
         q.where(expr + " <> '<ul></ul>' AND " + expr + " <> ''")
         
         
-class OptionsetManager(rpcc.Manager):
+class OptionsetManager(Manager):
     name = "optionset_manager"
     manages = Optionset
     model_lookup_error = ExtNoSuchOptionsetError
@@ -235,8 +237,8 @@ class OptionsetManager(rpcc.Manager):
     def init_class(cls, db):
         matchers = {
             "bool": NullableBoolCharMatch,
-            "str": rpcc.NullableStringMatch,
-            "int": rpcc.NullableIntegerMatch,
+            "str": NullableStringMatch,
+            "int": NullableIntegerMatch,
             "ipaddr": NullableIpAddrMatch,
             "ipaddrarray": NullableIpAddrArrayMatch,
             "intarray": NullableIntArrayMatch,
@@ -252,7 +254,7 @@ class OptionsetManager(rpcc.Manager):
             kwargs = dict(name="option_" + name.lower(), desc=desc, from_version=fromv, 
                           to_version=tov)
 
-            exttyp = rpcc.ExtOrNull(rpcc.ExtBoolean(**kwargs), **kwargs)
+            exttyp = ExtOrNull(ExtBoolean(**kwargs), **kwargs)
             options.append( ("bool", oid, name, exttyp, fromv, tov, desc) )
 
         q = "SELECT so.id, o.name, o.info, o.from_api, o.to_api, "
@@ -265,7 +267,7 @@ class OptionsetManager(rpcc.Manager):
                           to_version=tov)
             if rexp is not None:
                 kwargs["regexp"] = rexp
-            exttyp = rpcc.ExtOrNull(rpcc.ExtString(**kwargs), **kwargs)
+            exttyp = ExtOrNull(ExtString(**kwargs), **kwargs)
             options.append( ("str", oid, name, exttyp, fromv, tov, desc) )
 
         q = "SELECT io.id, o.name, o.info, o.from_api, o.to_api, "
@@ -279,7 +281,7 @@ class OptionsetManager(rpcc.Manager):
             if minval or maxval:
                 kwargs["range"]=(minval, maxval)
 
-            exttyp = rpcc.ExtOrNull(rpcc.ExtInteger(**kwargs), **kwargs)
+            exttyp = ExtOrNull(ExtInteger(**kwargs), **kwargs)
             options.append( ("int", oid, name, exttyp, fromv, tov, desc) )
             
         q = "SELECT ipo.id, o.name, o.info, o.from_api, o.to_api "
@@ -290,7 +292,7 @@ class OptionsetManager(rpcc.Manager):
             kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
                           to_version=tov)
 
-            exttyp = rpcc.ExtOrNull(ExtIPAddress(**kwargs), **kwargs)
+            exttyp = ExtOrNull(ExtIPAddress(**kwargs), **kwargs)
             options.append( ("ipaddr", oid, name, exttyp, fromv, tov, desc) )
             
         q = "SELECT iparro.id, o.name, o.info, o.from_api, o.to_api "
@@ -301,7 +303,7 @@ class OptionsetManager(rpcc.Manager):
             kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
                           to_version=tov)
 
-            exttyp = rpcc.ExtOrNull(ExtIPAddressList(**kwargs), **kwargs)
+            exttyp = ExtOrNull(ExtIPAddressList(**kwargs), **kwargs)
             options.append( ("ipaddrarray", oid, name, exttyp, fromv, tov, desc) )
         
         q = "SELECT intarro.id, o.name, o.info, o.from_api, o.to_api "
@@ -312,7 +314,7 @@ class OptionsetManager(rpcc.Manager):
             kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
                           to_version=tov)
 
-            exttyp = rpcc.ExtOrNull(ExtIntegerList(**kwargs), **kwargs)
+            exttyp = ExtOrNull(ExtIntegerList(**kwargs), **kwargs)
             options.append( ("intarray", oid, name, exttyp, fromv, tov, desc) )
 
         cls.options_dict = {}
@@ -321,10 +323,10 @@ class OptionsetManager(rpcc.Manager):
         maxapi = db.get_value("SELECT MAX(version) FROM rpcc_api_version")
             
         for (typ, optid, name, exttyp, fromv, tov, desc) in options:
-            Optionset.get_option = rpcc.template(name, exttyp, minv=fromv, maxv=tov, desc=desc, default=True, kwargs=dict(opt=name))(Optionset.get_option)
-            Optionset.set_option = rpcc.update(name, exttyp, minv=fromv, maxv=tov, desc=desc, kwargs=dict(typ=typ, optid=optid))(Optionset.set_option)
+            Optionset.get_option = template(name, exttyp, minv=fromv, maxv=tov, desc=desc, default=True, kwargs=dict(opt=name))(Optionset.get_option)
+            Optionset.set_option = update(name, exttyp, minv=fromv, maxv=tov, desc=desc, kwargs=dict(typ=typ, optid=optid))(Optionset.set_option)
             #print name, matchers[typ], typ, optid
-            cls.search_option = rpcc.search(name, matchers[typ], minv=fromv, maxv=tov, desc=desc, kwargs=dict(optname=name, opttyp=typ, optid=optid))(cls.search_option)
+            cls.search_option = search(name, matchers[typ], minv=fromv, maxv=tov, desc=desc, kwargs=dict(optname=name, opttyp=typ, optid=optid))(cls.search_option)
             for api in range(0, maxapi + 1):
                 if api in range(fromv, tov + 1):
                     cls.options_dict[(name, api)] = (typ, optid, name, exttyp, fromv, tov, desc)
@@ -344,7 +346,7 @@ class OptionsetManager(rpcc.Manager):
         dq.select("os.id")
         dq.table("optionset os")
 
-    @rpcc.auto_search
+    @auto_search
     def search_option(self, dq, optname, opttyp, optid):
         tbl = "optionset_%sval" % (opttyp,)
         alias = "s_%s" % (optname,)
@@ -369,16 +371,16 @@ class OptionsetManager(rpcc.Manager):
         return optid
 
 if __name__ == '__main__':
-    class MyServer(rpcc.Server):
+    class MyServer(Server):
         envvar_prefix = "OPT_"
     
     srv = MyServer("localhost", 7310)
-    srv.enable_database(rpcc.MySQLDatabase)
+    srv.enable_database(MySQLDatabase)
     srv.register_manager(OptionsetManager)
     
-    srv.register_manager(rpcc.NullAuthenticationManager)
-    srv.register_manager(rpcc.DatabaseBackedSessionManager)
-    #srv.register_manager(rpcc.EventManager)
+    srv.register_manager(NullAuthenticationManager)
+    srv.register_manager(DatabaseBackedSessionManager)
+    #srv.register_manager(EventManager)
 
     srv.enable_documentation()
     srv.enable_digs_and_updates()

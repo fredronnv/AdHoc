@@ -6,6 +6,7 @@ import struct
 from optionset import *
 from option_def import *
 
+g_write = AnyGrants(AllowUserWithPriv("write_all_subnetworks"), AdHocSuperuserGuard)
 
 class ExtNoSuchSubnetworkError(ExtLookupError):
     desc = "No such subnetwork exists."
@@ -155,7 +156,7 @@ class Subnetwork(Model):
         return self.optionset_manager.get_optionset(self.optionset)
     
     @update("subnetwork", ExtSubnetworkID)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_id(self, value):
         q = "UPDATE subnetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
@@ -163,13 +164,13 @@ class Subnetwork(Model):
         self.manager.rename_subnetwork(self, value)
         
     @update("network", ExtNetworkName)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_network(self, value):
         q = "UPDATE subnetworks SET network=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
               
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_info(self, value):
         q = "UPDATE subnetworks SET info=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
@@ -227,7 +228,7 @@ class SubnetworkManager(Manager):
         dq.table("subnetworks nw")
         return "nw.info"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_subnetwork(self, fun, id, network, info):
         
         optionset = self.optionset_manager.create_optionset()
@@ -240,7 +241,7 @@ class SubnetworkManager(Manager):
         except IntegrityError:
             raise ExtSubnetworkAlreadyExistsError()
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_subnetwork(self, fun, subnetwork):
         
         subnetwork.get_optionset().destroy()
@@ -259,13 +260,13 @@ class SubnetworkManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newid] = obj
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_option(self, fun, subnetwork, option, value):
         q = """INSERT INTO subnetwork_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=subnetwork.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def unset_option(self, fun, subnetwork, option):
         q = """DELETE FROM subnetwork_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=subnetwork.oid, name=option.oid):

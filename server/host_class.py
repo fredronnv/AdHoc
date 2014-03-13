@@ -11,6 +11,9 @@ from optionset import *
 from option_def import *
 
 
+g_write = AnyGrants(AllowUserWithPriv("write_all_host_classes"), AdHocSuperuserGuard)
+
+
 class ExtNoSuchHostClassError(ExtLookupError):
     desc = "No such host_class exists."
     
@@ -126,6 +129,7 @@ class HostClassOptionsUpdate(HostClassFunBase):
             optionset.set_option_by_name(key, value)
 
 
+
 class HostClass(Model):
     name = "host_class"
     exttype = ExtHostClass
@@ -186,7 +190,7 @@ class HostClass(Model):
         return ret
     
     @update("host_class", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_host_class(self, host_class_name):
         nn = str(host_class_name)
         q = "UPDATE classes SET classname=:value WHERE classname=:name LIMIT 1"
@@ -196,7 +200,7 @@ class HostClass(Model):
         self.manager.rename_host_class(self, nn)
         
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_info(self, value):
         q = "UPDATE classes SET info=:value WHERE classname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
@@ -204,13 +208,13 @@ class HostClass(Model):
         #print "HostClass %s changed Info to %s" % (self.oid, value)
     
     @update("vendor_class_id", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_vendor_class_id(self, value):
         q = "UPDATE classes SET vendor_class_id=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
              
     @update("optionspace", ExtOrNullOptionspace)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_optionspace(self, value):
         q = "UPDATE host_classes SET optionspace=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
@@ -248,7 +252,7 @@ class HostClassManager(Manager):
         dq.table("classes g")
         return "g.vendor_class_id"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_host_class(self, fun, host_class_name, vendor_class_id, info, options):
         if options == None:
             options = {}
@@ -266,7 +270,7 @@ class HostClassManager(Manager):
         except IntegrityError, e:
             raise ExtHostClassAlreadyExistsError()
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_host_class(self, fun, host_class):
         
         host_class.get_optionset().destroy()
@@ -277,32 +281,32 @@ class HostClassManager(Manager):
         except IntegrityError:
             raise ExtHostClassInUseError()
         #print "HostClass destroyed, name=", host_class.oid
-         
+    
     def rename_host_class(self, obj, newname):
         oid = obj.oid
         obj.oid = newname
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
             
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_option(self, fun, host_class, option, value):
         q = """INSERT INTO class_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=host_class.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def unset_option(self, fun, host_class, option):
         q = """DELETE FROM class_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=host_class.oid, name=option.oid):
             raise ExtOptionNotSetError()
    
-    @entry(AdHocSuperuserGuard)
+    @entry(g_write_literal_option)
     def add_literal_option(self, fun, host_class, option_text):
         q = "INSERT INTO class_literal_options (`for`, value, changed_by) VALUES (:host_classname, :value, :changed_by)"
         id = self.db.insert("id", q, host_classname=host_class.oid, value=option_text, changed_by=fun.session.authuser)
         return id
     
-    @entry(AdHocSuperuserGuard)
+    @entry(g_write_literal_option)
     def destroy_literal_option(self, fun, host_class, id):
         q = "DELETE FROM class_literal_options WHERE `for`=:host_classname AND id=:id LIMIT 1"
         self.db.put(q, host_classname=host_class.oid, id=id)

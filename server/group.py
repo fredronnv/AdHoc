@@ -6,6 +6,9 @@ from optionset import *
 from option_def import *
 
 
+g_read = AnyGrants(AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
+g_write = AnyGrants(AllowUserWithPriv("write_all_groups"), AdHocSuperuserGuard)
+
 class ExtNoSuchGroupError(ExtLookupError):
     desc = "No such group exists."
 
@@ -176,7 +179,7 @@ class Group(Model):
         return ret
     
     @update("group", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_name(self, group_name):
         nn = str(group_name)
         
@@ -184,7 +187,7 @@ class Group(Model):
         self.manager.rename_group(self, nn)
         
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_info(self, value):
         q = "UPDATE groups SET info=:value WHERE groupname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
@@ -192,13 +195,13 @@ class Group(Model):
         #print "Group %s changed Info to %s" % (self.oid, value)
     
     @update("parent", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_parent(self, value):
         q = "UPDATE groups SET parent_group=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
                 
     @update("optionspace", ExtOrNullOptionspace)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_optionspace(self, value):
         q = "UPDATE groups SET optionspace=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
@@ -239,7 +242,7 @@ class GroupManager(Manager):
         dq.table("groups g")
         return "g.parent_group"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_group(self, fun, group_name, parent, info, options):
         if options == None:
             options = {}
@@ -272,7 +275,7 @@ class GroupManager(Manager):
             g2 = parent
 
          
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_group(self, fun, group):
         optionset =  group.get_optionset()
         q = "DELETE FROM groups WHERE groupname=:groupname LIMIT 1"
@@ -281,7 +284,8 @@ class GroupManager(Manager):
         except IntegrityError:
             raise ExtGroupInUseError()
         optionset.destroy()
-        
+   
+    @entry(g_rename)    
     def rename_group(self, obj, newname):
         
         oldname = obj.oid
@@ -296,25 +300,25 @@ class GroupManager(Manager):
         del(self._model_cache[oldname])
         self._model_cache[newname] = obj
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_option(self, fun, group, option, value):
         q = """INSERT INTO group_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=group.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def unset_option(self, fun, group, option):
         q = """DELETE FROM group_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=group.oid, name=option.oid):
             raise ExtOptionNotSetError()
    
-    @entry(AdHocSuperuserGuard)
+    @entry(g_write_literal_option)
     def add_literal_option(self, fun, group, option_text):
         q = "INSERT INTO group_literal_options (`for`, value, changed_by) VALUES (:groupname, :value, :changed_by)"
         id = self.db.insert("id", q, groupname=group.oid, value=option_text, changed_by=fun.session.authuser)
         return id
     
-    @entry(AdHocSuperuserGuard)
+    @entry(g_write_literal_option)
     def destroy_literal_option(self, fun, group, id):
         q = "DELETE FROM group_literal_options WHERE `for`=:groupname AND id=:id LIMIT 1"
         self.db.put(q, groupname=group.oid, id=id)

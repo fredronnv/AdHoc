@@ -1,7 +1,10 @@
 #!/usr/bin/env python2.6
 
 from rpcc import *
+from util import *
 
+
+g_write = AnyGrants(AllowUserWithPriv("write_all_optionspaces"), AdHocSuperuserGuard)
 
 class ExtNoSuchOptionspaceError(ExtLookupError):
     desc = "No such optionspace exists."
@@ -101,7 +104,7 @@ class Optionspace(Model):
         return self.changed_by
     
     @update("optionspace", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_optionspace(self, optionspace_name):
         nn = str(optionspace_name)
         q = "UPDATE optionspaces SET value=:value WHERE value=:oid LIMIT 1"
@@ -111,13 +114,13 @@ class Optionspace(Model):
         self.manager.rename_optionspace(self, nn)
         
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_info(self, info):
         q = "UPDATE optionspaces SET info=:info WHERE value=:value"
         self.db.put(q, value=self.oid, info=info)
               
     @update("type", ExtOptionspaceType)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_type(self, newtype):
         q = "UPDATE optionspaces SET type=:type WHERE value=:value"
         self.db.put(q, value=self.oid, type=newtype)
@@ -149,7 +152,7 @@ class OptionspaceManager(Manager):
         dq.table("optionspaces ds")
         return "ds.value"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_optionspace(self, fun, optionspace_name, optionspace_type, info):
         q = "INSERT INTO optionspaces (value, type, info, changed_by) VALUES (:value, :type, :info, :changed_by)"
         try:
@@ -158,7 +161,7 @@ class OptionspaceManager(Manager):
             raise ExtOptionspaceAlreadyExistsError()
         #
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_optionspace(self, fun, optionspace):
         q = "DELETE FROM optionspaces WHERE value=:value LIMIT 1"
         try:

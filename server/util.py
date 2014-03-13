@@ -11,8 +11,31 @@ class AdHocSuperuserGuard(Guard):
         if function.session.authuser in self.superusers:
             return AccessGranted(CacheInFunction)
         return DecisionReferred(CacheInFunction)
+    
 
-   
+class AllowUserWithPriv(access.Guard):
+    def __init__(self, priv):
+        self.priv = priv
+        
+    def check(self, obj, fun):
+        privs = fun.db.get("SELECT privilege from account_privilege_map WHERE account=:account AND privilege=:privilege",
+                                account=fun.session.authuser, privilege=self.priv)
+        if len(privs):
+            return access.AccessGranted(access.CacheInFunction)
+        else:
+            return DecisionReferred(CacheInFunction)
+        
+    def __str__(self):
+        return "Privilege not found: %s"%self.priv
+    
+g_write_literal_option = AnyGrants(
+                                   AllowUserWithPriv("write_literal_options"), 
+                                   AdHocSuperuserGuard)
+g_rename = AnyGrants(
+                     AllowUserWithPriv("rename_all_objects"), 
+                     AdHocSuperuserGuard)
+
+
 class ExtNoSuchDNSNameError(ExtLookupError):
     desc = "The DNS name is not defined"
 
@@ -126,3 +149,26 @@ class ExtOptionList(ExtList):
 
         if self.typ is not None:
             self.name = "option" + '-list'
+            
+class ExtAccountName(ExtString):
+    name = "account-name"
+    desc = "Name of an account"
+    regexp = "^[a-z][-a-z0-9_]{0,7}$"
+
+
+class ExtAccount(ExtAccountName):
+    name = "account"
+    desc = "An account"
+
+    def lookup(self, fun, cval):
+        return fun.account_manager.get_account(cval)
+
+    def output(self, fun, obj):
+        return obj.oid
+
+class ExtAccountList(ExtList):
+    name = "account-list"
+    desc = "List of account names"
+    typ = ExtAccountName
+    
+    

@@ -9,6 +9,9 @@ from group import ExtGroupList, ExtGroup
 from host_class import ExtHostClassList, ExtHostClass
 
 
+g_write = AnyGrants(AllowUserWithPriv("write_all_pools"), AdHocSuperuserGuard)
+g_admin = AnyGrants(g_write, AllowUserWithPriv("admin_all_pools"), AdHocSuperuserGuard)
+
 class ExtNoSuchPoolError(ExtLookupError):
     desc = "No such pool exists."
 
@@ -281,7 +284,7 @@ class Pool(Model):
         return [x[0] for x in classes]
     
     @update("pool", ExtString)
-    @entry(AuthRequiredGuard)  
+    @entry(g_rename)  
     def set_pool(self, pool_name):
         nn = str(pool_name)
         q = "UPDATE pools SET poolname=:value WHERE poolname=:name LIMIT 1"
@@ -291,7 +294,7 @@ class Pool(Model):
         self.manager.rename_pool(self, nn)
    
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)     
+    @entry(g_write)     
     def set_info(self, value):
         q = "UPDATE pools SET info=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
@@ -299,19 +302,19 @@ class Pool(Model):
         #print "Pool %s changed Info to %s" % (self.oid, value)
   
     @update("network", ExtString)
-    @entry(AuthRequiredGuard)  
+    @entry(g_write)  
     def set_network(self, value):
         q = "UPDATE pools SET network=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
  
     @update("optionspace", ExtOrNullOptionspace)
-    @entry(AuthRequiredGuard)       
+    @entry(g_write)       
     def set_optionspace(self, value):
         q = "UPDATE pools SET optionspace=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
  
     @update("max_lease_time", ExtInteger)
-    @entry(AuthRequiredGuard)       
+    @entry(g_write)       
     def set_max_lease_time(self, value):
         q = "UPDATE pools SET max_lease_time=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
@@ -359,7 +362,7 @@ class PoolManager(Manager):
         dq.table("pools g")
         return "g.max_lease_time"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_pool(self, fun, pool_name, network, info, options):
         if options == None:
             options = {}
@@ -381,7 +384,7 @@ class PoolManager(Manager):
         except IntegrityError, e:
             raise ExtPoolAlreadyExistsError()
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_pool(self, fun, pool):
         
         pool.get_optionset().destroy()
@@ -399,19 +402,19 @@ class PoolManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newname] = obj
     
-    @entry(AuthRequiredGuard)   
+    @entry(g_write)   
     def set_option(self, fun, pool, option, value):
         q = """INSERT INTO pool_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=pool.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
     
-    @entry(AuthRequiredGuard)    
+    @entry(g_write)    
     def unset_option(self, fun, pool, option):
         q = """DELETE FROM pool_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=pool.oid, name=option.oid):
             raise ExtOptionNotSetError()
         
-    @entry(AuthRequiredGuard)
+    @entry(g_admin)
     def allow_host(self, fun, pool, host):
         q = """INSERT INTO pool_host_map (poolname, hostname, changed_by) 
             VALUES (:poolname, :hostname, :changed_by)"""
@@ -420,7 +423,7 @@ class PoolManager(Manager):
         except IntegrityError:
             raise ExtHostAlreadyAllowedError()
     
-    @entry(AuthRequiredGuard)
+    @entry(g_admin)
     def allow_group(self, fun, pool, group):
         q = """INSERT INTO pool_group_map (poolname, groupname, changed_by) 
             VALUES (:poolname, :groupname, :changed_by)"""
@@ -429,7 +432,7 @@ class PoolManager(Manager):
         except IntegrityError:
             raise ExtGroupAlreadyAllowedError()
         
-    @entry(AuthRequiredGuard)
+    @entry(g_admin)
     def allow_host_class(self, fun, pool, host_class):
         q = """INSERT INTO pool_class_map (poolname, classname, changed_by) 
             VALUES (:poolname, :classname, :changed_by)"""
@@ -438,7 +441,7 @@ class PoolManager(Manager):
         except IntegrityError:
             raise ExtHostClassAlreadyAllowedError()
         
-    @entry(AuthRequiredGuard)
+    @entry(g_admin)
     def disallow_host(self, pool, host):
         q0 = "SELECT poolname FROM pool_host_map WHERE poolname=:poolname AND hostname=:hostname"
         pools = self.db.get(q0, poolname=pool.oid, hostname=host.oid)
@@ -447,7 +450,7 @@ class PoolManager(Manager):
         q = """DELETE FROM pool_host_map WHERE poolname=:poolname AND hostname=:hostname""" 
         self.db.put(q, poolname=pool.oid, hostname=host.oid)
         
-    @entry(AuthRequiredGuard)
+    @entry(g_admin)
     def disallow_group(self, pool, group):
         q0 = "SELECT poolname FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname"
         pools = self.db.get(q0, poolname=pool.oid, groupname=group.oid)
@@ -456,7 +459,7 @@ class PoolManager(Manager):
         q = """DELETE FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname""" 
         self.db.put(q, poolname=pool.oid, groupname=group.oid)
         
-    @entry(AuthRequiredGuard)
+    @entry(g_admin)
     def disallow_host_class(self, pool, host_class):
         q0 = "SELECT poolname FROM pool_class_map WHERE poolname=:poolname AND classname=:classname"
         pools = self.db.get(q0, poolname=pool.oid, classname=host_class.oid)
@@ -465,7 +468,7 @@ class PoolManager(Manager):
         q = """DELETE FROM pool_class_map WHERE poolname=:poolname AND classname=:classname""" 
         self.db.put(q, poolname=pool.oid, classname=host_class.oid)
     
-    @entry(AdHocSuperuserGuard)
+    @entry(g_write_literal_option)
     def add_literal_option(self, fun, pool, option_text):
         q = "INSERT INTO pool_literal_options (`for`, value, changed_by) VALUES (:poolname, :value, :changed_by)"
         id = self.db.insert("id", q, poolname=pool.oid, value=option_text, changed_by=fun.session.authuser)

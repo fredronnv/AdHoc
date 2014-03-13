@@ -1,11 +1,9 @@
 #!/usr/bin/env python2.6
 
-from rpcc.model import *
-from rpcc.exttype import *
-from rpcc.function import SessionedFunction
-from rpcc.access import *
-from rpcc.database import IntegrityError
+from rpcc import *
+from util import *
 
+g_write = AnyGrants(AllowUserWithPriv("write_all_rooms"), AdHocSuperuserGuard)
 
 class ExtNoSuchRoomError(ExtLookupError):
     desc = "No such room exists."
@@ -116,7 +114,7 @@ class Room(Model):
         return self.changed_by
     
     @update("room", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_room(self, newid):
         nn = str(newid)
         q = "UPDATE rooms SET id=:newid WHERE id=:id LIMIT 1"
@@ -126,13 +124,13 @@ class Room(Model):
         self.manager.rename_room(self, nn)
         
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_info(self, newinfo):
         q = "UPDATE rooms SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
               
     @update("printers", ExtRoomPrinters)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_printers(self, newprinters):
         q = "UPDATE rooms SET printers=:printers WHERE id=:id"
         self.db.put(q, id=self.oid, printers=newprinters)
@@ -174,7 +172,7 @@ class RoomManager(Manager):
         dq.table("rooms r")
         return "r.printers"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_room(self, fun, room_name, printers, info):
         q = "INSERT INTO rooms (id, printers, info, changed_by) VALUES (:id, :printers, :info, :changed_by)"
         try:
@@ -183,7 +181,7 @@ class RoomManager(Manager):
             raise ExtRoomAlreadyExistsError()
         #print "Room created, id=", id
                   
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_room(self, fun, room):
         q = "DELETE FROM rooms WHERE id=:id LIMIT 1"
         try:

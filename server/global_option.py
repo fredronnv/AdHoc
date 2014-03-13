@@ -2,7 +2,9 @@
 
 from rpcc import *
 from option_def import ExtNoSuchOptionDefError
+from util import *
 
+g_write = AnyGrants(AllowUserWithPriv("write_all_global_options"), AdHocSuperuserGuard)
 
 class ExtNoSuchGlobalOptionError(ExtLookupError):
     desc = "No such global-option exists."
@@ -110,7 +112,7 @@ class GlobalOption(Model):
         return self.changed_by
     
     @update("name", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_global_option(self, newname):
         nn = str(newname)
         q = "UPDATE global_options SET name=:newname WHERE id=:id LIMIT 1"
@@ -119,7 +121,7 @@ class GlobalOption(Model):
         #print "GlobalOption %s changed Name to %s" % (self.oid, nn)
         
     @update("value", ExtGlobalOptionValue)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_value(self, newvalue):
         q = "UPDATE global_options SET value=:value WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, value=newvalue)
@@ -161,7 +163,7 @@ class GlobalOptionManager(Manager):
         dq.table("global_options r")
         return "r.id"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_global_option(self, fun, name, value):
         q = "INSERT INTO global_options (name, value, changed_by) VALUES (:name, :value, :changed_by)"
         try:
@@ -170,7 +172,7 @@ class GlobalOptionManager(Manager):
             raise ExtGlobalOptionAlreadyExistsError()
         return id
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_global_option(self, fun, global_option):
         q = "DELETE FROM global_options WHERE id=:id LIMIT 1"
         try:

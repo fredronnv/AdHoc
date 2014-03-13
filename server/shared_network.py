@@ -9,6 +9,7 @@ from rpcc.database import IntegrityError
 from optionset import *
 from option_def import *
 
+g_write = AnyGrants(AllowUserWithPriv("write_all_networks"), AdHocSuperuserGuard)
 
 class ExtNoSuchNetworkError(ExtLookupError):
     desc = "No such network exists."
@@ -127,7 +128,7 @@ class Network(Model):
         return self.optionset_manager.get_optionset(self.optionset)
     
     @update("network", ExtNetworkName)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_natwork(self, value):
         q = "UPDATE snetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
@@ -135,13 +136,13 @@ class Network(Model):
         self.manager.rename_network(self, value)
 
     @update("authoritative", ExtBoolean)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_authoritative(self, newauthoritative):
         q = "UPDATE networks SET authoritative=:authoritative WHERE id=:id"
         self.db.put(q, id=self.oid, authoritative=newauthoritative)
         
     @update("info", ExtString)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_info(self, newinfo):
         q = "UPDATE networks SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
@@ -173,7 +174,7 @@ class NetworkManager(Manager):
         dq.table("networks nw")
         return "nw.id"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_network(self, fun, network_name, authoritative, info):
         
         optionset = self.optionset_manager.create_optionset()
@@ -188,7 +189,7 @@ class NetworkManager(Manager):
         
         #print "Network created, network_name=", network_name
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_network(self, fun, network):
         
         network.get_optionset().destroy()
@@ -205,13 +206,13 @@ class NetworkManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[newid] = obj
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_option(self, fun, network, option, value):
         q = """INSERT INTO network_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
                ON DUPLICATE KEY UPDATE value=:value"""
         self.db.put(q, id=network.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
         
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def unset_option(self, fun, network, option):
         q = """DELETE FROM network_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=network.oid, name=option.oid):

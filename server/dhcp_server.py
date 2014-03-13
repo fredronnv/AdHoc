@@ -1,10 +1,7 @@
 #!/usr/bin/env python2.6
 
-from rpcc.model import *
-from rpcc.exttype import *
-from rpcc.function import SessionedFunction
-from rpcc.access import *
-from rpcc.database import IntegrityError
+from rpcc import *
+from util import *
 
 
 class ExtNoSuchDHCPServerError(ExtLookupError):
@@ -94,13 +91,13 @@ class DHCPServer(Model):
         return self.changed_by
 
     @update("dns", ExtString)
-    @entry(SuperuserGuardProxy)
+    @entry(AdHocSuperuserGuard)
     def set_dns(self, dns):
         q = "UPDATE dhcp_servers SET name=:name WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, name=dns)
         
     @update("info", ExtString)
-    @entry(SuperuserGuardProxy)
+    @entry(AdHocSuperuserGuard)
     def set_info(self, info):
         q = "UPDATE dhcp_servers SET info=:info WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, info=info)
@@ -132,7 +129,7 @@ class DHCPServerManager(Manager):
         dq.table("dhcp_servers ds")
         return "ds.id"
     
-    @entry(SuperuserGuardProxy)
+    @entry(AdHocSuperuserGuard)
     def create_dhcp_server(self, fun, dhcp_server_id, dns, info):
         q = "INSERT INTO dhcp_servers (id, name, info, changed_by) VALUES (:id, :name, :info, :changed_by)"
         try:
@@ -141,7 +138,7 @@ class DHCPServerManager(Manager):
             raise ExtDHCPServerAlreadyExistsError()
         #print "DHCPServer created, id=", dhcp_server_id
         
-    @entry(SuperuserGuardProxy)
+    @entry(AdHocSuperuserGuard)
     def destroy_dhcp_server(self, fun, dhcp_server):
         q = "DELETE FROM dhcp_servers WHERE id=:id LIMIT 1"
         try:

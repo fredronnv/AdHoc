@@ -1,14 +1,13 @@
 #!/usr/bin/env python2.6
 
-from rpcc.model import *
-from rpcc.exttype import *
+from rpcc import *
 from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
-from rpcc.access import *
 from pool import *
 from dhcp_server import *
 from util import *
 import socket
 
+g_write = AnyGrants(AllowUserWithPriv("write_all_pool_ranges"), AdHocSuperuserGuard)
 
 class ExtNoSuchPoolRangeError(ExtLookupError):
     desc = "No such pool_range exists."
@@ -126,26 +125,26 @@ class PoolRange(Model):
         return self.changed_by
     
     @update("start_ip", ExtPoolRangeName)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_start_ip(self, value):
         q = "UPDATE pool_ranges SET start_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
         self.manager.rename_pool_range(self, value)
         
     @update("end_ip", ExtIpV4Address)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_end_ip(self, value):
         q = "UPDATE pool_ranges SET end_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
 
     @update("pool", ExtPool)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_pool(self, pool):
         q = "UPDATE pool_ranges SET pool=:pool WHERE start_ip=:id"
         self.db.put(q, id=self.oid, pool=pool.oid)
              
     @update("served_by", ExtDHCPServer)
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def set_info(self, served_by):
         q = "UPDATE pool_ranges SET served_by=:served_by WHERE start_ip=:id"
         self.db.put(q, id=self.oid, served_by=served_by.oid)
@@ -195,7 +194,7 @@ class PoolRangeManager(Manager):
         q.where("dc.id = pr.served_by")
         return "dc.id"
     
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def create_pool_range(self, fun, start_ip, end_ip, pool, served_by):
         q = "INSERT INTO pool_ranges (start_ip, end_ip, pool, served_by, changed_by) VALUES (:start_ip, :end_ip, :pool, :served_by, :changed_by)"
         
@@ -207,7 +206,7 @@ class PoolRangeManager(Manager):
         except IntegrityError:
             raise ExtPoolRangeAlreadyExistsError()
             
-    @entry(AuthRequiredGuard)
+    @entry(g_write)
     def destroy_pool_range(self, fun, pool_range):
         try:
             q = "DELETE FROM pool_ranges WHERE start_ip=:start_ip LIMIT 1"
