@@ -3,21 +3,54 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: dconf.ita.chalmers.se
--- Generation Time: Feb 27, 2014 at 09:16 PM
+-- Generation Time: Mar 14, 2014 at 05:59 PM
 -- Server version: 5.0.95
 -- PHP Version: 5.1.4
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
-
 --
 -- Database: `AdHoc`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `accounts`
+--
+
+CREATE TABLE IF NOT EXISTS `accounts` (
+  `account` varchar(8) collate ascii_bin NOT NULL COMMENT 'PDB account',
+  `fname` varchar(4000) character set utf8 collate utf8_swedish_ci NOT NULL COMMENT 'First name of owner',
+  `lname` varchar(4000) character set utf8 collate utf8_swedish_ci NOT NULL COMMENT 'Last name of owner',
+  PRIMARY KEY  (`account`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='User accounts';
+
+--
+-- Dumping data for table `accounts`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `account_privilege_map`
+--
+
+CREATE TABLE IF NOT EXISTS `account_privilege_map` (
+  `account` varchar(8) collate ascii_bin NOT NULL,
+  `privilege` varchar(32) collate ascii_bin NOT NULL,
+  `changed_by` varchar(8) collate ascii_bin NOT NULL,
+  `mtime` timestamp NOT NULL default '0000-00-00 00:00:00' on update CURRENT_TIMESTAMP,
+  UNIQUE KEY `account_2` (`account`,`privilege`),
+  KEY `account` (`account`),
+  KEY `privilege` (`privilege`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Maps accounts to privileges';
+
+--
+-- Dumping data for table `account_privilege_map`
+--
+
 
 -- --------------------------------------------------------
 
@@ -31,6 +64,11 @@ CREATE TABLE IF NOT EXISTS `bool_option` (
   PRIMARY KEY  (`id`),
   KEY `option_base` (`option_base`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=2 ;
+
+--
+-- Dumping data for table `bool_option`
+--
+
 
 -- --------------------------------------------------------
 
@@ -46,6 +84,11 @@ CREATE TABLE IF NOT EXISTS `buildings` (
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'time of last change',
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Buildings table';
+
+--
+-- Dumping data for table `buildings`
+--
+
 
 -- --------------------------------------------------------
 
@@ -66,6 +109,11 @@ CREATE TABLE IF NOT EXISTS `classes` (
   KEY `optionset` (`optionset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table of classes';
 
+--
+-- Dumping data for table `classes`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -80,7 +128,12 @@ CREATE TABLE IF NOT EXISTS `class_literal_options` (
   `id` int(11) NOT NULL auto_increment,
   PRIMARY KEY  (`id`),
   KEY `for` (`for`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Literal options for classes' AUTO_INCREMENT=4 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Literal options for classes' AUTO_INCREMENT=142 ;
+
+--
+-- Dumping data for table `class_literal_options`
+--
+
 
 -- --------------------------------------------------------
 
@@ -97,6 +150,11 @@ CREATE TABLE IF NOT EXISTS `dhcp_servers` (
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='List of dhcp servers';
 
+--
+-- Dumping data for table `dhcp_servers`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -111,7 +169,12 @@ CREATE TABLE IF NOT EXISTS `global_options` (
   `id` int(10) unsigned NOT NULL auto_increment,
   PRIMARY KEY  (`id`),
   KEY `name` (`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Table holding options global to the servers' AUTO_INCREMENT=1465 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table holding options global to the servers' AUTO_INCREMENT=1 ;
+
+--
+-- Dumping data for table `global_options`
+--
+
 
 -- --------------------------------------------------------
 
@@ -133,6 +196,30 @@ CREATE TABLE IF NOT EXISTS `groups` (
   KEY `optionset` (`optionset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table of host groups';
 
+--
+-- Dumping data for table `groups`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `group_groups_flat`
+--
+
+CREATE TABLE IF NOT EXISTS `group_groups_flat` (
+  `groupname` varchar(64) NOT NULL,
+  `descendant` varchar(64) NOT NULL,
+  UNIQUE KEY `groupname_2` (`groupname`,`descendant`),
+  KEY `groupname` (`groupname`,`descendant`),
+  KEY `descendant` (`descendant`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Flattens out the group tree.';
+
+--
+-- Dumping data for table `group_groups_flat`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -147,7 +234,12 @@ CREATE TABLE IF NOT EXISTS `group_literal_options` (
   `id` int(11) NOT NULL auto_increment,
   PRIMARY KEY  (`id`),
   KEY `for` (`for`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Literal options for groups' AUTO_INCREMENT=3 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Literal options for groups' AUTO_INCREMENT=1 ;
+
+--
+-- Dumping data for table `group_literal_options`
+--
+
 
 -- --------------------------------------------------------
 
@@ -177,6 +269,11 @@ CREATE TABLE IF NOT EXISTS `hosts` (
   KEY `optionset` (`optionset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='List of hosts';
 
+--
+-- Dumping data for table `hosts`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -192,7 +289,32 @@ CREATE TABLE IF NOT EXISTS `host_literal_options` (
   PRIMARY KEY  (`id`),
   KEY `for` (`for`),
   KEY `value` (`value`(255))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Literal options for hosts' AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Literal options for hosts' AUTO_INCREMENT=134 ;
+
+--
+-- Dumping data for table `host_literal_options`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `intarray_option`
+--
+
+CREATE TABLE IF NOT EXISTS `intarray_option` (
+  `id` int(11) NOT NULL auto_increment,
+  `option_base` int(11) NOT NULL,
+  `minval` int(11) default NULL,
+  `maxval` int(11) default NULL,
+  PRIMARY KEY  (`id`),
+  KEY `option_base` (`option_base`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3 ;
+
+--
+-- Dumping data for table `intarray_option`
+--
+
 
 -- --------------------------------------------------------
 
@@ -207,7 +329,30 @@ CREATE TABLE IF NOT EXISTS `int_option` (
   `maxval` int(11) default NULL,
   PRIMARY KEY  (`id`),
   KEY `option_base` (`option_base`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=21 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=19 ;
+
+--
+-- Dumping data for table `int_option`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ipaddrarray_option`
+--
+
+CREATE TABLE IF NOT EXISTS `ipaddrarray_option` (
+  `id` int(11) NOT NULL auto_increment,
+  `option_base` int(11) NOT NULL,
+  PRIMARY KEY  (`id`),
+  KEY `option_base` (`option_base`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+
+--
+-- Dumping data for table `ipaddrarray_option`
+--
+
 
 -- --------------------------------------------------------
 
@@ -220,7 +365,12 @@ CREATE TABLE IF NOT EXISTS `ipaddr_option` (
   `option_base` int(11) NOT NULL,
   PRIMARY KEY  (`id`),
   KEY `option_base` (`option_base`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=20 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=16 ;
+
+--
+-- Dumping data for table `ipaddr_option`
+--
+
 
 -- --------------------------------------------------------
 
@@ -240,6 +390,11 @@ CREATE TABLE IF NOT EXISTS `networks` (
   KEY `optionset` (`optionset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table of shared networks';
 
+--
+-- Dumping data for table `networks`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -249,7 +404,12 @@ CREATE TABLE IF NOT EXISTS `networks` (
 CREATE TABLE IF NOT EXISTS `optionset` (
   `id` int(11) NOT NULL auto_increment,
   PRIMARY KEY  (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=12342 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+--
+-- Dumping data for table `optionset`
+--
+
 
 -- --------------------------------------------------------
 
@@ -265,6 +425,30 @@ CREATE TABLE IF NOT EXISTS `optionset_boolval` (
   KEY `optionset` (`optionset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Dumping data for table `optionset_boolval`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `optionset_intarrayval`
+--
+
+CREATE TABLE IF NOT EXISTS `optionset_intarrayval` (
+  `intarray_option` int(11) NOT NULL,
+  `optionset` int(11) NOT NULL,
+  `value` varchar(4000) NOT NULL COMMENT 'Integer array coded as a pickled string',
+  UNIQUE KEY `int_option` (`intarray_option`,`optionset`),
+  KEY `optionset` (`optionset`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `optionset_intarrayval`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -278,6 +462,30 @@ CREATE TABLE IF NOT EXISTS `optionset_intval` (
   UNIQUE KEY `int_option` (`int_option`,`optionset`),
   KEY `optionset` (`optionset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `optionset_intval`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `optionset_ipaddrarrayval`
+--
+
+CREATE TABLE IF NOT EXISTS `optionset_ipaddrarrayval` (
+  `ipaddrarray_option` int(11) NOT NULL,
+  `optionset` int(11) NOT NULL,
+  `value` varchar(4000) NOT NULL COMMENT 'IP arrat pickle coded',
+  UNIQUE KEY `bool_option` (`ipaddrarray_option`,`optionset`),
+  KEY `optionset` (`optionset`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `optionset_ipaddrarrayval`
+--
+
 
 -- --------------------------------------------------------
 
@@ -293,6 +501,11 @@ CREATE TABLE IF NOT EXISTS `optionset_ipaddrval` (
   KEY `optionset` (`optionset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Dumping data for table `optionset_ipaddrval`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -306,6 +519,11 @@ CREATE TABLE IF NOT EXISTS `optionset_strval` (
   UNIQUE KEY `str_option` (`str_option`,`optionset`),
   KEY `optionset` (`optionset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `optionset_strval`
+--
+
 
 -- --------------------------------------------------------
 
@@ -322,7 +540,24 @@ CREATE TABLE IF NOT EXISTS `optionspaces` (
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
   PRIMARY KEY  (`id`),
   UNIQUE KEY `value` (`value`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Definitions of option spaces' AUTO_INCREMENT=14 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Definitions of option spaces' AUTO_INCREMENT=507 ;
+
+--
+-- Dumping data for table `optionspaces`
+--
+
+INSERT INTO `optionspaces` (`id`, `value`, `type`, `info`, `changed_by`, `mtime`) VALUES
+(1, 'SUNW', 'vendor', 'Sun microsystems Jumpstart options', 'bernerus', '2006-05-04 14:22:44'),
+(2, 'CCM', 'vendor', 'CCM Vendor specific options', 'bernerus', '2006-05-04 14:22:44'),
+(3, 'SUNW_NewT_SUNW', 'vendor', 'Sunray vendor specific parameters', 'bernerus', '2006-05-04 14:22:44'),
+(4, 'pxebat', 'vendor', 'PXE options for BAT machines', 'bernerus', '2006-05-04 14:22:44'),
+(5, 'Chalmers', 'vendor', 'Local Chalmers namespace', 'bernerus', '2006-05-04 14:22:44'),
+(8, 'pxelinux', 'site', 'PXE options for Linux', 'bernerus', '2006-05-04 14:22:44'),
+(9, 'Apple', 'vendor', 'Vendor option space for Apple Inc', 'bernerus', '2007-02-22 14:06:56'),
+(10, 'rembo', 'vendor', '', '', '2007-06-15 11:24:51'),
+(11, 'CISCO-LWAPP-1130', 'vendor', 'For AP1130 options', '', '2008-01-18 08:42:18'),
+(12, 'Altiris', 'vendor', 'For Alitiris deployment system (mostly Windows)', 'bernerus', '2008-03-06 10:48:13'),
+(13, 'LYNC', 'vendor', 'Lync', '', '2013-07-05 10:27:42');
 
 -- --------------------------------------------------------
 
@@ -348,7 +583,12 @@ CREATE TABLE IF NOT EXISTS `option_base` (
   PRIMARY KEY  (`id`),
   UNIQUE KEY `name` (`name`),
   KEY `optionspace` (`optionspace`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=110 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+--
+-- Dumping data for table `option_base`
+--
+
 
 -- --------------------------------------------------------
 
@@ -371,6 +611,11 @@ CREATE TABLE IF NOT EXISTS `pools` (
   KEY `optionset` (`optionset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table of pools';
 
+--
+-- Dumping data for table `pools`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -385,6 +630,11 @@ CREATE TABLE IF NOT EXISTS `pool_class_map` (
   KEY `classname` (`classname`),
   KEY `poolname` (`poolname`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Defines which classes may live in which pools';
+
+--
+-- Dumping data for table `pool_class_map`
+--
+
 
 -- --------------------------------------------------------
 
@@ -401,6 +651,31 @@ CREATE TABLE IF NOT EXISTS `pool_group_map` (
   KEY `poolname` (`poolname`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Defines which groups that may live in which pools';
 
+--
+-- Dumping data for table `pool_group_map`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pool_host_map`
+--
+
+CREATE TABLE IF NOT EXISTS `pool_host_map` (
+  `poolname` varchar(64) NOT NULL COMMENT 'Pool where the host may live',
+  `hostname` varchar(64) NOT NULL COMMENT 'Class name',
+  `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
+  `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
+  KEY `classname` (`hostname`),
+  KEY `poolname` (`poolname`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Defines which classes may live in which pools';
+
+--
+-- Dumping data for table `pool_host_map`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -416,6 +691,11 @@ CREATE TABLE IF NOT EXISTS `pool_literal_options` (
   PRIMARY KEY  (`id`),
   KEY `for` (`for`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Literal options for pools' AUTO_INCREMENT=1 ;
+
+--
+-- Dumping data for table `pool_literal_options`
+--
+
 
 -- --------------------------------------------------------
 
@@ -437,7 +717,29 @@ CREATE TABLE IF NOT EXISTS `pool_ranges` (
   UNIQUE KEY `start_ip_2` (`start_ip`,`end_ip`),
   KEY `pool` (`pool`),
   KEY `served_by` (`served_by`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Table IP ranges for pools' AUTO_INCREMENT=14 ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table IP ranges for pools' AUTO_INCREMENT=1 ;
+
+--
+-- Dumping data for table `pool_ranges`
+--
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `privileges`
+--
+
+CREATE TABLE IF NOT EXISTS `privileges` (
+  `privilege` varchar(32) collate ascii_bin NOT NULL COMMENT 'Privilege id',
+  `info` varchar(64) character set utf8 collate utf8_swedish_ci NOT NULL COMMENT 'Description',
+  PRIMARY KEY  (`privilege`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Privileges list';
+
+--
+-- Dumping data for table `privileges`
+--
+
 
 -- --------------------------------------------------------
 
@@ -454,6 +756,11 @@ CREATE TABLE IF NOT EXISTS `rooms` (
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='List of defined rooms';
 
+--
+-- Dumping data for table `rooms`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -465,6 +772,13 @@ CREATE TABLE IF NOT EXISTS `rpcc_api_version` (
   `state` char(1) NOT NULL,
   `comment` varchar(2048) default NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `rpcc_api_version`
+--
+
+INSERT INTO `rpcc_api_version` (`version`, `state`, `comment`) VALUES
+(0, 'p', NULL);
 
 -- --------------------------------------------------------
 
@@ -482,6 +796,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_event` (
   KEY `created` (`created`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
+--
+-- Dumping data for table `rpcc_event`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -496,6 +815,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_event_int` (
   KEY `attr` (`attr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Dumping data for table `rpcc_event_int`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -508,6 +832,15 @@ CREATE TABLE IF NOT EXISTS `rpcc_event_int_attr` (
   PRIMARY KEY  (`id`),
   UNIQUE KEY `rpcc_idx_evintattr_name` (`name`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4 ;
+
+--
+-- Dumping data for table `rpcc_event_int_attr`
+--
+
+INSERT INTO `rpcc_event_int_attr` (`id`, `name`) VALUES
+(1, 'elapsed'),
+(3, 'newint'),
+(2, 'oldint');
 
 -- --------------------------------------------------------
 
@@ -523,6 +856,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_event_str` (
   KEY `attr` (`attr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Dumping data for table `rpcc_event_str`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -534,7 +872,22 @@ CREATE TABLE IF NOT EXISTS `rpcc_event_str_attr` (
   `name` varchar(32) character set latin1 NOT NULL,
   PRIMARY KEY  (`id`),
   UNIQUE KEY `rpcc_idx_evstrattr_name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=10 ;
+
+--
+-- Dumping data for table `rpcc_event_str_attr`
+--
+
+INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES
+(5, 'errid'),
+(6, 'errline'),
+(3, 'error'),
+(4, 'errval'),
+(1, 'function'),
+(8, 'newstr'),
+(9, 'oldstr'),
+(2, 'params'),
+(7, 'stack');
 
 -- --------------------------------------------------------
 
@@ -547,7 +900,15 @@ CREATE TABLE IF NOT EXISTS `rpcc_event_type` (
   `name` varchar(32) character set latin1 NOT NULL,
   PRIMARY KEY  (`id`),
   UNIQUE KEY `rpcc_idx_evtype` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3 ;
+
+--
+-- Dumping data for table `rpcc_event_type`
+--
+
+INSERT INTO `rpcc_event_type` (`id`, `name`) VALUES
+(2, 'call'),
+(1, 'marker');
 
 -- --------------------------------------------------------
 
@@ -566,6 +927,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_mutex` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Rpcc Mutex list' AUTO_INCREMENT=1 ;
 
+--
+-- Dumping data for table `rpcc_mutex`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -582,6 +948,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_mutex_var` (
   KEY `mutex_id` (`mutex_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Table holding mutex variables' AUTO_INCREMENT=1 ;
 
+--
+-- Dumping data for table `rpcc_mutex_var`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -593,6 +964,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_mutex_var_val` (
   `value` varchar(256) character set utf8 collate utf8_bin NOT NULL COMMENT 'Value of variable',
   KEY `var` (`var`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Rpcc mutex variable values';
+
+--
+-- Dumping data for table `rpcc_mutex_var_val`
+--
+
 
 -- --------------------------------------------------------
 
@@ -607,6 +983,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_result` (
   PRIMARY KEY  (`resid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Table for search result sets';
 
+--
+-- Dumping data for table `rpcc_result`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -618,6 +999,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_result_int` (
   `value` int(11) default NULL COMMENT 'An integer value in the result set',
   KEY `resid` (`resid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Results that are integers, per result ID';
+
+--
+-- Dumping data for table `rpcc_result_int`
+--
+
 
 -- --------------------------------------------------------
 
@@ -631,6 +1017,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_result_string` (
   KEY `resid` (`resid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Results that are strings, per result ID';
 
+--
+-- Dumping data for table `rpcc_result_string`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -642,6 +1033,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_session` (
   `expires` timestamp NOT NULL default '0000-00-00 00:00:00' COMMENT 'Time whensession expires',
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='RPCC session management';
+
+--
+-- Dumping data for table `rpcc_session`
+--
+
 
 -- --------------------------------------------------------
 
@@ -656,6 +1052,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_session_string` (
   KEY `session_id` (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table for storing data for a session';
 
+--
+-- Dumping data for table `rpcc_session_string`
+--
+
+
 -- --------------------------------------------------------
 
 --
@@ -668,7 +1069,12 @@ CREATE TABLE IF NOT EXISTS `str_option` (
   `regexp_constraint` varchar(128) default NULL,
   PRIMARY KEY  (`id`),
   KEY `option_base` (`option_base`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=70 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=533 ;
+
+--
+-- Dumping data for table `str_option`
+--
+
 
 -- --------------------------------------------------------
 
@@ -689,67 +1095,99 @@ CREATE TABLE IF NOT EXISTS `subnetworks` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table of sub-networks';
 
 --
+-- Dumping data for table `subnetworks`
+--
+
+
+--
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `account_privilege_map`
+--
+ALTER TABLE `account_privilege_map`
+  ADD CONSTRAINT `account_privilege_map_ibfk_2` FOREIGN KEY (`privilege`) REFERENCES `privileges` (`privilege`),
+  ADD CONSTRAINT `account_privilege_map_ibfk_1` FOREIGN KEY (`account`) REFERENCES `accounts` (`account`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `bool_option`
 --
 ALTER TABLE `bool_option`
-  ADD CONSTRAINT `bool_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`);
+  ADD CONSTRAINT `bool_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `classes`
 --
 ALTER TABLE `classes`
-  ADD CONSTRAINT `classes_ibfk_4` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `classes_ibfk_3` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `classes_ibfk_3` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `classes_ibfk_4` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `class_literal_options`
 --
 ALTER TABLE `class_literal_options`
-  ADD CONSTRAINT `class_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `classes` (`classname`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `class_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `classes` (`classname`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `groups`
 --
 ALTER TABLE `groups`
-  ADD CONSTRAINT `groups_ibfk_5` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `groups_ibfk_3` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `groups_ibfk_4` FOREIGN KEY (`parent_group`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `groups_ibfk_10` FOREIGN KEY (`parent_group`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `groups_ibfk_11` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `groups_ibfk_9` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `group_groups_flat`
+--
+ALTER TABLE `group_groups_flat`
+  ADD CONSTRAINT `group_groups_flat_ibfk_1` FOREIGN KEY (`groupname`) REFERENCES `groups` (`groupname`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `group_groups_flat_ibfk_2` FOREIGN KEY (`descendant`) REFERENCES `groups` (`groupname`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `group_literal_options`
 --
 ALTER TABLE `group_literal_options`
-  ADD CONSTRAINT `group_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `groups` (`groupname`);
+  ADD CONSTRAINT `group_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `groups` (`groupname`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `hosts`
 --
 ALTER TABLE `hosts`
-  ADD CONSTRAINT `hosts_ibfk_17` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE,
   ADD CONSTRAINT `hosts_ibfk_15` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `hosts_ibfk_16` FOREIGN KEY (`room`) REFERENCES `rooms` (`id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `hosts_ibfk_20` FOREIGN KEY (`group`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `hosts_ibfk_21` FOREIGN KEY (`room`) REFERENCES `rooms` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `hosts_ibfk_22` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `host_literal_options`
 --
 ALTER TABLE `host_literal_options`
-  ADD CONSTRAINT `host_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `hosts` (`id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `host_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `hosts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `intarray_option`
+--
+ALTER TABLE `intarray_option`
+  ADD CONSTRAINT `intarray_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `int_option`
 --
 ALTER TABLE `int_option`
-  ADD CONSTRAINT `int_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`);
+  ADD CONSTRAINT `int_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `ipaddrarray_option`
+--
+ALTER TABLE `ipaddrarray_option`
+  ADD CONSTRAINT `ipaddrarray_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `ipaddr_option`
 --
 ALTER TABLE `ipaddr_option`
-  ADD CONSTRAINT `ipaddr_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`);
+  ADD CONSTRAINT `ipaddr_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `networks`
@@ -761,29 +1199,42 @@ ALTER TABLE `networks`
 -- Constraints for table `optionset_boolval`
 --
 ALTER TABLE `optionset_boolval`
-  ADD CONSTRAINT `optionset_boolval_ibfk_4` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `optionset_boolval_ibfk_3` FOREIGN KEY (`bool_option`) REFERENCES `bool_option` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `optionset_boolval_ibfk_3` FOREIGN KEY (`bool_option`) REFERENCES `bool_option` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `optionset_boolval_ibfk_4` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `optionset_intarrayval`
+--
+ALTER TABLE `optionset_intarrayval`
+  ADD CONSTRAINT `optionset_intarrayval_ibfk_2` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `optionset_intval`
 --
 ALTER TABLE `optionset_intval`
-  ADD CONSTRAINT `optionset_intval_ibfk_4` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `optionset_intval_ibfk_3` FOREIGN KEY (`int_option`) REFERENCES `int_option` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `optionset_intval_ibfk_3` FOREIGN KEY (`int_option`) REFERENCES `int_option` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `optionset_intval_ibfk_4` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `optionset_ipaddrarrayval`
+--
+ALTER TABLE `optionset_ipaddrarrayval`
+  ADD CONSTRAINT `optionset_ipaddrarrayval_ibfk_1` FOREIGN KEY (`ipaddrarray_option`) REFERENCES `ipaddrarray_option` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `optionset_ipaddrarrayval_ibfk_2` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `optionset_ipaddrval`
 --
 ALTER TABLE `optionset_ipaddrval`
-  ADD CONSTRAINT `optionset_ipaddrval_ibfk_7` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `optionset_ipaddrval_ibfk_6` FOREIGN KEY (`ipaddr_option`) REFERENCES `ipaddr_option` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `optionset_ipaddrval_ibfk_6` FOREIGN KEY (`ipaddr_option`) REFERENCES `ipaddr_option` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `optionset_ipaddrval_ibfk_7` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `optionset_strval`
 --
 ALTER TABLE `optionset_strval`
-  ADD CONSTRAINT `optionset_strval_ibfk_4` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `optionset_strval_ibfk_3` FOREIGN KEY (`str_option`) REFERENCES `str_option` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `optionset_strval_ibfk_3` FOREIGN KEY (`str_option`) REFERENCES `str_option` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `optionset_strval_ibfk_4` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `option_base`
@@ -795,29 +1246,36 @@ ALTER TABLE `option_base`
 -- Constraints for table `pools`
 --
 ALTER TABLE `pools`
-  ADD CONSTRAINT `pools_ibfk_5` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `pools_ibfk_3` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `pools_ibfk_4` FOREIGN KEY (`network`) REFERENCES `networks` (`id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `pools_ibfk_4` FOREIGN KEY (`network`) REFERENCES `networks` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `pools_ibfk_5` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `pool_class_map`
 --
 ALTER TABLE `pool_class_map`
-  ADD CONSTRAINT `pool_class_map_ibfk_2` FOREIGN KEY (`classname`) REFERENCES `classes` (`classname`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `pool_class_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `pool_class_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `pool_class_map_ibfk_2` FOREIGN KEY (`classname`) REFERENCES `classes` (`classname`);
 
 --
 -- Constraints for table `pool_group_map`
 --
 ALTER TABLE `pool_group_map`
-  ADD CONSTRAINT `pool_group_map_ibfk_2` FOREIGN KEY (`groupname`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `pool_group_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `pool_group_map_ibfk_3` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `pool_group_map_ibfk_4` FOREIGN KEY (`groupname`) REFERENCES `groups` (`groupname`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `pool_host_map`
+--
+ALTER TABLE `pool_host_map`
+  ADD CONSTRAINT `pool_host_map_ibfk_1` FOREIGN KEY (`poolname`) REFERENCES `pools` (`poolname`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `pool_host_map_ibfk_2` FOREIGN KEY (`hostname`) REFERENCES `hosts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `pool_literal_options`
 --
 ALTER TABLE `pool_literal_options`
-  ADD CONSTRAINT `pool_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `pools` (`poolname`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `pool_literal_options_ibfk_1` FOREIGN KEY (`for`) REFERENCES `pools` (`poolname`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `pool_ranges`
@@ -830,15 +1288,15 @@ ALTER TABLE `pool_ranges`
 -- Constraints for table `rpcc_event_int`
 --
 ALTER TABLE `rpcc_event_int`
-  ADD CONSTRAINT `rpcc_event_int_ibfk_2` FOREIGN KEY (`attr`) REFERENCES `rpcc_event_int_attr` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `rpcc_event_int_ibfk_1` FOREIGN KEY (`event`) REFERENCES `rpcc_event` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `rpcc_event_int_ibfk_1` FOREIGN KEY (`event`) REFERENCES `rpcc_event` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `rpcc_event_int_ibfk_2` FOREIGN KEY (`attr`) REFERENCES `rpcc_event_int_attr` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `rpcc_event_str`
 --
 ALTER TABLE `rpcc_event_str`
-  ADD CONSTRAINT `rpcc_event_str_ibfk_2` FOREIGN KEY (`attr`) REFERENCES `rpcc_event_int_attr` (`id`),
-  ADD CONSTRAINT `rpcc_event_str_ibfk_1` FOREIGN KEY (`event`) REFERENCES `rpcc_event` (`id`);
+  ADD CONSTRAINT `rpcc_event_str_ibfk_3` FOREIGN KEY (`event`) REFERENCES `rpcc_event` (`id`),
+  ADD CONSTRAINT `rpcc_event_str_ibfk_4` FOREIGN KEY (`attr`) REFERENCES `rpcc_event_str_attr` (`id`);
 
 --
 -- Constraints for table `rpcc_mutex_var`
@@ -874,11 +1332,11 @@ ALTER TABLE `rpcc_session_string`
 -- Constraints for table `str_option`
 --
 ALTER TABLE `str_option`
-  ADD CONSTRAINT `str_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`);
+  ADD CONSTRAINT `str_option_ibfk_1` FOREIGN KEY (`option_base`) REFERENCES `option_base` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `subnetworks`
 --
 ALTER TABLE `subnetworks`
-  ADD CONSTRAINT `subnetworks_ibfk_2` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `subnetworks_ibfk_1` FOREIGN KEY (`network`) REFERENCES `networks` (`id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `subnetworks_ibfk_1` FOREIGN KEY (`network`) REFERENCES `networks` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `subnetworks_ibfk_2` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
