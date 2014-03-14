@@ -35,7 +35,7 @@ class T0210_SubnetworkFetch(UnAuthTests):
                 break
             
             
-class T0220_SubnetworkCreate(AuthTests):
+class T0220_SubnetworkCreate(NetworkAdminTests):
     """ Test subnetwork_create """
     
     def do(self):  
@@ -68,7 +68,7 @@ class T0220_SubnetworkCreate(AuthTests):
                 self.superuser.network_destroy('network_test')
         
         
-class T0230_SubnetworkDestroy(AuthTests):
+class T0230_SubnetworkDestroy(NetworkAdminTests):
     """ Test subnetwork destroy """
     
     def do(self):
@@ -90,7 +90,7 @@ class T0230_SubnetworkDestroy(AuthTests):
                 pass
         
         
-class T0240_SubnetworkSetID(AuthTests):
+class T0240_SubnetworkSetID(NetworkAdminTests):
     """ Test setting id of a subnetwork"""
     
     def do(self):
@@ -115,7 +115,7 @@ class T0240_SubnetworkSetID(AuthTests):
                 self.superuser.network_destroy('network_test')
                 
                 
-class T0250_SubnetworkSetInfo(AuthTests):
+class T0250_SubnetworkSetInfo(NetworkAdminTests):
     """ Test setting info on a subnetwork"""
     
     def do(self):
@@ -137,7 +137,7 @@ class T0250_SubnetworkSetInfo(AuthTests):
                 self.superuser.network_destroy('network_test')
                 
                 
-class T0250_SubnetworkSetNetwork(AuthTests):
+class T0250_SubnetworkSetNetwork(NetworkAdminTests):
     """ Test setting network on a subnetwork"""
     
     def do(self):
@@ -160,7 +160,7 @@ class T0250_SubnetworkSetNetwork(AuthTests):
                 self.superuser.network_destroy('network_othertest')
         
 
-class T0260_SubnetworkSetOption(AuthTests):
+class T0260_SubnetworkSetOption(NetworkAdminTests):
     """ Test setting options on a subnetwork"""
     
     def do(self):
@@ -186,7 +186,7 @@ class T0260_SubnetworkSetOption(AuthTests):
                 self.superuser.network_destroy('network_test')
                 
                 
-class T0270_SubnetworkUnsetOption(AuthTests):
+class T0270_SubnetworkUnsetOption(NetworkAdminTests):
     """ Test unsetting options on a subnetwork"""
     
     def do(self):

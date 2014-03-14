@@ -144,17 +144,17 @@ class MyTests(object):
 #                 self.actual_access = self.proxy.session_get_access()
 #                 self.proxy.put_into_cache("actual_access", self.actual_access)
 #                 
-#             try:
-#                 self.actual_privs = self.proxy.get_from_cache("actual_privs")
-#             except KeyError:
-#                 self.actual_privs = self.proxy.session_get_privileges()
-#                 self.proxy.put_into_cache("actual_privs", self.actual_privs)
+            try:
+                 self.actual_privs = self.proxy.get_from_cache("actual_privs")
+            except KeyError:
+                 self.actual_privs = self.proxy.session_get_privileges()
+                 self.proxy.put_into_cache("actual_privs", self.actual_privs)
             if self.proxy == self.superuser:
                 self.actual_access = {"anyauth": True, "unauth": True, "superusers": True}
             else:
                 self.actual_access = {"anyauth": True, "unauth": True, "superusers": False}
             
-            self.actual_privs = []
+            #self.actual_privs = []
             self.actual_admin = self.proxy._auth.endswith("/admin")
 
     def establish_user(self, userid):
@@ -208,9 +208,45 @@ class MyTests(object):
         try:
             self.nouser = test_rpcc_client.RPCC(None, "", None, 0, basic_exceptions=False)
             self.superuser = test_rpcc_client.RPCC(url, adhoc_superuser, generic_password, 0, basic_exceptions=False)
-            self.reguser = test_rpcc_client.RPCC(url, "fbq", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
             
-            regular_users = (self.reguser,)
+            self.superuser.add_privilege("write_all_host_classes")
+            self.superuser.add_privilege("write_all_rooms")
+            self.superuser.add_privilege("write_all_hosts")
+            self.superuser.add_privilege("write_all_networks")
+            self.superuser.add_privilege("write_all_subnetworks")
+            self.superuser.add_privilege("write_all_pools")
+            self.superuser.add_privilege("write_all_optionspaces")
+            self.superuser.add_privilege("write_all_buildings")
+            
+            self.reguser = test_rpcc_client.RPCC(url, "fbq", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+            self.flooradmin = test_rpcc_client.RPCC(url, "flooradm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+            self.flooradmin.set_privileges("write_all_hosts", 
+                                           "admin_all_pools",
+                                           "write_all_rooms")
+            self.servicedesk = test_rpcc_client.RPCC(url, "sdadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+            self.servicedesk.set_privileges("write_all_hosts", 
+                                            "write_all_groups", 
+                                            "admin_all_pools",
+                                            "write_all_host_classes",
+                                            "write_all_rooms",
+                                            "write_all_buildings",
+                                            )
+            self.networkadmin = test_rpcc_client.RPCC(url, "nwadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+            self.networkadmin.set_privileges("write_all_hosts", 
+                                             "write_all_groups", 
+                                             "write_all_networks", 
+                                             "write_all_subnetworks", 
+                                             "write_all_pools",
+                                             "admin_all_pools",
+                                             "write_all_rooms",
+                                             "write_all_optionspaces",
+                                             "write_all_host_classes",
+                                             "write_all_buildings",
+                                             "write_all_global_options",
+                                             "write_all_pool_ranges")
+            
+            regular_users = (self.reguser, self.servicedesk, self.flooradmin, self.servicedesk, self.networkadmin)
+            
             #for px in regular_users:
                 #px.clear_privileges()
                 #px.clear_access()
@@ -219,8 +255,9 @@ class MyTests(object):
             print "Not a test system"
             sys.exit(2)
         
-        except rpcc_client.RPCCError, _e:
+        except rpcc_client.RPCCError, e:
             print "One or more accounts needed for testing could not be logged in to"
+            raise
             sys.exit(2)
 
         # Return the tuple of proxies to be used when testing. Order matters here.
@@ -525,7 +562,7 @@ class MyTests(object):
         if not self.proxy._auth:
             # print "NOT AUTHENTICATED"
             if sufficient_privs:
-                errs.add("AccessError::InadequatePrivileges")
+                errs.add("RuntimeError::AccessDenied")
             if expected_exception_name:
                 errs.add(expected_exception_name)
                 return(expected_authenticated or sufficient_privs, errs, possible_exception_name)
@@ -566,18 +603,18 @@ class MyTests(object):
             return (True, ("AccessError::LoA2Required",), possible_exception_name)
 
         # Check that we have one of the needed priv
-        errs.add("AccessError::InadequatePrivileges")
+        errs.add("RuntimeError::AccessDenied")
         for priv in sufficient_privs:
             if priv == "search_with_regexp":
                 errs.add("AccessError")
-            # print "LOOKING FOR ",priv," IN ",self.actual_privs
+            #print "LOOKING FOR ",priv," IN ",self.actual_privs
             if priv in self.actual_privs:
-                # print "PRIVILEGE ",priv, " FOUND"
+                #print "PRIVILEGE ",priv, " FOUND"
                 if not expected_loa or self.actual_loa > "1":
-                    # print "No exception expected"
+                    #print "No exception expected"
                     return(False, None, possible_exception_name)
                 else:
-                    # print "Expect LOA exception"
+                    #print "Expect LOA exception"
                     return (True, ("AccessError::LoA2Required",), possible_exception_name)
         return(True, errs, possible_exception_name)
 
@@ -696,7 +733,24 @@ class AuthTests(MyTests):
     expected_access = ["anyauth"]
     pass
 
-
+class FloorAdminTests(AuthTests):
+    sufficient_privs = ["write_all_hosts", "write_all_rooms"]
+    
+class ServiceDeskTests(AuthTests):
+    sufficient_privs = [ 
+                        "write_all_host_classes", 
+                        "write_all_buildings",
+                        "write_all_groups",
+                        "write_all_optionspaces"]
+    
+class NetworkAdminTests(AuthTests):
+    sufficient_privs = [ 
+                        "write_all_subnetworks",
+                        "write_all_networks",
+                        "write_all_global_options"
+                        "write_all_pools",
+                        "write_all_pool_ranges"]
+    
 class SuperUserTests(AuthTests):
     """ Superclass for tests that are expected to work for anyone who is logged as a superUser"""
     expected_access = ["superusers"]

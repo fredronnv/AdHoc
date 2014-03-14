@@ -45,7 +45,7 @@ class T1110_GroupFetch(UnAuthTests):
                 break
             
             
-class T1120_GroupCreate(AuthTests):
+class T1120_GroupCreate(ServiceDeskTests):
     """ Test group_create """
     
     def do(self):
@@ -69,7 +69,7 @@ class T1120_GroupCreate(AuthTests):
                     pass
         
         
-class T1130_GroupDestroy(AuthTests):
+class T1130_GroupDestroy(ServiceDeskTests):
     """ Test group destroy """
 
     def do(self):
@@ -92,7 +92,7 @@ class T1130_GroupDestroy(AuthTests):
                     pass
             
         
-class T1140_GroupSetName(AuthTests):
+class T1140_GroupSetName(ServiceDeskTests):
     """ Test setting group of a group"""
     def do(self):
         self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
@@ -114,7 +114,7 @@ class T1140_GroupSetName(AuthTests):
                     pass
                 
                 
-class T1150_GroupSetInfo(AuthTests):
+class T1150_GroupSetInfo(ServiceDeskTests):
     """ Test setting info on a group"""
     
     def do(self):
@@ -133,7 +133,7 @@ class T1150_GroupSetInfo(AuthTests):
                     pass
                 
                 
-class T1150_GroupSetParent(AuthTests):
+class T1150_GroupSetParent(ServiceDeskTests):
     """ Test setting parent on a group"""
     
     def do(self):
@@ -152,7 +152,7 @@ class T1150_GroupSetParent(AuthTests):
                     pass
                 
                 
-class T1160_GroupSetOption(AuthTests):
+class T1160_GroupSetOption(ServiceDeskTests):
     """ Test setting options on a group"""
     
     def do(self):
@@ -180,7 +180,7 @@ class T1160_GroupSetOption(AuthTests):
                     pass
                 
                 
-class T1170_GroupUnsetOption(AuthTests):
+class T1170_GroupUnsetOption(ServiceDeskTests):
     """ Test unsetting options on a group"""
     
     def do(self):

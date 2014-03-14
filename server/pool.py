@@ -195,10 +195,7 @@ class PoolOptionsUpdate(PoolFunBase):
         return pars
     
     def do(self):
-        omgr = self.optionset_manager
-        optionset = omgr.get_optionset(self.pool.optionset)
-        for (key, value) in self.updates.iteritems():
-            optionset.set_option_by_name(key, value)
+        self.pool_manager.update_options(self, self.pool, self.updates)
 
 
 class Pool(Model):
@@ -478,3 +475,10 @@ class PoolManager(Manager):
     def destroy_literal_option(self, fun, pool, id):
         q = "DELETE FROM pool_literal_options WHERE `for`=:poolname AND id=:id LIMIT 1"
         self.db.put(q, poolname=pool.oid, id=id)
+
+    @entry(g_write)
+    def update_options(self, fun, pool, updates):
+        omgr = fun.optionset_manager
+        optionset = omgr.get_optionset(pool.optionset)
+        for (key, value) in updates.iteritems():
+            optionset.set_option_by_name(key, value)

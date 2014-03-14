@@ -162,19 +162,23 @@ class RPCC(rpcc_client.RPCC):
         if self.username() == self.superuser.username():
             raise ADHOCSuperUserError("Removing the privileges of the superuser is a very bad idea")
 
-        for m in self.superuser.membership_dig({"group_pattern": "_rpcc_priv_*", "account": self.username(), "valid_now": True}, {"group": True, "membership": True}):
-            self.superuser.membership_expire(m.membership)
-
+        #for m in self.superuser.membership_dig({"group_pattern": "_rpcc_priv_*", "account": self.username(), "valid_now": True}, {"group": True, "membership": True}):
+            #self.superuser.membership_expire(m.membership)
+        try:   
+            privs = self.superuser.account_fetch(self.username(), {"granted_privileges": True})["granted_privileges"]
+            for p in privs:
+                self.superuser.privilege_revoke(p, self.username())
+        except rpcc_client.RPCCError, e:
+            if not e.is_error("NoSuchAccount"):
+                raise
+        
         if reset:
             self.reset_session()
 
     def clear_access(self, reset=True):
         if not self._auth:
             raise ValueError()
-
-        for m in self.superuser.membership_dig({"group_pattern": "_access_*", "account": self.username(), "valid_now": True}, {"group": True, "membership": True}):
-            self.superuser.membership_expire(m.membership)
-
+        
         if reset:
             self.reset_session()
 
@@ -183,16 +187,23 @@ class RPCC(rpcc_client.RPCC):
         if not superu:
             superu = self  # otherwise we're probably the superuser ourselves
         try:
-            superu.membership_create("_rpcc_priv_%s" % (priv,), self.username(), {})
-            print "Created membership for ", self.username(), " in ", "_rpcc_priv_%s" % (priv,)
+            superu.account_create(self.username(),"Fornamn","Efternamn")
         except rpcc_client.RPCCError, e:
-            if e.is_type("GroupNotFound"):
-                    superu.group_create("_rpcc_priv_%s" % (priv,), "Group granting the RPCC privilege %s" % (priv,), {})
-                    superu.membership_create("_rpcc_priv_%s" % (priv,), self.username(), {})
-            elif e.is_type("MembershipWouldOverlap"):
-                pass
-            else:
+            if not e.is_error("AccountAlreadyExists"):
                 raise
+            
+        try:
+            superu.privilege_create(priv, "Do not know what this is for")
+        except rpcc_client.RPCCError, e:
+            if not e.is_error("PrivilegeAlreadyExists"):
+                raise
+        try:
+            superu.privilege_grant(priv, self.username())
+        except rpcc_client.RPCCError, e:
+            if not e.is_error("PrivilegeAlreadyGranted"):
+                raise
+        print "Granted privilege %s for %s" %(priv, self.username())
+        
 
     def set_privileges(self, *privs):
         self.clear_privileges(reset=False)
@@ -201,42 +212,6 @@ class RPCC(rpcc_client.RPCC):
             self.add_privilege(priv)
         self.reset_session()
 
-    def unset_regaccess(self):
-        for m in self.membership_dig({"group": "_access_registrator", "account": self.username(), "valid_now": True}, {"membership": True}):
-            self.superuser.membership_expire(m.membership)
-        self.reset_session()
-
-    def unset_superaccess(self):
-        for m in self.membership_dig({"group": "_access_superusers", "account": self.username(), "valid_now": True}, {"membership": True}):
-            self.superuser.membership_expire(m.membership)
-        self.reset_session()
-
-    def set_regaccess(self):
-        try:
-            self.superuser.membership_create("_access_registrator", self.username(), {})
-        except rpcc_client.RPCCError, e:
-            print e
-            if not e.is_type("MembershipWouldOverlap"):
-                raise
-        self.reset_session()
-
-    def set_scratchaccess(self):
-        try:
-            self.superuser.membership_create("_access_mini", self.username(), {})
-        except rpcc_client.RPCCError, e:
-            print e
-            if not e.is_type("MembershipWouldOverlap"):
-                raise
-        self.reset_session()
-
-    def set_superaccess(self):
-        try:
-            self.superuser.membership_create("_access_superusers", self.username(), {})
-        except rpcc_client.RPCCError, e:
-            print e
-            if not e.is_type("MembershipWouldOverlap"):
-                raise
-        self.reset_session()
 
     def reset_session(self, password=None):
         if not password and self.password:

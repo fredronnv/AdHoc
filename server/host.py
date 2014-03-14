@@ -165,10 +165,7 @@ class HostOptionsUpdate(HostFunBase):
         return pars
     
     def do(self):
-        omgr = self.optionset_manager
-        optionset = omgr.get_optionset(self.host.optionset)
-        for (key, value) in self.updates.iteritems():
-            optionset.set_option_by_name(key, value)
+        self.host_manager.update_options(self, self.host, self.updates)
 
 
 class Host(Model):
@@ -425,3 +422,10 @@ class HostManager(Manager):
     def destroy_literal_option(self, fun, host, id):
         q = "DELETE FROM host_literal_options WHERE `for`=:hostname AND id=:id LIMIT 1"
         self.db.put(q, hostname=host.oid, id=id)
+        
+    @entry(g_write)
+    def update_options(self, fun, host, updates):
+        omgr = fun.optionset_manager
+        optionset = omgr.get_optionset(host.optionset)
+        for (key, value) in updates.iteritems():
+            optionset.set_option_by_name(key, value)

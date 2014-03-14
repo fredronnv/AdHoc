@@ -31,7 +31,7 @@ class T0610_OptionspaceFetch(UnAuthTests):
             assert "optionspace" in ret, "Key optionspace missing in returned struct from optionspace_fetch"
             
             
-class T0620_OptionspaceCreate(AuthTests):
+class T0620_OptionspaceCreate(NetworkAdminTests):
     """ Test optionspace_create """
     
     def do(self):
@@ -56,7 +56,7 @@ class T0620_OptionspaceCreate(AuthTests):
                 pass
             
         
-class T0630_OptionspaceDestroy(AuthTests):
+class T0630_OptionspaceDestroy(NetworkAdminTests):
     """ Test optionspace destroy """
     
     def do(self):
@@ -74,7 +74,7 @@ class T0630_OptionspaceDestroy(AuthTests):
                 pass
         
         
-class T0640_OptionspaceSetName(AuthTests):
+class T0640_OptionspaceSetName(NetworkAdminTests):
     """ Test setting optionspace of an optionspace"""
     
     def do(self):
@@ -97,7 +97,7 @@ class T0640_OptionspaceSetName(AuthTests):
                     pass
                 
                 
-class T0650_OptionspaceSetInfo(AuthTests):
+class T0650_OptionspaceSetInfo(NetworkAdminTests):
     """ Test setting info on an optionspace"""
     
     def do(self):
@@ -113,7 +113,7 @@ class T0650_OptionspaceSetInfo(AuthTests):
                 self.superuser.optionspace_destroy('ACME')
                 
                 
-class T0650_OptionspaceSetType(AuthTests):
+class T0650_OptionspaceSetType(NetworkAdminTests):
     """ Test setting type on an optionspace"""
     
     def do(self):

@@ -35,7 +35,7 @@ class T0710_RoomFetch(UnAuthTests):
                 break
             
             
-class T0720_RoomCreate(AuthTests):
+class T0720_RoomCreate(FloorAdminTests):
     """ Test room_create """
     
     def do(self):
@@ -61,7 +61,7 @@ class T0720_RoomCreate(AuthTests):
                 pass
         
         
-class T0730_RoomDestroy(AuthTests):
+class T0730_RoomDestroy(FloorAdminTests):
     """ Test room destroy """
     
     def do(self):
@@ -78,7 +78,7 @@ class T0730_RoomDestroy(AuthTests):
                 pass
             
         
-class T0740_RoomSetName(AuthTests):
+class T0740_RoomSetName(FloorAdminTests):
     """ Test setting name of a room"""
     
     def do(self):
@@ -101,7 +101,7 @@ class T0740_RoomSetName(AuthTests):
                     pass
                 
                 
-class T0750_RoomSetInfo(AuthTests):
+class T0750_RoomSetInfo(FloorAdminTests):
     """ Test setting info on a room"""
     
     def do(self):
@@ -117,7 +117,7 @@ class T0750_RoomSetInfo(AuthTests):
                 self.superuser.room_destroy('CA9876H')
                 
                 
-class T0750_RoomSetPrinters(AuthTests):
+class T0750_RoomSetPrinters(FloorAdminTests):
     """ Test setting printers on a room"""
     
     def do(self):

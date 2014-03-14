@@ -44,7 +44,7 @@ class T0110_HostClassFetch(UnAuthTests):
                 break
             
             
-class T0120_HostClassCreate(AuthTests):
+class T0120_HostClassCreate(ServiceDeskTests):
     """ Test host_class_create """
     
     def do(self):
@@ -68,7 +68,7 @@ class T0120_HostClassCreate(AuthTests):
                     pass
         
         
-class T0130_HostClassDestroy(AuthTests):
+class T0130_HostClassDestroy(ServiceDeskTests):
     """ Test host_class destroy """
     
     def do(self):
@@ -89,7 +89,7 @@ class T0130_HostClassDestroy(AuthTests):
                 pass
             
         
-class T0140_HostClassSetName(AuthTests):
+class T0140_HostClassSetName(ServiceDeskTests):
     """ Test setting the name of a host_class"""
     
     def do(self):
@@ -113,7 +113,7 @@ class T0140_HostClassSetName(AuthTests):
         
                 
                 
-class T0150_HostClassSetInfo(AuthTests):
+class T0150_HostClassSetInfo(ServiceDeskTests):
     """ Test setting info on a host_class"""
     
     def do(self):
@@ -132,7 +132,7 @@ class T0150_HostClassSetInfo(AuthTests):
                     pass
                 
                 
-class T0150_HostClassSetVendorClassID(AuthTests):
+class T0150_HostClassSetVendorClassID(ServiceDeskTests):
     """ Test setting vendor_class_id on a host_class"""
     
     def do(self):
@@ -151,7 +151,7 @@ class T0150_HostClassSetVendorClassID(AuthTests):
                     pass
 
                
-class T0160_HostClassSetOption(AuthTests):
+class T0160_HostClassSetOption(ServiceDeskTests):
     """ Test setting options on a host_class"""
     
     def do(self):
@@ -180,7 +180,7 @@ class T0160_HostClassSetOption(AuthTests):
                     pass
                 
                 
-class T0170_HostClassUnsetOption(AuthTests):
+class T0170_HostClassUnsetOption(ServiceDeskTests):
     """ Test unsetting options on a host_class"""
     
     def do(self):

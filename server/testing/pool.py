@@ -47,7 +47,7 @@ class T1210_PoolFetch(UnAuthTests):
                 break
             
             
-class T1220_PoolCreate(AuthTests):
+class T1220_PoolCreate(NetworkAdminTests):
     """ Test pool_create """
     
     def do(self):  
@@ -78,7 +78,7 @@ class T1220_PoolCreate(AuthTests):
             self.superuser.network_destroy('network_test')
         
         
-class T1230_PoolDestroy(AuthTests):
+class T1230_PoolDestroy(NetworkAdminTests):
     """ Test pool destroy """
     
     def do(self):
@@ -105,7 +105,7 @@ class T1230_PoolDestroy(AuthTests):
         self.superuser.network_destroy('network_test')
             
         
-class T1240_PoolSetName(AuthTests):
+class T1240_PoolSetName(SuperUserTests):
     """ Test setting the name of a pool"""
     
     def do(self):
@@ -134,7 +134,7 @@ class T1240_PoolSetName(AuthTests):
         self.superuser.network_destroy('network_test')
                 
                 
-class T1250_PoolSetInfo(AuthTests):
+class T1250_PoolSetInfo(NetworkAdminTests):
     """ Test setting info on a pool"""
     
     def do(self):
@@ -159,7 +159,7 @@ class T1250_PoolSetInfo(AuthTests):
         self.superuser.network_destroy('network_test')
 
 
-class T1250_PoolSetNetwork(AuthTests):
+class T1250_PoolSetNetwork(NetworkAdminTests):
     """ Test setting network on a pool"""
     
     def do(self):
@@ -182,7 +182,7 @@ class T1250_PoolSetNetwork(AuthTests):
             self.superuser.network_destroy('network_othertest')                
   
   
-class T1260_PoolSetOption(AuthTests):
+class T1260_PoolSetOption(NetworkAdminTests):
     """ Test setting options on a pool"""
     
     def do(self):  
@@ -206,7 +206,7 @@ class T1260_PoolSetOption(AuthTests):
                 self.superuser.network_destroy('network_test')
                 
                 
-class T1270_PoolUnsetOption(AuthTests):
+class T1270_PoolUnsetOption(NetworkAdminTests):
     """ Test unsetting options on a pool"""
     
     def do(self):
@@ -230,10 +230,12 @@ class T1270_PoolUnsetOption(AuthTests):
                     pass
                 self.superuser.network_destroy('network_test')
                 
-class T1280_PoolAllowHost(AuthTests):
+class T1280_PoolAllowHost(NetworkAdminTests):
     """ Test allowing two hosts into the pool"""
     
+    
     def do(self):
+        self.sufficient_privs=["admin_all_pools","write_all_pools"]
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
         
@@ -255,10 +257,11 @@ class T1280_PoolAllowHost(AuthTests):
                     pass
                 self.superuser.network_destroy('network_test')
                    
-class T1281_PoolAllowGroup(AuthTests):
+class T1281_PoolAllowGroup(NetworkAdminTests):
     """ Test allowing a group into the pool"""
     
     def do(self):
+        self.sufficient_privs=["admin_all_pools","write_all_pools"]
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
         
@@ -278,10 +281,11 @@ class T1281_PoolAllowGroup(AuthTests):
                     pass
                 self.superuser.network_destroy('network_test')
                 
-class T1282_PoolAllowHostClass(AuthTests):
+class T1282_PoolAllowHostClass(NetworkAdminTests):
     """ Test allowing a host_class into the pool"""
     
     def do(self):
+        self.sufficient_privs=["admin_all_pools","write_all_pools"]
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
         
@@ -301,10 +305,11 @@ class T1282_PoolAllowHostClass(AuthTests):
                     pass
                 self.superuser.network_destroy('network_test')
 
-class T1283_PoolDisallowHost(AuthTests):
+class T1283_PoolDisallowHost(NetworkAdminTests):
     """ Test disallowing two hosts from the pool"""
     
     def do(self):
+        self.sufficient_privs=["admin_all_pools","write_all_pools"]
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
         
@@ -328,10 +333,11 @@ class T1283_PoolDisallowHost(AuthTests):
                     pass
                 self.superuser.network_destroy('network_test')
  
-class T1284_PoolDisallowGroup(AuthTests):
+class T1284_PoolDisallowGroup(NetworkAdminTests):
     """ Test disallowing a group from the pool"""
     
     def do(self):
+        self.sufficient_privs=["admin_all_pools","write_all_pools"]
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
         
@@ -352,10 +358,11 @@ class T1284_PoolDisallowGroup(AuthTests):
                     pass
                 self.superuser.network_destroy('network_test')
                 
-class T1285_PoolDisallowHostClass(AuthTests):
+class T1285_PoolDisallowHostClass(NetworkAdminTests):
     """ Test disallowing a host_class from the pool"""
     
     def do(self):
+        self.sufficient_privs=["admin_all_pools","write_all_pools"]
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
         

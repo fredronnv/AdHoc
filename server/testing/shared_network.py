@@ -32,7 +32,7 @@ class T0410_networkFetch(UnAuthTests):
             assert "authoritative" in ret, "Key authoritative missing in returned struct from network_fetch"
             
             
-class T0420_networkCreate(AuthTests):
+class T0420_networkCreate(NetworkAdminTests):
     """ Test network_create """
     
     def do(self):
@@ -56,7 +56,7 @@ class T0420_networkCreate(AuthTests):
                 pass
         
         
-class T0430_networkDestroy(AuthTests):
+class T0430_networkDestroy(NetworkAdminTests):
     """ Test network destroy """
     
     def do(self):
@@ -73,7 +73,7 @@ class T0430_networkDestroy(AuthTests):
                 pass
             
         
-class T0440_networkSetAuthoritative(AuthTests):
+class T0440_networkSetAuthoritative(NetworkAdminTests):
     """ Test setting authoritative flag on a network"""
     
     def do(self):
@@ -92,7 +92,7 @@ class T0440_networkSetAuthoritative(AuthTests):
                 pass
                 
                 
-class T0450_networkSetInfo(AuthTests):
+class T0450_networkSetInfo(NetworkAdminTests):
     """ Test setting info on a network"""
     
     def do(self):
@@ -111,7 +111,7 @@ class T0450_networkSetInfo(AuthTests):
                 pass
                 
                 
-class T0460_NetworkSetOption(AuthTests):
+class T0460_NetworkSetOption(NetworkAdminTests):
     """ Test setting options on a network"""
 
     def do(self):
@@ -138,7 +138,7 @@ class T0460_NetworkSetOption(AuthTests):
                 pass
                 
                 
-class T0470_NetworkUnsetOption(AuthTests):
+class T0470_NetworkUnsetOption(NetworkAdminTests):
     """ Test unsetting options on a network"""
     
     def do(self):

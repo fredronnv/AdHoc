@@ -137,7 +137,7 @@ class T1410_PoolRangeFetch(UnAuthTests, PoolRangeTests):
                 break
             
             
-class T1420_PoolRangeCreate(AuthTests, PoolRangeTests):
+class T1420_PoolRangeCreate(NetworkAdminTests, PoolRangeTests):
     """ Test pool_range_create """
     
     def dont(self):  
@@ -154,7 +154,7 @@ class T1420_PoolRangeCreate(AuthTests, PoolRangeTests):
             self.teardown_pool_range()
         
         
-class T1430_PoolRangeDestroy(AuthTests, PoolRangeTests):
+class T1430_PoolRangeDestroy(NetworkAdminTests, PoolRangeTests):
     """ Test pool_range destroy """
     
     def dont(self):
@@ -169,7 +169,7 @@ class T1430_PoolRangeDestroy(AuthTests, PoolRangeTests):
             self.teardown_pool_range()
             
         
-class T1440_PoolRangeSetRange(AuthTests, PoolRangeTests):
+class T1440_PoolRangeSetRange(NetworkAdminTests, PoolRangeTests):
     """ Test setting the range of a pool_range"""
     
     def do(self):
@@ -194,7 +194,7 @@ class T1440_PoolRangeSetRange(AuthTests, PoolRangeTests):
             self.teardown_pool_range()
             
             
-class T1441_PoolRangeSetReversedRange(AuthTests, PoolRangeTests):
+class T1441_PoolRangeSetReversedRange(NetworkAdminTests, PoolRangeTests):
     """ Test reversing the range of a pool_range"""
     #wip=True
     def do(self):
@@ -217,7 +217,7 @@ class T1441_PoolRangeSetReversedRange(AuthTests, PoolRangeTests):
             self.teardown_pool_range()
             
             
-class T1442_PoolRangeSetOverlappingRange(AuthTests, PoolRangeTests):
+class T1442_PoolRangeSetOverlappingRange(NetworkAdminTests, PoolRangeTests):
     """ Test setting the range of a pool_range"""
     
     def do(self):
@@ -250,7 +250,7 @@ class T1442_PoolRangeSetOverlappingRange(AuthTests, PoolRangeTests):
             self.teardown_pool_range()
 
 
-class T1450_PoolRangeSetPool(AuthTests, PoolRangeTests):
+class T1450_PoolRangeSetPool(NetworkAdminTests, PoolRangeTests):
     """ Test setting pool on a pool_range"""
     
     def dont(self):

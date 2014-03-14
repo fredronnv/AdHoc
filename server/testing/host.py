@@ -48,7 +48,7 @@ class T1310_HostFetch(UnAuthTests):
                 break
             
             
-class T1320_HostCreate(AuthTests):
+class T1320_HostCreate(FloorAdminTests):
     """ Test host_create """
     
     def do(self):
@@ -72,7 +72,7 @@ class T1320_HostCreate(AuthTests):
                     pass
         
         
-class T1330_HostDestroy(AuthTests):
+class T1330_HostDestroy(FloorAdminTests):
     """ Test host destroy """
     
     def do(self):
@@ -89,7 +89,7 @@ class T1330_HostDestroy(AuthTests):
                 pass
             
         
-class T1340_HostSetName(AuthTests):
+class T1340_HostSetName(FloorAdminTests):
     """ Test setting name of a host"""
     
     def do(self):
@@ -112,7 +112,7 @@ class T1340_HostSetName(AuthTests):
                     pass
                 
                 
-class T1350_HostSetInfo(AuthTests):
+class T1350_HostSetInfo(FloorAdminTests):
     """ Test setting info on a host"""
     
     def do(self):
@@ -131,7 +131,7 @@ class T1350_HostSetInfo(AuthTests):
                     pass
                 
                 
-class T1360_HostSetGroup(AuthTests):
+class T1360_HostSetGroup(FloorAdminTests):
     """ Test setting group on a host"""
     
     def do(self):
@@ -150,7 +150,7 @@ class T1360_HostSetGroup(AuthTests):
                     pass
 
 
-class T1370_HostSetMac(AuthTests):
+class T1370_HostSetMac(FloorAdminTests):
     """ Test setting mac on a host"""
     
     def do(self):
@@ -169,7 +169,7 @@ class T1370_HostSetMac(AuthTests):
                     pass
                 
                 
-class T1380_HostSetRoom(AuthTests):
+class T1380_HostSetRoom(FloorAdminTests):
     """ Test setting room on a host"""
     
     def do(self):
@@ -205,7 +205,7 @@ class T1390_HostSetBadRoom(UnAuthTests):
             pass
         
         
-class T1391_HostSetDNS(AuthTests):
+class T1391_HostSetDNS(FloorAdminTests):
     """ Test setting DNS name on a host"""
     
     def do(self):
@@ -241,7 +241,7 @@ class T1392_HostSetBadDNS(UnAuthTests):
             pass              
 
 
-class T1393_HostSetStatus(AuthTests):
+class T1393_HostSetStatus(FloorAdminTests):
     """ Test setting status on a host"""
     
     def do(self):
@@ -278,7 +278,7 @@ class T1393_HostSetStatus(AuthTests):
                     pass
                 
                 
-class T1394_HostSetOption(AuthTests):
+class T1394_HostSetOption(FloorAdminTests):
     """ Test setting options on a host"""
     
     def do(self):
@@ -305,7 +305,7 @@ class T1394_HostSetOption(AuthTests):
                     pass
                 
                 
-class T1395_HostUnsetOption(AuthTests):
+class T1395_HostUnsetOption(FloorAdminTests):
     """ Test unsetting options on a host"""
     
     def do(self):

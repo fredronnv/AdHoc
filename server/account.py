@@ -8,16 +8,14 @@ g_read = AnyGrants(AllowUserWithPriv("read_all_accounts"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_accounts"), AdHocSuperuserGuard)
 
 
-class ExtNoSuchAccountError(ExtLookupError):
-    desc = "No such account exists."
-    
-    
-class ExtAccountAlreadyExistsError(ExtLookupError):
-    desc = "The account is already registered"
-    
-    
-class ExtAccountInUseError(ExtValueError):
-    desc = "The account is referred to by other objects. It must not destroyed"    
+class SessionGetPrivileges(SessionedFunction):
+    extname = "session_get_privileges"
+    returns = ExtPrivilegeList
+
+    desc = """Returns a list of all privileges for the currently authenticated user."""
+
+    def do(self):
+        return self.account_manager.get_authuser_account_privileges(self)
 
 
 class AccountFunBase(SessionedFunction):  
@@ -144,3 +142,13 @@ class AccountManager(Manager):
             raise ExtAccountInUseError()
         self.db.put(q, account=account.oid)
         
+    @entry(AlwaysAllowGuard)
+    def get_authuser_account_privileges(self, fun):
+        try:
+            authacc =  self.get_account(fun.session.authuser)
+        except ExtNoSuchAccountError:
+            return []
+        return authacc.get_privileges()
+    
+        
+

@@ -169,6 +169,7 @@ class AuthRequiredGuard(Guard):
     def check(self, obj, function):
         if function.session.authuser is not None:
             return AccessGranted(CacheInFunction)
+        function.checked_privs.add("is_authenticated")
         return DecisionReferred(CacheInFunction)
 
 
@@ -347,7 +348,7 @@ def entry(guard):
                 finally:
                     function._entry_granted = False
             elif isinstance(decision, AccessDenied) or isinstance(decision, DecisionReferred):
-                raise ExtAccessDeniedError(str(guard))
+                raise ExtAccessDeniedError("Checked: " + ", ".join(function.privs_checked))
             else:
                 raise ValueError("Rugbyboll" + str(decision))
             

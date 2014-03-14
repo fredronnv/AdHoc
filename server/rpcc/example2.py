@@ -21,6 +21,17 @@ class AllowCertainUser(access.Guard):
             return access.AccessGranted(access.CacheInFunction)
         else:
             return access.AccessDenied(access.CacheInFunction)
+        
+class AllowUserWithPriv(access.Guard):
+    def __init__(self, priv):
+        self.priv = priv
+        
+    def check(self, obj, fun):
+        privs = self.fun.db.get("SELECT privilege from account_privilege_map WHERE account=:account AND privilege=:privilege")
+        if len(privs):
+            return access.AccessGranted(access.CacheInFunction)
+        else:
+            return access.AccessDenied(access.CacheInFunction)
 
 
 class AllowOwner(access.Guard):

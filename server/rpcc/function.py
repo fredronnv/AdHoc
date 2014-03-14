@@ -234,6 +234,9 @@ class Function(object):
 
         # (Possibly) set by later call to .set_db_link()
         self.db = None
+        
+        # List of privileges checked. (Clarifies AccessDenied errors)
+        self.privs_checked = set()
 
     def needs_database(self):
         return self.uses_database or self.log_call_event or self.creates_event
@@ -341,7 +344,9 @@ class Function(object):
             return response
         
         except Exception as e:
-            self.db.rollback()
+            if self.db:
+                self.db.rollback()
+            
             if isinstance(e, exterror.ExtOutputError):
                 print "ExtOutputError"
                 e.print_trace()

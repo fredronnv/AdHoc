@@ -35,7 +35,7 @@ class T0910_GlobalOptionFetch(UnAuthTests):
                 break
             
             
-class T0920_GlobalOptionCreate(AuthTests):
+class T0920_GlobalOptionCreate(NetworkAdminTests):
     """ Test global_option_create """
     
     def do(self):
@@ -55,7 +55,7 @@ class T0920_GlobalOptionCreate(AuthTests):
                 self.superuser.global_option_destroy(goid)
                 
         
-class T0930_GlobalOptionDestroy(AuthTests):
+class T0930_GlobalOptionDestroy(NetworkAdminTests):
     """ Test global_option destroy """
     
     def do(self):
@@ -75,7 +75,7 @@ class T0930_GlobalOptionDestroy(AuthTests):
                     pass
         
         
-class T0940_GlobalOptionSetName(AuthTests):
+class T0940_GlobalOptionSetName(NetworkAdminTests):
     """ Test setting name of a global_option"""
     
     def do(self):
@@ -90,7 +90,7 @@ class T0940_GlobalOptionSetName(AuthTests):
                 self.superuser.global_option_destroy(self.proxy.goid)
                 
                 
-class T0950_GlobalOptionSetValue(AuthTests):
+class T0950_GlobalOptionSetValue(NetworkAdminTests):
     """ Test setting value on a global_option"""
     
     def do(self):

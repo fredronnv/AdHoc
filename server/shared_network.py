@@ -79,10 +79,7 @@ class NetworkOptionsUpdate(NetworkFunBase):
         return pars
     
     def do(self):
-        omgr = self.optionset_manager
-        optionset = omgr.get_optionset(self.network.optionset)
-        for (key, value) in self.updates.iteritems():
-            optionset.set_option_by_name(key, value)
+        self.network_manager.update_options(self, self.network, self.updates)
 
 
 class Network(Model):
@@ -217,3 +214,10 @@ class NetworkManager(Manager):
         q = """DELETE FROM network_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=network.oid, name=option.oid):
             raise ExtOptionNotSetError()
+    
+    @entry(g_write)
+    def update_options(self, fun, network, updates):
+        omgr = fun.optionset_manager
+        optionset = omgr.get_optionset(network.optionset)
+        for (key, value) in updates.iteritems():
+            optionset.set_option_by_name(key, value)

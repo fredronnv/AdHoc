@@ -10,6 +10,7 @@ class AdHocSuperuserGuard(Guard):
     def check(self, obj, function):
         if function.session.authuser in self.superusers:
             return AccessGranted(CacheInFunction)
+        function.privs_checked.add("superuser")
         return DecisionReferred(CacheInFunction)
     
 
@@ -17,24 +18,21 @@ class AllowUserWithPriv(access.Guard):
     def __init__(self, priv):
         self.priv = priv
         
-    def check(self, obj, fun):
-        privs = fun.db.get("SELECT privilege from account_privilege_map WHERE account=:account AND privilege=:privilege",
-                                account=fun.session.authuser, privilege=self.priv)
+    def check(self, obj, function):
+        privs = function.db.get("SELECT privilege from account_privilege_map WHERE account=:account AND privilege=:privilege",
+                                account=function.session.authuser, privilege=self.priv)
         if len(privs):
             return access.AccessGranted(access.CacheInFunction)
         else:
+            function.privs_checked.add(self.priv)
             return DecisionReferred(CacheInFunction)
-        
-    def __str__(self):
-        return "Privilege not found: %s"%self.priv
-    
+
 g_write_literal_option = AnyGrants(
                                    AllowUserWithPriv("write_literal_options"), 
                                    AdHocSuperuserGuard)
 g_rename = AnyGrants(
                      AllowUserWithPriv("rename_all_objects"), 
                      AdHocSuperuserGuard)
-
 
 class ExtNoSuchDNSNameError(ExtLookupError):
     desc = "The DNS name is not defined"
@@ -150,6 +148,17 @@ class ExtOptionList(ExtList):
         if self.typ is not None:
             self.name = "option" + '-list'
             
+class ExtNoSuchAccountError(ExtLookupError):
+    desc = "No such account exists."
+    
+    
+class ExtAccountAlreadyExistsError(ExtLookupError):
+    desc = "The account is already registered"
+    
+    
+class ExtAccountInUseError(ExtValueError):
+    desc = "The account is referred to by other objects. It must not destroyed"    
+            
 class ExtAccountName(ExtString):
     name = "account-name"
     desc = "Name of an account"
@@ -161,7 +170,7 @@ class ExtAccount(ExtAccountName):
     desc = "An account"
 
     def lookup(self, fun, cval):
-        return fun.account_manager.get_account(cval)
+        return fun.account_manager.get_account(str(cval))
 
     def output(self, fun, obj):
         return obj.oid

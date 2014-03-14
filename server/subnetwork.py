@@ -87,10 +87,7 @@ class SubnetworkOptionsUpdate(SubnetworkFunBase):
         return pars
     
     def do(self):
-        omgr = self.optionset_manager
-        optionset = omgr.get_optionset(self.subnetwork.optionset)
-        for (key, value) in self.updates.iteritems():
-            optionset.set_option_by_name(key, value)
+        self.subnetwork_manager.update_options(self, self.subnetwork, self.updates)
             
             
 class Subnetwork(Model):
@@ -271,3 +268,10 @@ class SubnetworkManager(Manager):
         q = """DELETE FROM subnetwork_options WHERE `for`=:id AND name=:name"""
         if not self.db.put(q, id=subnetwork.oid, name=option.oid):
             raise ExtOptionNotSetError()
+
+    @entry(g_write)
+    def update_options(self, fun, subnetwork, updates):
+        omgr = fun.optionset_manager
+        optionset = omgr.get_optionset(subnetwork.optionset)
+        for (key, value) in updates.iteritems():
+            optionset.set_option_by_name(key, value)

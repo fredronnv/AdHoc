@@ -44,7 +44,7 @@ class T1010_OptionDefFetch(UnAuthTests):
                 break
             
             
-class T1020_OptionDefCreate(AuthTests):
+class T1020_OptionDefCreate(SuperUserTests):
     """ Test option_def_create """
     
     def do(self):  
@@ -87,7 +87,7 @@ class T1020_OptionDefCreate(AuthTests):
                 pass
         
         
-class T1030_OptionDefDestroy(AuthTests):
+class T1030_OptionDefDestroy(SuperUserTests):
     """ Test option_def destroy """
     
     def do(self):
@@ -104,7 +104,7 @@ class T1030_OptionDefDestroy(AuthTests):
                 pass
             
         
-class T1040_OptionDefSetID(AuthTests):
+class T1040_OptionDefSetID(SuperUserTests):
     """ Test setting option_def of a option_def"""
     
     def do(self):
@@ -127,7 +127,7 @@ class T1040_OptionDefSetID(AuthTests):
                 pass
                 
                 
-class T1050_OptionDefSetInfo(AuthTests):
+class T1050_OptionDefSetInfo(SuperUserTests):
     """ Test setting info on a option_def"""
     
     def do(self):
@@ -146,7 +146,7 @@ class T1050_OptionDefSetInfo(AuthTests):
                     pass
                 
                 
-class T1050_OptionDefSetType(AuthTests):
+class T1050_OptionDefSetType(SuperUserTests):
     """ Test setting type on a option_def"""
     
     def do(self):

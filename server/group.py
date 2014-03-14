@@ -111,10 +111,7 @@ class GroupOptionsUpdate(GroupFunBase):
         return pars
     
     def do(self):
-        omgr = self.optionset_manager
-        optionset = omgr.get_optionset(self.group.optionset)
-        for (key, value) in self.updates.iteritems():
-            optionset.set_option_by_name(key, value)
+        self.group_manager.update_options(self, self.group, self.updates)
 
 
 class Group(Model):
@@ -322,3 +319,10 @@ class GroupManager(Manager):
     def destroy_literal_option(self, fun, group, id):
         q = "DELETE FROM group_literal_options WHERE `for`=:groupname AND id=:id LIMIT 1"
         self.db.put(q, groupname=group.oid, id=id)
+    
+    @entry(g_write)
+    def update_options(self, fun, group, updates):
+        omgr = fun.optionset_manager
+        optionset = omgr.get_optionset(group.optionset)
+        for (key, value) in updates.iteritems():
+            optionset.set_option_by_name(key, value)

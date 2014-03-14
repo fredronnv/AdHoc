@@ -39,7 +39,7 @@ class ExtPrivilege(ExtPrivilegeName):
     desc = "A privilege"
 
     def lookup(self, fun, cval):
-        return fun.privilege_manager.get_privilege(cval)
+        return fun.privilege_manager.get_privilege(str(cval))
 
     def output(self, fun, obj):
         return obj.oid
@@ -48,6 +48,10 @@ class ExtPrivilegeList(ExtList):
     name = "privilege-list"
     desc = "List of privileges"
     typ = ExtPrivilegeName
+    
+    
+
+    
         
 class PrivilegeFunBase(SessionedFunction):  
     params = [("privilege", ExtPrivilege, "A registered privilege")]
@@ -61,7 +65,7 @@ class PrivilegeCreate(SessionedFunction):
     returns = (ExtNull)
 
     def do(self):
-        self.privilege_manager.create_privilege(self, self.privilege_name, self.fname, self.lname)
+        self.privilege_manager.create_privilege(self, self.privilege_name, self.info)
         
 
 class PrivilegeDestroy(PrivilegeFunBase):
@@ -103,8 +107,7 @@ class Privilege(Model):
     def init(self, *args, **kwargs):
         a = list(args)
         self.oid = a.pop(0)
-        self.fname = a.pop(0)
-        self.lname = a.pop(0)
+        self.info = a.pop(0)
 
     @template("privilege", ExtPrivilege)
     @entry(g_read)
@@ -158,7 +161,7 @@ class PrivilegeManager(Manager):
         return "p.privilege"
     
     @entry(g_write)
-    def create_privilege(self, fun, privilege_name, fname, lname):
+    def create_privilege(self, fun, privilege_name, info):
         
         optionset = self.optionset_manager.create_optionset()
         

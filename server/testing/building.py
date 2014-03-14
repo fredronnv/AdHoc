@@ -35,7 +35,7 @@ class T0810_BuildingFetch(UnAuthTests):
                 break
             
             
-class T0820_BuildingCreate(AuthTests):
+class T0820_BuildingCreate(ServiceDeskTests):
     """ Test building_create """
     
     def do(self):  
@@ -60,7 +60,7 @@ class T0820_BuildingCreate(AuthTests):
                 pass
         
         
-class T0830_BuildingDestroy(AuthTests):
+class T0830_BuildingDestroy(ServiceDeskTests):
     """ Test building destroy """
     
     def do(self):
@@ -77,7 +77,7 @@ class T0830_BuildingDestroy(AuthTests):
                 pass
         
         
-class T0840_BuildingSetName(AuthTests):
+class T0840_BuildingSetName(ServiceDeskTests):
     """ Test renaming a building"""
     
     def do(self):
@@ -100,7 +100,7 @@ class T0840_BuildingSetName(AuthTests):
                     pass
                 
                 
-class T0850_BuildingSetInfo(AuthTests):
+class T0850_BuildingSetInfo(ServiceDeskTests):
     """ Test setting info on a building"""
     
     def do(self):
@@ -116,7 +116,7 @@ class T0850_BuildingSetInfo(AuthTests):
                 self.superuser.building_destroy('QZ1243A')
                 
                 
-class T0850_BuildingSetRe(AuthTests):
+class T0850_BuildingSetRe(ServiceDeskTests):
     """ Test setting re on a building"""
     
     def do(self):
