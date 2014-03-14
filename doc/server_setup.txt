@@ -6,3 +6,31 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
         wget https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-1.1.6-1.el6.noarch.rpm
         rpm -i mysql-connector-python-1.1.6-1.el6.noarch.rpm
  
+ 4. Start mysql server
+        /etc/init.d/mysqld start
+ 5. Set mysql root password
+        /usr/bin/mysqladmin -u root password 'new-password'
+        /usr/bin/mysqladmin -u root -h adhoc.ita.chalmers.se password 'new-password'
+ 6. Configure mysql to run on level 3
+        /sbin/chkconfig --level 3 mysqld on
+ 6. Reboot and check that mysqld starts.
+        /sbin/shutdown -r now
+ 7. Log in. If you have enables GSSAPI ssh and have a kerberos ticked you should get in wothout giving a password.
+ 8. Check that mysqld is running:
+        ps -ef | grep mys
+        root      1484     1  0 17:38 ?        00:00:00 /bin/sh /usr/bin/mysqld_safe --datadir=/var/lib/mysql --socket=/var/lib/mysql/mysql.sock --pid-file=/var/run/mysqld/mysqld.pid --basedir=/usr --user=mysql
+        mysql     1586  1484  0 17:38 ?        00:00:00 /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --user=mysql --log-error=/var/log/mysqld.log --pid-file=/var/run/mysqld/mysqld.pid --socket=/var/lib/mysql/mysql.sock
+        
+ 9. Make a working directory
+        cd
+        mkdir -p work/proj/AdHoc
+        cd work/proj/AdHoc
+ 10. Check out AdHoc from svn. Do not store your password unencrypted.
+        svn co https://svn.ita.chalmers.se/repos/adhoc/trunk
+        cd trunk
+ 11. Create the AdHoc database
+        cd doc
+        mysql -u root -p <database.sql
+ 12.
+ 
+        
