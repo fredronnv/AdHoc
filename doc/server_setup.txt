@@ -1,4 +1,4 @@
-Server setup log.
+Server setup log. (from fresh RHEL6 system as delivered by operations staff)
 
 1. Install /etc/krb5.keytab (as root)
 2. yum install mysql-server (as root)
