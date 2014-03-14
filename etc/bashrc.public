@@ -21,7 +21,7 @@ if [ x"$CHALMERS_DEPLOY_LEVEL" = x"devel" ]; then
     export ADHOC_DB_USER=$USER
     export ADHOC_DB_DATABASE=AdHoc_devel
     export RPCC_DEBUG=1
-    export ADHOC_DEBUG_SQL=1
+    #export ADHOC_DEBUG_SQL=1
     
     export ADHOC_TEST_MODE=1
 
