@@ -4,6 +4,7 @@ from rpcc import *
 from optionspace import *
 from optionset import *
 from option_def import *
+from util import *
 
 
 g_read = AnyGrants(AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
@@ -42,6 +43,11 @@ class ExtGroupList(ExtList):
     name = "group-list"
     desc = "List of group names"
     typ = ExtGroupName
+    
+class ExtHostCount(ExtOrNull):
+    name = "hostcount"
+    desc = "Count of avtive hosts in group and its descendants, or NULL if unknown"
+    typ = ExtInteger
     
 class ExtGroupCreateOptions(ExtStruct):
     name = "group_create_options"
@@ -113,6 +119,12 @@ class GroupOptionsUpdate(GroupFunBase):
     def do(self):
         self.group_manager.update_options(self, self.group, self.updates)
 
+class GroupGatherStats(SessionedFunction):
+    extname = "group_gather_stats"
+    returns = ExtNull
+    
+    def do(self):
+        self.group_manager.gather_stats()
 
 class Group(Model):
     name = "group"
@@ -129,6 +141,7 @@ class Group(Model):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
         self.optionset = a.pop(0)
+        self.hostcount = a.pop(0)
 
     @template("group", ExtGroup)
     def get_group(self):
@@ -163,6 +176,10 @@ class Group(Model):
     @template("optionset", ExtOptionset, model=Optionset)
     def get_optionset(self):
         return self.optionset_manager.get_optionset(self.optionset)
+    
+    @template("hostcount", ExtHostCount)
+    def get_hostcount(self):
+        return self.hostcount
     
     @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this group")
     def get_literal_options(self):
@@ -215,7 +232,7 @@ class GroupManager(Manager):
         
     def base_query(self, dq):
         dq.select("g.groupname", "g.parent_group", "g.optionspace",
-                  "g.info", "g.mtime", "g.changed_by", "g.optionset")
+                  "g.info", "g.mtime", "g.changed_by", "g.optionset", "g.hostcount")
         dq.table("groups g")
         return dq
 
@@ -326,3 +343,28 @@ class GroupManager(Manager):
         optionset = omgr.get_optionset(group.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
+            
+    @entry(AdHocSuperuserGuard)
+    def gather_stats(self, parent=None):
+        """ Walk through the group tree, count the number of hosts assigned directly or indirectly
+            to the group. This count is used primarily for deciding which groups to generate configuration for."""
+        if not parent:
+            q = "SELECT groupname, parent_group FROM groups WHERE groupname='plain' ORDER BY (CONVERT(groupname USING latin1) COLLATE latin1_swedish_ci)"
+            rows = self.db.get_all(q)
+        else:
+            q = "SELECT groupname, parent_group FROM groups WHERE parent_group=:parent AND groupname!='plain' ORDER BY (CONVERT(groupname USING latin1) COLLATE latin1_swedish_ci)"
+            rows = self.db.get_all(q, parent=parent)
+        hostcount = 0   
+        for (groupname, parent) in rows:
+            if not groupname:
+                continue
+            print "Gather stats for group ", groupname
+            hostcount = self.db.get("SELECT COUNT(*) from hosts WHERE `group`= :groupname AND entry_status='Active'", groupname=groupname)[0][0]
+            print "Direct host count for %s is %d"%(groupname, hostcount)
+            indirect = self.gather_stats(parent=groupname)
+            print "Indirect host count for %s is %d"%(groupname, indirect)
+            hostcount += indirect
+            self.db.put("UPDATE groups SET hostcount=:hostcount WHERE groupname=:groupname", groupname=groupname, hostcount=hostcount)
+            print "Group %s has %d active hosts"%(groupname, hostcount)
+        return hostcount
+ 

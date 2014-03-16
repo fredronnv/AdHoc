@@ -219,33 +219,33 @@ class MyTests(object):
             self.superuser.add_privilege("write_all_buildings")
             
             self.reguser = test_rpcc_client.RPCC(url, "fbq", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
-            self.flooradmin = test_rpcc_client.RPCC(url, "flooradm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
-            self.flooradmin.set_privileges("write_all_hosts", 
-                                           "admin_all_pools",
-                                           "write_all_rooms")
-            self.servicedesk = test_rpcc_client.RPCC(url, "sdadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
-            self.servicedesk.set_privileges("write_all_hosts", 
-                                            "write_all_groups", 
-                                            "admin_all_pools",
-                                            "write_all_host_classes",
-                                            "write_all_rooms",
-                                            "write_all_buildings",
-                                            )
-            self.networkadmin = test_rpcc_client.RPCC(url, "nwadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
-            self.networkadmin.set_privileges("write_all_hosts", 
-                                             "write_all_groups", 
-                                             "write_all_networks", 
-                                             "write_all_subnetworks", 
-                                             "write_all_pools",
-                                             "admin_all_pools",
-                                             "write_all_rooms",
-                                             "write_all_optionspaces",
-                                             "write_all_host_classes",
-                                             "write_all_buildings",
-                                             "write_all_global_options",
-                                             "write_all_pool_ranges")
-            
-            regular_users = (self.reguser, self.servicedesk, self.flooradmin, self.servicedesk, self.networkadmin)
+#            self.flooradmin = test_rpcc_client.RPCC(url, "flooradm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+#            self.flooradmin.set_privileges("write_all_hosts", 
+#                                           "admin_all_pools",
+#                                           "write_all_rooms")
+#            self.servicedesk = test_rpcc_client.RPCC(url, "sdadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+#            self.servicedesk.set_privileges("write_all_hosts", 
+#                                            "write_all_groups", 
+#                                            "admin_all_pools",
+#                                            "write_all_host_classes",
+#                                            "write_all_rooms",
+#                                            "write_all_buildings",
+#                                            )
+#            self.networkadmin = test_rpcc_client.RPCC(url, "nwadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+#            self.networkadmin.set_privileges("write_all_hosts", 
+#                                             "write_all_groups", 
+#                                             "write_all_networks", 
+#                                             "write_all_subnetworks", 
+#                                             "write_all_pools",
+#                                             "admin_all_pools",
+#                                             "write_all_rooms",
+#                                             "write_all_optionspaces",
+#                                             "write_all_host_classes",
+#                                             "write_all_buildings",
+#                                             "write_all_global_options",
+#                                             "write_all_pool_ranges")
+            regular_users = (self.reguser,)
+            #regular_users = (self.reguser, self.servicedesk, self.flooradmin, self.servicedesk, self.networkadmin)
             
             #for px in regular_users:
                 #px.clear_privileges()

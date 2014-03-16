@@ -21,10 +21,12 @@ class DhcpdConf(Function):
 class DhcpXfer(SessionedFunction):
     extname = "dhcp_xfer"
     returns = ExtNull
-    
+    wip=True
     def do(self):
         self.dhcp_manager.transfer_from_old_database(self.optionset_manager)
- 
+  
+        
+
         
 class DHCPManager(Manager):
     
@@ -661,14 +663,15 @@ class DHCPManager(Manager):
                 self.emit("}")
             else:
                 self.emit("#shared-network %s {} # Empty, no pools or subnetworks" % id)
-
+                
+   
     def emit_groups(self, parent=None, indent=0, timing_array=None):
         
         if not parent:
             q = "SELECT groupname, parent_group, optionspace FROM groups WHERE groupname='plain' ORDER BY (CONVERT(groupname USING latin1) COLLATE latin1_swedish_ci)"
             rows = self.db.get_all(q)
         else:
-            q = "SELECT groupname, parent_group, optionspace FROM groups WHERE parent_group=:parent AND groupname!='plain' ORDER BY (CONVERT(groupname USING latin1) COLLATE latin1_swedish_ci)"
+            q = "SELECT groupname, parent_group, optionspace FROM groups WHERE parent_group=:parent AND groupname!='plain' AND hostcount > 0 ORDER BY (CONVERT(groupname USING latin1) COLLATE latin1_swedish_ci)"
             rows = self.db.get_all(q, parent=parent)
             
         for (groupname, parent, optionspace) in rows:
@@ -1010,7 +1013,7 @@ class DHCPManager(Manager):
             else:
                 space = ""
             if type(value) is list:
-                value = ", ".join(value)
+                value = ", ".join([str(x) for x in value])
             if opt_type == 'text':
                 self.emit("%s%s%s \"%s\";" % (opt, space, name, value), 4 * indent)
             else:

@@ -271,5 +271,17 @@ class T1180_GroupDestroyLiteralOption(SuperUserTests):
                     self.superuser.group_destroy('QZ1243A')
                 except:
                     pass
+                
+class T1190_GroupGatherStats(SuperUserTests):
+    """ Test group_gather_stats"""
+    
+    def do(self):
+        with AssertAccessError(self):
+            self.proxy.group_gather_stats()
+            
+            gd = self.superuser.group_fetch('plain',{'hostcount':True})
+            
+            assert gd.hostcount and gd.hostcount > 10, "Too few members of group plain"
+            
 if __name__ == "__main__":
     sys.exit(main())
