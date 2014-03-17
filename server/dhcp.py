@@ -6,7 +6,9 @@ import optionset
 from util import *
 from compiler.ast import Break
 
-
+class ExtDhcpdRejectsConfigurationError(ExtValueError):
+    desc = "The resulting configuration is rejected bu dhcpd."
+    
 class DhcpdConf(Function):
     extname = "dhcpd_config"
     params = [("server_id", ExtString),
@@ -876,11 +878,16 @@ class DHCPManager(Manager):
         return pools
 
     def emit_ranges(self, poolname, indent):
+        
+        argdict = {"poolname": poolname}
         q = "SELECT start_ip,end_ip FROM pool_ranges WHERE pool=:poolname "
-        q += " AND (served_by=:server_id OR served_by IS NULL ) ORDER BY start_ip ASC"
-
-        for(start, end) in self.db.get_all(q, poolname=poolname, server_id=self.serverID):
-            self.emit("range %s %s;" % (start, end), indent)
+        if self.serverID:
+            q += " AND (served_by=:server_id OR served_by IS NULL ) "
+            argdict["server_id"] = self.serverID
+        q += " ORDER BY start_ip ASC"
+        if self.serverID:
+            for(start, end) in self.db.get_all(q, **argdict):
+                self.emit("range %s %s;" % (start, end), indent)
 
     def emit_subnetwork(self, subnet_id, network, info, hasopts, indent): 
             #print "em:",network,subnet_id,info  
@@ -1030,3 +1037,14 @@ class DHCPManager(Manager):
         self.dhcpd_conf.append("%s%s\n" % (' ' * indent, msg))
         #self.dhcpd_conf.append(msg.rstrip() + "\n")
         #self.dhcpd_conf.append("\n")
+        
+    def check_config(self):
+        if os.environ["ADHOC_DHCPD_PATH"]:
+            s = self.dhcp_manager.make_dhcpd_conf(None)
+            ret = self.proxy.dhcpd_config("A")
+            of = tenmpfile.NamedTemporaryFile()
+            of.write(ret.encode('utf-8'))
+            filename = of.name
+            rv = subprocess.call([os.environ["ADHOC_DHCPD_PATH"], "-t", "-cf", filename] )
+            if rv:
+                raise ExtDhcpdRejectsConfigurationError()
