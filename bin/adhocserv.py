@@ -35,11 +35,11 @@ class StartMe(object):
 	ssl_config = None
         if enable_ssl:
             print "Enabling SSL"
-            keyfile = os.environ.get('RPCC_SERVER_SSL_KEYFILE', 'etc/xmlrpc_server.key')
-            certfile = os.environ.get('RPCC_SERVER_SSL_CERTFILE', 'etc/xmlrpc_server.cert')
+            keyfile = os.environ.get('RPCC_SERVER_SSL_KEYFILE', 'etc/rpcc_server.key')
+            certfile = os.environ.get('RPCC_SERVER_SSL_CERTFILE', 'etc/rpcc_server.cert')
             chainfile = os.environ.get('RPCC_SERVER_SSL_CHAINFILE', None)
 
-	    ssl_config = SSLConfig(keyfile, cerftfine, chainfile)
+	    ssl_config = SSLConfig(keyfile, certfile, chainfile)
 
         srv = AdHocServer(host, port, ssl_config)
 

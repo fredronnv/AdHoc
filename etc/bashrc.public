@@ -1,6 +1,6 @@
 export PYTHONPATH=${INSTALL_HOME}/lib/python2.6
 export ADHOC_RUNTIME_HOME=${INSTALL_HOME}
-export KRB5_KTNAME=$ADHOC_RUNTIME_HOME/server.keytab
+export KRB5_KTNAME=$ADHOC_RUNTIME_HOME/etc/server.keytab
 
    
 export ADHOC_DB_HOST=`hostname`
@@ -39,8 +39,11 @@ fi
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"prod" ]; then
     export ADHOC_DB_DATABASE=AdHoc
     export ADHOC_DB_USER=srvadhoc
+    export ADHOC_SSL_ENABLE=1
+    export RPCC_SERVER_SSL_KEYFILE=$ADHOC_RUNTIME_HOME/etc/$ADHOC_SERVER_HOST.key
+    export RPCC_SERVER_SSL_CERTFILE=$ADHOC_RUNTIME_HOME/etc/$ADHOC_SERVER_HOST.cert
+    export RPCC_SERVER_SSL_CHAINFILE=$ADHOC_RUNTIME_HOME/etc/$ADHOC_SERVER_HOST.chain
 fi
-
 
 
 
