@@ -8,14 +8,19 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
  
  4. Start mysql server
         /etc/init.d/mysqld start
+        
  5. Set mysql root password
         /usr/bin/mysqladmin -u root password 'new-password'
         /usr/bin/mysqladmin -u root -h adhoc.ita.chalmers.se password 'new-password'
+        
  6. Configure mysql to run on level 3
         /sbin/chkconfig --level 3 mysqld on
+        
  6. Reboot and check that mysqld starts.
         /sbin/shutdown -r now
+        
  7. Log in. If you have enables GSSAPI ssh and have a kerberos ticked you should get in wothout giving a password.
+ 
  8. Check that mysqld is running:
         ps -ef | grep mys
         root      1484     1  0 17:38 ?        00:00:00 /bin/sh /usr/bin/mysqld_safe --datadir=/var/lib/mysql --socket=/var/lib/mysql/mysql.sock --pid-file=/var/run/mysqld/mysqld.pid --basedir=/usr --user=mysql
@@ -25,12 +30,49 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
         cd
         mkdir -p work/proj/AdHoc
         cd work/proj/AdHoc
+        
  10. Check out AdHoc from svn. Do not store your password unencrypted.
         svn co https://svn.ita.chalmers.se/repos/adhoc/trunk
         cd trunk
+        
  11. Create the AdHoc database
         cd doc
         mysql -u root -p <database.sql
- 12.
- 
         
+ 12. Grant privileges for the local user srvadhoc to the database. In the following, replace <hostname> with the FQDN of the local host, and <db_password> with a secure password of your choosing.
+        mysql -u root -p <<EOF
+        CREATE USER 'srvadhoc'@'adhoc.ita.chalmers.se' IDENTIFIED BY '1qaz2wsx+pl,';
+        GRANT USAGE ON *.* TO 'srvadhoc' IDENTIFIED BY '1qaz2wsx+pl,' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0 ;
+        GRANT SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES ON  AdHoc.* TO  'srvadhoc'@'adhoc.ita.chalmers.se';
+        COMMIT;
+ EOF
+ 
+ 13: Open the firewall
+  
+     Add the following two lines BEFORE the REJECT line at the end of /etc/sysconfig/iptables:
+        
+        # AdHoc Server
+        -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp -s 129.16/16 --dport 8877 -j ACCEPT
+        
+     Then restart the firewall:
+        /etc/init.d/iptables restart
+  
+ 14. Configure the server startup environment
+        cd
+        cd work/proj/AdHoc/trunk
+        export ADHOC_RUNTIME_HOME=`pwd`
+        cp etc/bashrc.private.prototype etc/bashrc.private
+        chmod 400 etc/bashrc.private
+        vi etc/bashrc.private
+        13a) Replace XXX with <db_password> used above, save and quit.
+        . .bashrc
+        
+ 15. Start the server
+        python ./bin/adhocserv.py `hostname`:8877
+ 
+ 16. Check connectivity. Replace <adhoc_server_host> with the actual FQDN of the AdHoc Server you just started. The sherver should only be
+     accessible from within Chalmers network, 129.16/16
+     
+        Start your browser and go to the following url:
+        http://<adhoc_server_host>:8877
+        The displayed page show say "Welcome to the AdHoc RPCC Server" on its first line.

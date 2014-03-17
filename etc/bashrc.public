@@ -3,7 +3,7 @@ export ADHOC_RUNTIME_HOME=${INSTALL_HOME}
 export KRB5_KTNAME=$ADHOC_RUNTIME_HOME/server.keytab
 
    
-export ADHOC_DB_HOST=adhoc.ita.chalmers.se
+export ADHOC_DB_HOST=`hostname`
 export ADHOC_DB_PORT=3306
 export ADHOC_DB_PASSWORD=XXX # Overridden in bashrc.private
 
@@ -37,7 +37,6 @@ if [ x"$CHALMERS_DEPLOY_LEVEL" = x"uat" ]; then
 fi
 
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"prod" ]; then
-    export ADHOC_SERVER_HOST=`adhoc.ita.chalmers.se`
     export ADHOC_DB_DATABASE=AdHoc
     export ADHOC_DB_USER=srvadhoc
 fi
