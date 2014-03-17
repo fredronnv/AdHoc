@@ -50,7 +50,7 @@ class T1310_HostFetch(UnAuthTests):
             
 class T1320_HostCreate(FloorAdminTests):
     """ Test host_create """
-    
+
     def do(self):
         try:
             self.superuser.host_destroy('QZ1243A')
@@ -58,16 +58,44 @@ class T1320_HostCreate(FloorAdminTests):
             pass
         with AssertAccessError(self):
             try:
+                pre_hostcount = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
                 self.proxy.host_create('QZ1243A', '00:01:02:03:04:05', {})
                 ret = self.superuser.host_fetch('QZ1243A', data_template)
                 self.assertindict(ret, data_template.keys(), exact=True)
+                post_hostcount = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
                 
                 assert ret.host == "QZ1243A", "Bad host, is % should be %s" % (ret.host, "QZ1243A")
                 assert ret.group == "plain", "Bad group %s, should be 'plain'" % ret.group
-                assert ret.mac == '00:01:02:03:04:05', "BAd mac %s, should be '00:01:02:03:04:05'"%(ret.mac)
+                assert ret.mac == '00:01:02:03:04:05', "Bad mac %s, should be '00:01:02:03:04:05'"%(ret.mac)
+                assert pre_hostcount + 1 == post_hostcount, "Host count of group plain inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount, post_hostcount, pre_hostcount+1)
             finally:
                 try:
                     self.superuser.host_destroy('QZ1243A')
+                except:
+                    pass
+            try:
+                self.superuser.group_destroy('QZ1243A')
+            except:
+                pass
+            try:
+                self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
+                pre_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
+                pre_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount':True}).hostcount
+                pre_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount':True}).hostcount
+                self.proxy.host_create('QZ1243A', '00:01:02:03:04:05', {'group':'QZ1243A'})
+                
+                post_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
+                post_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount':True}).hostcount
+                post_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount':True}).hostcount
+                
+                assert pre_hostcount_plain + 1 == post_hostcount_plain, "Host count of group plain inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount_plain, post_hostcount_plain, post_hostcount_plain+1)
+                assert pre_hostcount_altiris + 1 == post_hostcount_altiris, "Host count of group altiris inaccurate. Was %d, id %d, but shoucd be %d"%(pre_hostcount_altiris, post_hostcount_altiris, pre_hostcount_altiris+1)
+                assert pre_hostcount_QZ1243A + 1 == post_hostcount_QZ1243A, "Host count of group QZ1243A inaccurate. Was %d, id %d, but shoucd be %d"%(pre_hostcount_QZ1243A, post_hostcount_QZ1243A, pre_hostcount_QZ1243A+1)
+            
+            finally:
+                try:
+                    self.superuser.host_destroy('QZ1243A')
+                    self.superuser.group_destroy('QZ1243A')
                 except:
                     pass
         
@@ -243,9 +271,13 @@ class T1392_HostSetBadDNS(UnAuthTests):
 
 class T1393_HostSetStatus(FloorAdminTests):
     """ Test setting status on a host"""
-    
+
     def do(self):
+        pre_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
         self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {})
+        post_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
+        assert post_hostcount == pre_hostcount + 1, "Host count did not increment"
+        pre_hostcount = post_hostcount
         with AssertAccessError(self):
             try:
                 toset = "Inactive"
@@ -255,6 +287,9 @@ class T1393_HostSetStatus(FloorAdminTests):
                 assert nd.mac == "00:01:02:03:04:05", "Bad mac"
                 assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
                 assert nd.status == toset, "Bad status %s, should be '%s'" % (nd.status, toset)
+                post_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
+                assert post_hostcount == pre_hostcount - 1, "Host count did not decrement"
+                pre_hostcount = post_hostcount
                 
                 toset = "Active"
                 self.proxy.host_update('QZ1243A', {"status": toset})
@@ -263,6 +298,9 @@ class T1393_HostSetStatus(FloorAdminTests):
                 assert nd.mac == "00:01:02:03:04:05", "Bad mac"
                 assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
                 assert nd.status == toset, "Bad status %s, should be '%s'" % (nd.status, toset)
+                post_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
+                assert post_hostcount == pre_hostcount + 1, "Host count did not increment"
+                pre_hostcount = post_hostcount
                 
                 toset = "Dead"
                 self.proxy.host_update('QZ1243A', {"status": toset})
@@ -271,6 +309,9 @@ class T1393_HostSetStatus(FloorAdminTests):
                 assert nd.mac == "00:01:02:03:04:05", "Bad mac"
                 assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
                 assert nd.status == toset, "Bad status %s, should be '%s'" % (nd.status, toset)
+                post_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
+                assert post_hostcount == pre_hostcount - 1, "Host count did not decrement"
+                pre_hostcount = post_hostcount
             finally:
                 try:
                     self.superuser.host_destroy('QZ1243A')

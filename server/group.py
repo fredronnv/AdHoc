@@ -150,7 +150,7 @@ class Group(Model):
 
     @template("parent", ExtGroup)
     def get_parent(self):
-        p = self.manager.get_parent(self.parent)
+        p = self.manager.get_group(self.parent)
         return p
     
     @template("optionspace", ExtOrNullOptionspace)
@@ -208,11 +208,10 @@ class Group(Model):
         
         #print "Group %s changed Info to %s" % (self.oid, value)
     
-    @update("parent", ExtString)
+    @update("parent", ExtGroup)
     @entry(g_write)
-    def set_parent(self, value):
-        q = "UPDATE groups SET parent_group=:value WHERE groupname=:name"
-        self.db.put(q, name=self.oid, value=value)
+    def set_parent(self, new_parent):
+        self.manager.reparent(self, new_parent)
                 
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)
@@ -238,9 +237,6 @@ class GroupManager(Manager):
 
     def get_group(self, group_name):
         return self.model(group_name)
-    
-    def get_parent(self, parent_name):
-        return self.model(parent_name)
 
     def search_select(self, dq):
         dq.table("groups g")
@@ -367,4 +363,31 @@ class GroupManager(Manager):
             self.db.put("UPDATE groups SET hostcount=:hostcount WHERE groupname=:groupname", groupname=groupname, hostcount=hostcount)
             print "Group %s has %d active hosts"%(groupname, hostcount)
         return hostcount
- 
+    
+    @entry(g_write)
+    def reparent(self, group, new_parent):
+    
+        if new_parent.oid == group.parent:
+            return  # Nothing to do, new parent and old are the same
+        
+        if group.hostcount:
+            old_parent = self.get_group(group.parent)
+            self.adjust_hostcount(old_parent, -group.hostcount)
+            self.adjust_hostcount(new_parent, group.hostcount)
+            
+        q = "UPDATE groups SET parent_group=:value WHERE groupname=:name"
+        self.db.put(q, name=group.oid, value=new_parent.oid)
+        
+        
+    @entry(g_write)
+    def adjust_hostcount(self, group, adjust):
+        
+        if not adjust:
+            return  # Nothing to do
+        groupname = group.oid
+        q = "UPDATE groups SET hostcount = hostcount + :adjust WHERE groupname=:groupname"
+        self.db.put(q, adjust=adjust, groupname=groupname)
+        if not group.parent or group.parent == groupname:
+            return  # No parents to adjust
+        self.adjust_hostcount(self.get_group(group.parent), adjust)  # Walk the tree upwards and do the same adjustment
+        

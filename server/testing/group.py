@@ -135,18 +135,57 @@ class T1150_GroupSetInfo(ServiceDeskTests):
                 
 class T1150_GroupSetParent(ServiceDeskTests):
     """ Test setting parent on a group"""
-    
+
     def do(self):
+        
+        try:
+            self.superuser.host_destroy('QZ1243A')
+        except:
+            pass
+        try:
+            self.superuser.host_destroy('QZ1243B')
+        except:
+            pass
+        try:
+            self.superuser.host_destroy('QZ1243c')
+        except:
+            pass
+        try:
+            self.superuser.group_destroy('QZ1243A')
+        except:
+            pass
+                
         self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
+        self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {'group':'QZ1243A'})
+        self.superuser.host_create('QZ1243B', '00:01:02:03:04:06', {'group':'QZ1243A'})
+        self.superuser.host_create('QZ1243C', '00:01:02:03:04:07', {'group':'QZ1243A'})
         with AssertAccessError(self):
             try:
+                
+                pre_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
+                pre_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount':True}).hostcount
+                pre_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount':True}).hostcount
+                
                 self.proxy.group_update('QZ1243A', {"parent": "plain"})
+                
+                post_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
+                post_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount':True}).hostcount
+                post_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount':True}).hostcount
+                
                 nd = self.superuser.group_fetch('QZ1243A', data_template)
                 assert nd.group == "QZ1243A", "Bad group group"
                 assert nd.info == "TestGroup", "Bad info"
                 assert nd.parent == "plain", "Bad parent %s, should be 'plain'" % nd.parent
+                
+                assert pre_hostcount_plain == post_hostcount_plain, "Host count of group plain inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount_plain, post_hostcount_plain, post_hostcount_plain)
+                assert pre_hostcount_altiris - 3 == post_hostcount_altiris, "Host count of group altiris inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount_altiris, post_hostcount_altiris, pre_hostcount_altiris-3)
+                assert pre_hostcount_QZ1243A == post_hostcount_QZ1243A, "Host count of group QZ1243A inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount_QZ1243A, post_hostcount_QZ1243A, pre_hostcount_QZ1243A)
+            
             finally:
                 try:
+                    self.superuser.host_destroy('QZ1243A')
+                    self.superuser.host_destroy('QZ1243B')
+                    self.superuser.host_destroy('QZ1243C')
                     self.superuser.group_destroy('QZ1243A')
                 except:
                     pass

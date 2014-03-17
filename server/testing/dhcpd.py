@@ -15,7 +15,7 @@ class T0300_DhcpXfer(SuperUserTests):
 
 class T0310_DhcpdConf(AuthTests):
     """ Test dhcpd configuration"""
-    wip=True
+    skip=True
     def do(self):
         if self.proxy != self.superuser:
             return

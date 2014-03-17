@@ -193,10 +193,12 @@ CREATE TABLE IF NOT EXISTS `groups` (
   `changed_by` varchar(8) character set ascii collate ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
   `optionset` int(11) NOT NULL,
+  `hostcount` int(11) NOT NULL default '0' COMMENT 'Current number of active hosts, including subgroups',
   PRIMARY KEY  (`groupname`),
   KEY `optionspace` (`optionspace`),
   KEY `parent_group` (`parent_group`),
-  KEY `optionset` (`optionset`)
+  KEY `optionset` (`optionset`),
+  KEY `hostcount` (`hostcount`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table of host groups';
 
 --

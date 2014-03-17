@@ -302,6 +302,10 @@ class Host(Model):
     @update("status", ExtHostStatus)
     @entry(g_write)
     def set_status(self, value):
+        if self.status == "Active" and value != "Active":
+            self.group_manager.adjust_hostcount(self.get_group(), -1)
+        if self.status != "Active" and value == "Active":
+            self.group_manager.adjust_hostcount(self.get_group(), 1)
         q = "UPDATE hosts SET entry_status=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
             
@@ -393,6 +397,10 @@ class HostManager(Manager):
             print e
             raise ExtHostAlreadyExistsError()
         
+        if status=="Active":
+            gm = self.group_manager
+            self.group_manager.adjust_hostcount(group, 1)
+        
     @entry(g_write)
     def destroy_host(self, fun, host):
         
@@ -403,6 +411,10 @@ class HostManager(Manager):
             self.db.put(q, hostname=host.oid)
         except IntegrityError:
             raise ExtHostInUseError
+        
+        if host.status=="Active":
+            gm = self.group_manager
+            self.group_manager.adjust_hostcount(gm.get_group(host.group), -1)
         
         #print "Host destroyed, name=", host.oid
         
