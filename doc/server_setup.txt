@@ -86,4 +86,10 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
         Make sure that ADHOC_SSL_ENABLE is set to 1 in etc/bashrc.public.
         Start the server again, then try accessing the server using HTTPS from your browser. Accessing with HTTP should fail.
         
- 18. Stop the server and restart.
+ 18. Download and install the daemon utility
+        wget http://libslack.org/daemon/download/daemon-0.6.4-1.x86_64.rpm
+        rpm -i daemon-0.6.4-1.x86_64.rpm
+        
+ 18. Install the startup script
+ 
+ 
