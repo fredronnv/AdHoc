@@ -13,7 +13,7 @@ start()
 {
         echo -n Starting AdHoc server:
         . $ADHOC_RUNTIME_HOME/.bashrc
-        /usr/local/bin/daemon --name=adhoc -d -v -r --user=${ADHOC_USER} --delay=1800  -outlog=/var/log/AdHoc.log python ${ADHOC_RUNTIME_HOME}/bin/adhocserv.py
+        /usr/local/bin/daemon -P ${ADHOC_RUNTIME_HOME}/var/run --name=adhoc -d -v -r --user=${ADHOC_USER} --delay=1800  -outlog=/var/log/AdHoc.log python ${ADHOC_RUNTIME_HOME}/bin/adhocserv.py
         ### Create the lock file ###
         success "AdHoc server startup"
         echo
@@ -21,7 +21,7 @@ start()
 # Stop the service AdHoc
 stop() {
         echo -n Stopping AdHoc server:
-        /usr/local/bin/daemon --name=adhoc --stop
+        /usr/local/bin/daemon -P ${ADHOC_RUNTIME_HOME}/var/run --name=adhoc --stop
         echo
 }
 
@@ -29,7 +29,16 @@ restart()
 {
 	echo -n "Restarting AdHoc server: "
 	. $ADHOC_RUNTIME_PATH/.bashrc
-	/usr/local/bin/daemon --name=adhoc --restart
+	/usr/local/bin/daemon -P ${ADHOC_RUNTIME_HOME}/var/run --name=adhoc --restart
+}
+
+status()
+{
+	if /usr/local/bin/daemon -P ${ADHOC_RUNTIME_HOME}/var/run --name=adhoc --running; then
+		echo The AdHoc server is running
+	else
+		echo The AdHoc server is not running
+	fi
 }
 
 ### main logic ###
