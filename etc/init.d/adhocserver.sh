@@ -17,8 +17,7 @@ start()
     . $ADHOC_RUNTIME_HOME/.bashrc
 	
     /usr/local/bin/daemon -P ${PIDDIR} --name=adhoc -r --user=${ADHOC_USER} --delay=1800 -outlog=${LOGDIR}/AdHoc.log -- python -u ${ADHOC_RUNTIME_HOME}/bin/adhocserv.py ${ADHOC_SERVER_HOST}:${ADHOC_SERVER_PORT} 
-    ### Create the lock file ###
-    success "AdHoc server startup"
+	success "AdHoc server startup"
     echo
 }
 # Stop the service AdHoc

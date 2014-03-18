@@ -1,6 +1,6 @@
 Server setup log. (from fresh RHEL6 system as delivered by operations staff)
 
-1. Install /etc/krb5.keytab (as root)
+1. Install /etc/krb5.keytab (as root) (see CSD-wiki for instructions as to obtain such a keytab)
 2. yum install mysql-server (as root)
 3. Install mysql connector (as root)
         wget https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-1.1.6-1.el6.noarch.rpm
@@ -19,21 +19,23 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
  6. Reboot and check that mysqld starts.
         /sbin/shutdown -r now
         
- 7. Log in. If you have enables GSSAPI ssh and have a kerberos ticked you should get in wothout giving a password.
+ 7. Log in. If you have enabled GSSAPI ssh and have a kerberos ticked you should get in wothout giving a password.
  
  8. Check that mysqld is running:
         ps -ef | grep mys
         root      1484     1  0 17:38 ?        00:00:00 /bin/sh /usr/bin/mysqld_safe --datadir=/var/lib/mysql --socket=/var/lib/mysql/mysql.sock --pid-file=/var/run/mysqld/mysqld.pid --basedir=/usr --user=mysql
         mysql     1586  1484  0 17:38 ?        00:00:00 /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --user=mysql --log-error=/var/log/mysqld.log --pid-file=/var/run/mysqld/mysqld.pid --socket=/var/lib/mysql/mysql.sock
         
- 9. Make a working directory
-        cd
-        mkdir -p work/proj/AdHoc
-        cd work/proj/AdHoc
+ 9. Make an install directory
+        mkdir -p /server/AdHoc
+        cd /server/AdHoc
         
  10. Check out AdHoc from svn. Do not store your password unencrypted.
         svn co https://svn.ita.chalmers.se/repos/adhoc/trunk
         cd trunk
+        mv .??* * ..
+        cd ..
+        rmdir trunk
         
  11. Create the AdHoc database
         cd doc
@@ -45,7 +47,7 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
         GRANT USAGE ON *.* TO 'srvadhoc' IDENTIFIED BY '1qaz2wsx+pl,' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0 ;
         GRANT SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES ON  AdHoc.* TO  'srvadhoc'@'adhoc.ita.chalmers.se';
         COMMIT;
- EOF
+EOF
  
  13: Open the firewall
   
@@ -56,18 +58,25 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
         
      Then restart the firewall:
         /etc/init.d/iptables restart
+        
+ 14. Add the srvadhoc user
+        echo "srvadhoc:x:127397:127397:DHCP administration system (AdHoc):/:" >>/etc/passwd
+        
+ 15. Add the srvadhoc group
+        echo "srvadhoc::127397:" >>/etc/group
   
  14. Configure the server startup environment
-        cd
-        cd work/proj/AdHoc/trunk
-        export ADHOC_RUNTIME_HOME=`pwd`
+
+        cd /server/AdHoc
         cp etc/bashrc.private.prototype etc/bashrc.private
         chmod 400 etc/bashrc.private
         vi etc/bashrc.private
-        13a) Replace XXX with <db_password> used above, save and quit.
+            Replace XXX for the production database with <db_password> used above, save and quit.
         . .bashrc
         
- 15. Start the server
+ 15. Start the server. As we have not configure SSL yet, disable that first.
+ 
+        unset ADHOC_SSL_ENABLE
         python ./bin/adhocserv.py `hostname`:8877
  
  16. Check connectivity. Replace <adhoc_server_host> with the actual FQDN of the AdHoc Server you just started. The sherver should only be
@@ -76,25 +85,41 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
         Start your browser and go to the following url:
         http://<adhoc_server_host>:8877
         The displayed page show say "Welcome to the AdHoc RPCC Server" on its first line.
-        Stop the server
+        Stop the server with ctrl-C
         
  17. Set up SSL
         Order and install SSL certificates. 
         Put the key file into $ADHOC_RUNTIME_HOME/etc/`hostname`.key. Make the file unreadable except for the server user.
         Put the certificate file into $ADHOC_RUNTIME_HOME/etc/`hostname`.cert Make the file readable by everyone and not writable by anyone.
         Put the chain file into $ADHOC_RUNTIME_HOME/etc/`hostname`.chain.  Make the file readable by everyone and not writable by anyone.
-        Make sure that ADHOC_SSL_ENABLE is set to 1 in etc/bashrc.public.
+        
+        Re-read the configuration again
+        . .bashrc
+        
         Start the server again, then try accessing the server using HTTPS from your browser. Accessing with HTTP should fail.
+        python ./bin/adhocserv.py `hostname`:8877
         
  18. Download and install the daemon utility
         wget http://libslack.org/daemon/download/daemon-0.6.4-1.x86_64.rpm
         rpm -i daemon-0.6.4-1.x86_64.rpm
         
- 19. Add the srvadhoc user
-        echo "srvadhoc:x:127397:127397:DHCP administration system (AdHoc):/:" >>/etc/passwd
-        
  18. Install the startup script
         cp etc/init.d/adhocserver.sh /etc/init.d/adhocserver
+        
+ 19. Give away the files to srvadhoc
+        chown -R srvadhoc .
+        chgrp -R srvadhoc .
+        
+ 19. Tell Linux to start the adhoc server when booting
+        /sbin/chkconfig --level 3 adhocserver on
+        
+ 20. Start server manually
+        /etc/init.s/adhocserver start
+        
+ 21. Check accessibility again, see step 17.
+ 
+ 22. Reboot and check that the server comes up again.
+        shutdown -r now
         
  
  
