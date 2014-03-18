@@ -41,14 +41,24 @@ class SSLConfig(object):
         if chainfile:
             self.chainfile = chainfile
 
-        self.ctx = SSL.Context(SSL.SSLv23_METHOD)
-        self.ctx.use_privatekey_file(keyfile)
-        self.ctx.use_certificate_file(certfile)
-        if chainfile:
-            self.ctx.load_verify_locations(chainfile)
+        #self.ctx = SSL.Context(SSL.SSLv23_METHOD)
+        #self.ctx.use_privatekey_file(keyfile)
+        #self.ctx.use_certificate_file(certfile)
+        #if chainfile:
+        #    self.ctx.load_verify_locations(chainfile)
 
-    def wrap_socket(self, server, raw_socket):
-        return SSL.Connection(self.ctx, raw_socket)
+    def wrap_socket(self, raw_socket):
+	return ssl.wrap_socket(raw_socket, 
+			       keyfile=self.keyfile, 
+			       certfile=self.certfile, 
+			       server_side=True,
+			       ssl_version=ssl.PROTOCOL_TLSv1,
+			       ca_certs=self.chainfile)
+
+
+	
+
+	
 
 
 class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
