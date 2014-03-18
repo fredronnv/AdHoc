@@ -1066,17 +1066,6 @@ class Manager(object):
         for (key, search_val) in opts.items():
             skey = self._get_search_key(self.function.api.version, key)
             skey.use(dq, self, search_val)
-            
-    def approve(self):
-        """ This function is called immediately prior to committing any changes made by
-            an RPC call. This gives the manager a final chance of appriving or disapproving the change
-            and make things roll back. 
-            A disapproval is supposed to be issued by rising an exception and is a veto.
-            An explicit approval is signaled by returning True. In that case, the manager vouches for 
-            all other managers and no more questions will be asked.
-            If the manager is of no opinion, False is to be returned.
-            The default function is of no opinion and returns False. Override if needed"""
-        return False
     
 if __name__ == "__main__":
     from exttype import *

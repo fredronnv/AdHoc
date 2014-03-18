@@ -89,7 +89,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     manager_classes = []
     model_classes = []
-    approver_class = None
 
     # If docroot is set, a default "GET" HTTP-method handler will be
     # enabled, and serve documents from docroot.
@@ -290,10 +289,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             self.function_start(funobj, params, start_time, api_version)
             result = funobj.call(params)
             ret = {'result': result}
-            
-            for mgr in self.get_all_managers():
-                if mgr.approve(): # If a manager approves, the manager speaks for everyone else.
-                    break
             if db:
                 db.commit()
         except exterror.ExtError as e:
