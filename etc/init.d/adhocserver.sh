@@ -8,7 +8,7 @@
 # Start the AdHoc server
 
 ADHOC_RUNTIME_HOME=${ADHOC_RUNTIME_HOME:-/server/AdHoc}
-ADHOC_USER=bernerus
+ADHOC_USER=${ADHOC_USER:-srvadhoc}
 PIDDIR=${ADHOC_RUNTIME_HOME}/var/run
 LOGDIR=${ADHOC_RUNTIME_HOME}/var/log
 start() 
@@ -59,7 +59,7 @@ case "$1" in
         restart
         ;;
   *)
-        echo "Usage: $0 {start|stop|restart|reload|status}"
+        echo "Usage: $0 {start|stop|restart|status}"
         exit 1
 esac
 exit 0
