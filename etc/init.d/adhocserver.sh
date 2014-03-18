@@ -6,22 +6,29 @@
 # Get function from functions library
 . /etc/init.d/functions
 # Start the AdHoc server
-start() {
-        initlog -c "echo -n Starting AdHoc server: "
-        . $ADHOC_RUNTIME_PATH/.bashrc
-        daemon d -v -r python $ADHOC_RUNTIME_PATH/bin/adhocserver.sh >>/var/log/AdHoc.log
+ADHOC_RUNTIME_HOME=${ADHOC_RUNTIME_HOME:-/server/AdHoc}
+start() 
+{
+        echo -n Starting AdHoc server:
+        . $ADHOC_RUNTIME_HOME/.bashrc
+        daemon --name=adhoc -d -v -r --user=srvadhoc--delay=1800  -l /var/log/AdHoc.log python $ADHOC_RUNTIME_PATH/bin/adhocserver.sh >>/var/log/AdHoc.log
         ### Create the lock file ###
-        touch /var/lock/subsys/AdHoc
         success $"AdHoc server startup"
         echo
 }
-# Restart the service AdHoc
-stop() {
-        initlog -c "echo -n Stopping AdHoc server: "
-        killproc AdHoc
-        ### Now, delete the lock file ###
-        rm -f /var/lock/subsys/AdHoc
+# Stop the service AdHoc
+stop() 
+{
+        echo -n Stopping AdHoc server:
+        daemon --name=adhoc --stop
         echo
+}
+
+restart() 
+{
+		initlog -c "Restarting AdHoc server: "
+		. $ADHOC_RUNTIME_PATH/.bashrc
+		daemon --name=adhoc --restart
 }
 ### main logic ###
 case "$1" in
@@ -35,11 +42,10 @@ case "$1" in
         status AdHoc
         ;;
   restart|reload|condrestart)
-        stop
-        start
+        restart
         ;;
   *)
-        echo $"Usage: $0 {start|stop|restart|reload|status}"
+        echo "Usage: $0 {start|stop|restart|reload|status}"
         exit 1
 esac
 exit 0
