@@ -7,15 +7,16 @@
 . /etc/init.d/functions
 # Start the AdHoc server
 
-ADHOC_RUNTIME_HOME=${ADHOC_RUNTIME_HOME:-/server/AdHoc}
-ADHOC_USER=${ADHOC_USER:-srvadhoc}
+export ADHOC_RUNTIME_HOME=${ADHOC_RUNTIME_HOME:-/server/AdHoc}
+export ADHOC_USER=${ADHOC_USER:-srvadhoc}
 PIDDIR=${ADHOC_RUNTIME_HOME}/var/run
 LOGDIR=${ADHOC_RUNTIME_HOME}/var/log
 start() 
 {
     echo -n Starting AdHoc server:
     . $ADHOC_RUNTIME_HOME/.bashrc
-/usr/local/bin/daemon -P ${PIDDIR} --name=adhoc -r --user=${ADHOC_USER} --delay=1800 -outlog=${LOGDIR}/AdHoc.log python -u ${ADHOC_RUNTIME_HOME}/bin/adhocserv.py ${ADHOC_SERVER_HOST}:${ADHOC_SERVER_PORT} 
+	
+    /usr/local/bin/daemon -P ${PIDDIR} --name=adhoc -r --user=${ADHOC_USER} --delay=1800 -outlog=${LOGDIR}/AdHoc.log -- python -u ${ADHOC_RUNTIME_HOME}/bin/adhocserv.py ${ADHOC_SERVER_HOST}:${ADHOC_SERVER_PORT} 
     ### Create the lock file ###
     success "AdHoc server startup"
     echo
