@@ -9,20 +9,23 @@
 
 ADHOC_RUNTIME_HOME=${ADHOC_RUNTIME_HOME:-/server/AdHoc}
 ADHOC_USER=bernerus
+PIDDIR=${ADHOC_RUNTIME_HOME}/var/run
+LOGDIR=${ADHOC_RUNTIME_HOME}/var/log
 start() 
 {
-        echo -n Starting AdHoc server:
-        . $ADHOC_RUNTIME_HOME/.bashrc
-        /usr/local/bin/daemon -P ${ADHOC_RUNTIME_HOME}/var/run --name=adhoc -d -v -r --user=${ADHOC_USER} --delay=1800  -outlog=/var/log/AdHoc.log python ${ADHOC_RUNTIME_HOME}/bin/adhocserv.py
-        ### Create the lock file ###
-        success "AdHoc server startup"
-        echo
+    echo -n Starting AdHoc server:
+    . $ADHOC_RUNTIME_HOME/.bashrc
+    /usr/local/bin/daemon -P ${PIDDIR} --name=adhoc -r --user=${ADHOC_USER} --delay=1800 -outlog=${LOGDIR}/AdHoc.log python ${ADHOC_RUNTIME_HOME}/bin/adhocserv.py
+    ### Create the lock file ###
+    success "AdHoc server startup"
+    echo
 }
 # Stop the service AdHoc
-stop() {
-        echo -n Stopping AdHoc server:
-        /usr/local/bin/daemon -P ${ADHOC_RUNTIME_HOME}/var/run --name=adhoc --stop
-        echo
+stop() 
+{
+    echo -n Stopping AdHoc server:
+    /usr/local/bin/daemon -P ${ADHOC_RUNTIME_HOME}/var/run --name=adhoc --stop
+    echo
 }
 
 restart() 

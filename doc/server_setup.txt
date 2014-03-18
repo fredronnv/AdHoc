@@ -90,6 +90,11 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
         wget http://libslack.org/daemon/download/daemon-0.6.4-1.x86_64.rpm
         rpm -i daemon-0.6.4-1.x86_64.rpm
         
+ 19. Add the srvadhoc user
+        echo "srvadhoc:x:127397:127397:DHCP administration system (AdHoc):/:" >>/etc/passwd
+        
  18. Install the startup script
+        cp etc/init.d/adhocserver.sh /etc/init.d/adhocserver
+        
  
  
