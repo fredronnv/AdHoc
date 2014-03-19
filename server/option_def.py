@@ -243,7 +243,7 @@ class OptionDef(Model):
         self.db.put(q, name=self.oid, value=nn)
         
         #print "OptionDef %s changed Name to %s" % (self.oid, nn)
-        self.manager.rename_option_def(self, nn)
+        self.manager.rename_object(self, nn)
         
     @update("info", ExtString)
     @entry(g_write)
@@ -296,7 +296,7 @@ class OptionDef(Model):
         self.db.put(q, name=self.oid, value=struct)
         
 
-class OptionDefManager(Manager):
+class OptionDefManager(AdHocManager):
     name = "option_def_manager"
     manages = OptionDef
 
@@ -423,9 +423,3 @@ class OptionDefManager(Manager):
             self.db.put(q, name=option_def.oid)
         except IntegrityError:
             raise ExtOptionDefInUseError()
-              
-    def rename_option_def(self, obj, newname):
-        oid = obj.oid
-        obj.oid = newname
-        del(self._model_cache[oid])
-        self._model_cache[newname] = obj

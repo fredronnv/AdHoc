@@ -103,7 +103,7 @@ class DHCPServer(Model):
         self.db.put(q, dhcp_id=self.oid, info=info)
         
         
-class DHCPServerManager(Manager):
+class DHCPServerManager(AdHocManager):
     name = "dhcp_server_manager"
     manages = DHCPServer
 

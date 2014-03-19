@@ -218,7 +218,7 @@ class NullableIntArrayMatch(NullMatchMixin, Match):
         q.where(expr + " <> '<ul></ul>' AND " + expr + " <> ''")
         
         
-class OptionsetManager(Manager):
+class OptionsetManager(AdHocManager):
     name = "optionset_manager"
     manages = Optionset
     model_lookup_error = ExtNoSuchOptionsetError

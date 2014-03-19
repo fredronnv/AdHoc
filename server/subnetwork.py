@@ -158,7 +158,7 @@ class Subnetwork(Model):
         q = "UPDATE subnetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
         
-        self.manager.rename_subnetwork(self, value)
+        self.manager.rename_object(self, value)
         
     @update("network", ExtNetworkName)
     @entry(g_write)
@@ -184,7 +184,7 @@ class IPV4Match(Match):
         q.where(q1)
  
         
-class SubnetworkManager(Manager):
+class SubnetworkManager(AdHocManager):
     name = "subnetwork_manager"
     manages = Subnetwork
 
@@ -250,12 +250,6 @@ class SubnetworkManager(Manager):
             raise ExtSubnetworkInUseError()
         
         #print "Subnetwork destroyed, id=", id
-        
-    def rename_subnetwork(self, obj, newid):
-        oid = obj.oid
-        obj.oid = newid
-        del(self._model_cache[oid])
-        self._model_cache[newid] = obj
         
     @entry(g_write)
     def set_option(self, fun, subnetwork, option, value):

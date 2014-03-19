@@ -129,7 +129,7 @@ class PoolRange(Model):
     def set_start_ip(self, value):
         q = "UPDATE pool_ranges SET start_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
-        self.manager.rename_pool_range(self, value)
+        self.manager.rename_object(self, value)
         
     @update("end_ip", ExtIpV4Address)
     @entry(g_write)
@@ -155,9 +155,10 @@ class PoolRange(Model):
         if val:
             raise ExtPoolRangeReversedError()
         self.manager.checkoverlaps(self.start_ip, self.end_ip)
+        self.manager.aprove()
 
 
-class PoolRangeManager(Manager):
+class PoolRangeManager(AdHocManager):
     name = "pool_range_manager"
     manages = PoolRange
 
@@ -213,12 +214,7 @@ class PoolRangeManager(Manager):
         except IntegrityError:
             raise ExtPoolRangeInUseError()
         self.db.put(q, start_ip=pool_range.oid)
-         
-    def rename_pool_range(self, obj, newid):
-        oid = obj.oid
-        obj.oid = newid
-        del(self._model_cache[oid])
-        self._model_cache[newid] = obj
+        
         
     def getoverlaps(self, start_ip, end_ip):
         q = """SELECT start_ip, end_ip FROM pool_ranges WHERE

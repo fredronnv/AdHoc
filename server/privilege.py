@@ -48,10 +48,7 @@ class ExtPrivilegeList(ExtList):
     name = "privilege-list"
     desc = "List of privileges"
     typ = ExtPrivilegeName
-    
-    
 
-    
         
 class PrivilegeFunBase(SessionedFunction):  
     params = [("privilege", ExtPrivilege, "A registered privilege")]
@@ -133,7 +130,7 @@ class Privilege(Model):
         self.db.put(q, id=self.oid, info=info)
         
 
-class PrivilegeManager(Manager):
+class PrivilegeManager(AdHocManager):
     name = "privilege_manager"
     manages = Privilege
 

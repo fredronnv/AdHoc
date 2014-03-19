@@ -117,6 +117,7 @@ class GlobalOption(Model):
         nn = str(newname)
         q = "UPDATE global_options SET name=:newname WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newname=nn)
+        self.manager.rename_object(self, nn)
         
         #print "GlobalOption %s changed Name to %s" % (self.oid, nn)
         
@@ -127,7 +128,7 @@ class GlobalOption(Model):
         self.db.put(q, id=self.oid, value=newvalue)
         
 
-class GlobalOptionManager(Manager):
+class GlobalOptionManager(AdHocManager):
     name = "global_option_manager"
     manages = GlobalOption
 

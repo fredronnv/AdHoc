@@ -1,6 +1,15 @@
 #!/usr/bin/env python2.6
 from rpcc import *
 
+class AdHocManager(Manager):
+    """ Intermediate class to harbour methods common to all AdHoc Managers """
+    
+    def rename_object(self, obj, new_name):
+        oid = obj.oid
+        obj.oid = new_name
+        del(self._model_cache[oid])
+        self._model_cache[new_name] = obj
+        
 
 class AdHocSuperuserGuard(Guard):
     """This guard says yes if session.authuser is someone in the given list"""

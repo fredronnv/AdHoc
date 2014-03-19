@@ -111,7 +111,7 @@ class Optionspace(Model):
         self.db.put(q, oid=self.oid, value=nn)
         
         #print "Optionspace %s changed name to %s" % (self.oid, nn)
-        self.manager.rename_optionspace(self, nn)
+        self.manager.rename_object(self, nn)
         
     @update("info", ExtString)
     @entry(g_write)
@@ -126,7 +126,7 @@ class Optionspace(Model):
         self.db.put(q, value=self.oid, type=newtype)
         
 
-class OptionspaceManager(Manager):
+class OptionspaceManager(AdHocManager):
     name = "optionspace_manager"
     manages = Optionspace
 
@@ -168,9 +168,3 @@ class OptionspaceManager(Manager):
             self.db.put(q, value=optionspace.oid)
         except IntegrityError:
             raise ExtOptionspaceInUseError()
-        
-    def rename_optionspace(self, obj, optionspace_name):
-        oname = obj.oid
-        obj.oid = optionspace_name
-        del(self._model_cache[oname])
-        self._model_cache[optionspace_name] = obj

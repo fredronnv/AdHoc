@@ -288,7 +288,7 @@ class Pool(Model):
         self.db.put(q, name=self.oid, value=nn)
         
         #print "Pool %s changed Name to %s" % (self.oid, nn)
-        self.manager.rename_pool(self, nn)
+        self.manager.rename_object(self, nn)
    
     @update("info", ExtString)
     @entry(g_write)     
@@ -317,7 +317,7 @@ class Pool(Model):
         self.db.put(q, name=self.oid, value=value)
         
 
-class PoolManager(Manager):
+class PoolManager(AdHocManager):
     name = "pool_manager"
     manages = Pool
 
@@ -392,12 +392,6 @@ class PoolManager(Manager):
             raise ExtPoolInUseError()
         self.db.put(q, poolname=pool.oid)
         #print "Pool destroyed, name=", pool.oid
-        
-    def rename_pool(self, obj, newname):
-        oid = obj.oid
-        obj.oid = newname
-        del(self._model_cache[oid])
-        self._model_cache[newname] = obj
     
     @entry(g_write)   
     def set_option(self, fun, pool, option, value):

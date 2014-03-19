@@ -130,7 +130,7 @@ class Network(Model):
         q = "UPDATE snetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
         
-        self.manager.rename_network(self, value)
+        self.manager.rename_object(self, value)
 
     @update("authoritative", ExtBoolean)
     @entry(g_write)
@@ -145,7 +145,7 @@ class Network(Model):
         self.db.put(q, id=self.oid, info=newinfo)
         
 
-class NetworkManager(Manager):
+class NetworkManager(AdHocManager):
     name = "network_manager"
     manages = Network
 
@@ -196,12 +196,6 @@ class NetworkManager(Manager):
         except IntegrityError:
             raise ExtNetworkInUseError()
         self.db.put(q, id=network.oid)
-        
-    def rename_network(self, obj, newid):
-        oid = obj.oid
-        obj.oid = newid
-        del(self._model_cache[oid])
-        self._model_cache[newid] = obj
         
     @entry(g_write)
     def set_option(self, fun, network, option, value):

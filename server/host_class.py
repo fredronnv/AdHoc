@@ -193,7 +193,7 @@ class HostClass(Model):
         self.db.put(q, name=self.oid, value=nn)
         
         #print "HostClass %s changed Name to %s" % (self.oid, nn)
-        self.manager.rename_host_class(self, nn)
+        self.manager.rename_object(self, nn)
         
     @update("info", ExtString)
     @entry(g_write)
@@ -216,7 +216,7 @@ class HostClass(Model):
         self.db.put(q, name=self.oid, value=value)
         
 
-class HostClassManager(Manager):
+class HostClassManager(AdHocManager):
     name = "host_class_manager"
     manages = HostClass
 
@@ -277,12 +277,6 @@ class HostClassManager(Manager):
         except IntegrityError:
             raise ExtHostClassInUseError()
         #print "HostClass destroyed, name=", host_class.oid
-    
-    def rename_host_class(self, obj, newname):
-        oid = obj.oid
-        obj.oid = newname
-        del(self._model_cache[oid])
-        self._model_cache[newname] = obj
             
     @entry(g_write)
     def set_option(self, fun, host_class, option, value):

@@ -121,7 +121,7 @@ class Room(Model):
         self.db.put(q, id=self.oid, newid=nn)
         
         #print "Room %s changed ID to %s" % (self.oid, nn)
-        self.manager.rename_room(self, nn)
+        self.manager.rename_object(self, nn)
         
     @update("info", ExtString)
     @entry(g_write)
@@ -136,7 +136,7 @@ class Room(Model):
         self.db.put(q, id=self.oid, printers=newprinters)
         
 
-class RoomManager(Manager):
+class RoomManager(AdHocManager):
     name = "room_manager"
     manages = Room
 
@@ -188,9 +188,3 @@ class RoomManager(Manager):
             self.db.put(q, id=room.oid)
         except IntegrityError:
             raise ExtRoomInUseError()
-               
-    def rename_room(self, obj, room_name):
-        oid = obj.oid
-        obj.oid = room_name
-        del(self._model_cache[oid])
-        self._model_cache[room_name] = obj

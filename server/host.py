@@ -256,7 +256,7 @@ class Host(Model):
         q = "UPDATE hosts SET id=:value WHERE id=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
         #print "Host %s changed Name to %s" % (self.oid, nn)
-        self.manager.rename_host(self, nn)
+        self.manager.rename_object(self, nn)
         
     @update("info", ExtString)
     @entry(g_write)
@@ -310,7 +310,7 @@ class Host(Model):
         self.db.put(q, name=self.oid, value=value)
             
 
-class HostManager(Manager):
+class HostManager(AdHocManager):
     name = "host_manager"
     manages = Host
 
@@ -417,12 +417,6 @@ class HostManager(Manager):
             self.group_manager.adjust_hostcount(gm.get_group(host.group), -1)
         
         #print "Host destroyed, name=", host.oid
-        
-    def rename_host(self, obj, newname):
-        oid = obj.oid
-        obj.oid = newname
-        del(self._model_cache[oid])
-        self._model_cache[newname] = obj
        
     @entry(g_write_literal_option)
     def add_literal_option(self, fun, host, option_text):

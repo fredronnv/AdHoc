@@ -220,7 +220,7 @@ class Group(Model):
         self.db.put(q, name=self.oid, value=value)
         
 
-class GroupManager(Manager):
+class GroupManager(AdHocManager):
     name = "group_manager"
     manages = Group
 
@@ -305,10 +305,8 @@ class GroupManager(Manager):
         self.db.put("UPDATE group_groups_flat SET descendant=:newname WHERE descendant=:groupname", newname=newname, groupname=oldname)
         self.db.put("UPDATE group_groups_flat SET groupname=:newname WHERE groupname=:groupname", newname=newname, groupname=oldname)
         self.db.put("SET foreign_key_checks=1")
-         
-        obj.oid = newname
-        del(self._model_cache[oldname])
-        self._model_cache[newname] = obj
+        
+        self.rename_object(obj, newname) 
         
     @entry(g_write)
     def set_option(self, fun, group, option, value):

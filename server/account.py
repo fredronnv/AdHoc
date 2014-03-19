@@ -89,7 +89,7 @@ class Account(Model):
         
         
 
-class AccountManager(Manager):
+class AccountManager(AdHocManager):
     name = "account_manager"
     manages = Account
 

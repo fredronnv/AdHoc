@@ -108,7 +108,7 @@ class Building(Model):
         self.db.put(q, id=self.oid, newbuilding=nn)
         
         #print "Building %s changed ID to %s" % (self.oid, nn)
-        self.manager.rename_building(self, nn)
+        self.manager.rename_object(self, nn)
         
     @update("info", ExtString)
     @entry(g_write)
@@ -123,7 +123,7 @@ class Building(Model):
         self.db.put(q, id=self.oid, re=newre)
         
 
-class BuildingManager(Manager):
+class BuildingManager(AdHocManager):
     name = "building_manager"
     manages = Building
 
@@ -166,8 +166,3 @@ class BuildingManager(Manager):
             raise ExtBuildingInUseError()
         #print "Building destroyed, id=", building.oid
         
-    def rename_building(self, obj, building_name):
-        oid = obj.oid
-        obj.oid = building_name
-        del(self._model_cache[oid])
-        self._model_cache[building_name] = obj

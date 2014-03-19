@@ -30,7 +30,7 @@ class DhcpXfer(SessionedFunction):
         
 
         
-class DHCPManager(Manager):
+class DHCPManager(AdHocManager):
     
     name = "dhcp_manager"
     models = None
