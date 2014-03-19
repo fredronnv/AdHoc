@@ -126,7 +126,7 @@ class GroupGatherStats(SessionedFunction):
     def do(self):
         self.group_manager.gather_stats()
 
-class Group(Model):
+class Group(AdHocModel):
     name = "group"
     exttype = ExtGroup
     id_type = unicode

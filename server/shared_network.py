@@ -82,7 +82,7 @@ class NetworkOptionsUpdate(NetworkFunBase):
         self.network_manager.update_options(self, self.network, self.updates)
 
 
-class Network(Model):
+class Network(AdHocModel):
     name = "network"
     exttype = ExtNetwork
     id_type = unicode

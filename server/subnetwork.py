@@ -90,7 +90,7 @@ class SubnetworkOptionsUpdate(SubnetworkFunBase):
         self.subnetwork_manager.update_options(self, self.subnetwork, self.updates)
             
             
-class Subnetwork(Model):
+class Subnetwork(AdHocModel):
     name = "subnetwork"
     exttype = ExtSubnetwork
     id_type = str

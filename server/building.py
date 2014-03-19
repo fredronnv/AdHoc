@@ -64,7 +64,7 @@ class BuildingDestroy(SessionedFunction):
         self.building_manager.destroy_building(self, self.building)
 
 
-class Building(Model):
+class Building(AdHocModel):
     name = "building"
     exttype = ExtBuilding
     id_type = unicode

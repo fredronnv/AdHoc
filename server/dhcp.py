@@ -3,6 +3,8 @@
 import struct
 from rpcc import *
 import optionset
+import tempfile
+import subprocess
 from util import *
 from compiler.ast import Break
 
@@ -1039,12 +1041,17 @@ class DHCPManager(AdHocManager):
         #self.dhcpd_conf.append("\n")
         
     def check_config(self):
-        if os.environ["ADHOC_DHCPD_PATH"]:
-            s = self.dhcp_manager.make_dhcpd_conf(None)
-            ret = self.proxy.dhcpd_config("A")
-            of = tenmpfile.NamedTemporaryFile()
-            of.write(ret.encode('utf-8'))
-            filename = of.name
-            rv = subprocess.call([os.environ["ADHOC_DHCPD_PATH"], "-t", "-cf", filename] )
-            if rv:
-                raise ExtDhcpdRejectsConfigurationError()
+        try:
+                if os.environ["ADHOC_DHCPD_PATH"]:
+                    s = self.make_dhcpd_conf(None)
+                    of = tempfile.NamedTemporaryFile(bufsize=0)
+                    of.write(s.encode('utf-8'))
+                    filename = of.name
+                    rv = subprocess.call([os.environ["ADHOC_DHCPD_PATH"], "-t", "-cf", filename] )
+                    if rv:
+                        #print s.encode('utf-8')
+                        raise ExtDhcpdRejectsConfigurationError()
+                else:
+                    raise ExtDhcpdRejectsConfigurationError()
+        except KeyError:
+             raise ExtDhcpdRejectsConfigurationError()

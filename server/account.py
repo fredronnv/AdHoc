@@ -42,7 +42,7 @@ class AccountDestroy(AccountFunBase):
     def do(self):
         self.account_manager.destroy_account(self, self.account)
 
-class Account(Model):
+class Account(AdHocModel):
     name = "account"
     exttype = ExtAccount
     id_type = str

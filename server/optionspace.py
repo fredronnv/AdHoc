@@ -69,7 +69,7 @@ class OptionspaceDestroy(SessionedFunction):
         self.optionspace_manager.destroy_optionspace(self, self.optionspace)
 
 
-class Optionspace(Model):
+class Optionspace(AdHocModel):
     name = "optionspace"
     exttype = ExtOptionspace
     id_type = str

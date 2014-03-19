@@ -68,7 +68,7 @@ class GlobalOptionDestroy(SessionedFunction):
         self.global_option_manager.destroy_global_option(self, self.global_option)
 
 
-class GlobalOption(Model):
+class GlobalOption(AdHocModel):
     name = "global_option"
     exttype = ExtGlobalOption
     id_type = int
@@ -117,7 +117,8 @@ class GlobalOption(Model):
         nn = str(newname)
         q = "UPDATE global_options SET name=:newname WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newname=nn)
-        self.manager.rename_object(self, nn)
+        # Do not call self.manager.rename_object(self, nn) here. Global options are identified with a separate ID
+        # which is not touched by the setting of a new name.
         
         #print "GlobalOption %s changed Name to %s" % (self.oid, nn)
         

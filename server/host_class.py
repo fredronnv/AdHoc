@@ -126,7 +126,7 @@ class HostClassOptionsUpdate(HostClassFunBase):
         self.host_class_manager.update_options(self, self.host_class, self.updates)
 
 
-class HostClass(Model):
+class HostClass(AdHocModel):
     name = "host_class"
     exttype = ExtHostClass
     id_type = unicode

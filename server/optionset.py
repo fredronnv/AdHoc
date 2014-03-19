@@ -29,7 +29,7 @@ class ExtNoSuchOptionError(ExtLookupError):
     desc = "No such options is defined for the api current API"
 
 
-class Optionset(Model):
+class Optionset(AdHocModel):
     name = "optionset"
     exttype = ExtOptionset
     id_type = int

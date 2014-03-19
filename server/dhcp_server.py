@@ -56,7 +56,7 @@ class DHCPServerDestroy(SessionedFunction):
         self.dhcp_server_manager.destroy_dhcp_server(self, self.dhcp_server)
 
 
-class DHCPServer(Model):
+class DHCPServer(AdHocModel):
     name = "dhcp_server"
     exttype = ExtDHCPServer
     id_type = unicode

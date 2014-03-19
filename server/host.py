@@ -168,7 +168,7 @@ class HostOptionsUpdate(HostFunBase):
         self.host_manager.update_options(self, self.host, self.updates)
 
 
-class Host(Model):
+class Host(AdHocModel):
     name = "host"
     exttype = ExtHost
     id_type = unicode
@@ -422,6 +422,8 @@ class HostManager(AdHocManager):
     def add_literal_option(self, fun, host, option_text):
         q = "INSERT INTO host_literal_options (`for`, value, changed_by) VALUES (:hostname, :value, :changed_by)"
         id = self.db.insert("id", q, hostname=host.oid, value=option_text, changed_by=fun.session.authuser)
+        self.approve_config = True
+        self.approve()
         return id
     
     @entry(g_write_literal_option)

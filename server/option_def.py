@@ -162,7 +162,7 @@ class OptionDefDestroy(SessionedFunction):
         self.option_def_manager.destroy_option_def(self, self.option_def)
 
 
-class OptionDef(Model):
+class OptionDef(AdHocModel):
     name = "option_def"
     exttype = ExtOptionDef
     id_type = unicode

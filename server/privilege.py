@@ -96,7 +96,7 @@ class PrivilegeRevoke(PrivilegeFunBase):
 
 
 
-class Privilege(Model):
+class Privilege(AdHocModel):
     name = "privilege"
     exttype = ExtPrivilege
     id_type = str

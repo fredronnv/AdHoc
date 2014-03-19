@@ -198,7 +198,7 @@ class PoolOptionsUpdate(PoolFunBase):
         self.pool_manager.update_options(self, self.pool, self.updates)
 
 
-class Pool(Model):
+class Pool(AdHocModel):
     name = "pool"
     exttype = ExtPool
     id_type = unicode

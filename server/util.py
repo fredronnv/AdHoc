@@ -3,6 +3,7 @@ from rpcc import *
 
 class AdHocManager(Manager):
     """ Intermediate class to harbour methods common to all AdHoc Managers """
+    approve_config = False
     
     def rename_object(self, obj, new_name):
         oid = obj.oid
@@ -10,6 +11,18 @@ class AdHocManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[new_name] = obj
         
+    def approve(self):
+        if self.approve_config:
+            print "CONFIG APPROVAL NEEDED!!!"
+            self.dhcp_manager.check_config()
+        pass
+    
+class AdHocModel(Model):
+    """ Intermediate class to harbour methods common to all AdHoc Models """
+    
+    def check_model(self):
+        self.manager.approve()
+        pass
 
 class AdHocSuperuserGuard(Guard):
     """This guard says yes if session.authuser is someone in the given list"""

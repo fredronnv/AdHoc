@@ -77,7 +77,7 @@ class RoomDestroy(SessionedFunction):
         self.room_manager.destroy_room(self, self.room)
 
 
-class Room(Model):
+class Room(AdHocModel):
     name = "room"
     exttype = ExtRoom
     id_type = unicode

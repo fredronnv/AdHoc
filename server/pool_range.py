@@ -6,6 +6,7 @@ from pool import *
 from dhcp_server import *
 from util import *
 import socket
+from objc._convenience import OVERRIDE
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_pool_ranges"), AdHocSuperuserGuard)
 
@@ -78,7 +79,7 @@ class PoolRangeDestroy(PoolRangeFunBase):
         self.pool_range_manager.destroy_pool_range(self, self.pool_range_start)
 
 
-class PoolRange(Model):
+class PoolRange(AdHocModel):
     name = "pool_range"
     exttype = ExtPoolRange
     id_type = str
@@ -155,7 +156,7 @@ class PoolRange(Model):
         if val:
             raise ExtPoolRangeReversedError()
         self.manager.checkoverlaps(self.start_ip, self.end_ip)
-        self.manager.aprove()
+        self.manager.approve()
 
 
 class PoolRangeManager(AdHocManager):

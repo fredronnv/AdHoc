@@ -29,6 +29,7 @@ if [ x"$CHALMERS_DEPLOY_LEVEL" = x"devel" ]; then
         
     export PYTHONPATH=/Users/bernerus/Applications/eclipse/plugins/org.python.pydev_2.7.5.2013052819/pysrc/pydev_sitecustomize
     export PYTHONPATH=${PYTHONPATH}:/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages
+    export ADHOC_DHCPD_PATH=/usr/local/sbin/dhcpd
 fi
 
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"uat" ]; then
