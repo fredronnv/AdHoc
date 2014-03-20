@@ -120,7 +120,10 @@ class RawRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.flush()
 
         if self.server.ssl_enabled:
-            self.connection.shutdown()
+            if sys.version_info >= (2,7):
+                self.connection.shutdown(socket.SHUT_WR) # This API changed in python 2.7 :-(
+            else:
+                self.connection.shutdown()
         
     # BaseHTTPServer logging override.
     def log_message(self, *args):
