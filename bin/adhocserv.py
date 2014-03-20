@@ -81,7 +81,7 @@ class StartMe(object):
         srv.enable_documentation()
         srv.enable_static_documents(os.path.join(adhoc_home, 'docroot'))
         srv.enable_digs_and_updates()
-        srv.add_protocol_handler(self, "dhcpd", DhcpdProtocolHandler)
+        srv.add_protocol_handler("dhcpd", DhcpdConfProtocol)
         srv.serve_forever()
         
 
