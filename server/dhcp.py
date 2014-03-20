@@ -544,7 +544,7 @@ class DHCPManager(AdHocManager):
         timing_array = []
         b4start = datetime.datetime.now()
         
-        timing_array.append(("Start", datetime.datetime.now(), datetime.datetime.now() - datetime.datetime.now()))
+        #timing_array.append(("Start", datetime.datetime.now(), datetime.datetime.now() - datetime.datetime.now()))
         
         self.serverID = serverID
         self.dhcpd_conf = []  # Array where we collect the config output strings
@@ -562,7 +562,7 @@ class DHCPManager(AdHocManager):
             s += ', '.join(iparr)
             s += ";"
             self.emit(s)
-        timing_array.append(("Global-options 1", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
+        #timing_array.append(("Global-options 1", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
         q = "SELECT value FROM global_options WHERE name='routers'"
         iparr = []
         for (ip,) in self.db.get_all(q):
@@ -574,7 +574,7 @@ class DHCPManager(AdHocManager):
             s += ";"
             self.emit(s)
 
-        timing_array.append(("Global-options 2", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
+        #timing_array.append(("Global-options 2", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
 #         q = "SELECT command, arg FROM basic_commands"
 #         
 #         for (cmd, arg) in self.db.get_all(q):
@@ -615,27 +615,27 @@ class DHCPManager(AdHocManager):
                     else:
                         self.emit("option %s.%s code %s = %s;" % (space, name, code, option_type))
         
-        timing_array.append(("Optionspaces", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
+        #timing_array.append(("Optionspaces", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
         self.emit_classes()
         
-        timing_array.append(("Classes", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
+        #timing_array.append(("Classes", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
         self.emit_networks()
         
-        timing_array.append(("Networks", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
+        #timing_array.append(("Networks", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
         b4groups = datetime.datetime.now()
         self.emit_groups(timing_array=timing_array)
-        aftgroups = datetime.datetime.now()
-        timing_array.append(("Groups", datetime.datetime.now(), datetime.datetime.now() - b4groups))
-        endtime = datetime.datetime.now()
-        timing_array.append(("Total", datetime.datetime.now(), datetime.datetime.now() - b4start))
-        timing_array.sort(key=lambda tup: tup[2])
-        for (what, when, time) in timing_array:
-            pass
-            print what, when, time
-        grouptime = aftgroups - b4groups
-        tottime = endtime - b4start
-        groupsshare = grouptime.total_seconds() / tottime.total_seconds()
-        print "Groups share=", groupsshare
+        #aftgroups = datetime.datetime.now()
+        #timing_array.append(("Groups", datetime.datetime.now(), datetime.datetime.now() - b4groups))
+        #endtime = datetime.datetime.now()
+        #timing_array.append(("Total", datetime.datetime.now(), datetime.datetime.now() - b4start))
+        #timing_array.sort(key=lambda tup: tup[2])
+        #for (what, when, time) in timing_array:
+            #pass
+            #print what, when, time
+        #grouptime = aftgroups - b4groups
+        #tottime = endtime - b4start
+        #groupsshare = grouptime.total_seconds() / tottime.total_seconds()
+        #print "Groups share=", groupsshare
         s = u"".join(self.dhcpd_conf)
         #print s
         return s
