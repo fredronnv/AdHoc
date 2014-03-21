@@ -183,7 +183,8 @@ class NetworkManager(AdHocManager):
                         info=info, changed_by=fun.session.authuser, optionset=optionset)
         except IntegrityError:
             raise ExtNetworkAlreadyExistsError()
-        
+        self.event_manager.add("create", network=network_name, authoritative=authoritative, 
+                        info=info, authuser=fun.session.authuser, optionset=optionset )
         #print "Network created, network_name=", network_name
         
     @entry(g_write)

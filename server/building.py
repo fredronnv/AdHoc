@@ -48,6 +48,7 @@ class BuildingCreate(SessionedFunction):
               ("re", ExtBuildingRe, "The regular expression rooms must match for this building"),
               ("info", ExtString, "Building description")]
     desc = "Creates a building"
+    creates_event=True
     returns = (ExtNull)
 
     def do(self):
@@ -156,6 +157,7 @@ class BuildingManager(AdHocManager):
             self.db.put(q, id=building_name, re=re, info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtBuildingAlreadyExistsError()
+        self.event_manager.add("create", building=building_name, re=re, info=info)
                
     @entry(g_write)
     def destroy_building(self, fun, building):
@@ -164,5 +166,7 @@ class BuildingManager(AdHocManager):
             self.db.put(q, id=building.oid)
         except IntegrityError:
             raise ExtBuildingInUseError()
+        
+        self.event_manager.add("destroy", building=building.oid)
         #print "Building destroyed, id=", building.oid
         

@@ -279,7 +279,7 @@ class EventManager(Manager):
         def new_searcher(attr, tbl, attrid):
             def _search(self, dq):
                 alias = "ss_" + attr
-                dq.outer("%(t)s %(a)s", "(e.id=%(a)s.event AND %(a)s.attr=%(i)d)" % {'t': tbl, 'a': alias, 'o': attrid})
+                dq.outer("%(t)s %(a)s" % {'t':tbl, 'a':alias}, "(e.id=%(a)s.event AND %(a)s.attr=%(i)d)" % {'a': alias, 'i': attrid})
                 return alias + ".value"
             _search.__name__ = "search_" + attr
             _search.__doc__ = "auto-generated searcher for %s" % (attr,)

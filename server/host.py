@@ -397,6 +397,12 @@ class HostManager(AdHocManager):
             print e
             raise ExtHostAlreadyExistsError()
         
+        self.event_manager.add("create", host=host_name, 
+                        dns=dns, group=group.oid, 
+                        mac=mac, room=room, optionspace=optionspace,
+                        info=info, authuser=fun.session.authuser,
+                        entry_status=status,
+                        optionset=optionset)
         if status=="Active":
             gm = self.group_manager
             self.group_manager.adjust_hostcount(group, 1)

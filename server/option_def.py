@@ -342,8 +342,6 @@ class OptionDefManager(AdHocManager):
         
     @entry(g_write)
     def define_option(self, info, changed_by, mtime, name, my_type, code, qualifier, optionspace, struct=None, encapsulate=None):
-        
-        
         qp1 = "INSERT INTO option_base (name, code, qualifier, type, optionspace, info, changed_by"
         qp2 = "VALUES(:name, :code, :qualifier, :type, :optionspace, :info, :changed_by"
         param_dict= {"name":name, "code":code, "qualifier":qualifier, "type":my_type, "optionspace":optionspace, "changed_by":changed_by, "info":info}
@@ -395,14 +393,32 @@ class OptionDefManager(AdHocManager):
                  VALUES (:option_base, :minval, :maxval)""" % (table)
             self.db.put(qp3, option_base=id, minval=minval, maxval=maxval)
             
+            param_dict["authuser"] = param_dict["changed_by"]
+            param_dict["option"] = param_dict["name"]
+            del(param_dict["changed_by"])
+            del(param_dict["name"])
+            param_dict["maxval"] = maxval
+            param_dict["minval"]=minval
+            self.event_manager.add("create", **param_dict)
+            
         if my_type == 'string' or my_type == 'text':
             qp3 = """INSERT INTO str_option (option_base) 
                  VALUES (:option_base)"""
+            param_dict["authuser"] = param_dict["changed_by"]
+            param_dict["option"] = param_dict["name"]
+            del(param_dict["changed_by"])
+            del(param_dict["name"])
+            self.event_manager.add("create", **param_dict)
             self.db.put(qp3, option_base=id)
             
         if my_type == 'boolean':
             qp3 = """INSERT INTO bool_option (option_base) 
                  VALUES (:option_base)"""
+            param_dict["authuser"] = param_dict["changed_by"]
+            param_dict["option"] = param_dict["name"]
+            del(param_dict["changed_by"])
+            del(param_dict["name"])
+            self.event_manager.add("create", **param_dict)
             self.db.put(qp3, option_base=id)
             
         
@@ -413,6 +429,13 @@ class OptionDefManager(AdHocManager):
                 
             qp3 = """INSERT INTO %s (option_base) 
                  VALUES (:option_base)""" % (table)
+            param_dict["authuser"] = param_dict["changed_by"]
+            param_dict["option"] = param_dict["name"]
+            del(param_dict["changed_by"])
+            del(param_dict["name"])
+            if qualifier:
+                param_dict["qualifier"]=qualifier
+            self.event_manager.add("create", **param_dict)
             self.db.put(qp3, option_base=id)
         return id
               

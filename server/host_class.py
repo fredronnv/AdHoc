@@ -265,6 +265,12 @@ class HostClassManager(AdHocManager):
             
         except IntegrityError, e:
             raise ExtHostClassAlreadyExistsError()
+        self.event_manager.add("create", host_class=host_class_name, 
+                               vendor_class_id=vendor_class_id, 
+                               optionspace=optionspace,
+                               authuser=fun.session.authuser,
+                               optionset=optionset,
+                               info=info)
         
     @entry(g_write)
     def destroy_host_class(self, fun, host_class):

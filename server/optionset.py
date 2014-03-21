@@ -360,6 +360,7 @@ class OptionsetManager(AdHocManager):
     def create_optionset(self):
         q = """INSERT INTO optionset VALUES()"""
         id = self.db.insert("id", q) 
+        self.event_manager.add("create",optionset=id)
         return id
     
     def destroy_optionset(self, optset):

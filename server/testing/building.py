@@ -44,7 +44,8 @@ class T0820_BuildingCreate(ServiceDeskTests):
         except:
             pass
         try:
-            with AssertAccessError(self):
+            with AssertAccessError(self): 
+                preevents = self.superuser.event_dig({"type":"create","building":"QZ1243A"},{"building":True,"re":True,"info":True,"type":True,"event":True})
                 self.proxy.building_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3', "TestBuilding")
                 ret = self.superuser.building_fetch('QZ1243A', {"re": True, "info": True, "building": True})
                 assert "re" in ret, "Key re missing in returned struct from building_fetch"
@@ -53,6 +54,11 @@ class T0820_BuildingCreate(ServiceDeskTests):
                 assert ret.building == "QZ1243A", "Bad building, is % should be %s" % (ret.building, "QZ1243A")
                 assert ret.re == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3", "Re is " + ret.re + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3'"
                 assert ret.info == "TestBuilding", "Info is " + ret.info + "but should be 'TestBuilding'"
+        
+                events = self.superuser.event_dig({"type":"create","building":"QZ1243A"},{"building":True,"re":True,"info":True,"type":True,"event":True})
+                #print events
+                assert len(events) > len(preevents), "No relevent events generated"
+        
         finally:
             try:
                 self.superuser.building_destroy("QZ1243A")

@@ -159,7 +159,8 @@ class OptionspaceManager(AdHocManager):
             self.db.put(q, value=optionspace_name, type=optionspace_type, info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtOptionspaceAlreadyExistsError()
-        #
+        self.event_manager.add("create", optionspace=optionspace_name,  type=optionspace_type,
+                               info=info, authuser=fun.session.authuser )
         
     @entry(g_write)
     def destroy_optionspace(self, fun, optionspace):

@@ -172,6 +172,8 @@ class GlobalOptionManager(AdHocManager):
             id = self.db.insert("id", q, name=name, value=value, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtGlobalOptionAlreadyExistsError()
+        
+        self.event_manager.add("create", global_option=name, id=id)
         return id
         
     @entry(g_write)

@@ -237,7 +237,8 @@ class SubnetworkManager(AdHocManager):
                         changed_by=fun.session.authuser, optionset=optionset)
         except IntegrityError:
             raise ExtSubnetworkAlreadyExistsError()
-        
+        self.event_manager.add("create", subnetwork=id, parent_object=network, info=info, 
+                        authuser=fun.session.authuser, optionset=optionset)
     @entry(g_write)
     def destroy_subnetwork(self, fun, subnetwork):
         

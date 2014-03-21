@@ -377,7 +377,9 @@ class PoolManager(AdHocManager):
                            optionspace=optionspace, max_lease_time=max_lease_time,
                            info=info, changed_by=fun.session.authuser, optionset=optionset)
             #print "Pool created, name=", pool_name
-            
+            self.event_manager.add("create",pool=pool_name, parent_object=network.oid, 
+                           optionspace=optionspace, max_lease_time=max_lease_time,
+                           info=info, authuser=fun.session.authuser, optionset=optionset)
         except IntegrityError, e:
             raise ExtPoolAlreadyExistsError()
     

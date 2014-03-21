@@ -179,6 +179,7 @@ class RoomManager(AdHocManager):
             self.db.put(q, id=room_name, printers=printers, info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtRoomAlreadyExistsError()
+        self.event_manager.add("create", room=room_name, printers=printers, authuser=fun.session.authuser, info=info)
         #print "Room created, id=", id
                   
     @entry(g_write)

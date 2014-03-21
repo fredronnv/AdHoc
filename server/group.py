@@ -253,7 +253,7 @@ class GroupManager(AdHocManager):
         return "g.parent_group"
     
     @entry(g_write)
-    def create_group(self, fun, group_name, parent, info, options):
+    def create_group(self, fun, groupname, parent, info, options):
         if options == None:
             options = {}
         optionspace = options.get("optionspace", None)
@@ -263,15 +263,19 @@ class GroupManager(AdHocManager):
         q = """INSERT INTO groups (groupname, parent_group, optionspace, info, changed_by, optionset) 
                VALUES (:group_name, :parent, :optionspace, :info, :changed_by, :optionset)"""
         try:
-            self.db.insert("id", q, group_name=group_name, parent=parent.oid, optionspace=optionspace,
+            self.db.insert("id", q, group_name=groupname, parent=parent.oid, optionspace=optionspace,
                        info=info, changed_by=fun.session.authuser, optionset=optionset)
-            print "Group created, name=", group_name
+            print "Group created, name=", groupname
             
         except IntegrityError, e:
             raise ExtGroupAlreadyExistsError()
         
+        self.event_manager.add("create", group=groupname, parent_object=parent.oid, info=info, optionspace=optionspace,
+                               authuser=fun.session.authuser, optionset=optionset)
+        
       # Build the group_groups_flat table
-        self.add_group_to_group_groups_flat(group_name, parent)
+        self.add_group_to_group_groups_flat(groupname, parent)
+        self.event_manager.add("connect", group=groupname, parent_object=parent.oid,  authuser=fun.session.authuser)
   
     def add_group_to_group_groups_flat(self, group_name, parent):
         qif = "INSERT INTO group_groups_flat (groupname, descendant) VALUES (:groupname, :descendant)"
@@ -283,6 +287,8 @@ class GroupManager(AdHocManager):
                 break
             self.db.put(qif, groupname=parent, descendant=group_name)
             g2 = parent
+            
+        
 
          
     @entry(g_write)

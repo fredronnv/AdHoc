@@ -206,6 +206,7 @@ class PoolRangeManager(AdHocManager):
             self.db.put(q, start_ip=start_ip, end_ip=end_ip, pool=pool.oid, served_by=served_by.oid, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtPoolRangeAlreadyExistsError()
+        self.event_manager.add("create",pool_range=start_ip, parent_object=pool.oid, authuser=fun.session.authuser, end_ip=end_ip)
             
     @entry(g_write)
     def destroy_pool_range(self, fun, pool_range):
