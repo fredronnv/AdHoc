@@ -71,7 +71,9 @@ EOF
         cp etc/bashrc.private.prototype etc/bashrc.private
         chmod 400 etc/bashrc.private
         vi etc/bashrc.private
-            Replace XXX for the production database with <db_password> used above, save and quit.
+            Replace XXX for the prod deploy level with <db_password> used above
+            Replace XXX for the install level with 'new-password' for root used above.
+            Save and quit.
         . .bashrc
         
  15. Start the server. As we have not configure SSL yet, disable that first.
@@ -114,12 +116,21 @@ EOF
         /sbin/chkconfig --level 3 adhocserver on
         
  20. Start server manually
-        /etc/init.s/adhocserver start
+        /etc/init.d/adhocserver start
         
  21. Check accessibility again, see step 17.
  
  22. Reboot and check that the server comes up again.
         shutdown -r now
+        
+ 23. Transfer current strup from old database
+ 
+ 	 Log in again and become root.
+     Stop the server:
+        /etc/init.d/adhocserver stop
+     Run the script:
+        $ADHOC_RUNTIME_HOME/server/testing/install
+	 When OK, remove the password for deploy level install from the bashrc.private file.
         
  
  
