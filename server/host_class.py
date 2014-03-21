@@ -277,11 +277,13 @@ class HostClassManager(AdHocManager):
         
         host_class.get_optionset().destroy()
         
-        q = "DELETE FROM classes WHERE classname=:classname LIMIT 1"
+        
         try:
+            q = "DELETE FROM classes WHERE classname=:classname LIMIT 1"
             self.db.put(q, classname=host_class.oid)
         except IntegrityError:
             raise ExtHostClassInUseError()
+        self.event_manager.add("destroy", host_class=host_class.oid)
         #print "HostClass destroyed, name=", host_class.oid
             
     @entry(g_write)

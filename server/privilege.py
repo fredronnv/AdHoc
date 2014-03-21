@@ -178,9 +178,9 @@ class PrivilegeManager(AdHocManager):
         
         try:
             q = "DELETE FROM privileges WHERE privilege=:privilege LIMIT 1"
+            self.db.put(q, privilege=privilege.oid)
         except IntegrityError:
             raise ExtPrivilegeInUseError()
-        self.db.put(q, privilege=privilege.oid)
         
     @entry(g_grant)
     def grant_privilege(self, fun, privilege, account):

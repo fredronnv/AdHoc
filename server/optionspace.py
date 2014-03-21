@@ -164,8 +164,10 @@ class OptionspaceManager(AdHocManager):
         
     @entry(g_write)
     def destroy_optionspace(self, fun, optionspace):
-        q = "DELETE FROM optionspaces WHERE value=:value LIMIT 1"
+        
         try:
+            q = "DELETE FROM optionspaces WHERE value=:value LIMIT 1"
             self.db.put(q, value=optionspace.oid)
         except IntegrityError:
             raise ExtOptionspaceInUseError()
+        self.event_manager.add("destroy", optionspace=optionspace.oid)

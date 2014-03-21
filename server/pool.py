@@ -390,9 +390,11 @@ class PoolManager(AdHocManager):
         
         try:
             q = "DELETE FROM pools WHERE poolname=:poolname LIMIT 1"
+            self.db.put(q, poolname=pool.oid)
         except IntegrityError:
             raise ExtPoolInUseError()
-        self.db.put(q, poolname=pool.oid)
+        
+        self.event_manager.add("destroy", pool=pool.oid)
         #print "Pool destroyed, name=", pool.oid
     
     @entry(g_write)   

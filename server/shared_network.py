@@ -194,9 +194,10 @@ class NetworkManager(AdHocManager):
         
         try:
             q = "DELETE FROM networks WHERE id=:id LIMIT 1"
+            self.db.put(q, id=network.oid)
         except IntegrityError:
             raise ExtNetworkInUseError()
-        self.db.put(q, id=network.oid)
+        self.event_manager.add("destroy", network=network.oid)
         
     @entry(g_write)
     def set_option(self, fun, network, option, value):

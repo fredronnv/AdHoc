@@ -244,11 +244,13 @@ class SubnetworkManager(AdHocManager):
         
         subnetwork.get_optionset().destroy()
         
-        q = "DELETE FROM subnetworks WHERE id=:id LIMIT 1"
         try:
+            q = "DELETE FROM subnetworks WHERE id=:id LIMIT 1"
             self.db.put(q, id=subnetwork.oid)
         except IntegrityError:
             raise ExtSubnetworkInUseError()
+        
+        self.event_manager.add("destroy", subnetwork=subnetwork.oid)
         
         #print "Subnetwork destroyed, id=", id
         

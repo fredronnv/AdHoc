@@ -363,9 +363,10 @@ class OptionsetManager(AdHocManager):
         self.event_manager.add("create",optionset=id)
         return id
     
-    def destroy_optionset(self, optset):
+    def destroy_optionset(self, optionset):
         q = """DELETE FROM optionset WHERE id=:optset"""
         self.db.put(q, optset=optset.oid)
+        self.event_manager.add("destroy", optionset=optset.oid)
        
     def get_optid(self, opt_name):
         optid = self.db.get("SELECT id FROM option_base WHERE name = :name", name=opt_name)

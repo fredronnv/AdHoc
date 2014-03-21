@@ -141,8 +141,9 @@ class DHCPServerManager(AdHocManager):
         
     @entry(AdHocSuperuserGuard)
     def destroy_dhcp_server(self, fun, dhcp_server):
-        q = "DELETE FROM dhcp_servers WHERE id=:id LIMIT 1"
         try:
+            q = "DELETE FROM dhcp_servers WHERE id=:id LIMIT 1"
             self.db.put(q, id=dhcp_server.oid)
         except IntegrityError:
             raise ExtDHCPServerInUseError()
+        self.event_manager.add("destroy", dhcp_server=dhcp_server.oid)

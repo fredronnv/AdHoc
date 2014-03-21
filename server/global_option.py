@@ -178,8 +178,10 @@ class GlobalOptionManager(AdHocManager):
         
     @entry(g_write)
     def destroy_global_option(self, fun, global_option):
-        q = "DELETE FROM global_options WHERE id=:id LIMIT 1"
+        
         try:
+            q = "DELETE FROM global_options WHERE id=:id LIMIT 1"
             self.db.put(q, id=global_option.oid)
         except IntegrityError:
             raise ExtGlobalOptionInUseError()
+        self.event_manager.add("destroy", global_option=global_option.name, id=global_option.oid)

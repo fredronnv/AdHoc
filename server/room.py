@@ -184,8 +184,9 @@ class RoomManager(AdHocManager):
                   
     @entry(g_write)
     def destroy_room(self, fun, room):
-        q = "DELETE FROM rooms WHERE id=:id LIMIT 1"
         try:
+            q = "DELETE FROM rooms WHERE id=:id LIMIT 1"
             self.db.put(q, id=room.oid)
         except IntegrityError:
             raise ExtRoomInUseError()
+        self.event_manager.add("destroy", room=room.oid)

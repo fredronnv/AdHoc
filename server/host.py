@@ -412,11 +412,13 @@ class HostManager(AdHocManager):
         
         host.get_optionset().destroy()
         
-        q = "DELETE FROM hosts WHERE id=:hostname LIMIT 1"
         try:
+            q = "DELETE FROM hosts WHERE id=:hostname LIMIT 1"
             self.db.put(q, hostname=host.oid)
         except IntegrityError:
             raise ExtHostInUseError
+        
+        self.event_manager.add("destroy", host=host.oid, dns=host.dns, mac=host.mac)
         
         if host.status=="Active":
             gm = self.group_manager

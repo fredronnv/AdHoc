@@ -211,10 +211,11 @@ class PoolRangeManager(AdHocManager):
     @entry(g_write)
     def destroy_pool_range(self, fun, pool_range):
         try:
-            q = "DELETE FROM pool_ranges WHERE start_ip=:start_ip LIMIT 1"
+            q = "DELETE FROM pool_ranges WHERE start_ip=:start_ip LIMIT 1"  
+            self.db.put(q, start_ip=pool_range.oid)
         except IntegrityError:
             raise ExtPoolRangeInUseError()
-        self.db.put(q, start_ip=pool_range.oid)
+        self.event_manager.add("destroy", pool_range=pool_range.oid)
         
         
     def getoverlaps(self, start_ip, end_ip):

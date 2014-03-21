@@ -294,11 +294,13 @@ class GroupManager(AdHocManager):
     @entry(g_write)
     def destroy_group(self, fun, group):
         optionset =  group.get_optionset()
-        q = "DELETE FROM groups WHERE groupname=:groupname LIMIT 1"
+        
         try:
+            q = "DELETE FROM groups WHERE groupname=:groupname LIMIT 1"
             self.db.put(q, groupname=group.oid)
         except IntegrityError:
             raise ExtGroupInUseError()
+        self.event_manager.add("destroy", group=group.oid)
         optionset.destroy()
    
     @entry(g_rename)    
@@ -358,14 +360,14 @@ class GroupManager(AdHocManager):
         for (groupname, parent) in rows:
             if not groupname:
                 continue
-            print "Gather stats for group ", groupname
+            #print "Gather stats for group ", groupname
             hostcount = self.db.get("SELECT COUNT(*) from hosts WHERE `group`= :groupname AND entry_status='Active'", groupname=groupname)[0][0]
-            print "Direct host count for %s is %d"%(groupname, hostcount)
+            #print "Direct host count for %s is %d"%(groupname, hostcount)
             indirect = self.gather_stats(parent=groupname)
-            print "Indirect host count for %s is %d"%(groupname, indirect)
+            #print "Indirect host count for %s is %d"%(groupname, indirect)
             hostcount += indirect
             self.db.put("UPDATE groups SET hostcount=:hostcount WHERE groupname=:groupname", groupname=groupname, hostcount=hostcount)
-            print "Group %s has %d active hosts"%(groupname, hostcount)
+            #print "Group %s has %d active hosts"%(groupname, hostcount)
         return hostcount
     
     @entry(g_write)

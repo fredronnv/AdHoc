@@ -441,8 +441,10 @@ class OptionDefManager(AdHocManager):
               
     @entry(g_write)
     def destroy_option_def(self, fun, option_def):
-        q = "DELETE FROM option_base WHERE name=:name LIMIT 1"
+        
         try:
+            q = "DELETE FROM option_base WHERE name=:name LIMIT 1"
             self.db.put(q, name=option_def.oid)
         except IntegrityError:
             raise ExtOptionDefInUseError()
+        self.event_manager.add("destroy", option=option_def.name)
