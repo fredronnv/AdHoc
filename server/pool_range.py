@@ -6,7 +6,6 @@ from pool import *
 from dhcp_server import *
 from util import *
 import socket
-from objc._convenience import OVERRIDE
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_pool_ranges"), AdHocSuperuserGuard)
 
