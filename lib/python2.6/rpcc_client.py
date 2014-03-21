@@ -101,7 +101,7 @@ class RPCC(object):
             return self.FunctionProxy(self, name)
 
     def _rawcall(self, fun, *args):
-        print "RAWCALL", fun, args
+        #print "RAWCALL", fun, args
         call = json.dumps({"function": fun, "params": args})
         retstr = urllib2.urlopen(self._url, call.encode("utf-8")).read()
         return json.loads(retstr.decode("utf-8"))
