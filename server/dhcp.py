@@ -687,7 +687,7 @@ class DHCPManager(AdHocManager):
             self.emit_groups(groupname, indent + 1, timing_array=timing_array)
             self.emit_group_hosts(groupname, indent + 1)
             self.emit_group_footer(groupname, indent, parent)
-            timing_array.append(("Group %s" % groupname, datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
+            #timing_array.append(("Group %s" % groupname, datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
  
     def emit_literal_options(self, ownername, ownertype, indent):
         q = "SELECT `for`, value FROM %s_literal_options WHERE `for`=:ownername" % (ownertype)
