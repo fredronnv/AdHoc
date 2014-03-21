@@ -75,7 +75,7 @@ class NullAuthenticationManager(AuthenticationManager):
                 (username,) = username.split('@')
             if kerberos.checkPassword(username, password, service, krb_realm):
                     session.set("authuser", username)
-                    session.set("authrealm", realm)
+                    session.set("authrealm", krb_realm)
             else:
                 raise exterror.ExtAuthenticationFailedError()
         else:
