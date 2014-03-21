@@ -158,7 +158,7 @@ class StaticDocumentProtocol(Protocol):
 class FunctionDefinitionProtocol(Protocol):
     def request(self, httphandler, path, data):
         # [/api/]3/funname
-        print "PATH=", path, " DATA=", data
+        #print "PATH=", path, " DATA=", data
         pathcomp = path.split("/")
         
         if len(pathcomp) == 1 and pathcomp[0] == "api.css":
