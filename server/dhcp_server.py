@@ -95,14 +95,14 @@ class DHCPServer(AdHocModel):
     def set_dns(self, dns):
         q = "UPDATE dhcp_servers SET name=:name WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, name=dns)
-        self.event_manager.add("update",  dhcp_server=self.oid, dns=dns, authuser=self.session.authuser)
+        self.event_manager.add("update",  dhcp_server=self.oid, dns=dns, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(AdHocSuperuserGuard)
     def set_info(self, info):
         q = "UPDATE dhcp_servers SET info=:info WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, info=info)
-        self.event_manager.add("update",  dhcp_server=self.oid, info=info, authuser=self.session.authuser)
+        self.event_manager.add("update",  dhcp_server=self.oid, info=info, authuser=self.function.session.authuser)
         
         
 class DHCPServerManager(AdHocManager):

@@ -111,21 +111,21 @@ class Building(AdHocModel):
         
         #print "Building %s changed ID to %s" % (self.oid, nn)
         self.manager.rename_object(self, str(value))
-        self.event_manager.add("rename", building=self.oid, newstr=str(value), authuser=self.session.authuser)
+        self.event_manager.add("rename", building=self.oid, newstr=str(value), authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, newinfo):
         q = "UPDATE buildings SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
-        self.event_manager.add("update",  building=self.oid, info=newinfo, authuser=self.session.authuser)
+        self.event_manager.add("update",  building=self.oid, info=newinfo, authuser=self.function.session.authuser)
         
     @update("re", ExtBuildingRe)
     @entry(g_write)
     def set_re(self, newre):
         q = "UPDATE buildings SET re=:re WHERE id=:id"
         self.db.put(q, id=self.oid, re=newre)
-        self.event_manager.add("update",  building=self.oid, re=newre, authuser=self.session.authuser)
+        self.event_manager.add("update",  building=self.oid, re=newre, authuser=self.function.session.authuser)
         
 
 class BuildingManager(AdHocManager):
