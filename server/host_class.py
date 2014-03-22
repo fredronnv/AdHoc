@@ -194,12 +194,14 @@ class HostClass(AdHocModel):
         
         #print "HostClass %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
+        self.event_manager.add("rename",  host_class=self.oid, newstr=nn, authuser=fun.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE classes SET info=:value WHERE classname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  host_class=self.oid, info=value, authuser=fun.session.authuser)
         
         #print "HostClass %s changed Info to %s" % (self.oid, value)
     
@@ -208,12 +210,14 @@ class HostClass(AdHocModel):
     def set_vendor_class_id(self, value):
         q = "UPDATE classes SET vendor_class_id=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  host_class=self.oid, vendor_class_id=value, authuser=fun.session.authuser)
              
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)
     def set_optionspace(self, value):
         q = "UPDATE host_classes SET optionspace=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  host_class=self.oid, optionspace=value, authuser=fun.session.authuser)
         
 
 class HostClassManager(AdHocManager):

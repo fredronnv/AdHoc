@@ -244,12 +244,14 @@ class OptionDef(AdHocModel):
         
         #print "OptionDef %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
+        self.event_manager.add("rename",  option=self.oid, newstr=value, authuser=fun.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE option_base SET info=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  option=self.oid, info=value, authuser=fun.session.authuser)
         
         #print "OptionDef %s changed Info to %s" % (self.oid, value)
     
@@ -258,30 +260,35 @@ class OptionDef(AdHocModel):
     def set_code(self, value):
         q = "UPDATE option_base SET code=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  option=self.oid, code=value, authuser=fun.session.authuser)
              
     @update("qualifier", ExtOptionDefQualifier)
     @entry(g_write)
     def set_qualifier(self, value):
         q = "UPDATE option_base SET qualifier=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  option=self.oid, qualifier=value, authuser=fun.session.authuser)
              
     @update("type", ExtOptionType)
     @entry(g_write)
     def set_type(self, value):
         q = "UPDATE option_base SET type=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  option=self.oid, type=value, authuser=fun.session.authuser)
              
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)
     def set_optionspace(self, value):
         q = "UPDATE option_base SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  option=self.oid, optionspace=value, authuser=fun.session.authuser)
         
     @update("encapsulate", ExtOrNullOptionspace)
     @entry(g_write)
     def set_encapsulate(self, value):
         q = "UPDATE option_base SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  option=self.oid, encapsulate=value, authuser=fun.session.authuser)
            
     @update("struct", ExtList(ExtOptionType))
     @entry(g_write)
@@ -294,6 +301,7 @@ class OptionDef(AdHocModel):
             struct = "{ " + ",".join([x.value for x in value.value]) + " }"
             
         self.db.put(q, name=self.oid, value=struct)
+        self.event_manager.add("update",  option=self.oid, struct=struct, authuser=fun.session.authuser)
         
 
 class OptionDefManager(AdHocManager):

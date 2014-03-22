@@ -157,20 +157,22 @@ class Subnetwork(AdHocModel):
     def set_id(self, value):
         q = "UPDATE subnetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
-        
         self.manager.rename_object(self, value)
+        self.event_manager.add("rename",  subnetwork=self.oid, newstr=value, authuser=fun.session.authuser)
         
     @update("network", ExtNetworkName)
     @entry(g_write)
     def set_network(self, value):
         q = "UPDATE subnetworks SET network=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
+        self.event_manager.add("update",  subnetwork=self.oid, network=value, authuser=fun.session.authuser)
               
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE subnetworks SET info=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
+        self.event_manager.add("update",  subnetwork=self.oid, info=value, authuser=fun.session.authuser)
 
 
 class IPV4Match(Match):

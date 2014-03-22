@@ -199,25 +199,28 @@ class Group(AdHocModel):
         
         #print "Group %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_group(self, nn)
+        self.event_manager.add("rename",  group=self.oid, newstr=nn, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE groups SET info=:value WHERE groupname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  group=self.oid, info=value, authuser=self.function.session.authuser)
         
         #print "Group %s changed Info to %s" % (self.oid, value)
     
     @update("parent", ExtGroup)
     @entry(g_write)
     def set_parent(self, new_parent):
-        self.manager.reparent(self, new_parent)
+        self.manager.reparent(self, new_parent, self.function)
                 
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)
     def set_optionspace(self, value):
         q = "UPDATE groups SET optionspace=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update",  group=self.oid, optionspace=value, authuser=self.function.session.authuser)
         
 
 class GroupManager(AdHocManager):
@@ -371,7 +374,7 @@ class GroupManager(AdHocManager):
         return hostcount
     
     @entry(g_write)
-    def reparent(self, group, new_parent):
+    def reparent(self, group, new_parent, fun):
     
         if new_parent.oid == group.parent:
             return  # Nothing to do, new parent and old are the same
@@ -380,9 +383,12 @@ class GroupManager(AdHocManager):
             old_parent = self.get_group(group.parent)
             self.adjust_hostcount(old_parent, -group.hostcount)
             self.adjust_hostcount(new_parent, group.hostcount)
-            
+        
+        
+        self.event_manager.add("disconnect",  group=group.oid, parent_object=group.parent, authuser=fun.session.authuser)
         q = "UPDATE groups SET parent_group=:value WHERE groupname=:name"
         self.db.put(q, name=group.oid, value=new_parent.oid)
+        self.event_manager.add("connect",  group=group.oid, parent_object=new_parent.oid, authuser=fun.session.authuser)
         
         
     @entry(g_write)

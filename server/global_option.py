@@ -117,6 +117,7 @@ class GlobalOption(AdHocModel):
         nn = str(newname)
         q = "UPDATE global_options SET name=:newname WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newname=nn)
+        self.event_manager.add("rename",  global_option=self.oid, newstr=newname, authuser=self.function.session.authuser)
         # Do not call self.manager.rename_object(self, nn) here. Global options are identified with a separate ID
         # which is not touched by the setting of a new name.
         
@@ -127,6 +128,7 @@ class GlobalOption(AdHocModel):
     def set_value(self, newvalue):
         q = "UPDATE global_options SET value=:value WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, value=newvalue)
+        self.event_manager.add("rename",  global_option=self.oid, value=newvalue, authuser=self.function.session.authuser)
         
 
 class GlobalOptionManager(AdHocManager):

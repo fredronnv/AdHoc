@@ -126,23 +126,25 @@ class Network(AdHocModel):
     
     @update("network", ExtNetworkName)
     @entry(g_write)
-    def set_natwork(self, value):
-        q = "UPDATE snetworks SET id=:value WHERE id=:id"
+    def set_network(self, value):
+        q = "UPDATE networks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
-        
         self.manager.rename_object(self, value)
+        self.event_manager.add("rename",  network=self.oid, newstr=value, authuser=fun.session.authuser)
 
     @update("authoritative", ExtBoolean)
     @entry(g_write)
     def set_authoritative(self, newauthoritative):
         q = "UPDATE networks SET authoritative=:authoritative WHERE id=:id"
         self.db.put(q, id=self.oid, authoritative=newauthoritative)
+        self.event_manager.add("update",  network=self.oid, authoritative=value, authuser=fun.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
-    def set_info(self, newinfo):
+    def set_info(self, value):
         q = "UPDATE networks SET info=:info WHERE id=:id"
-        self.db.put(q, id=self.oid, info=newinfo)
+        self.db.put(q, id=self.oid, info=value)
+        self.event_manager.add("update",  network=self.oid, info=value, authuser=fun.session.authuser)
         
 
 class NetworkManager(AdHocManager):
