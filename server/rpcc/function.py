@@ -392,6 +392,7 @@ class FetchFunction(SessionedFunction):
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
 class UpdateFunction(SessionedFunction):
+    creates_event = True
     def do(self):
         params = self.get_parameters()
         obj = getattr(self, params[-2][0])
