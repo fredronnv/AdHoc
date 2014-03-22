@@ -422,6 +422,7 @@ class PoolManager(AdHocManager):
             self.db.put(q, poolname=pool.oid, hostname=host.oid, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtHostAlreadyAllowedError()
+        self.event_manager.add("grant_access", pool=pool_name, host=host.oid, authuser=fun.session.authuser)
     
     @entry(g_admin)
     def allow_group(self, fun, pool, group):
@@ -431,6 +432,7 @@ class PoolManager(AdHocManager):
             self.db.put(q, poolname=pool.oid, groupname=group.oid, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtGroupAlreadyAllowedError()
+        self.event_manager.add("grant_access", pool=pool_name, group=group.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
     def allow_host_class(self, fun, pool, host_class):
@@ -440,6 +442,7 @@ class PoolManager(AdHocManager):
             self.db.put(q, poolname=pool.oid, classname=host_class.oid, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtHostClassAlreadyAllowedError()
+        self.event_manager.add("grant_access", pool=pool_name, host_class=host_class.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
     def disallow_host(self, pool, host):
@@ -449,6 +452,7 @@ class PoolManager(AdHocManager):
             raise ExtHostNotAllowedInPoolError()
         q = """DELETE FROM pool_host_map WHERE poolname=:poolname AND hostname=:hostname""" 
         self.db.put(q, poolname=pool.oid, hostname=host.oid)
+        self.event_manager.add("revoke_access", pool=pool_name, host=host.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
     def disallow_group(self, pool, group):
@@ -458,6 +462,7 @@ class PoolManager(AdHocManager):
             raise ExtGroupNotAllowedInPoolError()
         q = """DELETE FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname""" 
         self.db.put(q, poolname=pool.oid, groupname=group.oid)
+        self.event_manager.add("revoke_access", pool=pool_name, group=group.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
     def disallow_host_class(self, pool, host_class):
@@ -467,6 +472,7 @@ class PoolManager(AdHocManager):
             raise ExtHostClassNotAllowedInPoolError()
         q = """DELETE FROM pool_class_map WHERE poolname=:poolname AND classname=:classname""" 
         self.db.put(q, poolname=pool.oid, classname=host_class.oid)
+        self.event_manager.add("revoke_access", pool=pool_name, host_class=host_class.oid, authuser=fun.session.authuser)
     
     @entry(g_write_literal_option)
     def add_literal_option(self, fun, pool, option_text):
