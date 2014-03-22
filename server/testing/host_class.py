@@ -50,8 +50,10 @@ class T0120_HostClassCreate(ServiceDeskTests):
     def do(self):
         try:
             self.superuser.host_class_destroy('QZ1243A')
-        except:
-            pass
+        except Exception as e:
+            if not e.name.startswith("LookupError::"):
+                print e
+                raise
         with AssertAccessError(self):
             try:
                 self.proxy.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
@@ -74,8 +76,10 @@ class T0130_HostClassDestroy(ServiceDeskTests):
     def do(self):
         try:
             self.superuser.host_class_destroy('QZ1243A')
-        except:
-            pass
+        except Exception as e:
+            if not e.name.startswith("LookupError::"):
+                print e
+                raise
         self.superuser.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
         try:
             with AssertAccessError(self):
