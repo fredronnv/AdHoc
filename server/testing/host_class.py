@@ -52,7 +52,6 @@ class T0120_HostClassCreate(ServiceDeskTests):
             self.superuser.host_class_destroy('QZ1243A')
         except Exception as e:
             if not e.name.startswith("LookupError::"):
-                print e
                 raise
         with AssertAccessError(self):
             try:
@@ -78,7 +77,6 @@ class T0130_HostClassDestroy(ServiceDeskTests):
             self.superuser.host_class_destroy('QZ1243A')
         except Exception as e:
             if not e.name.startswith("LookupError::"):
-                print e
                 raise
         self.superuser.host_class_create('QZ1243A', 'altiris', "TestHostClass", {})
         try:
