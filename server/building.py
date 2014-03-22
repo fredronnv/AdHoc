@@ -48,7 +48,7 @@ class BuildingCreate(SessionedFunction):
               ("re", ExtBuildingRe, "The regular expression rooms must match for this building"),
               ("info", ExtString, "Building description")]
     desc = "Creates a building"
-    creates_event=True
+    creates_event = True
     returns = (ExtNull)
 
     def do(self):
@@ -59,6 +59,7 @@ class BuildingDestroy(SessionedFunction):
     extname = "building_destroy"
     params = [("building", ExtBuilding, "Building to destroy")]
     desc = "Destroys a building"
+    creates_event = True
     returns = (ExtNull)
 
     def do(self):
@@ -103,25 +104,28 @@ class Building(AdHocModel):
     
     @update("building", ExtString)
     @entry(g_write)
-    def set_building(self, newbuilding):
-        nn = str(newbuilding)
-        q = "UPDATE buildings SET id=:newbuilding WHERE id=:id LIMIT 1"
-        self.db.put(q, id=self.oid, newbuilding=nn)
+    def set_building(self, value):
+        nn = str(value)
+        q = "UPDATE buildings SET id=:value WHERE id=:id LIMIT 1"
+        self.db.put(q, id=self.oid, value=str(value))
         
         #print "Building %s changed ID to %s" % (self.oid, nn)
-        self.manager.rename_object(self, nn)
+        self.manager.rename_object(self, str(value))
+        self.event_manager.add("rename", building=self.oid, newstr=str(value), authuser=self.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, newinfo):
         q = "UPDATE buildings SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
+        self.event_manager.add("update",  building=self.oid, info=newinfo, authuser=self.session.authuser)
         
     @update("re", ExtBuildingRe)
     @entry(g_write)
     def set_re(self, newre):
         q = "UPDATE buildings SET re=:re WHERE id=:id"
         self.db.put(q, id=self.oid, re=newre)
+        self.event_manager.add("update",  building=self.oid, re=newre, authuser=self.session.authuser)
         
 
 class BuildingManager(AdHocManager):
