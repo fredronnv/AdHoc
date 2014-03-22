@@ -112,21 +112,21 @@ class Optionspace(AdHocModel):
         
         #print "Optionspace %s changed name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
-        self.event_manager.add("rename",  optionspace=self.oid, newstr=value, authuser=fun.session.authuser)
+        self.event_manager.add("rename",  optionspace=self.oid, newstr=nn, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE optionspaces SET info=:info WHERE value=:optionspace"
         self.db.put(q, optionspace=self.oid, info=value)
-        self.event_manager.add("update",  optionspace=self.oid, info=value, authuser=fun.session.authuser)
+        self.event_manager.add("update",  optionspace=self.oid, info=value, authuser=self.function.session.authuser)
               
     @update("type", ExtOptionspaceType)
     @entry(g_write)
     def set_type(self, value):
         q = "UPDATE optionspaces SET type=:type WHERE value=:optionspace"
         self.db.put(q, optionspace=self.oid, type=value)
-        self.event_manager.add("update",  optionspace=self.oid, optionspace=value, authuser=fun.session.authuser)
+        self.event_manager.add("update",  optionspace=self.oid, type=value, authuser=self.function.session.authuser)
         
 
 class OptionspaceManager(AdHocManager):

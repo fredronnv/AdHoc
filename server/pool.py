@@ -289,14 +289,14 @@ class Pool(AdHocModel):
         
         #print "Pool %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
-        self.event_manager.add("rename",  pool=self.oid, newstr=nn, authuser=fun.session.authuser)
+        self.event_manager.add("rename",  pool=self.oid, newstr=nn, authuser=self.function.session.authuser)
    
     @update("info", ExtString)
     @entry(g_write)     
     def set_info(self, value):
         q = "UPDATE pools SET info=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  pool=self.oid, info=value, authuser=fun.session.authuser)
+        self.event_manager.add("update",  pool=self.oid, info=value, authuser=self.function.session.authuser)
         
         #print "Pool %s changed Info to %s" % (self.oid, value)
   
@@ -305,21 +305,21 @@ class Pool(AdHocModel):
     def set_network(self, value):
         q = "UPDATE pools SET network=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  pool=self.oid, network=value, authuser=fun.session.authuser)
+        self.event_manager.add("update",  pool=self.oid, network=value, authuser=self.function.session.authuser)
  
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)       
     def set_optionspace(self, value):
         q = "UPDATE pools SET optionspace=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  pool=self.oid, optionspace=value, authuser=fun.session.authuser)
+        self.event_manager.add("update",  pool=self.oid, optionspace=value, authuser=self.function.session.authuser)
  
     @update("max_lease_time", ExtInteger)
     @entry(g_write)       
     def set_max_lease_time(self, value):
         q = "UPDATE pools SET max_lease_time=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("rename",  pool=self.oid, max_lease_time=value, authuser=fun.session.authuser)
+        self.event_manager.add("rename",  pool=self.oid, max_lease_time=value, authuser=self.function.session.authuser)
         
 
 class PoolManager(AdHocManager):

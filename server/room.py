@@ -122,21 +122,21 @@ class Room(AdHocModel):
         
         #print "Room %s changed ID to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
-        self.event_manager.add("rename",  room=self.oid, newstr=nn, authuser=fun.session.authuser)
+        self.event_manager.add("rename",  room=self.oid, newstr=nn, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE rooms SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=value)
-        self.event_manager.add("update",  room=self.oid, info=value, authuser=fun.session.authuser)
+        self.event_manager.add("update",  room=self.oid, info=value, authuser=self.function.session.authuser)
               
     @update("printers", ExtRoomPrinters)
     @entry(g_write)
     def set_printers(self, value):
         q = "UPDATE rooms SET printers=:printers WHERE id=:id"
         self.db.put(q, id=self.oid, printers=value)
-        self.event_manager.add("update",  room=self.oid, printers=value, authuser=fun.session.authuser)
+        self.event_manager.add("update",  room=self.oid, printers=value, authuser=self.function.session.authuser)
         
 
 class RoomManager(AdHocManager):

@@ -130,28 +130,28 @@ class PoolRange(AdHocModel):
         q = "UPDATE pool_ranges SET start_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
         self.manager.rename_object(self, value)
-        self.event_manager.add("rename",  pool_range=self.oid, newstr=value, authuser=fun.session.authuser)
+        self.event_manager.add("rename",  pool_range=self.oid, newstr=value, authuser=self.function.session.authuser)
         
     @update("end_ip", ExtIpV4Address)
     @entry(g_write)
     def set_end_ip(self, value):
         q = "UPDATE pool_ranges SET end_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
-        self.event_manager.add("update",  pool_range=self.oid, end_ip=value, authuser=fun.session.authuser)
+        self.event_manager.add("update",  pool_range=self.oid, end_ip=value, authuser=self.function.session.authuser)
 
     @update("pool", ExtPool)
     @entry(g_write)
     def set_pool(self, pool):
         q = "UPDATE pool_ranges SET pool=:pool WHERE start_ip=:id"
         self.db.put(q, id=self.oid, pool=pool.oid)
-        self.event_manager.add("update",  pool_range=self.oid, pool=pool.oid, authuser=fun.session.authuser)
+        self.event_manager.add("update",  pool_range=self.oid, pool=pool.oid, authuser=self.function.session.authuser)
              
     @update("served_by", ExtDHCPServer)
     @entry(g_write)
     def set_info(self, served_by):
         q = "UPDATE pool_ranges SET served_by=:served_by WHERE start_ip=:id"
         self.db.put(q, id=self.oid, served_by=served_by.oid)
-        self.event_manager.add("update",  pool_range=self.oid, served_by=served_by.oid, authuser=fun.session.authuser)
+        self.event_manager.add("update",  pool_range=self.oid, served_by=served_by.oid, authuser=self.function.session.authuser)
         
     def check_model(self):
         q = "SELECT INET_ATON(:start_ip) > INET_ATON(:end_ip)"
