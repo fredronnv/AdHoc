@@ -55,6 +55,6 @@ if [ x"$CHALMERS_DEPLOY_LEVEL" = x"install" ]; then
     export RPCC_SERVER_SSL_CHAINFILE=$ADHOC_RUNTIME_HOME/etc/$ADHOC_SERVER_HOST.chain
 fi
 
-if [ -n $ADHOC_SSL_ENABLE -a $ADHOC_SSL_ENABLE = 1 ]; then
+if [ "$ADHOC_SSL_ENABLE" = "1" ]; then
     export ADHOC_SERVER_URL="https://${ADHOC_SERVER_HOST}:${ADHOC_SERVER_PORT}"
 fi
