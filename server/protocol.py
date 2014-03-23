@@ -41,12 +41,22 @@ class DhcpdConfProtocol(Protocol):
             except Exception, e:
                 print "dhcp_server_fetch error", e
                 raise
+            if not "result" in res:
+                print "dhcp_server_fetch error:", res["error"]
+                return HTTPResponse("500 Internal server error.", ctype="text/plain", code=500)
+
             if len(res["result"])== 0:
                    return HTTPResponse("403 Forbidden. Data is only accessible for registered hosts", code=403)
             #return HTTPResponse("543 Debug stop. res=%s"%res, ctype="text/plain", code=543)
             dhcp_server_id = res["result"][0]["dhcp_server"]
             latest_fetch = res["result"][0]["latest_fetch"]
-            maxid = self.server.call_rpc(httphandler, "event_get_max_app_id",[session], api_version)["result"]
+                
+            res = self.server.call_rpc(httphandler, "event_get_max_app_id",[session], api_version)
+            if "result" in res:
+                maxid = res["result"]
+            else:
+                print "event_get_max_id error", res["error"]
+                return HTTPResponse("500 Internal server error.", ctype="text/plain", code=500)
         
             if auto and maxid <= latest_fetch:
                 return HTTPResponse(("Nothing new since last fetch at event id %d."%(latest_fetch)).encode("utf-8"), ctype="text/html", encoding="utf-8")
