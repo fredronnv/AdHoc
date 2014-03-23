@@ -1,0 +1,2 @@
+SUBDIRS = src mibs
+EXTRA_DIST = README

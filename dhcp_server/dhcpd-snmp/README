@@ -1,0 +1,23 @@
+Usage:
+======
+
+As pass_persist in /etc/snmp/snmpd.conf, like:
+---8<---
+pass_persist 1.3.6.1.4.1.21695.1.2 /usr/local/bin/dhcpd-snmp -c /etc/dhcp3/dhcpd-snmp.conf
+---8<---
+
+For interactive testing:
+========================
+$ for o in $(seq 1 6);do for i in $(seq 1 8);do \
+echo -e "PING\ngetnext\n1.3.6.1.4.1.21695.1.2.2.$o.$i"; done;done | \
+/usr/local/bin/dhcpd-snmp -d -c /etc/dhcp3/dhcpd-snmp.conf
+
+Example configfile:
+===================
+
+/etc/dhcpd3/dhcpd-snmp.conf:
+---8<---
+leases: /var/lib/dhcpd/dhcpd.leases
+pool: 1, hades, 192.168.1.150-192.168.1.240
+pool: 2, duat, 192.168.1.241-192.168.1.254
+---8<---

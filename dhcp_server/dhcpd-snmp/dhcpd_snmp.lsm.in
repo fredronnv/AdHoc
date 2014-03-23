@@ -1,0 +1,18 @@
+Begin3
+Title:		dhcpd_snmp
+Version:	@VERSION@
+Entered-date:	@ISODATE@
+Description:	ISC-dhcpd lease pools to SNMP gateway.
+		Dump per-pool statistics from lease file for retrieval via SNMP.
+		@configure_input@
+Keywords:	dhcpd, leases, pools, SNMP, get, getnext, getbulk
+Author: 	Bernhard Reutner-Fischer
+Maintained-by:	Bernhard Reutner-Fischer
+Primary-site:	metlab.unc.edu pub/Linux/apps/some/directory
+		31k dhcpd_snmp-@VERSION@.tar.gz
+		500  dhcpd_snmp.lsm
+Alternate-site: 
+Original-site:  
+Platforms:      
+Copying-policy:	GNU copyleft
+End

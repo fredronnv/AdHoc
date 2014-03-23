@@ -1,0 +1,57 @@
+%define name dhcpd_snmp
+%define version @VERSION@
+%define release 1
+%define manifest %{_builddir}/%{name}-%{version}-%{release}.manifest
+
+Name: %{name}
+Version: %{version}
+Release: %{release}%{?dist}
+License: GPL
+Group: Applications/System
+Source: %{name}-%{version}.tar.bz2
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Summary: Provide ISC-dhcpd leases information of pools via SNMP
+%description
+ISC-dhcpd lease pools to SNMP gateway.
+Dump per-pool statistics from lease file for retrieval via SNMP.
+
+@configure_input@
+
+%prep
+%if %{!?__find:1}
+%define __find /usr/bin/find
+%endif
+%if %{!?datadir:1}
+%define datadir $(net-snmp-config --default-mibdirs | sed -e "s/.*://")
+%endif
+%setup -q
+%build
+%configure --datadir=%{datadir}
+%{__make} %{?_smp_mflags}
+%install
+%{__rm} -rf $RPM_BUILD_ROOT
+%{__install} -d -m0750 $RPM_BUILD_ROOT
+%{__make} %{?_smp_mflags} datadir=%{datadir} DESTDIR=$RPM_BUILD_ROOT install
+cd $RPM_BUILD_ROOT
+%{__rm} -f %{manifest}
+%{__find} . -type d \
+	| sed '1,2d;s,^\.,\%attr(-\,root\,root) \%dir ,' >> %{manifest}
+%{__find} . -type f \
+	| sed 's,^\.,\%attr(-\,root\,root) ,' >> %{manifest}
+%{__find} . -type l \
+	| sed 's,^\.,\%attr(-\,root\,root) ,' >> %{manifest}
+
+#%pre
+#%post
+#%preun
+#%postun
+
+%clean
+%{__rm} -f %{manifest}
+%{__rm} -rf $RPM_BUILD_ROOT
+
+%files -f %{manifest}
+%defattr(-,root,root)
+
+%changelog
+

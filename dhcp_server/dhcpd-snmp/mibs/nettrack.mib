@@ -1,0 +1,45 @@
+NETTRACK-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY,
+	OBJECT-IDENTITY,
+	enterprises
+		FROM SNMPv2-SMI
+	;
+
+nettrack MODULE-IDENTITY
+	LAST-UPDATED
+		"200601260000Z"
+	ORGANIZATION
+		"net-track GmbH"
+	CONTACT-INFO
+		"net-track GmbH
+		Route des Arsenaux 15
+		1700 Fribourg
+		Switzerland
+		Tel: +41 26 4240924
+		Fax: +41 26 4240924
+
+		http://www.net-track.ch
+		info@net-track.ch"
+	DESCRIPTION
+		"Management Information for net-track GmbH."
+	REVISION
+		"200601260000Z"
+	DESCRIPTION
+		"Initial version of this MIB module."
+	::= { enterprises 21695 }	-- assigned by IANA
+
+public OBJECT-IDENTITY
+	STATUS current
+	DESCRIPTION
+		"Public and published MIB objects."
+	::= { nettrack 1 }
+
+private OBJECT-IDENTITY
+	STATUS current
+	DESCRIPTION
+		"Private, non-published MIB objects."
+	::= { nettrack 2 }
+
+END

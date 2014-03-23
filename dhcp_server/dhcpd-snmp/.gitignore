@@ -1,0 +1,44 @@
+#
+# Never ignore these
+#
+!.gitignore
+
+#
+# Generated files
+#
+*.o
+*.i
+*.s
+
+#
+# autoconf/automake generated files
+#
+.deps
+Makefile.in
+Makefile
+aclocal.m4
+config/
+configure
+config.status
+config.log
+config.h*
+dhcpd_snmp.lsm
+dhcpd_snmp.spec
+stamp-h*
+
+#
+# Debugging files
+#
+.gdb_history
+.gdbinit*
+core
+
+#
+# Backups / patches
+#
+*~
+*.orig
+*.rej
+/*.patch
+/*.diff
+
