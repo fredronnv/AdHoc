@@ -69,6 +69,7 @@ class DHCPServer(AdHocModel):
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
+        self.latest_fetch = a.pop(0)
 
     @template("dhcp_server", ExtDHCPServer)
     def get_dhcp_server(self):
@@ -89,6 +90,10 @@ class DHCPServer(AdHocModel):
     @template("changed_by", ExtString)
     def get_changed_by(self):
         return self.changed_by
+    
+    @template("latest_fetch", ExtInteger)
+    def get_latest_fetch(self):
+        return self.latest_fetch
 
     @update("dns", ExtString)
     @entry(AdHocSuperuserGuard)
@@ -115,7 +120,7 @@ class DHCPServerManager(AdHocManager):
         self._model_cache = {}
         
     def base_query(self, dq):
-        dq.select("ds.id", "ds.name", "ds.info", "ds.mtime", "ds.changed_by")
+        dq.select("ds.id", "ds.name", "ds.info", "ds.mtime", "ds.changed_by", "ds.latest_fetch")
         dq.table("dhcp_servers ds")
         return dq
 
@@ -127,9 +132,14 @@ class DHCPServerManager(AdHocManager):
         dq.select("ds.id")
 
     @search("dhcp_server", StringMatch)
-    def s_net(self, dq):
+    def s_dhcp_server(self, dq):
         dq.table("dhcp_servers ds")
         return "ds.id"
+    
+    @search("dns", StringMatch)
+    def s_dns(self, dq):
+        dq.table("dhcp_servers ds")
+        return "ds.name"
     
     @entry(AdHocSuperuserGuard)
     def create_dhcp_server(self, fun, dhcp_server_id, dns, info):
