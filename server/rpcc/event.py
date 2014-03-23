@@ -481,5 +481,7 @@ class EventManager(Manager):
         if app:
             q1 += """ AND et.name NOT IN ('marker', 'call')"""
        
-        ret = self.db.get(q1)
-        return ret[0][0]
+        rv = self.db.get(q1)[0][0]
+	if not rv:
+	    return 0
+        return rv
