@@ -398,8 +398,10 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         if hasattr(self, "server_public_url") and self.server_public_url:
             return self.server_public_url
-
-        return "http://%s:%d/" % (self.instance_address, self.instance_port)
+        prot = "http"
+        if self.ssl_enabled:
+            prot="https"
+        return "%s://%s:%d/" % (prot, self.instance_address, self.instance_port)
 
     ###
     # Request dispatch
@@ -567,6 +569,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             self.register_function(default_function.FunSessionDeauth)
 
         elif issubclass(manager_class, event.EventManager):
+            self.register_function(event.EventGetMaxId)
+            self.register_function(event.EventGetMaxAppId)
             self.events_enabled = True
         
     def create_manager(self, mgrname, function):

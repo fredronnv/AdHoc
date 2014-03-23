@@ -36,6 +36,7 @@ import access
 from model import Model, Manager, template, search, IntegerMatch, StringMatch
 from access import entry
 from exttype import ExtOrNull, ExtString, ExtInteger, ExtDateTime, ExtEnum
+from function import SessionedFunction
 
 
 class _TEST_ViktorGuard(access.Guard):
@@ -43,7 +44,27 @@ class _TEST_ViktorGuard(access.Guard):
         if fun.session.authuser == 'viktor':
             return access.AccessGranted(access.CacheInFunction)
         return access.DecisionReferred(access.CacheInFunction)
-
+    
+class EventGetMaxId(SessionedFunction):
+    
+    desc = """Return the highest event ID"""
+    extname = "event_get_max_id"
+    returns = ExtInteger
+    uses_database = True
+            
+    def do(self):
+        return self.event_manager.get_max_id()
+    
+class EventGetMaxAppId(SessionedFunction):
+    
+    desc = """Return the highest event ID that pertains to the application, ignoring
+              internally defined events, such as call or marker events"""
+    extname = "event_get_max_app_id"
+    returns = ExtInteger
+    uses_database = True
+            
+    def do(self):
+        return self.event_manager.get_max_id(app=True)
 
 class Event(Model):
     name = "event"
@@ -442,3 +463,23 @@ class EventManager(Manager):
         (_tbl, attrid) = self.event_attributes["function"]
         dq.outer("rpcc_event_str es1", "(e.id=es1.event AND es1.attr=%d)" % (attrid,))
         return "es1.value"
+    
+    def get_max_id(self, app=False):
+        q0 = """SELECT MIN(e.id)
+                   FROM rpcc_event e, 
+                        rpcc_event_type et 
+                   WHERE e.typ=et.id AND 
+                         et.name = 'marker'"""
+        ret = self.db.get(q0)
+        if ret and ret[0][0]:
+            return ret[0][0]
+        
+        q1 = """SELECT MAX(e.id)
+                   FROM rpcc_event e, 
+                        rpcc_event_type et 
+                   WHERE e.typ=et.id """
+        if app:
+            q1 += """ AND et.name NOT IN ('marker', 'call')"""
+       
+        ret = self.db.get(q1)
+        return ret[0][0]
