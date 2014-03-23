@@ -9,7 +9,10 @@ import getpass
 import urllib2
 def connect(url="https://adhoc.ita.chalmers.se:8877",api=0, user="bernerus"):
 
-    urls = [url, "http://nile.its.chalmers.se:12121"]
+    urls = [url, 
+	    "http://nile.its.chalmers.se:12121",
+	    "http://Tugela.local:8877"
+	   ]
 
     for u in urls:
 	n=0
