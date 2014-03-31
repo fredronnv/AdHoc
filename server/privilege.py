@@ -5,7 +5,7 @@ from util import *
 
 
 g_read = AnyGrants(AllowUserWithPriv("read_all_privileges"), AdHocSuperuserGuard)
-g_write = AnyGrants(AdHocSuperuserGuard)
+g_write = AnyGrants(AllowUserWithPriv("write_all_privileges"), AdHocSuperuserGuard)
 g_grant = AnyGrants(AllowUserWithPriv("grant_all_privileges"), AdHocSuperuserGuard)
 
 class ExtNoSuchPrivilegeError(ExtLookupError):
