@@ -31,15 +31,12 @@ except:
 class SSLConfig(object):
     keyfile = None
     certfile = None
-    chainfile = None
 
-    def __init__(self, keyfile=None, certfile=None, chainfile=None):
+    def __init__(self, keyfile=None, certfile=None):
         if keyfile:
             self.keyfile = keyfile
         if certfile:
             self.certfile = certfile
-        if chainfile:
-            self.chainfile = chainfile
 
         #self.ctx = SSL.Context(SSL.SSLv23_METHOD)
         #self.ctx.use_privatekey_file(keyfile)
@@ -52,13 +49,7 @@ class SSLConfig(object):
 			       keyfile=self.keyfile, 
 			       certfile=self.certfile, 
 			       server_side=True,
-			       ssl_version=ssl.PROTOCOL_TLSv1,
-			       ca_certs=self.chainfile)
-
-
-	
-
-	
+			       ssl_version=ssl.PROTOCOL_TLSv1)
 
 
 class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
