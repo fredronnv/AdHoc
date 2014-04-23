@@ -675,7 +675,7 @@ class AssertAccessError(object):
                                                                                        expected_exception_name,
                                                                                        possible_exception_name)
             #pprint.pprint(self.exception_names)
-            # If we now expect the s# to fail, we have probably overlooked something
+            # If we now expect the superuser to fail, we have probably overlooked something
             # unless we explicitly indicated that the test should fail even as superuser
             #pprint.pprint(thetest.superuser_test_may_fail)
             if self.exception_expected and not self.thetest.superuser_test_may_fail:
