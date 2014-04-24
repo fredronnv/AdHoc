@@ -26,17 +26,17 @@ fatal()
 
 update()
 {
-	mkdir -p $2 || fatal "Cannot establish destination directory $2"
-	touch $2/$1 || fatal "Cannot touch $2/$1"
-	if cmp $1 $2/$1 >/dev/null 2>&1; then
-		cp $1 $2/$1 || fatal "Cannot or update $1"
-		if [ -n "$3" ]; then
-			chmod $3 $2/$1 || fatal "Cannot set mode on $1"
-		fi
-		log "$1 $rev installed"
-	else
-		log "$1 needed no update"
-	fi
+        mkdir -p $2 || fatal "Cannot establish destination directory $2"
+        touch $2/$1 || fatal "Cannot touch $2/$1"
+        if cmp $1 $2/$1 >/dev/null 2>&1; then
+                log "$1 needed no update"
+        else
+                cp $1 $2/$1 || fatal "Cannot or update $1"
+                if [ -n "$3" ]; then
+                        chmod $3 $2/$1 || fatal "Cannot set mode on $1"
+                fi
+                log "$1 $rev installed"
+        fi
 }
 
 cd /cdg/dist/adhoc-connect || fatal "Cannot cd to /cdg/dist/adhoc-connect"
