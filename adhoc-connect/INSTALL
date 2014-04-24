@@ -1,11 +1,17 @@
 To install on a DHCP server
+become root and run:
     cd /cdg/dist
     svn co https://svn.ita.chalmers.se/repos/adhoc/trunk/adhoc-connect
     cd adhoc-connect
     ./install.sh
     
 To upgrade a DHCP server:
+become root and run:
     cd /cdg/dist/adhoc-connect
     svn up
     ./install.sh
     
+When svn asks for password for root, just return and svn will ask for your username, enter your cid and your cid password.
+Say no to saving the password in cleartext.
+
+Note: You may have to get access to the SVN repository. Send the URL to teamunix@ita.chalmers.se and ask for permission.
