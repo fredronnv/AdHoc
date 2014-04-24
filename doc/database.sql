@@ -845,7 +845,11 @@ CREATE TABLE IF NOT EXISTS `rpcc_event_int_attr` (
 INSERT INTO `rpcc_event_int_attr` (`id`, `name`) VALUES
 (1, 'elapsed'),
 (3, 'newint'),
-(2, 'oldint');
+(2, 'oldint'),
+(4, 'optionset'),
+(5, 'code'),
+(6, 'maxval'),
+(7, 'minval');
 
 -- --------------------------------------------------------
 
@@ -884,15 +888,21 @@ CREATE TABLE IF NOT EXISTS `rpcc_event_str_attr` (
 --
 
 INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES
-(5, 'errid'),
-(6, 'errline'),
+(1, 'function'),
+(2, 'params'),
 (3, 'error'),
 (4, 'errval'),
-(1, 'function'),
+(5, 'errid'),
+(6, 'errline'),
+(7, 'stack'),
 (8, 'newstr'),
 (9, 'oldstr'),
-(2, 'params'),
-(7, 'stack');
+(10, 'mtime'),
+(11, 'option'),
+(12, 'authuser'),
+(13, 'type'),
+(14, 'qualifier');
+
 
 -- --------------------------------------------------------
 
