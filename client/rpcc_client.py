@@ -45,6 +45,23 @@ import inspect
 import os
 import sys
 
+
+### Kludge to enalme TLSv1 protocol via urllib2
+#
+import functools
+import ssl
+
+old_init = ssl.SSLSocket.__init__
+
+@functools.wraps(old_init)
+def adhoc_ssl(self, *args, **kwargs):
+    kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
+    old_init(self, *args, **kwargs)
+
+ssl.SSLSocket.__init__ = adhoc_ssl
+#
+### End kludge
+
 env_prefix = "ADHOC_"
 
 
@@ -158,6 +175,7 @@ class RPCC(object):
         self._host = url.replace("http://", "").replace("https://", "").split(":")[0]
         self._api = api_version
         self._auth = None
+        print >>sys.stderr, "URL='%s'"%self._url
         self.reset()
 
     def __getattr__(self, name):
@@ -166,6 +184,7 @@ class RPCC(object):
 
     def _rawcall(self, fun, *args):
         call = json.dumps({"function": fun, "params": args})
+        print >>sys.stderr, "RAWCALL:%s %s"%(self._url, call.encode("utf-8"))
         retstr = urllib2.urlopen(self._url, call.encode("utf-8")).read()
         return json.loads(retstr.decode("utf-8"))
 
