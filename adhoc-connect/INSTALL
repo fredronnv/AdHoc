@@ -1,0 +1,11 @@
+To install on a DHCP server
+    cd /cdg/dist
+    svn co https://svn.ita.chalmers.se/repos/adhoc/trunk/adhoc-connect
+    cd adhoc-connect
+    ./install.sh
+    
+To upgrade a DHCP server:
+    cd /cdg/dist/adhoc-connect
+    svn up
+    ./install.sh
+    

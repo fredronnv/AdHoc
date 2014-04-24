@@ -1,0 +1,53 @@
+README-CDG for adhoc-connect-auto.txt
+IMPORTANT NOTE: THIS FILE IS VERSION CONTROLLED. DO NOT EDIT THE INSTALLED VERSION IN /cdg/README.
+MANUAL EDITS GO IN adhoc-connect.txt
+
+Purpose      : Collect the dhpcd.conf file from adhoc.ita.chalmers.se,
+               install the file and restart the dhcpd server.
+
+Source       : Written by Christer Bernérus <bernerus@chalmers.se> in April 2014
+
+Installed by : Christer Bernérus <bernerus@chalmers.se>
+Host(s)      : dhcp-ng1.ita.chalmers.se
+Date         : 2014-04-24
+
+---------------------------------------------------------------------------
+
+FILES INSTALLED:
+
+/cdg/sbin/adhoc-connect.sh                              the program
+/cdg/dist/adhoc-connect/                                the distribution package
+/cdg/README/adhoc-connect/adhoc-connect.txt             this file
+/cdg/README/adhoc-connect/CONF/dhcpd                    config file for dhcpd
+/etc/sysconfig/dhcpd                                    command line args for dhcpd
+
+
+---------------------------------------------------------------------------
+
+INSTALLATION PROCEDURE:
+
+Download the package using subversion:
+    cd /cdg/dist
+    svn co https://svn.ita.chalmers.se/repos/adhoc/trunk/adhoc-connect
+    
+Run the installation script
+    /cdg/dist/adhoc-connect/install.sh
+
+Add the "-4" flag to the default dhpcd command line parameters in the  
+/etc/sysconfig/dhcpd file.
+
+Ensure that dhcpd is autostarted at system boot:
+
+  chkconfig dhcpd on
+
+
+---------------------------------------------------------------------------
+
+UPGRADE PROCEDURE
+
+    cd /cdg/dist/adhoc-connect
+    svn update
+    ./install.sh
+    
+---------------------------------------------------------------------------
+[End of File]
