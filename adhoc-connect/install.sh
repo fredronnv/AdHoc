@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOGFILE=/var/log/adhoc-connect
+LOGFILE=/var/log/adhoc-connect-install.log
 
 log()
 {
