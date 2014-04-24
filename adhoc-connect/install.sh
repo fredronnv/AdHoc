@@ -35,7 +35,7 @@ update()
                 if [ -n "$3" ]; then
                         chmod $3 $2/$1 || fatal "Cannot set mode on $1"
                 fi
-                log "$1 $rev installed"
+                log "$1 $rev installed into $2"
         fi
 }
 
@@ -43,6 +43,7 @@ cd /cdg/dist/adhoc-connect || fatal "Cannot cd to /cdg/dist/adhoc-connect"
 rev=`svn info | grep Revision:`
 
 update adhoc-connect.sh /cdg/sbin 744
+update adhoc-connect.cron /etc/cron.d 644
 cd README/adhoc-connect; 
 update adhoc-connect-auto.txt /cdg/README/adhoc-connect
 cd CONF; 
