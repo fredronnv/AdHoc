@@ -92,8 +92,13 @@ EOF
  17. Set up SSL
         Order and install SSL certificates. 
         Put the key file into $ADHOC_RUNTIME_HOME/etc/`hostname`.key. Make the file unreadable except for the server user.
-        Put the certificate file into $ADHOC_RUNTIME_HOME/etc/`hostname`.cert Make the file readable by everyone and not writable by anyone.
-        Put the chain file into $ADHOC_RUNTIME_HOME/etc/`hostname`.chain.  Make the file readable by everyone and not writable by anyone.
+        Concatenate the certificate file with the chain file and store the result into the file $ADHOC_RUNTIME_HOME/etc/`hostname`.cert
+        
+        cat $certfile $chainfile >$ADHOC_RUNTIME_HOME/etc/`hostname`.cert
+        
+        Make the file readable by everyone and not writable by anyone.
+        
+        chmod 444 $ADHOC_RUNTIME_HOME/etc/`hostname`.cert
         
         Re-read the configuration again
         . .bashrc
@@ -123,14 +128,13 @@ EOF
  22. Reboot and check that the server comes up again.
         shutdown -r now
         
- 23. Transfer current strup from old database
+ 23. Transfer current setup from old database
  
  	 Log in again and become root.
-     Stop the server:
-        /etc/init.d/adhocserver stop
-     Run the script:
-        $ADHOC_RUNTIME_HOME/server/testing/install
-	 When OK, remove the password for deploy level install from the bashrc.private file.
+ 	 
+        Run the script:
+            $ADHOC_RUNTIME_HOME/server/testing/install
+	When OK, remove the password for deploy level install from the bashrc.private file.
         
  
  
