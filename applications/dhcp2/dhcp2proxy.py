@@ -87,7 +87,7 @@ def process(command, output):
     
     try:
         if not srv:
-            srv = rpcc_client.RPCC("http://localhost:12121")
+            srv = rpcc_client.RPCC("https://adhoc.ita.chalmers.se:8877")
         
         s = cmd + "(" + ",".join(args) + ")"
         
