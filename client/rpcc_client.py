@@ -184,7 +184,6 @@ class RPCC(object):
 
     def _rawcall(self, fun, *args):
         call = json.dumps({"function": fun, "params": args})
-        print >>sys.stderr, "RAWCALL:%s %s"%(self._url, call.encode("utf-8"))
         retstr = urllib2.urlopen(self._url, call.encode("utf-8")).read()
         return json.loads(retstr.decode("utf-8"))
 
