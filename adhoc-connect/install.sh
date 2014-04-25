@@ -1,11 +1,15 @@
 #!/bin/bash
 
+# $Id:$
 LOGFILE=/var/log/adhoc-connect-install.log
+ADHOC_RELEASE="@@ADHOC_RELEASE@@"
+ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
+
+
 
 log()
 {
         msg="`date '+%F %T'` INFO  $@"
-        echo "$msg" >/dev/stderr
         echo "$msg" >>$LOGFILE
 }
 
@@ -26,25 +30,18 @@ fatal()
 
 update()
 {
-        mkdir -p $2 || fatal "Cannot establish destination directory $2"
-        touch $2/$1 || fatal "Cannot touch $2/$1"
-        if cmp $1 $2/$1 >/dev/null 2>&1; then
+        touch $2 || fatal "Cannot touch $2"
+        if cmp $1 $2 >/dev/null 2>&1; then
                 log "$1 needed no update"
         else
-                cp $1 $2/$1 || fatal "Cannot or update $1"
+                cp $1 $2 || fatal "Cannot install or update $1"
+
                 if [ -n "$3" ]; then
-                        chmod $3 $2/$1 || fatal "Cannot set mode on $1"
+                        chmod $3 $2 || fatal "Cannot set mode on $2"
                 fi
-                log "$1 $rev installed into $2"
+                log "$1 $ADHOC_RELEASE installed into $2"
         fi
 }
 
-cd /cdg/dist/adhoc-connect || fatal "Cannot cd to /cdg/dist/adhoc-connect"
-rev=`svn info | grep Revision:`
-
-update adhoc-connect.sh /cdg/sbin 744
-update adhoc-connect.cron /etc/cron.d 644
-cd README/adhoc-connect; 
-update adhoc-connect-auto.txt /cdg/README/adhoc-connect
-cd CONF; 
-update dhcpd /cdg/README/adhoc-connect/CONF
+update adhoc-connect.sh /cdg/sbin/adhoc-connect 744
+update adhoc-connect.cron /etc/cron.d/adhoc-connect 644

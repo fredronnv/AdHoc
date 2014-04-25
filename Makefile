@@ -24,7 +24,11 @@ install: clean
 	cp client/rpcc_client.py dist/dhcp2;\
 	(cd dist; find . -name .svn -exec rm -rf {} \;);\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/adhoc-connect.sh | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/adhoc_connect.sh ;\
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/adhoc-connect.sh ;\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/install.sh | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/install.sh ;\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/adhoc-connect.cron | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/adhoc-connect.cron ;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < applications/dhcp2/dhcp2 | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/dhcp2/dhcp2 ;\
 	echo "adhoc_svn_version = \"$${svn_version}\"" > dist/server/version.py;\

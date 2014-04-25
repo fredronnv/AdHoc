@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# $Id:$
+
 ADHOC_RELEASE="@@ADHOC_RELEASE@@"
 ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
 
