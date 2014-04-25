@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $Id:$
+# $Id$
 
 ADHOC_RELEASE="@@ADHOC_RELEASE@@"
 ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
@@ -22,12 +22,14 @@ err()
 {
         msg="`date '+%F %T'` ERROR $@"
         echo "$msg" >>$LOGFILE
+        echo "$msg" >/dev/stderr
 }
 
 fatal()
 {
         msg="`date '+%F %T'` FATAL $@"
         echo "$msg" >>$LOGFILE
+        echo "$msg" >/dev/stderr
         exit 1
 }
 

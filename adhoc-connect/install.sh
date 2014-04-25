@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $Id:$
+# $Id$
 LOGFILE=/var/log/adhoc-connect-install.log
 ADHOC_RELEASE="@@ADHOC_RELEASE@@"
 ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
@@ -10,6 +10,7 @@ ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
 log()
 {
         msg="`date '+%F %T'` INFO  $@"
+        echo "$msg" >/dev/stderr
         echo "$msg" >>$LOGFILE
 }
 
