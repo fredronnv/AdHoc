@@ -1,5 +1,7 @@
 #!/usr/bin/env python2.6
 
+# $Id$
+
 from rpcc import *
 from shared_network import ExtNetwork, ExtNetworkName
 from optionset import *

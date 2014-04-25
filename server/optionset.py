@@ -1,5 +1,7 @@
 #!/usr/bin/env python2.6
 
+# $Id$
+
 import sys
 
 sys.path.append("/home/viktor/AdHoc/trunk/server")

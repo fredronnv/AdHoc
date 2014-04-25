@@ -1,5 +1,7 @@
 #!/usr/bin/env python2.6
 
+# $Id$
+
 import struct
 from rpcc import *
 import optionset

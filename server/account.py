@@ -1,5 +1,8 @@
 #!/usr/bin/env python2.6
 
+
+# $Id$
+
 from rpcc import *
 from util import *
 from privilege import *

@@ -1,5 +1,7 @@
 #!/usr/bin/env python2.6
 
+# $Id$
+
 from rpcc import *
 from option_def import ExtNoSuchOptionDefError
 from util import *

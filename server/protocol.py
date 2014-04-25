@@ -1,8 +1,9 @@
+#!/usr/bin/env python2.6
+
+# $Id$
+
 from rpcc import *
 import socket
-
-
-
 
 class DhcpdConfProtocol(Protocol):
     def fake_session(self, api_version, remote_ip, httphandler):
