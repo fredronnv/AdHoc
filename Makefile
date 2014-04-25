@@ -32,9 +32,9 @@ install: svnstatus clean
 	
 release: svnstatus install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	(cd dist/server; tar cf ../../releases/adhoc-server-$${revno}.tar .);\
-	(cd dist/adhoc-connect; tar cf ../../releases/adhoc-connect-$${revno}.tar .);\
-	(cd dist/dhcp2; tar cf ../../releases/dhcp2-$${revno}.tar .)
+	(cd dist; mv server adhoc-server-$${revno}; tar cf ../releases/adhoc-server-$${revno}.tar adhoc-server-$${revno});\
+	(cd dist; mv adhoc-connect adhoc-connect-$${revno};tar cf ../releases/adhoc-connect-$${revno}.tar adhoc-connect-$${revno});\
+	(cd dist; mv dhcp2 dhcp2-$${revno}; tar cf ../releases/dhcp2-$${revno}.tar dhcp2-$${revno})
 
 patch: svnstatus patchbump install release
 
