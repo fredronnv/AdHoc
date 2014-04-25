@@ -2055,37 +2055,38 @@ store_coprocess_id()
 
 proxy_start()
 {
-	coprocess_id=`fetch_coprocess_id`
-	
-	#trace "coprocess_id A =$coprocess_id"
-	
-	if [ -n "$coprocess_id" ]; then
-		trace "Proxy $coprocess_id already running" 
-		return
-	fi
-	#echo "SERVER_CALL CMD=" "$@" >&2
+    coprocess_id=`fetch_coprocess_id`
 
-	if [ -z "$DHCP2_CONFFILE" ]; then
+    #trace "coprocess_id A =$coprocess_id"
+
+    if [ -n "$coprocess_id" ]; then
+	trace "Proxy $coprocess_id already running" 
+	return
+    fi
+    #echo "SERVER_CALL CMD=" "$@" >&2
+
+    if [ -z "$DHCP2_CONFFILE" ]; then
         dhcp2_get_conffile
     fi
+
     if [ -n "$DHCP2_CONFFILE" ]; then
     	. $DHCP2_CONFFILE
-	fi
-	
-	#trace "Starting proxy by pid=$$"
-		 				 				
-	mkfifo $copin $copout
-	$MY_PATH/dhcp2proxy.py $copin $copout &
-	
-	store_coprocess_id $!
-	coprocess_id=`fetch_coprocess_id`
-	
-	#trace "coprocess_id B =$coprocess_id"
-	
-	
-	server_call "session_auth_login('fbq', 'fbq')" >/dev/null
-	
-	trace "coprocess_id C =$coprocess_id"
+    fi
+
+    #trace "Starting proxy by pid=$$"
+ 				
+    mkfifo $copin $copout
+    $MY_PATH/dhcp2proxy.py $copin $copout &
+
+    store_coprocess_id $!
+    coprocess_id=`fetch_coprocess_id`
+
+    #trace "coprocess_id B =$coprocess_id"
+
+
+    server_call "session_auth_kerberos()" >/dev/null
+
+    trace "coprocess_id C =$coprocess_id"
 
 }
 
