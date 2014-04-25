@@ -136,5 +136,8 @@ EOF
             $ADHOC_RUNTIME_HOME/server/testing/install
 	When OK, remove the password for deploy level install from the bashrc.private file.
         
- 
+ 24. Obtain a kerberos keytab for the principal HTTP/<server hostname>
+     Store the keytab file in $ADHOC_RUNTIME_HOME/etc/server.keytab
+     Make the keytab file owned by srvadhoc/srvadhoc and readable for the user and the group
+     
  
