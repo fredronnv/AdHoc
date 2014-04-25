@@ -1,9 +1,10 @@
 #!/bin/bash
 ##SSCB1 Suite specific code begin 1
-# @(#) $Id: dhcp2,v 2.54 2012/10/30 09:51:12 bernerus Exp $
-# @(#) $Header: /users/medic/bernerus/subsys/cvs/proj/dhcp2/dhcp2,v 2.54 2012/10/30 09:51:12 bernerus Exp $
-# @(#) $Name:  $
-CVSversion='$Revision: 2.54 $'
+# @(#) $Id$
+
+ADHOC_RELEASE="@@ADHOC_RELEASE@@"
+ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
+
 #
 # Copyright (C) Christer Bernerus, 2003-2014
 #
@@ -24,7 +25,7 @@ CVSversion='$Revision: 2.54 $'
 #
 #
 PATH=/usr/ed-pkg/vcs-core/bin:/usr/site/sup.phc/b/binh:/usr/site/lic.phc/b/binh:/usr/ed-pkg/sup.phc/b/binh:/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/js/tool/bin
-version=`echo "{$CVSversion}" | cut -f2 -d' '`
+version=`echo "{$ADHOC_RELEASE}" | cut -f2 -d' '`
 verbose=0
 export verbose
 columns=`stty -a | grep columns | sed 's/= //g' | tr ';' '\n' | grep columns | sed 's/^ //' | tr ' ' '\n' | egrep '^[0-9]*$'`

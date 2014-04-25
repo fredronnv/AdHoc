@@ -1,5 +1,8 @@
 #!/bin/bash
 
+ADHOC_RELEASE="@@ADHOC_RELEASE@@"
+ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
+
 TMP_CONF=/etc/dhcp/dhcpd.conf.new
 DHCPD_CONF=/etc/dhcp/dhcpd.conf
 ADHOC_URL=https://adhoc.ita.chalmers.se:8877

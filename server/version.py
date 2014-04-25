@@ -1,1 +1,2 @@
-global_svn_version = "@@version@@"
+adhoc_svn_version = "@@undefined@@"
+adhoc_release = "@@undefined@@"
