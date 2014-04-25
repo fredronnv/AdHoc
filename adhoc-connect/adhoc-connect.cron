@@ -1,2 +1,2 @@
-# Fetch dhcpf.conf and restart dhcpd when needed
-* * * * * /cdg/sbin/adhoc-connect.sh
+# Fetch dhcpd.conf and restart dhcpd when needed
+* * * * * root /cdg/sbin/adhoc-connect.sh
