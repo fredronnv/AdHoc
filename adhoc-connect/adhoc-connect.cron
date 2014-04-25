@@ -1,2 +1,3 @@
 # adhoc-connect @@ADHOC_RELEASE@@ – Fetch dhcpd.conf and restart dhcpd when needed
+# $Id:$
 * * * * * root /cdg/sbin/adhoc-connect
