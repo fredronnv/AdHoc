@@ -15,7 +15,7 @@ install: svnstatus clean
 	for dir in $(SUBDIRS); do \
 	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS}  install;\
 	done
-	svn_version=`svnversion`;\
+	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p dist/server dist/adhoc-connect dist/dhcp2;\
 	cp -r server dist;\
