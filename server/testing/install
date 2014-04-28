@@ -1,0 +1,27 @@
+export ADHOC_RUNTIME_HOME=${ADHOC_RUNTIME_HOME:-/server/AdHoc}
+cd $ADHOC_RUNTIME_HOME || exit 1
+
+/etc/init.d/adhocserver stop
+export CHALMERS_DEPLOY_LEVEL="install"
+export ADHOC_GENERIC_PASSWORD='hgUUw/fsy%6gh'
+. $ADHOC_RUNTIME_HOME/.bashrc
+/etc/init.d/adhocserver start
+
+sleep 1
+
+python <<EOF
+import rpcc_client
+url="https://${ADHOC_SERVER_HOST}:${ADHOC_SERVER_PORT}"
+url = "${ADHOC_SERVER_URL}"
+q = rpcc_client.RPCC(url, 0)
+q.session_auth_login('bernerus',"${ADHOC_GENERIC_PASSWORD}")
+q.dhcp_xfer()
+q.session_deauth()
+q.session_stop()
+EOF
+
+unset CHALMERS_DEPLOY_LEVEL
+unset ADHOC_GENERIC_PASSWORD
+/etc/init.d/adhocserver stop
+. $ADHOC_RUNTIME_HOME/.bashrc
+/etc/init.d/adhocserver start
