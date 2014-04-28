@@ -20,6 +20,7 @@ install: clean
 	mkdir -p dist/server dist/adhoc-connect dist/dhcp2;\
 	cp -r server dist;\
 	cp -r adhoc-connect dist;\
+	rm -rf dist/adhoc-connect/README; \
 	cp -r applications/dhcp2 dist;\
 	cp client/rpcc_client.py dist/dhcp2;\
 	(cd dist; find . -name .svn -exec rm -rf {} \;);\
@@ -33,8 +34,6 @@ install: clean
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/dhcp2/dhcp2 ;\
 	echo "adhoc_svn_version = \"$${svn_version}\"" > dist/server/version.py;\
 	echo "adhoc_release = \"$${revno}\"" >>dist/server/version.py;\
-	echo "ADHOC_RELEASE=\"$${revno}\"" >dist/adhoc-connect/version.sh;\
-	echo "ADHOC_SVN_VERSION=\"$${svn_version}\"" >> dist/adhoc-connect/version.sh
 	echo "ADHOC_RELEASE=\"$${revno}\"" >dist/dhcp2/version.sh;\
 	echo "ADHOC_SVN_VERSION=\"$${svn_version}\"" >> dist/dhcp2/version.sh
 	
