@@ -18,6 +18,9 @@ install: clean
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p dist/server dist/adhoc-connect dist/dhcp2;\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < server/version.template  | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > server/version.py ;\
+	svn commit -m "Version.py bump" server/version.py ;\
 	cp -r server dist;\
 	cp -r adhoc-connect dist;\
 	rm -rf dist/adhoc-connect/README; \
