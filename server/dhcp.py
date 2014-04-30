@@ -555,8 +555,10 @@ class DHCPManager(AdHocManager):
         eventid = self.event_manager.get_max_id()
    
         self.emit("# dhcpd.conf - Rev: %d Automatically generated for DHCP server %s by AdHoc server %s (svn %s). Do not edit!" % (eventid, serverID, adhoc_release, adhoc_svn_version), 0)
+       
         self.emit("", 0)
-        
+        self.emit("log-facility local4;")
+        self.emit("", 0)
         q = "SELECT value FROM global_options WHERE name='domain-name-servers'"
         iparr = []
         for (ip,) in self.db.get_all(q):
