@@ -48,7 +48,7 @@ class ExtGroupList(ExtList):
     
 class ExtHostCount(ExtOrNull):
     name = "hostcount"
-    desc = "Count of avtive hosts in group and its descendants, or NULL if unknown"
+    desc = "Count of active hosts in group and its descendants, or NULL if unknown"
     typ = ExtInteger
     
 class ExtGroupCreateOptions(ExtStruct):

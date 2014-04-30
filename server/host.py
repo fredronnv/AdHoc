@@ -272,11 +272,13 @@ class Host(AdHocModel):
     
     @update("group", ExtGroup)
     @entry(g_write)
-    def set_group(self, value):
-        q = "UPDATE hosts SET `group`=:value WHERE id=:name"
-        self.db.put(q, name=self.oid, value=value.oid)
+    def set_group(self, new_group):
+        q = "UPDATE hosts SET `group`=:new_group WHERE id=:name"
+        self.db.put(q, name=self.oid, new_group=new_group.oid)
+        self.group_manager.adjust_hostcount(self.get_group(), -1)
+        self.group_manager.adjust_hostcount(new_group, +1);
         self.event_manager.add("disconnect",  host=self.oid, parent_object=self.group, authuser=self.function.session.authuser)
-        self.event_manager.add("connect",  host=self.oid, parent_object=value.oid, authuser=self.function.session.authuser)
+        self.event_manager.add("connect",  host=self.oid, parent_object=new_group.oid, authuser=self.function.session.authuser)
         
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)
