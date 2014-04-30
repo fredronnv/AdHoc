@@ -388,7 +388,7 @@ class DHCPManager(AdHocManager):
             #print my_id, dns, group, mac, room, optionspace, changed_by, mtime, info, entry_status
             self.db.insert(id, qp, id=my_id, dns=dns, group=group, mac=mac, room=room, 
                                optionspace=optionspace, changed_by=changed_by, mtime=mtime, info=info, entry_status=entry_status, optset=optset)
-        
+        self.group_manager.gather_stats()
         # Stratum 4: host_literal_options and host_options
         qf = """SELECT `owner`, value, changed_by, mtime  FROM literal_options WHERE owner_type='host'"""
         qp = """INSERT INTO host_literal_options (`for`, value, changed_by, mtime) 
