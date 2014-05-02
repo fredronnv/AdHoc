@@ -45,6 +45,8 @@ case $0 in
     ;;
 esac
 
+TEST=`which test`
+
 MY_PATH="${BASH_SOURCE[0]}";
 if ([ -h "${MY_PATH}" ]) then
 	while([ -h "${MY_PATH}" ]) do 
@@ -989,7 +991,7 @@ Release()
         offspring=${myself}-${version}
     fi
 # Must use /usr/bin/test here
-    if /usr/bin/test -e "$offspring"; then
+    if $TEST -e "$offspring"; then
         echo "A file with the name $offspring already exists, choose another name"
         exit 2
     fi
@@ -1070,7 +1072,7 @@ Newtitle()
     newcode=$mycmd.new
 
 # Must use /usr/bin/test here
-    if /usr/bin/test -e "$newcode"; then
+    if $TEST -e "$newcode"; then
         echo "A file with the name $newcode already exists, you must remove or rename  $newcode"
         exit 2
     fi
@@ -1183,7 +1185,7 @@ Newsub()
     newcode=$mycmd.new
 
 # Must use /usr/bin/test here
-    if /usr/bin/test -e "$newcode"; then
+    if $TEST -e "$newcode"; then
         echo "A file with the name $newcode already exists, you must remove or rename  $newcode"
         exit 2
     fi
@@ -1377,7 +1379,7 @@ Newoption()
     newcode=$mycmd.new
 
 # Must use /usr/bin/test here
-    if /usr/bin/test -e "$newcode"; then
+    if $TEST -e "$newcode"; then
         echo "A file with the name $newcode already exists, you must remove or rename  $newcode" >&2
         exit 2
     fi
@@ -2061,8 +2063,8 @@ proxy_start()
     #trace "coprocess_id A =$coprocess_id"
 
     if [ -n "$coprocess_id" ]; then
-	trace "Proxy $coprocess_id already running" 
-	return
+		trace "Proxy $coprocess_id already running" 
+		return
     fi
     #echo "SERVER_CALL CMD=" "$@" >&2
 
@@ -2116,9 +2118,9 @@ proxy_call()
 {
 	local result
 	#echo "copin=" $copin >&2
-    trace "server_call: ""$@"
+    trace "proxy_call: ""$@"
     echo "$@" >"$copin"
-	cat $copout
+	#cat $copout
     #result=`cat $copout`
     #echo "$result"
     #echo "Proxy_call Result='"$result"'" >&2
@@ -2127,9 +2129,12 @@ proxy_call()
 server_call()
 {
 	local result
-	#echo "Calling proxy_call" >&2
-	result=`proxy_call "res = srv.""$@"`
-    echo "$result"
+	
+	trace "server_call: res = srv.$@"
+    echo "res = srv.""$@" > "$copin"
+	cat $copout
+	
+    #echo "$result"
     #echo "Returning '$result' from server_call" >&2
 }
 
@@ -5387,7 +5392,7 @@ addrange()
     _addrange_end_num=`ip2num $addrange_end`
 
 ## Must use /usr/bin/test here !!!
-    if /bin/test $_addrange_start_num -gt $_addrange_end_num ; then
+    if $TEST $_addrange_start_num -gt $_addrange_end_num ; then
         echo "Start address must be less or equal to the end address"
         exit 1
     fi
@@ -5549,7 +5554,7 @@ chrange()
         	chrange_new_end=`server_call "pool_range_fetch('$chrange_start', {'end_ip':True})"`      
         fi
         _chrange_end_num=`ip2num $chrange_new_end`
-        if /usr/bin/test $_chrange_start_num -gt $_chrange_end_num; then
+        if $TEST $_chrange_start_num -gt $_chrange_end_num; then
             echo "Start address ($chrange_new_start) must be less or equal to the end address ($chrange_new_end)"
             exit 1
         fi
@@ -5749,61 +5754,121 @@ _chsubnetwork_foundaflag()
 {
     chsubnetwork_anyflag=1
 }
-#S allow;;Allow into pool;1;1;pool;Allow hosts or groups into a pool;78
-#O allow;g;group;Group to be allowed;;group_in_db
-#O allow;H;host;Host to be allowed;;host_in_db
+#S grant;;Grant access to pool;1;1;pool;Grant access to hosts or groups into a pool;78
+#O grant;g;group;Group to be granted;;group_in_db
+#O grant;H;host;Host to be granted;;host_in_db
 #M =head2 I<Description>
 #M
-#M The allow subcommand places a host or a group on the list of hosts or group of
-#M hosts that should be allowed to be given an IP addredd within a given pool.
+#M The grant subcommand places a host or a group onto the list of hosts or group of
+#M hosts that should be granted an IP address within the pool.
 #M
-allow()
+grant()
 {
 
     for i in "$@"; do
         case "$i" in
             -H)
-                allow_H_flag=$i; shift
-                allow_H_arg=$1; shift
+                grant_H_flag=$i; shift
+                grant_H_arg=$1; shift
                 ;;
             -g)
-                allow_g_flag=$i; shift
-                allow_g_arg=$1; shift
+                grant_g_flag=$i; shift
+                grant_g_arg=$1; shift
                 ;;
             --)
                 shift;break
                 ;;
         esac
-    done
-: # Enter the code for allow here
+	done
+
+	if db_exists pool $1; then
+        :
+    else
+        echo "The pool named $1 is not defined"
+        exit 1
+    fi
+
+    grant_poolname=$1
+    proxy_start
+    
+    if [ -n "$grant_H_flag" ]; then
+        if db_exists host $grant_H_arg; then
+            server_call "pool_grant_host('${grant_poolname}','${grant_H_arg}')"
+        else
+            echo "The host '${grant_H_arg}' is unknown";
+            exit 1
+        fi
+    fi
+    
+    if [ -n "$grant_h_flag" ]; then
+        if db_exists group $grant_g_arg; then
+            server_call "pool_grant_group('${grant_poolname}','${grant_g_arg}')"
+        else
+            echo "The group '${grant_g_arg}' is unknown";
+            exit 1
+        fi
+    fi
+    
+    
 }
-#S disallow;;Disallow from pool;1;1;pool;Disallow hosts or groups from a pool;79
-#O disallow;g;group;Group to be disallowed;;group_in_db
-#O disallow;H;host;Host to be disallowed;;host_in_db
+
+#S revoke;;Revoke access from pool;1;1;pool;Revoke access for hosts or groups from a pool;79
+#O revoke;g;group;Group to be revoked;;group_in_db
+#O revoke;H;host;Host to be revoked;;host_in_db
 #M =head2 I<Description>
 #M
-#M The disallow subcommand removes a host or a group from the list of hosts or group of
-#M hosts that should be allowed to be given an IP addredd within a given pool.
+#M The revoke subcommand removes a host or a group from the list of hosts or group of
+#M hosts that should be granted an IP address within a given pool. Note that revoking all
+#M hosts and group will open the pool for any host.
 #M
-disallow()
+revoke()
 {
 
     for i in "$@"; do
         case "$i" in
             -H)
-                disallow_H_flag=$i; shift
-                disallow_H_arg=$1; shift
+                revoke_H_flag=$i; shift
+                revoke_H_arg=$1; shift
                 ;;
             -g)
-                disallow_g_flag=$i; shift
-                disallow_g_arg=$1; shift
+                revoke_g_flag=$i; shift
+                revoke_g_arg=$1; shift
                 ;;
             --)
                 shift;break
                 ;;
         esac
     done
-: # Enter the code for disallow here
+    
+	if db_exists pool $1; then
+        :
+    else
+        echo "The pool named $1 is not defined"
+        exit 1
+    fi
+
+    revoke_poolname=$1
+    proxy_start
+    
+    if [ -n "$revoke_H_flag" ]; then
+        if db_exists host $revoke_H_arg; then
+            server_call "pool_revoke_host('${revoke_poolname}','${revoke_H_arg}')"
+        else
+            echo "The host '${revoke_H_arg}' is unknown";
+            exit 1
+        fi
+    fi
+    
+    if [ -n "$revoke_h_flag" ]; then
+        if db_exists group $revoke_g_arg; then
+            server_call "pool_revoke_group('${revoke_poolname}','${revoke_g_arg}')"
+        else
+            echo "The group '${revoke_g_arg}' is unknown";
+            exit 1
+        fi
+    fi
+    
+    
 }
 ##SGIP Subcommand generation insertion point, do not delete!!
 
