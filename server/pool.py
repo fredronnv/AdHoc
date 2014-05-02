@@ -160,7 +160,7 @@ class PoolRevokeHost(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.rRevoke_host(self.pool, self.host)
+        self.pool_manager.revoke_host(self.pool, self.host)
 
         
 class PoolRevokeGroup(PoolFunBase):
