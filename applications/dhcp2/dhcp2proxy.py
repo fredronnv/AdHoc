@@ -94,7 +94,18 @@ def process(command, output):
         #print >> sys.stderr, "CMD=%s" % cmd
         #print >> sys.stderr, "EXEC: %s" % s
         try:
-            exec s 
+            exec s
+        except (rpcc_client.RPCCValueError,rpcc_client.RPCCLookupError,rpcc_client.RPCCRuntimeError,rpcc_client.RPCCTypeError) as e:
+            e=e[0]
+            try:
+                if e["value"]:
+                    print >>sys.stderr, "%s: %s" % (e.desc, e.value)
+                else:
+                    print >>sys.stderr, "%s" % e.desc
+            except:
+                print >>sys.stderr, "Unexpected error from server:", e
+            return 1
+             
         except Exception:
             #print >>sys.stderr, "Exception on command:", s
             raise
