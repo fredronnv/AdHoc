@@ -154,33 +154,33 @@ class PoolGrantHostClass(PoolFunBase):
         
         
 class PoolRevokeHost(PoolFunBase):
-    extname = "pool_disallow_host"
+    extname = "pool_revoke_host"
     desc = "Revokes access for a host to use a pool"
-    params = [("host", ExtHost, "Host to be disallowed from the pool")]
+    params = [("host", ExtHost, "Host to be revoked from the pool")]
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.disallow_host(self.pool, self.host)
+        self.pool_manager.rRevoke_host(self.pool, self.host)
 
         
 class PoolRevokeGroup(PoolFunBase):
-    extname = "pool_disallow_group"
+    extname = "pool_revoke_group"
     desc = "Revokes access for a group of hosts from using a pool"
-    params = [("group", ExtGroup, "Group to be disallowed from the pool")]
+    params = [("group", ExtGroup, "Group to be revoked from the pool")]
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.disallow_group(self.pool, self.group)
+        self.pool_manager.revoke_group(self.pool, self.group)
 
 
 class PoolRevokeHostClass(PoolFunBase):
-    extname = "pool_disallow_host_class"
+    extname = "pool_revoke_host_class"
     desc = "Revokes a host class from using a pool"
-    params = [("host_class", ExtHostClass, "Host class to be disallowed from the pool")]
+    params = [("host_class", ExtHostClass, "Host class to be revoked from the pool")]
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.disallow_host_class(self.pool, self.host_class)
+        self.pool_manager.revoke_host_class(self.pool, self.host_class)
 
 
 class PoolOptionsUpdate(PoolFunBase):
@@ -447,7 +447,7 @@ class PoolManager(AdHocManager):
         self.event_manager.add("grant_access", pool=pool.oid, host_class=host_class.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
-    def disallow_host(self, pool, host):
+    def revoke_host(self, pool, host):
         q0 = "SELECT poolname FROM pool_host_map WHERE poolname=:poolname AND hostname=:hostname"
         pools = self.db.get(q0, poolname=pool.oid, hostname=host.oid)
         if len(pools) == 0:
@@ -457,7 +457,7 @@ class PoolManager(AdHocManager):
         self.event_manager.add("revoke_access", pool=pool.oid, host=host.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
-    def disallow_group(self, pool, group):
+    def revoke_group(self, pool, group):
         q0 = "SELECT poolname FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname"
         pools = self.db.get(q0, poolname=pool.oid, groupname=group.oid)
         if len(pools) == 0:
@@ -467,7 +467,7 @@ class PoolManager(AdHocManager):
         self.event_manager.add("revoke_access", pool=pool.oid, group=group.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
-    def disallow_host_class(self, pool, host_class):
+    def revoke_host_class(self, pool, host_class):
         q0 = "SELECT poolname FROM pool_class_map WHERE poolname=:poolname AND classname=:classname"
         pools = self.db.get(q0, poolname=pool.oid, classname=host_class.oid)
         if len(pools) == 0:
