@@ -160,7 +160,7 @@ class PoolRevokeHost(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.revoke_host(self.pool, self.host)
+        self.pool_manager.revoke_host(self, self.pool, self.host)
 
         
 class PoolRevokeGroup(PoolFunBase):
@@ -170,7 +170,7 @@ class PoolRevokeGroup(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.revoke_group(self.pool, self.group)
+        self.pool_manager.revoke_group(self, self.pool, self.group)
 
 
 class PoolRevokeHostClass(PoolFunBase):
@@ -180,7 +180,7 @@ class PoolRevokeHostClass(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.revoke_host_class(self.pool, self.host_class)
+        self.pool_manager.revoke_host_class(self, self.pool, self.host_class)
 
 
 class PoolOptionsUpdate(PoolFunBase):
@@ -447,7 +447,7 @@ class PoolManager(AdHocManager):
         self.event_manager.add("grant_access", pool=pool.oid, host_class=host_class.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
-    def revoke_host(self, pool, host):
+    def revoke_host(self, fun, pool, host):
         q0 = "SELECT poolname FROM pool_host_map WHERE poolname=:poolname AND hostname=:hostname"
         pools = self.db.get(q0, poolname=pool.oid, hostname=host.oid)
         if len(pools) == 0:
@@ -457,7 +457,7 @@ class PoolManager(AdHocManager):
         self.event_manager.add("revoke_access", pool=pool.oid, host=host.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
-    def revoke_group(self, pool, group):
+    def revoke_group(self, fun, pool, group):
         q0 = "SELECT poolname FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname"
         pools = self.db.get(q0, poolname=pool.oid, groupname=group.oid)
         if len(pools) == 0:
@@ -467,7 +467,7 @@ class PoolManager(AdHocManager):
         self.event_manager.add("revoke_access", pool=pool.oid, group=group.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
-    def revoke_host_class(self, pool, host_class):
+    def revoke_host_class(self, fun, pool, host_class):
         q0 = "SELECT poolname FROM pool_class_map WHERE poolname=:poolname AND classname=:classname"
         pools = self.db.get(q0, poolname=pool.oid, classname=host_class.oid)
         if len(pools) == 0:
