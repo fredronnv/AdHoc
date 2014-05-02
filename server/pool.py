@@ -493,3 +493,4 @@ class PoolManager(AdHocManager):
         optionset = omgr.get_optionset(pool.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
+            self.event_manager.add("update",  pool=pool.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
