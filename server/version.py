@@ -2,5 +2,5 @@
 
 # $Id$
 
-adhoc_svn_version = "394"
-adhoc_release = "0.1.1"
+adhoc_svn_version = "408"
+adhoc_release = "0.2.0"
