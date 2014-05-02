@@ -175,7 +175,7 @@ class RPCC(object):
         self._host = url.replace("http://", "").replace("https://", "").split(":")[0]
         self._api = api_version
         self._auth = None
-        print >>sys.stderr, "URL='%s'"%self._url
+        #print >>sys.stderr, "URL='%s'"%self._url
         self.reset()
 
     def __getattr__(self, name):
