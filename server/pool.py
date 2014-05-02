@@ -26,28 +26,28 @@ class ExtPoolInUseError(ExtValueError):
     desc = "The pool is referred to by other objects. It cannot be destroyed"    
 
 
-class ExtHostAlreadyAllowedError(ExtValueError):
-    desc = "The host is already allowed into the pool"
+class ExtHostAlreadyGrantedError(ExtValueError):
+    desc = "The host is already granted into the pool"
 
 
-class ExtGroupAlreadyAllowedError(ExtValueError):
-    desc = "The group is already allowed into the pool"
+class ExtGroupAlreadyGrantedError(ExtValueError):
+    desc = "The group is already granted into the pool"
 
 
-class ExtHostClassAlreadyAllowedError(ExtValueError):
-    desc = "The host class is already allowed into the pool"
+class ExtHostClassAlreadyGrantedError(ExtValueError):
+    desc = "The host class is already granted into the pool"
     
     
-class ExtHostNotAllowedInPoolError(ExtValueError):
-    desc = "The host is not currently allowed into the pool"
+class ExtHostNotGrantedInPoolError(ExtValueError):
+    desc = "The host is not currently granted into the pool"
     
     
-class ExtGroupNotAllowedInPoolError(ExtValueError):
-    desc = "The group is not currently allowed into the pool"
+class ExtGroupNotGrantedInPoolError(ExtValueError):
+    desc = "The group is not currently granted into the pool"
     
     
-class ExtHostClassNotAllowedInPoolError(ExtValueError):
-    desc = "The host class is not currently allowed into the pool"
+class ExtHostClassNotGrantedInPoolError(ExtValueError):
+    desc = "The host class is not currently granted into the pool"
 
 
 class ExtPoolName(ExtString):
@@ -123,39 +123,39 @@ class PoolLiteralOptionDestroy(PoolFunBase):
         return self.pool_manager.destroy_literal_option(self, self.pool, self.option_id)
         
     
-class PoolAllowHost(PoolFunBase):
-    extname = "pool_allow_host"
-    desc = "Allows a host to use a pool"
-    params = [("host", ExtHost, "Host to be allowed into the pool")]
+class PoolGrantHost(PoolFunBase):
+    extname = "pool_grant_host"
+    desc = "Grants a host to use a pool"
+    params = [("host", ExtHost, "Host to be granted into the pool")]
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.allow_host(self, self.pool, self.host)
+        self.pool_manager.grant_host(self, self.pool, self.host)
         
         
-class PoolAllowGroup(PoolFunBase):
-    extname = "pool_allow_group"
-    desc = "Allows a group of hosts to use a pool"
-    params = [("group", ExtGroup, "Group to be allowed into the pool")]
+class PoolGrantGroup(PoolFunBase):
+    extname = "pool_grant_group"
+    desc = "Grants a group of hosts to use a pool"
+    params = [("group", ExtGroup, "Group to be granted into the pool")]
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.allow_group(self, self.pool, self.group)
+        self.pool_manager.grant_group(self, self.pool, self.group)
 
 
-class PoolAllowHostClass(PoolFunBase):
-    extname = "pool_allow_host_class"
-    desc = "Allows a host class to use a pool"
-    params = [("host_class", ExtHostClass, "Host class to be allowed into the pool")]
+class PoolGrantHostClass(PoolFunBase):
+    extname = "pool_grant_host_class"
+    desc = "Grants a host class to use a pool"
+    params = [("host_class", ExtHostClass, "Host class to be granted into the pool")]
     returns = (ExtNull)
     
     def do(self):
-        self.pool_manager.allow_host_class(self, self.pool, self.host_class)
+        self.pool_manager.grant_host_class(self, self.pool, self.host_class)
         
         
-class PoolDisallowHost(PoolFunBase):
+class PoolRevokeHost(PoolFunBase):
     extname = "pool_disallow_host"
-    desc = "Disallows a host to use a pool"
+    desc = "Revokes access for a host to use a pool"
     params = [("host", ExtHost, "Host to be disallowed from the pool")]
     returns = (ExtNull)
     
@@ -163,9 +163,9 @@ class PoolDisallowHost(PoolFunBase):
         self.pool_manager.disallow_host(self.pool, self.host)
 
         
-class PoolDisallowGroup(PoolFunBase):
+class PoolRevokeGroup(PoolFunBase):
     extname = "pool_disallow_group"
-    desc = "Disallows a group of hosts from using a pool"
+    desc = "Revokes access for a group of hosts from using a pool"
     params = [("group", ExtGroup, "Group to be disallowed from the pool")]
     returns = (ExtNull)
     
@@ -173,9 +173,9 @@ class PoolDisallowGroup(PoolFunBase):
         self.pool_manager.disallow_group(self.pool, self.group)
 
 
-class PoolDisallowHostClass(PoolFunBase):
+class PoolRevokeHostClass(PoolFunBase):
     extname = "pool_disallow_host_class"
-    desc = "Disallows a host class to use a pool"
+    desc = "Revokes a host class from using a pool"
     params = [("host_class", ExtHostClass, "Host class to be disallowed from the pool")]
     returns = (ExtNull)
     
@@ -264,20 +264,20 @@ class Pool(AdHocModel):
             ret.append(d)
         return ret
         
-    @template("allowed_hosts", ExtHostList)
-    def get_allowed_hosts(self):
+    @template("granted_hosts", ExtHostList)
+    def get_granted_hosts(self):
         q = "SELECT hostname FROM pool_host_map WHERE poolname=:pool"
         hosts = self.db.get(q, pool=self.oid)
         return [x[0] for x in hosts]
     
-    @template("allowed_groups", ExtGroupList)
-    def get_allowed_groups(self):
+    @template("granted_groups", ExtGroupList)
+    def get_granted_groups(self):
         q = "SELECT groupname FROM pool_group_map WHERE poolname=:pool"
         groups = self.db.get(q, pool=self.oid)
         return [x[0] for x in groups]
     
-    @template("allowed_host_classes", ExtHostClassList)
-    def get_allowed_host_classes(self):
+    @template("granted_host_classes", ExtHostClassList)
+    def get_granted_host_classes(self):
         q = "SELECT classname FROM pool_class_map WHERE poolname=:pool"
         classes = self.db.get(q, pool=self.oid)
         return [x[0] for x in classes]
@@ -417,64 +417,64 @@ class PoolManager(AdHocManager):
             raise ExtOptionNotSetError()
         
     @entry(g_admin)
-    def allow_host(self, fun, pool, host):
+    def grant_host(self, fun, pool, host):
         q = """INSERT INTO pool_host_map (poolname, hostname, changed_by) 
             VALUES (:poolname, :hostname, :changed_by)"""
         try:
             self.db.put(q, poolname=pool.oid, hostname=host.oid, changed_by=fun.session.authuser)
         except IntegrityError:
-            raise ExtHostAlreadyAllowedError()
-        self.event_manager.add("grant_access", pool=pool_name, host=host.oid, authuser=fun.session.authuser)
+            raise ExtHostAlreadyGrantedError()
+        self.event_manager.add("grant_access", pool=pool.oid, host=host.oid, authuser=fun.session.authuser)
     
     @entry(g_admin)
-    def allow_group(self, fun, pool, group):
+    def grant_group(self, fun, pool, group):
         q = """INSERT INTO pool_group_map (poolname, groupname, changed_by) 
             VALUES (:poolname, :groupname, :changed_by)"""
         try:
             self.db.put(q, poolname=pool.oid, groupname=group.oid, changed_by=fun.session.authuser)
         except IntegrityError:
-            raise ExtGroupAlreadyAllowedError()
-        self.event_manager.add("grant_access", pool=pool_name, group=group.oid, authuser=fun.session.authuser)
+            raise ExtGroupAlreadyGrantedError()
+        self.event_manager.add("grant_access", pool=pool.oid, group=group.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
-    def allow_host_class(self, fun, pool, host_class):
+    def grant_host_class(self, fun, pool, host_class):
         q = """INSERT INTO pool_class_map (poolname, classname, changed_by) 
             VALUES (:poolname, :classname, :changed_by)"""
         try:
             self.db.put(q, poolname=pool.oid, classname=host_class.oid, changed_by=fun.session.authuser)
         except IntegrityError:
-            raise ExtHostClassAlreadyAllowedError()
-        self.event_manager.add("grant_access", pool=pool_name, host_class=host_class.oid, authuser=fun.session.authuser)
+            raise ExtHostClassAlreadyGrantedError()
+        self.event_manager.add("grant_access", pool=pool.oid, host_class=host_class.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
     def disallow_host(self, pool, host):
         q0 = "SELECT poolname FROM pool_host_map WHERE poolname=:poolname AND hostname=:hostname"
         pools = self.db.get(q0, poolname=pool.oid, hostname=host.oid)
         if len(pools) == 0:
-            raise ExtHostNotAllowedInPoolError()
+            raise ExtHostNotGrantedInPoolError()
         q = """DELETE FROM pool_host_map WHERE poolname=:poolname AND hostname=:hostname""" 
         self.db.put(q, poolname=pool.oid, hostname=host.oid)
-        self.event_manager.add("revoke_access", pool=pool_name, host=host.oid, authuser=fun.session.authuser)
+        self.event_manager.add("revoke_access", pool=pool.oid, host=host.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
     def disallow_group(self, pool, group):
         q0 = "SELECT poolname FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname"
         pools = self.db.get(q0, poolname=pool.oid, groupname=group.oid)
         if len(pools) == 0:
-            raise ExtGroupNotAllowedInPoolError()
+            raise ExtGroupNotGrantedInPoolError()
         q = """DELETE FROM pool_group_map WHERE poolname=:poolname AND groupname=:groupname""" 
         self.db.put(q, poolname=pool.oid, groupname=group.oid)
-        self.event_manager.add("revoke_access", pool=pool_name, group=group.oid, authuser=fun.session.authuser)
+        self.event_manager.add("revoke_access", pool=pool.oid, group=group.oid, authuser=fun.session.authuser)
         
     @entry(g_admin)
     def disallow_host_class(self, pool, host_class):
         q0 = "SELECT poolname FROM pool_class_map WHERE poolname=:poolname AND classname=:classname"
         pools = self.db.get(q0, poolname=pool.oid, classname=host_class.oid)
         if len(pools) == 0:
-            raise ExtHostClassNotAllowedInPoolError()
+            raise ExtHostClassNotGrantedInPoolError()
         q = """DELETE FROM pool_class_map WHERE poolname=:poolname AND classname=:classname""" 
         self.db.put(q, poolname=pool.oid, classname=host_class.oid)
-        self.event_manager.add("revoke_access", pool=pool_name, host_class=host_class.oid, authuser=fun.session.authuser)
+        self.event_manager.add("revoke_access", pool=pool.oid, host_class=host_class.oid, authuser=fun.session.authuser)
     
     @entry(g_write_literal_option)
     def add_literal_option(self, fun, pool, option_text):
@@ -494,3 +494,4 @@ class PoolManager(AdHocManager):
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
             self.event_manager.add("update",  pool=pool.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
+            
