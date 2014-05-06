@@ -18,15 +18,17 @@ install: clean
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p dist/server dist/adhoc-connect dist/dhcp2;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < server/version.template  | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > server/version.py ;\
-	svn commit -m "Version.py bump" server/version.py ;\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < server/lib/version.template  | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > server/lib/version.py ;\
+	echo svn commit -m "Version.py bump" server/version.py ;\
 	cp -r server dist;\
 	cp -r adhoc-connect dist;\
 	rm -rf dist/adhoc-connect/README; \
+	rm -rf dist/server/testing dist/server/tmp;\
 	cp -r applications/dhcp2 dist;\
 	cp client/rpcc_client.py dist/dhcp2;\
 	(cd dist; find . -name .svn -exec rm -rf {} \;);\
+	(cd dist; find . -name .gitignore -exec rm -rf {} \;);\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/adhoc-connect.sh | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/adhoc-connect.sh ;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/install.sh | \
@@ -35,12 +37,14 @@ install: clean
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/adhoc-connect.cron ;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < applications/dhcp2/dhcp2 | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/dhcp2/dhcp2 ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server/server_setup.txt >dist/server/INSTALL.txt;\
-	rm server/server_setup.txt;\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server/server_setup.txt >dist/server/INSTALL-server.txt;\
+	rm dist/server/server_setup.txt; \
+	rm dist/server/etc/bashrc.private; \
 	echo "adhoc_svn_version = \"$${svn_version}\"" > dist/server/version.py;\
 	echo "adhoc_release = \"$${revno}\"" >>dist/server/version.py;\
 	echo "ADHOC_RELEASE=\"$${revno}\"" >dist/dhcp2/version.sh;\
-	echo "ADHOC_SVN_VERSION=\"$${svn_version}\"" >> dist/dhcp2/version.sh
+	echo "ADHOC_SVN_VERSION=\"$${svn_version}\"" >> dist/dhcp2/version.sh;\
+	(cd dist; find . -name \*.pyc -exec rm -f {} \;)
 	
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
