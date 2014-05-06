@@ -35,7 +35,7 @@ install: clean
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/adhoc-connect.cron ;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < applications/dhcp2/dhcp2 | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/dhcp2/dhcp2 ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno} <server/server_setup.txt >dist/server/INSTALL.txt;\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server/server_setup.txt >dist/server/INSTALL.txt;\
 	rm server/server_setup.txt;\
 	echo "adhoc_svn_version = \"$${svn_version}\"" > dist/server/version.py;\
 	echo "adhoc_release = \"$${revno}\"" >>dist/server/version.py;\
