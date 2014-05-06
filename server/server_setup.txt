@@ -1,5 +1,6 @@
 Server setup log. (from fresh RHEL6 system as delivered by operations staff)
 
+
 1. Install /etc/krb5.keytab (as root) (see CSD-wiki for instructions as to obtain such a keytab)
 2. yum install mysql-server (as root)
 3. Install mysql connector (as root)
@@ -19,23 +20,30 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
  6. Reboot and check that mysqld starts.
         /sbin/shutdown -r now
         
- 7. Log in. If you have enabled GSSAPI ssh and have a kerberos ticked you should get in wothout giving a password.
+ 7. Log in. If you have enabled GSSAPI ssh and have a kerberos ticked you should get in without giving a password.
  
  8. Check that mysqld is running:
         ps -ef | grep mys
         root      1484     1  0 17:38 ?        00:00:00 /bin/sh /usr/bin/mysqld_safe --datadir=/var/lib/mysql --socket=/var/lib/mysql/mysql.sock --pid-file=/var/run/mysqld/mysqld.pid --basedir=/usr --user=mysql
         mysql     1586  1484  0 17:38 ?        00:00:00 /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --user=mysql --log-error=/var/log/mysqld.log --pid-file=/var/run/mysqld/mysqld.pid --socket=/var/lib/mysql/mysql.sock
+ 
+   
+ 9. Create the group and local user srvadhoc
+        groupadd -g 127397 srvadhoc
+        useradd  -u 127397 -g 127397 srvadhoc
+   
+ 10. Change to the srvadhoc user
+        su - srvadhoc
         
- 9. Make an install directory
-        mkdir -p /server/AdHoc
-        cd /server/AdHoc
+ 11. Verify that you are not root anymore
+        id
         
- 10. Check out AdHoc from svn. Do not store your password unencrypted.
-        svn co https://svn.ita.chalmers.se/repos/adhoc/trunk
-        cd trunk
-        mv .??* * ..
-        cd ..
-        rmdir trunk
+ 12. Clean up the home directory
+        rm -rf .??* 
+        
+ 13. Download the adhoc server distribution and unpack
+        wget https://utveckling.its.chalmers.se/downloads/adhoc-server-0.2.0.tar
+        tar xf adhoc-server-0.2.0.tar
         
  11. Create the AdHoc database
         cd doc
@@ -59,11 +67,7 @@ EOF
      Then restart the firewall:
         /etc/init.d/iptables restart
         
- 14. Add the srvadhoc user
-        echo "srvadhoc:x:127397:127397:DHCP administration system (AdHoc):/:" >>/etc/passwd
-        
- 15. Add the srvadhoc group
-        echo "srvadhoc::127397:" >>/etc/group
+ 
   
  14. Configure the server startup environment
 
@@ -76,7 +80,7 @@ EOF
             Save and quit.
         . .bashrc
         
- 15. Start the server. As we have not configure SSL yet, disable that first.
+ 15. Start the server. As we have not configured SSL yet, disable that first.
  
         unset ADHOC_SSL_ENABLE
         python ./bin/adhocserv.py `hostname`:8877
