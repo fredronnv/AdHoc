@@ -1,9 +1,11 @@
 Server setup log. (from fresh RHEL6 system as delivered by operations staff)
 
 
-1. Install /etc/krb5.keytab (as root) (see CSD-wiki for instructions as to obtain such a keytab)
-2. yum install mysql-server (as root)
-3. Install mysql connector (as root)
+ 1. Install /etc/krb5.keytab (as root) (see CSD-wiki for instructions as to obtain such a keytab)
+ 
+ 2. yum install mysql-server (as root)
+ 
+ 3. Install mysql connector (as root)
         wget https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-1.1.6-1.el6.noarch.rpm
         rpm -i mysql-connector-python-1.1.6-1.el6.noarch.rpm
  
@@ -17,10 +19,10 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
  6. Configure mysql to run on level 3
         /sbin/chkconfig --level 3 mysqld on
         
- 6. Reboot and check that mysqld starts.
+ 7. Reboot and check that mysqld starts.
         /sbin/shutdown -r now
         
- 7. Log in. If you have enabled GSSAPI ssh and have a kerberos ticked you should get in without giving a password.
+ 9. Log in. If you have enabled GSSAPI ssh and have a kerberos ticked you should get in without giving a password.
  
  8. Check that mysqld is running:
         ps -ef | grep mys
@@ -28,36 +30,11 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
         mysql     1586  1484  0 17:38 ?        00:00:00 /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --user=mysql --log-error=/var/log/mysqld.log --pid-file=/var/run/mysqld/mysqld.pid --socket=/var/lib/mysql/mysql.sock
  
    
- 9. Create the group and local user srvadhoc
+10. Create the group and local user srvadhoc
         groupadd -g 127397 srvadhoc
         useradd  -u 127397 -g 127397 srvadhoc
-   
- 10. Change to the srvadhoc user
-        su - srvadhoc
         
- 11. Verify that you are not root anymore
-        id
-        
- 12. Clean up the home directory
-        rm -rf .??* 
-        
- 13. Download the adhoc server distribution and unpack
-        wget https://utveckling.its.chalmers.se/downloads/adhoc-server-@@ADHOC_RELEASE@@.tar
-        tar xf adhoc-server-@@ADHOC_RELEASE@@.tar
-        
- 11. Create the AdHoc database
-        cd doc
-        mysql -u root -p <database.sql
-        
- 12. Grant privileges for the local user srvadhoc to the database. In the following, replace <hostname> with the FQDN of the local host, and <db_password> with a secure password of your choosing.
-        mysql -u root -p <<EOF
-        CREATE USER 'srvadhoc'@'adhoc.ita.chalmers.se' IDENTIFIED BY '1qaz2wsx+pl,';
-        GRANT USAGE ON *.* TO 'srvadhoc' IDENTIFIED BY '1qaz2wsx+pl,' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0 ;
-        GRANT SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES ON  AdHoc.* TO  'srvadhoc'@'adhoc.ita.chalmers.se';
-        COMMIT;
-EOF
- 
- 13: Open the firewall
+11: Open the firewall
   
      Add the following two lines BEFORE the REJECT line at the end of /etc/sysconfig/iptables:
         
@@ -66,9 +43,32 @@ EOF
         
      Then restart the firewall:
         /etc/init.d/iptables restart
+   
+12. Change to the srvadhoc user
+        su - srvadhoc
         
+13. Verify that you are not root anymore
+        id
+        
+14. Clean up the home directory
+        rm -rf .??* 
+        
+15. Download the adhoc server distribution and unpack
+        wget https://utveckling.its.chalmers.se/downloads/adhoc-server-@@ADHOC_RELEASE@@.tar
+        tar xf adhoc-server-@@ADHOC_RELEASE@@.tar
+        
+16. Create the AdHoc database
+        mysql -u root -p <adhoc-server-@@ADHOC_RELEASE@@/database.sql
+        
+17. Grant privileges for the local user srvadhoc to the database. In the following, replace <hostname> with the FQDN of the local host, and <db_password> with a secure password of your choosing.
+        mysql -u root -p <<EOF
+        CREATE USER 'srvadhoc'@'adhoc.ita.chalmers.se' IDENTIFIED BY '1qaz2wsx+pl,';
+        GRANT USAGE ON *.* TO 'srvadhoc' IDENTIFIED BY '1qaz2wsx+pl,' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0 ;
+        GRANT SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES ON  AdHoc.* TO  'srvadhoc'@'adhoc.ita.chalmers.se';
+        COMMIT;
+EOF
  
-  
+
  14. Configure the server startup environment
 
         cd /server/AdHoc
