@@ -42,8 +42,8 @@ Server setup log. (from fresh RHEL6 system as delivered by operations staff)
         rm -rf .??* 
         
  13. Download the adhoc server distribution and unpack
-        wget https://utveckling.its.chalmers.se/downloads/adhoc-server-0.2.0.tar
-        tar xf adhoc-server-0.2.0.tar
+        wget https://utveckling.its.chalmers.se/downloads/adhoc-server-@@ADHOC_RELEASE@@.tar
+        tar xf adhoc-server-@@ADHOC_RELEASE@@.tar
         
  11. Create the AdHoc database
         cd doc
