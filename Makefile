@@ -20,7 +20,7 @@ install: clean
 	mkdir -p dist/server dist/adhoc-connect dist/dhcp2;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < server/lib/version.template  | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > server/lib/version.py ;\
-	echo svn commit -m "Version.py bump" server/version.py ;\
+	svn commit -m "Version.py bump" server/version.py ;\
 	cp -r server dist;\
 	cp -r adhoc-connect dist;\
 	rm -rf dist/adhoc-connect/README; \
