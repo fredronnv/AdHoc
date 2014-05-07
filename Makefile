@@ -20,7 +20,7 @@ install: clean
 	mkdir -p dist/server dist/adhoc-connect dist/dhcp2;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < server/lib/version.template  | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > server/lib/version.py ;\
-	svn commit -m "Version.py bump" server/version.py ;\
+	svn commit -m "Version.py bump" server/lib/version.py ;\
 	cp -r server dist;\
 	cp -r adhoc-connect dist;\
 	rm -rf dist/adhoc-connect/README; \
@@ -40,8 +40,8 @@ install: clean
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server/server_setup.txt >dist/server/INSTALL-server.txt;\
 	rm dist/server/server_setup.txt; \
 	rm dist/server/etc/bashrc.private; \
-	echo "adhoc_svn_version = \"$${svn_version}\"" > dist/server/version.py;\
-	echo "adhoc_release = \"$${revno}\"" >>dist/server/version.py;\
+	echo "adhoc_svn_version = \"$${svn_version}\"" > dist/server/lib/version.py;\
+	echo "adhoc_release = \"$${revno}\"" >>dist/server/lib/version.py;\
 	echo "ADHOC_RELEASE=\"$${revno}\"" >dist/dhcp2/version.sh;\
 	echo "ADHOC_SVN_VERSION=\"$${svn_version}\"" >> dist/dhcp2/version.sh;\
 	(cd dist; find . -name \*.pyc -exec rm -f {} \;)
