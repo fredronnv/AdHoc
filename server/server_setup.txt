@@ -147,7 +147,7 @@ EOF
  	 
         Run the script:
             $ADHOC_RUNTIME_HOME/migrate_data
-	When OK, remove the password for deploy level install from the bashrc.private file.
+	When OK and production phase really begins, remove the password for deploy level install from the bashrc.private file.
 
 32. Reboot and check that the server is running    
         /sbin/shutdown -r now
