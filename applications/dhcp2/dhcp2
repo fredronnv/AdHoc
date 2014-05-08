@@ -5,6 +5,8 @@
 ADHOC_RELEASE="@@ADHOC_RELEASE@@"
 ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
 
+set -m 
+
 #
 # Copyright (C) Christer Bernerus, 2003-2014
 #
@@ -2056,6 +2058,12 @@ store_coprocess_id()
 	#echo "Stored coprocess id $1 into file ${coppid_file}" >&2
 }
 
+proxy_died()
+{
+    trace "Proxy process $1 died, Exit status $?"
+    exit
+}
+
 proxy_start()
 {
     coprocess_id=`fetch_coprocess_id`
@@ -2083,6 +2091,8 @@ proxy_start()
 
     store_coprocess_id $!
     coprocess_id=`fetch_coprocess_id`
+    
+    trap 'proxy_died $coprocess_id' SIGCHLD
 
     #trace "coprocess_id B =$coprocess_id"
 
