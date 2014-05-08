@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS `account_privilege_map` (
   KEY `privilege` (`privilege`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Maps accounts to privileges';
 
+INSERT INTO `account_privilege_map` (`account`, `privilege`) VALUES
+('srvadhoc', 'read_all_privileges'),
+('srvadhoc', 'grant_all_privileges');
 
 -- --------------------------------------------------------
 
@@ -51,7 +54,9 @@ CREATE TABLE IF NOT EXISTS `accounts` (
   PRIMARY KEY (`account`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='User accounts';
 
-
+INSERT INTO `accounts` (`account`, `fname`, `lname`) VALUES
+('srvadhoc', 'AdHoc'),
+('srvadhoc', 'PDB Integration');
 -- --------------------------------------------------------
 
 --
