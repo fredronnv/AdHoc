@@ -32,7 +32,6 @@ stop()
 restart()
 {
         echo -n "Restarting AdHoc server: "
-        . $ADHOC_RUNTIME_HOME/.bashrc
         /usr/local/bin/daemon -P ${PIDDIR} --name=adhoc --restart
 }
 
