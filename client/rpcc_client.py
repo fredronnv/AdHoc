@@ -1,4 +1,4 @@
-#!/home/viktor/python2.6/bin/python2.6
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Client for RPCC servers.
