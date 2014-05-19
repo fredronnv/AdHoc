@@ -782,6 +782,12 @@ trace()
     fi
 }
 
+error()
+{
+    verb=$1
+    echo "ERROR: $verb" >&2
+}
+
 #
 # Extract embedded pod documentation
 #
@@ -2058,10 +2064,15 @@ store_coprocess_id()
 	#echo "Stored coprocess id $1 into file ${coppid_file}" >&2
 }
 
-proxy_died()
+child_died()
 {
-    trace "Proxy process $1 died, Exit status $?"
-    exit
+    exitvalue=$?
+    if kill -0 $1 >/dev/null 2>&1; then
+    	return
+	fi
+	error "Proxy process died, Exit status $exitvalue"
+    	
+    exit $exitvalue
 }
 
 proxy_start()
@@ -2076,14 +2087,6 @@ proxy_start()
     fi
     #echo "SERVER_CALL CMD=" "$@" >&2
 
-    if [ -z "$DHCP2_CONFFILE" ]; then
-        dhcp2_get_conffile
-    fi
-
-    if [ -n "$DHCP2_CONFFILE" ]; then
-    	. $DHCP2_CONFFILE
-    fi
-
     #trace "Starting proxy by pid=$$"
  				
     mkfifo $copin $copout
@@ -2092,7 +2095,7 @@ proxy_start()
     store_coprocess_id $!
     coprocess_id=`fetch_coprocess_id`
     
-    trap 'proxy_died $coprocess_id' SIGCHLD
+    trap 'child_died $coprocess_id' SIGCHLD
 
     #trace "coprocess_id B =$coprocess_id"
 
@@ -2511,48 +2514,6 @@ dhcp_format()
     done
 }
 
-#M
-#M =head1 CONFIGURATION FILE
-#M
-#M The script cannot access the DHCP database without some configuration that among other things
-#M contains the password for the database. In order not to make the script itself insecure, the
-#M database configuration details is read from a configuration file upon execution.
-#M
-#M A path containing the directories /server/etc:/etc:$MY_PATH is searched on the first
-#M connection to the database to find a file by the name dhcp2.my.cnf. The first file found in 
-#M this PATH is selected and used for subsequent connections to the database.
-#M
-#M =head2 Syntax for the configuration file
-#M
-#M This is the syntax used in the configuration file
-#M
-#M C<[mysql]>
-#M
-#M C<password=>I<password>
-#M
-#M C<user=>I<database user>
-#M
-#M C<host=>I<database host>
-#M
-#M Replace the I<password>, I<database user>, and I<database host> with their actual values.
-#M There is a master file located at hades.medic.chalmers.se:/etc/dhcp2.my.cnf that contains the
-#M current production values. You may want to I<securely> copy these values to your favorite machine. 
-#M Do not forget to set
-#M proper access control bits on the file. 
-#M It is not possible
-#M to use a configuration file in your home directory due to the inherent insecurity of NFS3. 
-#M
-dhcp2_get_conffile()
-{
-    for d in /server/etc /etc $MY_PATH; do
-        if [ -r $d/dhcp2.my.cnf ]; then
-            DHCP2_CONFFILE="$d/dhcp2.my.cnf"
-            return
-        fi
-    done
-    echo "No $mycmd configuration file found. Use $mycmd man and read the section on CONFIGURATION FILE" >&2
-    exit 2
-}
 #M
 #M =head1 HOST CATEGORY CHECKING
 #M

@@ -141,7 +141,6 @@ def process(command, output):
 import os
 import StringIO
 srv = None
-sys.path.append(os.environ["ADHOC_RUNTIME_HOME"] + "/client")
 import rpcc_client
 
 fifo_in = sys.argv[1]
@@ -151,16 +150,16 @@ update_template = {}  # For use by dhcp2
 options = {}  # For use by dhcp2
 
 while True:
-    fin = open(fifo_in, "r")
-    fout = open(fifo_out, "w")
-    sys.stdout = fout
-    #print >>sys.stderr, fin
-    finval = fin.read()
-    #print >>sys.stderr, "Finval=", finval
-    output = StringIO.StringIO()
-    process(finval, output)
-    print output.getvalue().rstrip("\n")
-    #print >>sys.stderr, output.getvalue().rstrip("\n")
-    sys.stdout.flush()
-    fout.close()
-    fin.close()
+        fin = open(fifo_in, "r")
+        fout = open(fifo_out, "w")
+        sys.stdout = fout
+        #print >>sys.stderr, fin
+        finval = fin.read()
+        #print >>sys.stderr, "Finval=", finval
+        output = StringIO.StringIO()
+        process(finval, output)
+        print output.getvalue().rstrip("\n")
+        #print >>sys.stderr, output.getvalue().rstrip("\n")
+        sys.stdout.flush()
+        fout.close()
+        fin.close()
