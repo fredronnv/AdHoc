@@ -1,5 +1,5 @@
 #!/bin/bash
-export CHALMERS_DEPLOY_LEVEL=${CHALMERS_DEPLOY_LEVEL:prod}
+export CHALMERS_DEPLOY_LEVEL=${CHALMERS_DEPLOY_LEVEL:-prod}
 export INSTALL_HOME=`(cd ~srvadhoc/adhoc-server; pwd)`
 . $INSTALL_HOME/etc/bashrc.public
 . $INSTALL_HOME/etc/bashrc.private
