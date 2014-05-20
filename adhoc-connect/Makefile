@@ -48,6 +48,22 @@ majorbump:
 	svn commit rel_major rel_minor rel_patch -m "Bumped major version to $${revno}"
 
 svnstatus:
-	for dir in $(SUBDIRS); do \
-	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS}  svnstatus;\
-	done
+	if svn status | grep '^M' ; then \
+	    false ; \
+	else \
+	    svn_version=`svnversion | cut -f2 -d:`;\
+	    if [ `svnversion rel_patch` -ge $${svn_version} ]; then \
+	    	true; \
+	    else \
+	    	if [ `svnversion rel_minor` -ge $${svn_version} ]; then \
+	    		true; \
+	    	else \
+	    	    if [ `svnversion rel_major` -ge $${svn_version} ]; then \
+	    		true; \
+	    	    else \
+	    	    	echo "Release number for adhoc-connect needs to be bumped"; \
+	    		false; \
+	    	    fi \
+	    	fi \
+	    fi \
+	fi
