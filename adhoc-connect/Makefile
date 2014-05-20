@@ -19,24 +19,18 @@ install: clean
 	done
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	mkdir -p dist/adhoc-connect;\
-	cp INSTALL dhcpd-snmp  ${DISTDIR};\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/adhoc-connect.sh | \
+	mkdir -p ${DISTDIR};\
+	cp -r INSTALL dhcpd-snmp  ${DISTDIR};\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./adhoc-connect.sh | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/adhoc-connect.sh ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/install.sh | \
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./install.sh | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/install.sh ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/adhoc-connect.cron | \
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./adhoc-connect.cron | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/adhoc-connect.cron
 	
-release: install
+release: svnstatus install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	(cd ${DISTDIR}; mv adhoc-connect adhoc-connect-$${revno};tar cf ${RELEASEDIR}/adhoc-connect-$${revno}.tar adhoc-connect-$${revno})
-
-patch: svnstatus patchbump install release
-
-minor: svnstatus minorbump install release
-
-major: svnstatus majorbump install release
+	(cd ${DISTDIR}/..; mv adhoc-connect adhoc-connect-$${revno};tar cf ${RELEASEDIR}/adhoc-connect-$${revno}.tar adhoc-connect-$${revno})
 
 patchbump:
 	(patch=`cat rel_patch`; patch=`expr $${patch} + 1`; echo $${patch} > rel_patch)
@@ -54,8 +48,6 @@ majorbump:
 	svn commit rel_major rel_minor rel_patch -m "Bumped major version to $${revno}"
 
 svnstatus:
-	if svn status | grep '^M' ; then \
-	    false ; \
-	else \
-	    true; \
-	fi
+	for dir in $(SUBDIRS); do \
+	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS}  svnstatus;\
+	done
