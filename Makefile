@@ -1,56 +1,30 @@
 TOP=`pwd`
-SUBDIRS=
+SUBDIRS=applications/dhcp2 adhoc-connect server
+DISTDIR=${TOP}/dist
+
 subdirs:
 	for dir in $(SUBDIRS); do \
 	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS} ;\
 	done
 
 clean:	
-	rm -rf dist/*
 	for dir in $(SUBDIRS); do \
 	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS}  clean;\
 	done
 
 install: clean
 	for dir in $(SUBDIRS); do \
-	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS}  install;\
+	    if TOP=${TOP} $(MAKE) -S -e -C $$dir ${MAKEFLAGS}  install;\
+	        then :; \
+	        else echo "Failed to build $$dir"; exit 1;\
+	    fi;\
 	done
-	svn_version=`svnversion | cut -f2 -d:`;\
-	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	mkdir -p dist/server dist/adhoc-connect dist/dhcp2;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < server/lib/version.template  | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > server/lib/version.py ;\
-	svn commit -m "Version.py bump" server/lib/version.py ;\
-	cp -r server dist;\
-	cp -r adhoc-connect dist;\
-	rm -rf dist/adhoc-connect/README; \
-	rm -rf dist/server/testing dist/server/tmp;\
-	cp -r applications/dhcp2 dist;\
-	cp client/rpcc_client.py dist/dhcp2;\
-	(cd dist; find . -name .svn -exec rm -rf {} \;);\
-	(cd dist; find . -name .gitignore -exec rm -rf {} \;);\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/adhoc-connect.sh | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/adhoc-connect.sh ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/install.sh | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/install.sh ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < adhoc-connect/adhoc-connect.cron | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/adhoc-connect/adhoc-connect.cron ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < applications/dhcp2/dhcp2 | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > dist/dhcp2/dhcp2 ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server/server_setup.txt >dist/server/INSTALL-server.txt;\
-	rm dist/server/server_setup.txt; \
-	rm dist/server/etc/bashrc.private; \
-	echo "adhoc_svn_version = \"$${svn_version}\"" > dist/server/lib/version.py;\
-	echo "adhoc_release = \"$${revno}\"" >>dist/server/lib/version.py;\
-	echo "ADHOC_RELEASE=\"$${revno}\"" >dist/dhcp2/version.sh;\
-	echo "ADHOC_SVN_VERSION=\"$${svn_version}\"" >> dist/dhcp2/version.sh;\
-	(cd dist; find . -name \*.pyc -exec rm -f {} \;)
 	
-release: install
-	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	(cd dist; mv server adhoc-server-$${revno}; tar cf ../releases/adhoc-server-$${revno}.tar adhoc-server-$${revno});\
-	(cd dist; mv adhoc-connect adhoc-connect-$${revno};tar cf ../releases/adhoc-connect-$${revno}.tar adhoc-connect-$${revno});\
-	(cd dist; mv dhcp2 dhcp2-$${revno}; tar cf ../releases/dhcp2-$${revno}.tar dhcp2-$${revno})
+release: svnstatus install
+	rm -rf ${DISTDIR}/*
+	for dir in $(SUBDIRS); do \
+	    TOP=${TOP} $(MAKE) -S -e -C $$dir ${MAKEFLAGS}  svnstatus release || exit 1;\
+	done
 
 patch: svnstatus patchbump install release
 
@@ -74,8 +48,9 @@ majorbump:
 	svn commit rel_major rel_minor rel_patch -m "Bumped major version to $${revno}"
 
 svnstatus:
-	if svn status | grep '^M' ; then \
-	    false ; \
-	else \
-	    true; \
-	fi
+	for dir in $(SUBDIRS); do \
+	    if TOP=${TOP} $(MAKE) -s -e -C $$dir ${MAKEFLAGS}  svnstatus; \
+	        then :;\
+	        else  echo "SVN status in $$dir must be fixed"; exit 1;\
+	    fi;\
+	done
