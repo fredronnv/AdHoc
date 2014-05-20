@@ -26,6 +26,10 @@ install: clean
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/dhcp2 ;\
 	(cd ${DISTDIR}; chmod +x dhcp2; ./dhcp2 Release; mv ./dhcp2-* ./dhcp2)
 
+release: install
+	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
+	(cd ${DISTDIR}/..; mv dhcp2 dhcp2-$${revno};tar cf ${RELEASEDIR}/dhcp2-$${revno}.tar dhcp2-$${revno})
+	
 patch: svnstatus patchbump install
 
 minor: svnstatus minorbump install
@@ -51,5 +55,19 @@ svnstatus:
 	if svn status | grep '^M' ; then \
 	    false ; \
 	else \
-	    true; \
+	    svn_version=`svnversion | cut -f2 -d:`;\
+	    if [ `svnversion rel_patch` -ge $${svn_version} ]; then \
+	    	true; \
+	    else \
+	    	if [ `svnversion rel_minor` -ge $${svn_version} ]; then \
+	    		true; \
+	    	else \
+	    	    if [ `svnversion rel_major` -ge $${svn_version} ]; then \
+	    		true; \
+	    	    else \
+	    	    	echo "Release number for dhcp2 needs to be bumped"; \
+	    		false; \
+	    	    fi \
+	    	fi \
+	    fi \
 	fi
