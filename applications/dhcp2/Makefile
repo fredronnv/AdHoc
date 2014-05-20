@@ -1,6 +1,7 @@
 TOP=../..
 SUBDIRS=
 DISTDIR=${TOP}/dist/dhcp2
+RELEASEDIR=${TOP}/releases
 
 subdirs:
 	for dir in $(SUBDIRS); do \
