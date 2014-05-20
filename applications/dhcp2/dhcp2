@@ -27,7 +27,7 @@ set -m
 #
 #
 PATH=/usr/ed-pkg/vcs-core/bin:/usr/site/sup.phc/b/binh:/usr/site/lic.phc/b/binh:/usr/ed-pkg/sup.phc/b/binh:/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/js/tool/bin
-version=`echo "{$ADHOC_RELEASE}" | cut -f2 -d' '`
+version=`echo "${ADHOC_RELEASE}" | cut -f2 -d' '`
 verbose=0
 export verbose
 columns=`stty -a | grep columns | sed 's/= //g' | tr ';' '\n' | grep columns | sed 's/^ //' | tr ' ' '\n' | egrep '^[0-9]*$'`
@@ -64,7 +64,7 @@ popd  > /dev/null
 #D =pod
 #D =head4 dhcp2 - DHCP control program
 #D
-#D The command suite I<dhcp2> implements a CLI interface to ITS DHCP administration system. 
+#D The command suite I<dhcp2> implements a CLI interface to the Avancez DHCP online configuration system (AdHoc). 
 #D
 #M =head1 NAME
 #M
@@ -76,7 +76,7 @@ popd  > /dev/null
 #M
 #M =head1 DESCRIPTION
 #M
-#M The command suite dhcp2 implements a CLI interface to ITS DHCP administration system.
+#M The command suite dhcp2 implements a CLI interface to the Avancez DHCP online configuration system (AdHoc).
 #M
 #M =head1 USAGE
 #M
@@ -886,7 +886,7 @@ man()
                 shift
                 ;;
             -M)
-                man_formatter="| pod2man --section=1 --release=$version --center='MEDIC Sysadmin Documentation' --name=DHCP2"
+                man_formatter="| pod2man --section=1 --release=$version --center='Chalmers ITS Sysadmin Documentation' --name=DHCP2"
                 shift
                 ;;
             -n)
