@@ -26,7 +26,7 @@ set -m
 #
 #
 #
-PATH=/usr/ed-pkg/vcs-core/bin:/usr/site/sup.phc/b/binh:/usr/site/lic.phc/b/binh:/usr/ed-pkg/sup.phc/b/binh:/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/js/tool/bin
+#PATH=/bin:/usr/bin:/usr/ucb:/usr/ccs/bin
 version=`echo "${ADHOC_RELEASE}" | cut -f2 -d' '`
 verbose=0
 export verbose
@@ -49,15 +49,18 @@ esac
 
 TEST=`which test`
 
-MY_PATH="${BASH_SOURCE[0]}";
-if ([ -h "${MY_PATH}" ]) then
-	while([ -h "${MY_PATH}" ]) do 
-		MY_PATH=`readlink "${SCRIPT_PATH}"`
-	done
-fi
+
+MY_SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$MY_SOURCE" ]; do # resolve $MY_SOURCE until the file is no longer a symlink
+MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
+  MY_SOURCE="$(readlink "$MY_SOURCE")"
+  [[ $MY_SOURCE != /* ]] && MY_SOURCE="$MY_DIR/$MY_SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
+
 pushd . > /dev/null
-cd `dirname ${MY_PATH}` > /dev/null
-MY_PATH=`pwd`;
+cd `dirname ${MY_DIR}` > /dev/null
+MY_DIR=`pwd`;
 popd  > /dev/null
 
 #D 
@@ -2095,7 +2098,7 @@ proxy_start()
     #trace "Starting proxy by pid=$$"
  				
     mkfifo $proxyin $proxyout
-    $MY_PATH/dhcp2proxy.py $proxyin $proxyout &
+    /usr/bin/env python $MY_DIR/dhcp2proxy.py $proxyin $proxyout &
 
     store_proxy_pid $!
     proxy_pid=`fetch_proxy_pid`
@@ -4605,7 +4608,6 @@ lspools()
     
     proxy_start
     pools=`server_call 'pool_dig({},{"pool":True})'`
-    #pools=`$MY_PATH/mync.py 'pool_dig' '{}' '{"pool":True}'`
     
     for p in $pools; do
 		server_call "pool_fetch('$p',{'pool':True,'network':True,'max_lease_time':True,'info':True})" | _lspools_fmt
