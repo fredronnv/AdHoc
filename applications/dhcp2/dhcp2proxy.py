@@ -48,7 +48,7 @@ def print_struct_in_order(x, kvtuples, template, output, indent=1):
                 if type(x[key]) is list:
                     values.append(x[key])
                 else:
-                    values.append(str(x[key]))
+                    values.append(unicode(x[key]))
             else:
                 values.append("NULL")
         else:
@@ -158,7 +158,7 @@ while True:
         #print >>sys.stderr, "Finval=", finval
         output = StringIO.StringIO()
         process(finval, output)
-        print output.getvalue().rstrip("\n")
+        print output.getvalue().rstrip("\n").encode("utf-8")
         #print >>sys.stderr, output.getvalue().rstrip("\n")
         sys.stdout.flush()
         fout.close()

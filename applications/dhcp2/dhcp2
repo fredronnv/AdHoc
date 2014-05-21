@@ -2042,26 +2042,26 @@ _validate_group_in_db()
 }
 ##VGIP Validator generation insertion point, do not delete!!
 
-fetch_coprocess_id()
+fetch_proxy_pid()
 {
-	if [ -r ${coppid_file} ]; then
-		copid=`cat $coppid_file`
-		#echo "Fetched coprocess id=$copid from file $coppid_file" >&2
-		echo $copid
+	if [ -r ${proxy_pid_file} ]; then
+		local_proxy_pid=`cat $proxy_pid_file`
+		#echo "Fetched proxy id=$proxy_pid from file $proxy_pid_file" >&2
+		echo $local_proxy_pid
 	else
 		:
-		#echo "No coprocess_id file ${coppid_file}" >&2
+		#echo "No proxy_pid file ${proxy_pid_file}" >&2
 	fi
 }
 
-store_coprocess_id()
+store_proxy_pid()
 {
-	touch ${coppid_file}
-	#echo "Created coprocess id file ${coppid_file}" >&2
-	chmod 700 ${coppid_file}
-	#echo "Chmodded coprocess id file ${coppid_file}" >&2
-	echo $1 >${coppid_file}
-	#echo "Stored coprocess id $1 into file ${coppid_file}" >&2
+	touch ${proxy_pid_file}
+	#echo "Created proxy id file ${proxy_pid_file}" >&2
+	chmod 700 ${proxy_pid_file}
+	#echo "Chmodded proxy id file ${proxy_pid_file}" >&2
+	echo $1 >${proxy_pid_file}
+	#echo "Stored proxy id $1 into file ${proxy_pid_file}" >&2
 }
 
 child_died()
@@ -2071,38 +2071,40 @@ child_died()
     	return
 	fi
 	error "Proxy process died, Exit status $exitvalue"
+	trap - INT TERM EXIT # Dont try to stop the proxy, it is already dead.
+	# Do the cleanup that proxy_stop would have done here will also prevent that 
+	proxy_cleanup
     	
     exit $exitvalue
 }
 
+proxy_cleanup()
+{	
+		rm -f $proxyin $proxyout $proxy_pid_file
+}
+
 proxy_start()
 {
-    coprocess_id=`fetch_coprocess_id`
+    proxy_pid=`fetch_proxy_pid`
 
-    #trace "coprocess_id A =$coprocess_id"
-
-    if [ -n "$coprocess_id" ]; then
-		trace "Proxy $coprocess_id already running" 
+    if [ -n "$proxy_pid" ]; then
 		return
     fi
     #echo "SERVER_CALL CMD=" "$@" >&2
 
     #trace "Starting proxy by pid=$$"
  				
-    mkfifo $copin $copout
-    $MY_PATH/dhcp2proxy.py $copin $copout &
+    mkfifo $proxyin $proxyout
+    $MY_PATH/dhcp2proxy.py $proxyin $proxyout &
 
-    store_coprocess_id $!
-    coprocess_id=`fetch_coprocess_id`
+    store_proxy_pid $!
+    proxy_pid=`fetch_proxy_pid`
     
-    trap 'child_died $coprocess_id' SIGCHLD
-
-    #trace "coprocess_id B =$coprocess_id"
-
+    trap 'child_died $proxy_pid' SIGCHLD
 
     server_call "session_auth_kerberos()" >/dev/null
 
-    trace "coprocess_id C =$coprocess_id"
+    trace "Proxy process, pid $proxy_pid started"
 
 }
 
@@ -2111,30 +2113,30 @@ proxy_stop()
 	#echo "proxy_stop: Subshell=${BASH_SUBSHELL},BASHPID=${BASHPID}"
 	if  [ $BASH_SUBSHELL -eq 0 ]; then
 		
-		coprocess_id=`fetch_coprocess_id`
+		proxy_pid=`fetch_proxy_pid`
 		
-		trace "coprocess_id Q =$coprocess_id"
+		trace "proxy_stop: proxy_pid=$proxy_pid"
 		
-		if [ -n "$coprocess_id" ]; then
-			trace "Killing coprocess $coprocess_id" 
-			kill $coprocess_id 2>/dev/null
-			wait $coprocess_id 2>/dev/null
+		if [ -n "$proxy_pid" ]; then
+			trace "Killing proxy $proxy_pid" 
+			kill $proxy_pid 2>/dev/null
+			wait $proxy_pid 2>/dev/null
 		fi
 	
-		rm -f $copin $copout $coppid_file
+		proxy_cleanup
 	else
-		echo "proxy_stop: Not in main shell" >&2
+		trace "proxy_stop: Not in main shell" >&2
 	fi
 }
 
 proxy_call()
 {
 	local result
-	#echo "copin=" $copin >&2
+	#echo "proxyin=" $proxyin >&2
     trace "proxy_call: ""$@"
-    echo "$@" >"$copin"
-	#cat $copout
-    #result=`cat $copout`
+    echo "$@" >"$proxyin"
+	#cat $proxyout
+    #result=`cat $proxyout`
     #echo "$result"
     #echo "Proxy_call Result='"$result"'" >&2
 }
@@ -2144,8 +2146,8 @@ server_call()
 	local result
 	
 	trace "server_call: res = srv.$@"
-    echo "res = srv.""$@" > "$copin"
-	cat $copout
+    echo "res = srv.""$@" > "$proxyin"
+	cat $proxyout
 	
     #echo "$result"
     #echo "Returning '$result' from server_call" >&2
@@ -4540,7 +4542,7 @@ _hasoptions_group()
 		px="host_class"
 	fi
     proxy_start
-    #echo "Coprocess_id H=$coprocess_id" >&2
+    #echo "proxy_pid H=$proxy_pid" >&2
     v1=`server_call "${px}_fetch('$1', {'options': True})" | tr '\n' ' '`
     #echo "V1=$v1" >&2
     echo "$v1"
@@ -5847,9 +5849,9 @@ revoke()
 # Run the command
 #proxy_start
 #server_call "session_start()"
-export copin="/tmp/dhcp2_in_$$"
-export copout="/tmp/dhcp2_out_$$"
-export coppid_file="/tmp/dhcp2_coppid_$$"
+export proxyin="/tmp/dhcp2_in_$$"
+export proxyout="/tmp/dhcp2_out_$$"
+export proxy_pid_file="/tmp/dhcp2_proxy_pid_$$"
 trap "proxy_stop" INT TERM EXIT
 main "$@" 
 #M
