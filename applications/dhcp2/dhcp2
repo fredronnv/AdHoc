@@ -735,7 +735,8 @@ do_subcmd()
 #C Non option args, tack them to the output arg list and count them.
             *)
                 _do_subcmd_arglist="$_do_subcmd_arglist '$_arg'"
-                _argsleft=`expr $_argsleft + 1`
+                #_argsleft=`expr $_argsleft + 1`
+				_argsleft=$((_argsleft+1))
                 ;;
         esac
 #    echo _do_subcmd_arglist="$_do_subcmd_arglist"
@@ -4812,7 +4813,8 @@ _ip2i()
     _ip2i3=`echo $1  | cut -f3 -d'.'`
     _ip2i4=`echo $1  | cut -f4 -d'.'`
 
-    /bin/expr $_ip2i1 \* 16777216 + $_ip2i2 \* 65536 + $_ip2i3 \* 256 + $_ip2i4
+    #/bin/expr $_ip2i1 \* 16777216 + $_ip2i2 \* 65536 + $_ip2i3 \* 256 + $_ip2i4
+    echo $((_ip2i1 * 16777216 + _ip2i2 * 65536 + _ip2i3 * 256 + $_ip2i4))
     
 }
 
@@ -4832,8 +4834,10 @@ _progbar_init()
     _progbar_full=$1
 # Following line works on Solaris, Linux and MacOS X, despite siffering output syntax for three of them
     _progbar_maxcols=`stty -a | grep columns | sed 's/= //g' | tr ';' '\n' | grep columns | sed 's/^ //' | tr ' ' '\n' | egrep '^[0-9]*$'`
-    _progbar_barcols=`expr $_progbar_maxcols \* 90`
-    _progbar_barcols=`expr $_progbar_barcols / 100 - 2`
+    #_progbar_barcols=`expr $_progbar_maxcols \* 90`
+    _progbar_barcols=$((_progbar_maxcols * 90))
+    #_progbar_barcols=`expr $_progbar_barcols / 100 - 2`
+    _progbar_barcols=$((_progbar_barcols / 100 - 2))
     _progbar_now=0
     _progbar_nowbar=0
 
@@ -4842,7 +4846,8 @@ _progbar_init()
 
     while [ $i -gt 0 ]; do
         _progbar_outstring="${_progbar_outstring}."
-        i=`expr $i - 1`
+        #i=`expr $i - 1`
+        i=$((i-1))
     done
 
     echo  -e "|${_progbar_outstring}|\r|\c"
@@ -4850,12 +4855,15 @@ _progbar_init()
 
 _progbar_incr()
 {
-    _progbar_now=`expr $_progbar_now + 1`
-    _progbar_bars=`expr $_progbar_barcols \* $_progbar_now / $_progbar_full`
+    #_progbar_now=`expr $_progbar_now + 1`
+    _progbar_now=$((_progbar_now + 1))
+    #_progbar_bars=`expr $_progbar_barcols \* $_progbar_now / $_progbar_full`
+    _progbar_bars=$((_progbar_barcols \* _progbar_now / _progbar_full))
 
     while [ $_progbar_nowbar -lt $_progbar_bars ]; do
         echo -e "*\c"
-        _progbar_nowbar=`expr $_progbar_nowbar + 1`
+        #_progbar_nowbar=`expr $_progbar_nowbar + 1
+    	_progbar_nowbar$((_progbar_nowbar + 1))
     done
 }
 
@@ -4866,7 +4874,8 @@ _progbar_zap()
 
     while [ $i -gt 0 ]; do
         _progbar_outstring="${_progbar_outstring} "
-        i=`expr $i - 1`
+        #i=`expr $i - 1`
+        i=$((i-1))
     done
 
     echo -e "\r ${_progbar_outstring} \r\c"
@@ -4987,7 +4996,8 @@ mkhost()
 # Get the size of the addresses there are in the subnetwork
 #
 		mkhost_naddrs=`server_call "subnetwork_fetch('$mkhost_subnetwork', {'size': True})"`
-        mkhost_tothosts=`expr $mkhost_tothosts + $mkhost_naddrs`;
+        #mkhost_tothosts=`expr $mkhost_tothosts + $mkhost_naddrs`;
+        mkhost_tothosts=$((mkhost_tothosts + mkhost_naddrs))
 #
 # Save # of hosts in a list to be used later
         mkhost_naddrlist="$mkhost_naddrlist $mkhost_naddrs"
@@ -5008,10 +5018,12 @@ mkhost()
 #
         _ip=`_ip2i  $mkhost_subnetwork`
 # The 2 offset skips the network and gateway addresses
-        _ip=`expr  $_ip + 2`
+        #_ip=`expr  $_ip + 2`
+        _ip=$((_ip + 2))
         _progbar_incr
         _progbar_incr
-        _ipmax=`expr  $_ip +  $mkhost_naddrs - 2`
+        #_ipmax=`expr  $_ip +  $mkhost_naddrs - 2`
+        _ipmax=$((_ip +  mkhost_naddrs - 2))
         while [ $_ip -lt $_ipmax ]; do
             mkhost_freeip=`_i2ipp $_ip`
             mkhost_fqdn=`dig +short -x $mkhost_freeip | sed 's/\.$//'`
@@ -5030,7 +5042,8 @@ mkhost()
                 mkhost_foundfree=1
             fi
             _progbar_incr
-            _ip=`expr $_ip + 1`
+            #_ip=`expr $_ip + 1`
+            _ip=$((_ip + 1))
         done
     done
     _progbar_zap
