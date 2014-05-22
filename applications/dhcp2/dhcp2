@@ -2918,7 +2918,7 @@ opoption()
             -G)
                 _opoption_checkmultiple $opoption_gtype
                 opoption_gtype='global';
-                shift; opoption_arg=$1; shift
+                shift; opoption_arg='global'; shift
                 ;;
             -p)
                 _opoption_checkmultiple $opoption_gtype
@@ -2950,7 +2950,7 @@ opoption()
     fi
     _opoption_oname="$1"
     if [ $opoption_gtype = "global" ]; then
-	opoption_arg=""
+		opoption_arg="global"
     fi
     case $option_op in
 
@@ -2986,7 +2986,7 @@ _addoption()
     fi
     proxy_start
     otype=`server_call "option_def_fetch('$_addoption_key',{'type':True})"`
-    if echo $otype | grep integer >/dev/null 2>&1; then
+    if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
     	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':${_addoption_value}})"
 	else
     	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
@@ -3292,7 +3292,7 @@ _chhost_foundaflag()
 #O choption;H;host;Change option for this host;;host_in_db
 #O choption;N;network;Change option for this network
 #O choption;S;subnetwork;Change option for this subnetwork
-#O choption;G;global;Change a global option
+#O choption;G;;Change a global option
 #M
 #M =head2 I<Description>
 #M
@@ -3321,16 +3321,30 @@ _choption()
     if _hasoptions_group $_choption_group $_choption_gtype | grep "$_choption_key" >/dev/null 2>&1 ; then
     	:
 	else
-        echo The option $_choption_key is not defined for the $_choption_gtype $_choption_group, use the addoption command to add it
+        if [ "$_choption_gtype" = "global" ]; then
+        	echo "$_choption_key is not defined as a global option, use the addooption command to add it"
+ 		else
+			echo The option $_choption_key is not defined for the $_choption_gtype $_choption_group, use the addoption command to add it
+		fi
+
         return
     fi
     
     proxy_start
     otype=`server_call "option_def_fetch('$_choption_key',{'type':True})"`
-    if echo $otype | grep integer >/dev/null 2>&1; then
-    	server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':${_choption_value}})"
+	if [ "${_choption_gtype}" = "global" ]; then
+		global_option_id=`server_call "global_option_dig({'name':'$_choption_key'},{'global_option':True})"`
+		if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
+			server_call "global_option_update($global_option_id,{'value':${_choption_value}})"
+		else
+			server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
+ 		fi
 	else
-    	server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
+		if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
+			server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':${_choption_value}})"
+		else
+			server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
+		fi
 	fi
 }
 
@@ -3486,7 +3500,10 @@ defoption()
         {\ *\ })
             ;;
         *)
-            echo "The type '$_defoption_type' is illegal"
+            echo "The type '$_defoption_type' is illegal, "
+			echo "Valid types are text,ip-address,boolean,string,unsigned n, integer n where n is either 8, 16 or 32"
+			echo "Also valid is array of t, where t is any of the above basic types"
+
             return
             ;;
     esac
@@ -3515,11 +3532,13 @@ defoption()
 			_defoption_optstring="'qualifier':'$defoption_q_arg', $_defoption_optstring"
 			;;
 			parameter|parameter-array)
-			$defoption_no_code='Yes'
+			defoption_no_code='Yes'
 			_defoption_optstring="'qualifier':'$defoption_q_arg', $_defoption_optstring"
 			;;
 		*)
-		echo "The qualifier '$defoption_q_arg' is illegal"
+			echo "The qualifier '$defoption_q_arg' is illegal"
+			echo "Valid qualifiers are array, parameter or parameter-array"
+			echo "Parameter is used for options not defined in the DHCP protocol"
 			return
 			;;
 		esac
@@ -3561,7 +3580,7 @@ defoption()
     
 }
 #S defspace;;Define namespace;1;2;name [info];Define an option namespace;81
-#O defoption;s;;Create a site namespace. Default is a vendor namespace
+#O defspace;s;;Create a site namespace. Default is a vendor namespace
 #O defspace;;
 #M
 #M =head2 I<Description>
@@ -4549,7 +4568,11 @@ _hasoptions_group()
 	fi
     proxy_start
     #echo "proxy_pid H=$proxy_pid" >&2
-    v1=`server_call "${px}_fetch('$1', {'options': True})" | tr '\n' ' '`
+    if [ "$_hasoptions_group_gtype" = "global" ]; then
+		v1=`server_call "global_option_dig({'min_id':0}, {'name': True})" | tr '\n' ' '`
+	else
+		v1=`server_call "${px}_fetch('$1', {'options': True})" | tr '\n' ' '`
+	fi
     #echo "V1=$v1" >&2
     echo "$v1"
 }
@@ -5565,7 +5588,7 @@ chrange()
 #M
 reload()
 {
-    choption -G global dhcp2_timestamp `date +%FT%T`
+    choption -G dhcp2_timestamp `date +%FT%T`
 }
 #S chnetwork;;Change network;1;1;network-name;Change name and parameters of an already defined network;62
 #O chnetwork;A;;Turn on authoritativity for the network (excludes the use of --noA);;
