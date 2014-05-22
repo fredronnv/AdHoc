@@ -62,6 +62,8 @@ pushd . > /dev/null
 MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
 popd  > /dev/null
 
+cd $MY_DIR
+
 #D 
 #D =pod
 #D =head4 dhcp2 - DHCP control program
@@ -6030,6 +6032,6 @@ main "$@"
 #M
 #M =head1 AUTHOR
 #M
-#M Christer BernE<eacute>rus, spawned from my 'suite' framework.  See www.medic.chalmers.se/~bernerus/dist/suite
+#M Christer BernE<eacute>rus.
 #M
 ##SSCE2 Suite specific code end 2
