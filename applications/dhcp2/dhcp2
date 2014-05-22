@@ -876,7 +876,7 @@ man()
     man_formatter="| pod2man --center=DHCP2\(1\) --release=$version --section='Embedded\ Manual' | nroff -man"
     man_o_arg=
 
-    
+    for i in "$@"; do
         case "$i" in
             -e)
                 eflag=$i
