@@ -130,8 +130,10 @@ class GlobalOption(AdHocModel):
     def set_value(self, newvalue):
         q = "UPDATE global_options SET value=:value WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, value=newvalue)
-        self.event_manager.add("rename",  global_option=self.oid, value=newvalue, authuser=self.function.session.authuser)
-        
+        if type(newvalue) is int:
+            self.event_manager.add("update",  global_option=self.oid, newint=newvalue, authuser=self.function.session.authuser)
+        else:
+            self.event_manager.add("update",  global_option=self.oid, newstr=newvalue, authuser=self.function.session.authuser)
 
 class GlobalOptionManager(AdHocManager):
     name = "global_option_manager"
