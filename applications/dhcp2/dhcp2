@@ -50,17 +50,16 @@ esac
 TEST=`which test`
 
 
+# Code below extracts into MY_DIR the path to the directori in which the actual dhcp2 script lives.
+# The code is designed to handle all the strange ways that man lead up to this script.
 MY_SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$MY_SOURCE" ]; do # resolve $MY_SOURCE until the file is no longer a symlink
-MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
-  MY_SOURCE="$(readlink "$MY_SOURCE")"
-  [[ $MY_SOURCE != /* ]] && MY_SOURCE="$MY_DIR/$MY_SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+	MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
+	MY_SOURCE="$(readlink "$MY_SOURCE")"
+	[[ $MY_SOURCE != /* ]] && MY_SOURCE="$MY_DIR/$MY_SOURCE" # if $MY_SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
-
 pushd . > /dev/null
-cd `dirname ${MY_DIR}` > /dev/null
-MY_DIR=`pwd`;
+MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
 popd  > /dev/null
 
 #D 
@@ -877,7 +876,7 @@ man()
     man_formatter="| pod2man --center=DHCP2\(1\) --release=$version --section='Embedded\ Manual' | nroff -man"
     man_o_arg=
 
-    for i in "$@"; do
+    
         case "$i" in
             -e)
                 eflag=$i
@@ -3489,7 +3488,9 @@ defoption()
             return
             ;;
     esac
-    
+
+#M =back
+#M    
 #M The -q flag may be user to further qualify the type:
 #M
 #M =over
