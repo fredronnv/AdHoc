@@ -2662,7 +2662,6 @@ addhost()
 
     for i in "$@"; do
         case "$i" in
-        	
             -f)
                 addhost_f_flag=$i; shift
                 ;;
@@ -3719,7 +3718,7 @@ deletehost()
     fi
     _deletehost_hostname=$1; shift
 
-
+	proxy_start
     if db_hostdelete $_deletehost_hostname; then
         :
     else

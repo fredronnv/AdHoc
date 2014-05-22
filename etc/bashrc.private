@@ -1,0 +1,15 @@
+if [ x"$CHALMERS_DEPLOY_LEVEL" == x"devel" ]; then
+    export ADHOC_DB_PASSWORD=ua1zcl/AE
+    export ADHOC_ODB_PASSWORD=z6X9HHBzfPJCMHYR
+    export ADHOC_GENERIC_PASSWORD=1qaz2wsx.
+fi
+
+if [ x"$CHALMERS_DEPLOY_LEVEL" == x"uat" ]; then
+    export ADHOC_DB_PASSWORD=Q9wAZhMtAZ6hDjVh
+    export ADHOC_ODB_PASSWORD=z6X9HHBzfPJCMHYR
+fi
+
+if [ x"$CHALMERS_DEPLOY_LEVEL" == x"prod" ]; then
+    export ADHOC_DB_PASSWORD=HaLAHEc7uqXm
+
+fi
