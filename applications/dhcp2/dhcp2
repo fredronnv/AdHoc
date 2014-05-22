@@ -2139,8 +2139,8 @@ proxy_call()
 	local result
 	#echo "proxyin=" $proxyin >&2
     trace "proxy_call: ""$@"
-    echo "$@" >"$proxyin"
-	#cat $proxyout
+    echo "$@" > "$proxyin"
+	cat $proxyout >/dev/null
     #result=`cat $proxyout`
     #echo "$result"
     #echo "Proxy_call Result='"$result"'" >&2
@@ -2662,6 +2662,7 @@ addhost()
 
     for i in "$@"; do
         case "$i" in
+        	
             -f)
                 addhost_f_flag=$i; shift
                 ;;
@@ -4480,7 +4481,11 @@ find_subnet()
         return 1
     fi
     proxy_start
-    hdns=`server_call "host_fetch('$1', {'dns':True})"`
+    if echo $1 | grep . >/dev/null 2>&1; then
+    	hdns=$1
+	else
+    	hdns=`server_call "host_fetch('$1', {'dns':True})"`
+	fi
     fs_ip=`dig +short $hdns` 
     sn=`server_call "subnetwork_dig({'subnetwork_covers':'$fs_ip'},{'subnetwork':True})"`
     if [ -n "$sn" ]; then
@@ -4858,12 +4863,12 @@ _progbar_incr()
     #_progbar_now=`expr $_progbar_now + 1`
     _progbar_now=$((_progbar_now + 1))
     #_progbar_bars=`expr $_progbar_barcols \* $_progbar_now / $_progbar_full`
-    _progbar_bars=$((_progbar_barcols \* _progbar_now / _progbar_full))
+    _progbar_bars=$((_progbar_barcols * _progbar_now / _progbar_full))
 
     while [ $_progbar_nowbar -lt $_progbar_bars ]; do
         echo -e "*\c"
         #_progbar_nowbar=`expr $_progbar_nowbar + 1
-    	_progbar_nowbar$((_progbar_nowbar + 1))
+    	_progbar_nowbar=$((_progbar_nowbar + 1))
     done
 }
 
@@ -5031,9 +5036,7 @@ mkhost()
                 _progbar_zap
                 echo $mkhost_fqdn $mkhost_freeip is free
                 if [ -z "$mkhost_n_flag" ]; then
-                    addhost $mkhost_f_flag $mkhost_r_flag $mkhost_r_arg $mkhost_u_flag $mkhost_u_arg $mkhost_s_flag $mkhost_s_arg \
-                    $mkhost_e_flag $mkhost_e_arg $mkhost_g_flag $mkhost_g_arg $mkhost_a_flag $mkhost_a_arg $mkhost_i_flag "$mkhost_i_arg" \
-                    -d $mkhost_fqdn `echo $mkhost_fqdn | tr '.' '_'` $mkhost_mac
+                    addhost $mkhost_f_flag $mkhost_r_flag $mkhost_r_arg $mkhost_s_flag $mkhost_s_arg $mkhost_g_flag $mkhost_g_arg  -d $mkhost_fqdn -i "$mkhost_i_arg" `echo $mkhost_fqdn | tr '.' '_'` $mkhost_mac
                     exit $?
                 fi
                 if [ -z "$mkhost_A_flag" ]; then
