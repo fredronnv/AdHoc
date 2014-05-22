@@ -2396,14 +2396,11 @@ db_hostindb()
 
 db_hostdelete()
 {
-    if db_hostindb $1; then
-        rv=$?
-        proxy_start
-        server_call "host_destroy('$1')"
-    else
-        rv=$?
-    fi
-    return $rv
+ 
+    proxy_start
+    server_call "host_destroy('$1')"
+    
+    return $?
 }
 
 db_networkexists()
@@ -3717,8 +3714,15 @@ deletehost()
         exit 2
     fi
     _deletehost_hostname=$1; shift
+    
+    proxy_start
+    if db_hostindb ${_deletehost_hostname}; then
+        :
+    else
+        echo "The host specified is unknown to the database"
+        exit 1
+    fi  
 
-	proxy_start
     if db_hostdelete $_deletehost_hostname; then
         :
     else
