@@ -68,7 +68,10 @@ EOF
         id
         
 16. Clean up the home directory
-        rm -rf .??* 
+        rm -rf .??*
+        
+17. Make a directory for the server's keys and certificates
+        mkdir etc
         
 17. Download the adhoc server distribution and unpack
         wget https://utveckling.its.chalmers.se/downloads/adhoc-server-@@ADHOC_RELEASE@@.tar
@@ -81,19 +84,19 @@ EOF
         
 19. Set up SSL
         Order and install SSL certificates. 
-        Put the key file into $ADHOC_RUNTIME_HOME/etc/$HOSTNAME.key. Make the file unreadable except for the server user.
-                touch $ADHOC_RUNTIME_HOME/etc/$HOSTNAME.key
-                chmod 600 $ADHOC_RUNTIME_HOME/etc/$HOSTNAME.key
-                cat $keyfile >$ADHOC_RUNTIME_HOME/etc/$HOSTNAME.key
-                chmod 400 $ADHOC_RUNTIME_HOME/etc/$HOSTNAME.key
+        Put the key file into /etc/$HOSTNAME.key. Make the file unreadable except for the server user.
+                touch ~/etc/$HOSTNAME.key
+                chmod 600 ~/etc/$HOSTNAME.key
+                cat $keyfile >~/etc/$HOSTNAME.key
+                chmod 400 ~/etc/$HOSTNAME.key
                 rm $keyfile
         Concatenate the certificate file with the chain file and store the result into the file $ADHOC_RUNTIME_HOME/etc/`hostname`.cert
         
-                cat $certfile $chainfile >$ADHOC_RUNTIME_HOME/etc/$HOSTNAME.cert
+                cat $certfile $chainfile >~/etc/$HOSTNAME.cert
         
         Make the file readable by everyone and not writable by anyone.
         
-                chmod 444 $ADHOC_RUNTIME_HOME/etc/$HOSTNAME.cert
+                chmod 444 ~/etc/$HOSTNAME.cert
 
 20. Exit back to the root user
         exit
@@ -135,12 +138,12 @@ EOF
         
 28. Check accessibility again, see step 16.
  
-29. Obtain a kerberos keytab for the principal HTTP/$HOSTNAME, Store the keytab file in $ADHOC_RUNTIME_HOME/etc/server.keytab and 
+29. Obtain a kerberos keytab for the principal HTTP/$HOSTNAME, Store the keytab file in ~/etc/server.keytab and 
      make it owned and readable only for the server
-        touch $ADHOC_RUNTIME_HOME/etc/server.keytab
-        chown srvadhoc:srvadhoc $ADHOC_RUNTIME_HOME/etc/server.keytab
-        chmod 640 $ADHOC_RUNTIME_HOME/etc/server.keytab
-        cat $keytab >$ADHOC_RUNTIME_HOME/etc/server.keytab
+        touch ~/etc/server.keytab
+        chown srvadhoc:srvadhoc ~/etc/server.keytab
+        chmod 640 ~/etc/server.keytab
+        cat $keytab >~/etc/server.keytab
         rm $keytab
  
 31. Transfer current setup from old database

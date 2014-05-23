@@ -1,6 +1,6 @@
 export PYTHONPATH=${INSTALL_HOME}/lib/python2.6
 export ADHOC_RUNTIME_HOME=${INSTALL_HOME}
-export KRB5_KTNAME=$ADHOC_RUNTIME_HOME/etc/server.keytab
+export KRB5_KTNAME=$HOME/etc/server.keytab
 
    
 export ADHOC_DB_HOST=`hostname`
@@ -44,8 +44,8 @@ if [ x"$CHALMERS_DEPLOY_LEVEL" = x"prod" ]; then
     #export RPCC_DEBUG=1
     #export ADHOC_DEBUG_SQL=1
     #export ADHOC_TEST_MODE=1
-    export RPCC_SERVER_SSL_KEYFILE=$ADHOC_RUNTIME_HOME/etc/$ADHOC_SERVER_HOST.key
-    export RPCC_SERVER_SSL_CERTFILE=$ADHOC_RUNTIME_HOME/etc/$ADHOC_SERVER_HOST.cert
+    export RPCC_SERVER_SSL_KEYFILE=$HOME/etc/$ADHOC_SERVER_HOST.key
+    export RPCC_SERVER_SSL_CERTFILE=$HOME/etc/$ADHOC_SERVER_HOST.cert
 
     export KRB5_TRACE=$ADHOC_RUNTIME_HOME/var/log/krb5.log
 fi
@@ -54,8 +54,8 @@ if [ x"$CHALMERS_DEPLOY_LEVEL" = x"install" ]; then
     export ADHOC_DB_DATABASE=AdHoc
     export ADHOC_DB_USER=root
     export ADHOC_SSL_ENABLE=1
-    export RPCC_SERVER_SSL_KEYFILE=$ADHOC_RUNTIME_HOME/etc/$ADHOC_SERVER_HOST.key
-    export RPCC_SERVER_SSL_CERTFILE=$ADHOC_RUNTIME_HOME/etc/$ADHOC_SERVER_HOST.cert
+    export RPCC_SERVER_SSL_KEYFILE=$HOME/etc/$ADHOC_SERVER_HOST.key
+    export RPCC_SERVER_SSL_CERTFILE=$HOME/etc/$ADHOC_SERVER_HOST.cert
 fi
 
 if [ "$ADHOC_SSL_ENABLE" = "1" ]; then
