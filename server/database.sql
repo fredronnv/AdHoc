@@ -790,7 +790,8 @@ INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES
 (36, 'printers'),
 (37, 'mac'),
 (38, 'entry_status'),
-(40, 'authoritative');
+(40, 'authoritative'),
+(41, 'served_by');
 
 -- --------------------------------------------------------
 
