@@ -28,7 +28,8 @@ install: clean
 	rm ${DISTDIR}/server_setup.txt; \
 	rm ${DISTDIR}/etc/bashrc.private; \
 	echo "adhoc_svn_version = \"$${svn_version}\"" > ${DISTDIR}/lib/version.py;\
-	echo "adhoc_release = \"$${revno}\"" >>${DISTDIR}/lib/version.py
+	echo "adhoc_release = \"$${revno}\"" >>${DISTDIR}/lib/version.py;\
+	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;)
 	
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\

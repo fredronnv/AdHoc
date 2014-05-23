@@ -25,7 +25,8 @@ install: clean
 	cp dhcp2proxy.py ${TOP}/client/rpcc_client.py ${DISTDIR};\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < dhcp2 | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/dhcp2 ;\
-	(cd ${DISTDIR}; chmod +x dhcp2; ./dhcp2 Release; mv ./dhcp2-* ./dhcp2)
+	(cd ${DISTDIR}; chmod +x dhcp2; ./dhcp2 Release; mv ./dhcp2-* ./dhcp2 ) ;\
+	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;)
 
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
