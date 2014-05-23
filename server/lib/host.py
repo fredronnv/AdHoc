@@ -446,12 +446,14 @@ class HostManager(AdHocManager):
         id = self.db.insert("id", q, hostname=host.oid, value=option_text, changed_by=fun.session.authuser)
         self.approve_config = True
         self.approve()
+        self.event_manager.add("create",  host=host.oid, literal_option_id=id, literal_option_value=unicode(option_text), authuser=fun.session.authuser)
         return id
     
     @entry(g_write_literal_option)
     def destroy_literal_option(self, fun, host, id):
         q = "DELETE FROM host_literal_options WHERE `for`=:hostname AND id=:id LIMIT 1"
         self.db.put(q, hostname=host.oid, id=id)
+        self.event_manager.add("destroy",  host=host.oid, literal_option_id=id, authuser=fun.session.authuser)
         
     @entry(g_write)
     def update_options(self, fun, host, updates):
@@ -459,3 +461,4 @@ class HostManager(AdHocManager):
         optionset = omgr.get_optionset(host.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
+            self.event_manager.add("update",  host=host.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)

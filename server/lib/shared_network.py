@@ -203,17 +203,6 @@ class NetworkManager(AdHocManager):
             raise ExtNetworkInUseError()
         self.event_manager.add("destroy", network=network.oid)
         
-    @entry(g_write)
-    def set_option(self, fun, network, option, value):
-        q = """INSERT INTO network_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
-               ON DUPLICATE KEY UPDATE value=:value"""
-        self.db.put(q, id=network.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
-        
-    @entry(g_write)
-    def unset_option(self, fun, network, option):
-        q = """DELETE FROM network_options WHERE `for`=:id AND name=:name"""
-        if not self.db.put(q, id=network.oid, name=option.oid):
-            raise ExtOptionNotSetError()
     
     @entry(g_write)
     def update_options(self, fun, network, updates):
@@ -221,3 +210,4 @@ class NetworkManager(AdHocManager):
         optionset = omgr.get_optionset(network.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
+            self.event_manager.add("update",  network=network.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)

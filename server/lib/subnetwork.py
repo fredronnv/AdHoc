@@ -258,17 +258,6 @@ class SubnetworkManager(AdHocManager):
         
         #print "Subnetwork destroyed, id=", id
         
-    @entry(g_write)
-    def set_option(self, fun, subnetwork, option, value):
-        q = """INSERT INTO subnetwork_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
-               ON DUPLICATE KEY UPDATE value=:value"""
-        self.db.put(q, id=subnetwork.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
-        
-    @entry(g_write)
-    def unset_option(self, fun, subnetwork, option):
-        q = """DELETE FROM subnetwork_options WHERE `for`=:id AND name=:name"""
-        if not self.db.put(q, id=subnetwork.oid, name=option.oid):
-            raise ExtOptionNotSetError()
 
     @entry(g_write)
     def update_options(self, fun, subnetwork, updates):
@@ -276,3 +265,4 @@ class SubnetworkManager(AdHocManager):
         optionset = omgr.get_optionset(subnetwork.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
+            self.event_manager.add("update",  subnetwork=subnetwork.oid, option=key, option_value=unicode(value), authuser=fun.session.authuser)

@@ -139,6 +139,7 @@ class DHCPManager(AdHocManager):
         for (my_id, info, printers, changed_by, mtime) in self.odb.get(qf):
             #print my_id, info, printers, changed_by, mtime
             my_id = my_id.upper()
+            printers = printers.lower()
             rooms.add(my_id)
             self.db.insert("id", qp, id=my_id, info=info, printers=printers, changedby=changed_by, mtime=mtime)
     

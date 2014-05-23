@@ -717,7 +717,8 @@ INSERT INTO `rpcc_event_int_attr` (`id`, `name`) VALUES
 (7, 'minval'),
 (3, 'newint'),
 (2, 'oldint'),
-(4, 'optionset');
+(4, 'optionset'),
+(9, 'literal_option_id');
 
 -- --------------------------------------------------------
 
@@ -754,7 +755,7 @@ CREATE TABLE IF NOT EXISTS `rpcc_event_str_attr` (
 INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES
 (27, 'authuser'),
 (21, 'building'),
-(12, 'class'),
+(12, 'host_class'),
 (22, 'dhcp_server'),
 (31, 'dns'),
 (32, 'end_ip'),
@@ -767,7 +768,7 @@ INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES
 (11, 'group'),
 (10, 'host'),
 (23, 'info'),
-(17, 'literal'),
+(17, 'literal_option_value'),
 (25, 'mtime'),
 (13, 'network'),
 (8, 'newstr'),
@@ -785,7 +786,11 @@ INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES
 (7, 'stack'),
 (33, 'start_ip'),
 (14, 'subnetwork'),
-(28, 'type');
+(28, 'type'),
+(36, 'printers'),
+(37, 'mac'),
+(38, 'entry_status'),
+(40, 'authoritative');
 
 -- --------------------------------------------------------
 

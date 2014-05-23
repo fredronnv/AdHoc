@@ -308,12 +308,16 @@ class HostClassManager(AdHocManager):
     def add_literal_option(self, fun, host_class, option_text):
         q = "INSERT INTO class_literal_options (`for`, value, changed_by) VALUES (:host_classname, :value, :changed_by)"
         id = self.db.insert("id", q, host_classname=host_class.oid, value=option_text, changed_by=fun.session.authuser)
+        self.approve_config = True
+        self.approve()
+        self.event_manager.add("create",  host_class=host_class.oid, literal_option_id=id, literal_option_value=unicode(option_text), authuser=fun.session.authuser)
         return id
     
     @entry(g_write_literal_option)
     def destroy_literal_option(self, fun, host_class, id):
         q = "DELETE FROM class_literal_options WHERE `for`=:host_classname AND id=:id LIMIT 1"
         self.db.put(q, host_classname=host_class.oid, id=id)
+        self.event_manager.add("destroy",  host_class=host_class.oid, literal_option_id=id, authuser=fun.session.authuser)
         
     @entry(g_write)
     def update_options(self, fun, host_class, updates):
@@ -321,3 +325,4 @@ class HostClassManager(AdHocManager):
         optionset = omgr.get_optionset(host_class.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
+            self.event_manager.add("update",  host_class=host_class.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)

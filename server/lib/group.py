@@ -320,29 +320,21 @@ class GroupManager(AdHocManager):
         self.db.put("SET foreign_key_checks=1")
         
         self.rename_object(obj, newname) 
-        
-    @entry(g_write)
-    def set_option(self, fun, group, option, value):
-        q = """INSERT INTO group_options (`for`, name, value, changed_by) VALUES (:id, :name, :value, :changed_by)
-               ON DUPLICATE KEY UPDATE value=:value"""
-        self.db.put(q, id=group.oid, name=option.oid, value=value, changed_by=fun.session.authuser)
-        
-    @entry(g_write)
-    def unset_option(self, fun, group, option):
-        q = """DELETE FROM group_options WHERE `for`=:id AND name=:name"""
-        if not self.db.put(q, id=group.oid, name=option.oid):
-            raise ExtOptionNotSetError()
    
     @entry(g_write_literal_option)
     def add_literal_option(self, fun, group, option_text):
         q = "INSERT INTO group_literal_options (`for`, value, changed_by) VALUES (:groupname, :value, :changed_by)"
         id = self.db.insert("id", q, groupname=group.oid, value=option_text, changed_by=fun.session.authuser)
+        self.approve_config = True
+        self.approve()
+        self.event_manager.add("create",  group=group.oid, literal_option_id=id, literal_option_value=unicode(option_text), authuser=fun.session.authuser)
         return id
     
     @entry(g_write_literal_option)
     def destroy_literal_option(self, fun, group, id):
         q = "DELETE FROM group_literal_options WHERE `for`=:groupname AND id=:id LIMIT 1"
         self.db.put(q, groupname=group.oid, id=id)
+        self.event_manager.add("destroy",  group=group.oid, literal_option_id=id, authuser=fun.session.authuser)
     
     @entry(g_write)
     def update_options(self, fun, group, updates):
@@ -350,6 +342,7 @@ class GroupManager(AdHocManager):
         optionset = omgr.get_optionset(group.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
+            self.event_manager.add("update", group.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
             
     @entry(AdHocSuperuserGuard)
     def gather_stats(self, parent=None):
