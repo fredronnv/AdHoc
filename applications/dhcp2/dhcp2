@@ -2916,7 +2916,7 @@ opoption()
             -G)
                 _opoption_checkmultiple $opoption_gtype
                 opoption_gtype='global';
-                shift; opoption_arg='global'; shift
+                shift; opoption_arg='global';
                 ;;
             -p)
                 _opoption_checkmultiple $opoption_gtype
@@ -2992,7 +2992,7 @@ _addoption()
 }
 
 #S addroom;ar;Add a room;1;2;roomcode [info];Add a room to the DHCP database;101
-#O addroom;p;printer;Assign a default printer set
+#O addroom;p;printers;Assign a default printer set
 #M =head2 I<Description>
 #M
 #M The addroom subcommand adds a room to the dhcp database.
@@ -5477,6 +5477,8 @@ chpool()
         esac
     done
 
+	proxy_start
+	
     if db_exists pool $1; then
         :
     else
@@ -5485,7 +5487,7 @@ chpool()
     fi
 
     chpool_poolname=$1
-    proxy_start
+    
     proxy_call "options={}"
 
     if [ -n "$chpool_optionspace_flag" ]; then
