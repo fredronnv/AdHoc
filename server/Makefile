@@ -29,7 +29,9 @@ install: clean
 	rm ${DISTDIR}/etc/bashrc.private; \
 	echo "adhoc_svn_version = \"$${svn_version}\"" > ${DISTDIR}/lib/version.py;\
 	echo "adhoc_release = \"$${revno}\"" >>${DISTDIR}/lib/version.py;\
-	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;)
+	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;); \
+	(cd ${DISTDIR}; find . -name \*.svn -exec rm {} \;); \
+	(cd ${DISTDIR}; find . -name \*.gitignore -exec rm {} \;)
 	
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
