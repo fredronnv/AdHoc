@@ -85,6 +85,7 @@ EOF
 19. Set up SSL
         Order and install SSL certificates. 
         Put the key file into /etc/$HOSTNAME.key. Make the file unreadable except for the server user.
+        Assuming that the key is is the file $keyfile and the certificate and chain is in $certfile and $chainfile respectively:
                 touch ~/etc/$HOSTNAME.key
                 chmod 600 ~/etc/$HOSTNAME.key
                 cat $keyfile >~/etc/$HOSTNAME.key
@@ -104,7 +105,7 @@ EOF
         
 21. Configure the server startup environment
 
-        cd $ADHOC_RUNTIME_HOME/etc
+        cd ~srvadhoc/etc
         touch bashrc.private
         chmod 600 bashrc.private
         sed s/YYY/$DBPW/ <bashrc.private.prototype | sed s/ZZZ/$RDBPW/ >bashrc.private
@@ -139,11 +140,12 @@ EOF
 28. Check accessibility again, see step 16.
  
 29. Obtain a kerberos keytab for the principal HTTP/$HOSTNAME, Store the keytab file in ~/etc/server.keytab and 
-     make it owned and readable only for the server
-        touch ~/etc/server.keytab
-        chown srvadhoc:srvadhoc ~/etc/server.keytab
-        chmod 640 ~/etc/server.keytab
-        cat $keytab >~/etc/server.keytab
+     make it owned and readable only for the server.
+     Assuming that the keytab data is in the file $keytab:
+        touch ~srvadhoc/etc/server.keytab
+        chown srvadhoc:srvadhoc ~srvadhoc/etc/server.keytab
+        chmod 640 ~srvadhoc/etc/server.keytab
+        cat $keytab >~srvadhoc/etc/server.keytab
         rm $keytab
  
 31. Transfer current setup from old database

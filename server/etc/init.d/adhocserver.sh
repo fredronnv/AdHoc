@@ -8,16 +8,19 @@
 # Start the AdHoc server
 
 export ADHOC_USER=${ADHOC_USER:-srvadhoc}
-ADHOC_RUNTIME_HOME=`eval echo ~${ADHOC_USER}/adhoc-server`
+ADHOC_USER_HOME=$(eval echo ~${ADHOC_USER})
+ADHOC_RUNTIME_HOME=${ADHOC_USER_HOME}/adhoc-server
 PIDDIR=${ADHOC_RUNTIME_HOME}/var/run
 LOGDIR=${ADHOC_RUNTIME_HOME}/var/log
+export CHALMERS_DEPLOY_LEVEL=prod
+
 start()
 {
     echo -n Starting AdHoc server:
 
-    /usr/local/bin/daemon -P ${PIDDIR} --name=adhoc -r --user=${ADHOC_USER} --delay=1800 -l ${LOGDIR}/daemon.log \
+	/usr/local/bin/daemon -P ${PIDDIR} -i --env="HOME=$ADHOC_USER_HOME" --name=adhoc -r \
+		--user=${ADHOC_USER} --delay=1800 -l ${LOGDIR}/daemon.log \
         --output=${LOGDIR}/AdHoc.log -- ${ADHOC_RUNTIME_HOME}/bin/startserver.sh
-    ### Create the lock file ###
     success "AdHoc server startup"
     echo
 }
