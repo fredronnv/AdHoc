@@ -117,13 +117,18 @@ EOF
         chmod 640 ~srvadhoc/etc/server.keytab
         cat $keytab >~srvadhoc/etc/server.keytab
         rm $keytab
-
+        
 22. Exit back to the root user
         exit
 
+23. Install the cron job that makes backups of the database.
+    This script has the path to the backup script hardwired, so if the server software is installed elsewhere than /cdg/adhoc, the
+    cron job will have to be changed.
+        cp $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron /etc/cron.d/adhoc-server-backup
+        
 Part B. Installing the server software
 
-23. Configure the server startup environment
+24. Configure the server startup environment
         
         ADHOC_RUNTIME_HOME=`(cd ~srvadhoc/adhoc-server; pwd)`
         cd ~srvadhoc/etc
@@ -132,10 +137,10 @@ Part B. Installing the server software
         sed s/YYY/$DBPW/ <bashrc.private.prototype | sed s/ZZZ/$RDBPW/ >bashrc.private
         chown srvadhoc:srvadhoc bashrc.private
         
-24. Start the server. 
+25. Start the server. 
         su srvadhoc $ADHOC_RUNTIME_HOME/bin/startserver.sh
  
-25. Check connectivity. Replace <adhoc_server_host> with the actual FQDN of the AdHoc Server you just started. The server should only be
+26. Check connectivity. Replace <adhoc_server_host> with the actual FQDN of the AdHoc Server you just started. The server should only be
      accessible from within Chalmers network, 129.16/16
      
         Start your browser and go to the following url:
@@ -143,27 +148,27 @@ Part B. Installing the server software
         The displayed page show say "Welcome to the AdHoc RPCC Server" on its first line.
         Stop the server with ctrl-C
 
-26. Install the startup script
+27. Install the startup script
         cp $ADHOC_RUNTIME_HOME/etc/init.d/adhoc-server.sh /etc/init.d/adhoc-server
   
-27. Tell Linux to start the adhoc server when booting
+28. Tell Linux to start the adhoc server when booting
         /sbin/chkconfig --level 3 adhoc-server on
         
-28. Start server manually. This step assumes that you have installed the daemon utility as described under step 20. The startup script does not work with
+29. Start server manually. This step assumes that you have installed the daemon utility as described under step 20. The startup script does not work with
     the native RedHat daemon utility.
         /etc/init.d/adhoc-server start
         
-29. Check connectivity again, see step 25.
+30. Check connectivity again, see step 26.
  
-30. Transfer current setup from old database
+31. Transfer current setup from old database
  	 
         Run the script:
             $ADHOC_RUNTIME_HOME/migrate_data
-	When OK and production phase really begins, remove the password for deploy level install from the bashrc.private file.
+        Leave the install level password as is because it is used by the backup script.
 
-31. Reboot and check that the server is running    
+32. Reboot and check that the server is running    
         /sbin/shutdown -r now
-        See step 25 for checking connectivity.
+        See step 26 for checking connectivity.
 
         
  UPGRADING THE SERVER SOFTWARE:
