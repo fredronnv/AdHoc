@@ -1,4 +1,4 @@
-TOP=../..
+TOP=..
 SUBDIRS=
 DISTDIR=${TOP}/dist/adhoc-connect
 RELEASEDIR=${TOP}/releases
@@ -19,14 +19,12 @@ install: clean
 	done
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	mkdir -p ${DISTDIR};\
+	mkdir -p ${DISTDIR} ${DISTDIR}/etc ${DISTDIR}/sbin;\
 	cp -r INSTALL dhcpd-snmp  ${DISTDIR};\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./adhoc-connect.sh | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/adhoc-connect.sh ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./install.sh | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/install.sh ;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./adhoc-connect.cron | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/adhoc-connect.cron
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./sbin/adhoc-connect.sh | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/sbin/adhoc-connect.sh ;\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./etc/adhoc-connect.cron | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/etc/adhoc-connect.cron
 	
 release: svnstatus install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\

@@ -1,8 +1,15 @@
 
-To install or upgrade on a DHCP server, become root and run:
+To install on a DHCP server, become root and run:
     mkdir -p /cdg/adhoc
     cd /cdg/adhoc
     tar xf adhoc-connect-x.y.z.tar
     ln -s adhoc-connect-x.y.z adhoc-connect
     cd adhoc-connect
-    ./install.sh
+    cp etc/adhoc-connect.cron /etc/cron.d
+    
+ To upgrade:
+    cd /cdg/adhoc
+    wget https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/files/adhoc-connect-v.w.u.tar
+    rm adhoc-connect
+    ln -s adhoc-connect-v.w.u adhoc-connect
+    cp etc/adhoc-connect.cron /etc/cron.d (probably not necessary though)
