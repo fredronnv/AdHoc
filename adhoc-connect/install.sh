@@ -44,5 +44,5 @@ update()
         fi
 }
 
-update adhoc-connect.sh /cdg/sbin/adhoc-connect 744
+update adhoc-connect.sh /cdg/adhoc/adhoc-connect/sbin/adhoc-connect 744
 update adhoc-connect.cron /etc/cron.d/adhoc-connect 644

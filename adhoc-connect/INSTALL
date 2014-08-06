@@ -1,5 +1,8 @@
 
 To install or upgrade on a DHCP server, become root and run:
+    mkdir -p /cdg/adhoc
+    cd /cdg/adhoc
     tar xf adhoc-connect-x.y.z.tar
-    cd adhoc-connect-x.y.z
+    ln -s adhoc-connect-x.y.z adhoc-connect
+    cd adhoc-connect
     ./install.sh
