@@ -28,6 +28,7 @@ install: clean
 	
 release: svnstatus install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
+	rm -rf ${DISTDIR}/../adhoc-connect-$${revno}; \
 	(cd ${DISTDIR}/..; mv adhoc-connect adhoc-connect-$${revno};tar cf ${RELEASEDIR}/adhoc-connect-$${revno}.tar adhoc-connect-$${revno})
 
 patchbump:
