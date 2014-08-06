@@ -10,12 +10,15 @@
 export ADHOC_USER=${ADHOC_USER:-srvadhoc}
 ADHOC_USER_HOME=$(eval echo ~${ADHOC_USER})
 ADHOC_RUNTIME_HOME=${ADHOC_USER_HOME}/adhoc-server
-PIDDIR=${ADHOC_RUNTIME_HOME}/var/run
-LOGDIR=${ADHOC_RUNTIME_HOME}/var/log
+PIDDIR=${ADHOC_USER_HOME}/var/run
+LOGDIR=${ADHOC_USER_HOME}/var/log
 export CHALMERS_DEPLOY_LEVEL=prod
 
 start()
 {
+	mkdir -p ${PIDDIR}
+	mkdir -p ${LOGDIR}
+	chown ${ADHOC_USER} ${PIDDIR} ${LOGDIR}
     echo -n Starting AdHoc server:
 
 	/usr/local/bin/daemon -P ${PIDDIR} -i --env="HOME=$ADHOC_USER_HOME" --name=adhoc -r \

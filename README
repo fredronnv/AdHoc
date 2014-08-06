@@ -11,3 +11,5 @@ The DHCP servers continuously polls the RPC server for new condiguration data, a
 configuration data through the RPC server.
 
 For kerberos authentication to work, the file etc/server.keytab must be created and have keys for the priciipal HTTP/<hostname>
+
+For server installation & upgrade: see server/server_setup.txt
