@@ -55,8 +55,9 @@ CREATE TABLE IF NOT EXISTS `accounts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='User accounts';
 
 INSERT INTO `accounts` (`account`, `fname`, `lname`) VALUES
-('srvadhoc', 'AdHoc'),
-('srvadhoc', 'PDB Integration');
+('srvadhoc', 'AdHoc','Server'),
+('int_0002', 'PDB Integration','Agent');
+
 -- --------------------------------------------------------
 
 --
@@ -791,8 +792,7 @@ INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES
 (37, 'mac'),
 (38, 'entry_status'),
 (40, 'authoritative'),
-(41, 'served_by'),
-(42, 'entry_status');
+(41, 'served_by');
 
 -- --------------------------------------------------------
 
