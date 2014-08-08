@@ -1,14 +1,17 @@
-export INSTALL_HOME=${INSTALL_HOME:-~srvadhoc/adhoc-server}
+export ADHOC_USER=${ADHOC_USER:-srvadhoc}
+export ADHOC_USER_HOME=$(eval echo ~${ADHOC_USER})
+export ADHOC_RUNTIME_HOME=${ADHOC_USER_HOME}/adhoc-server
+export INSTALL_HOME=$ADHOC_RUNTIME_HOME
 
-cd $INSTALL_HOME || exit 1
+cd $ADHOC_RUNTIME_HOME || exit 1
 
-/etc/init.d/adhocserver stop
+/etc/init.d/adhoc-server stop
 export CHALMERS_DEPLOY_LEVEL="install"
 export ADHOC_GENERIC_PASSWORD='hgUUw/fsy%6gh'
 export PYTHONPATH=$PYTHONPATH:$ADHOC_RUNTIME_HOME/lib/python2.6
-. $INSTALL_HOME/etc/bashrc.public
-. $ADHOC_RUNTIME_HOME/etc/bashrc.private
-/etc/init.d/adhocserver start
+. $ADHOC_RUNTIME_HOME/etc/bashrc.public
+. $ADHOC_USER_HOME/etc/bashrc.private
+/etc/init.d/adhoc-server start
 
 sleep 1
 
@@ -26,6 +29,5 @@ EOF
 
 unset CHALMERS_DEPLOY_LEVEL
 unset ADHOC_GENERIC_PASSWORD
-/etc/init.d/adhocserver stop
-. $ADHOC_RUNTIME_HOME/.bashrc
-/etc/init.d/adhocserver start
+/etc/init.d/adhoc-server stop
+/etc/init.d/adhoc-server start
