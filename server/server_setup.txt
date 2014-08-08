@@ -10,7 +10,9 @@ This part prepares the server machine with the needed accounts, software and the
 
 
  0. Log in and become root. In case you're reading this from a paper or an old file, make sure to get the latest revision of this document.
- 
+    Make sure that $HOSTNAME and the hostname command returns the fully qualified host name. I.e. ending with .chalmers.se. If not, 
+    adjust the HOSTNAME line in /etc/sysconfig/network.
+    
  1. Install /etc/krb5.keytab (see CSD-wiki for instructions as to obtain such a keytab)
  
  2. Install MySQL server.
@@ -19,7 +21,7 @@ This part prepares the server machine with the needed accounts, software and the
     at RedHat and run the commands:
         subscription-manager register
         rhnreg_ks --force --profilename special --activationkey c8a5d97e879f63d357055080f620cf06
-    Ther rerun yum as indicated above.
+    Then rerun yum as indicated above.
  
  3. Install mysql connector for python.
         wget --no-check-certificate https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-1.1.6-1.el6.noarch.rpm
@@ -32,8 +34,8 @@ This part prepares the server machine with the needed accounts, software and the
         RDBPW='tgilmeh'        <- Use something else than tgilmeh here, e.g. terces ;-)
         /usr/bin/mysqladmin -u root password "$RDBPW"
         mysql -p <<EOF
-            CREATE USER 'root'@'adhoctest.ita.chalmers.se' IDENTIFIED BY '$RDBPW'; 
-            GRANT ALL PRIVILEGES ON *.* TO 'root'@'adhoctest.ita.chalmers.se' WITH GRANT OPTION;
+            CREATE USER 'root'@'$HOSTNAME' IDENTIFIED BY '$RDBPW'; 
+            GRANT ALL PRIVILEGES ON *.* TO 'root'@'$HOSTNAME' WITH GRANT OPTION;
 EOF
         
  6. Configure mysql to run on level 3
@@ -176,7 +178,7 @@ Part B. Installing the server software
 28. Tell Linux to start the adhoc server when booting
         /sbin/chkconfig --level 3 adhoc-server on
         
-29. Start server manually. This step assumes that you have installed the daemon utility as described under step 20. The startup script does not work with
+29. Start server manually. This step assumes that you have installed the daemon utility as described under step 21. The startup script does not work with
     the native RedHat daemon utility.
         /etc/init.d/adhoc-server start
         
