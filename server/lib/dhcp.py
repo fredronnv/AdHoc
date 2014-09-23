@@ -7,7 +7,7 @@ from rpcc import *
 import optionset
 import tempfile
 import subprocess
-from version import *
+from adhoc_version import *
 from util import *
 from compiler.ast import Break
 
@@ -369,9 +369,17 @@ class DHCPManager(AdHocManager):
         VALUES (:id, :dns, :group, :mac, :room, :optionspace, :changed_by, :mtime, :info, :entry_status, :optset)"""
         #print
         #print "HOSTS"
+        datecounts = {}
         for(my_id, group, mac, room, optionspace, changed_by, mtime, info, entry_status) in self.odb.get(qf):
             dns = my_id
-            my_id = dns.replace('.', '_')
+            
+            mdate = mtime.strftime("%Y%m%d")
+            if mdate in datecounts:
+                datecounts[mdate] += 1
+            else:
+                datecounts[mdate] = 0
+            my_id = mdate + "-%03d" % datecounts[mdate]
+                
             # Handle room value quirks such as zero length rooms or rooms being just blanks
             if not room or not bool(room.strip()):
                 room = None

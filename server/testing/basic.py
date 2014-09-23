@@ -155,6 +155,7 @@ class T0096_WSDL_list(UnAuthTests):
 class T0097_WSDL(UnAuthTests):
     """ Test fetching the WSDL."""
     functions = 0
+    skip=True
 
     def countFunctions(self, node):
         if "soapAction" in node.attrib:

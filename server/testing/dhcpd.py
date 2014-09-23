@@ -7,7 +7,7 @@ import tempfile
 
 class T0300_DhcpXfer(SuperUserTests):
     """ Test dhcpd data transfer from old database"""
-    skip=True
+    wip=True
     def do(self):
         with AssertAccessError(self):
             self.proxy.dhcp_xfer()

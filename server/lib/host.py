@@ -9,6 +9,7 @@ from room import *
 from optionset import *
 from util import *
 from option_def import *
+from datetime import date
 
 g_read = AnyGrants(AllowUserWithPriv("read_all_hosts"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_hosts"), AdHocSuperuserGuard)
@@ -30,7 +31,9 @@ class ExtHostName(ExtString):
     name = "host-name"
     desc = "Name of a host"
     regexp = r"^[-a-zA-Z0-9_]+$"
-    maxlen = 64
+    regexp = r"^[012][0-9]{3}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])-[0-9]{3}$"
+    maxlen = 12
+    minlen = 12
     
     
 class ExtHostStatus(ExtEnum):
@@ -83,6 +86,13 @@ class ExtHost(ExtHostName):
     def output(self, fun, obj):
         return obj.oid
     
+class ExtNewHostName(ExtHostName):
+    name = "host"
+    desc = "A host name not present in the database"
+   
+    def lookup(self, fun, cval):
+        if fun.host_manager.get_host(cval):
+            raise ExtHostAlreadyExistsError()
     
 class ExtHostCreateOptions(ExtStruct):
     name = "host_create_options"
@@ -114,8 +124,8 @@ class HostFunBase(SessionedFunction):
     params = [("host", ExtHost, "Host name")]
     
     
-class HostCreate(SessionedFunction):
-    extname = "host_create"
+class HostCreateWithName(SessionedFunction):
+    extname = "host_create_with_name"
     params = [("host_name", ExtHostName, "Name of DHCP host to create"),
               ("mac", ExtMacAddress, "MAC address of the host"),
               ("options", ExtHostCreateOptions, "Create options")]
@@ -124,6 +134,16 @@ class HostCreate(SessionedFunction):
 
     def do(self):
         self.host_manager.create_host(self, self.host_name, self.mac, self.options)
+        
+class HostCreate(SessionedFunction):
+    extname = "host_create"
+    params = [("mac", ExtMacAddress, "MAC address of the host"),
+              ("options", ExtHostCreateOptions, "Create options")]
+    desc = "Creates a host"
+    returns = (ExtHostName)
+
+    def do(self):
+        return self.host_manager.create_host(self, None, self.mac, self.options)
 
 
 class HostDestroy(HostFunBase):
@@ -382,11 +402,33 @@ class HostManager(AdHocManager):
         dq.table("hosts h")
         return "h.`dns`"
     
+    def generate_host_name():
+        """ Generates a free host name according to standard naming devised by the networking group"""
+        
+        today = date.today().strftime("%Y%m%d")
+        
+        q = """SELECT id FROM hosts WHERE id LIKE :today-% ORDER BY id"""
+        
+        res = self.db.get(q, today=today)
+        
+        found_id = None
+        for row in res:
+            found_id = row[0]
+        if found_id:
+            index = int(found_id[9:])
+            new_index = index + 1
+        else:
+            new_index = 0
+        return today + "-%03d" % new_index
+            
+        
+    
     @entry(g_write)
     def create_host(self, fun, host_name, mac, options):
         if options == None:
             options = {}
-            
+        if not host_name:
+            host_name = self.generate_host_name()
         optionspace = options.get("optionspace", None)
         dns = options.get("dns", None)
         group = options.get("group", self.group_manager.get_group(u"plain"))
@@ -420,6 +462,7 @@ class HostManager(AdHocManager):
         if status=="Active":
             gm = self.group_manager
             self.group_manager.adjust_hostcount(group, 1)
+        return host_name
         
     @entry(g_write)
     def destroy_host(self, fun, host):
@@ -431,6 +474,9 @@ class HostManager(AdHocManager):
             self.db.put(q, hostname=host.oid)
         except IntegrityError:
             raise ExtHostInUseError
+        
+        q = "DELETE FROM host_literal_options WHERE `for`=:hostname"
+        self.db.put(q, hostname=host.oid)
         
         self.event_manager.add("destroy", host=host.oid, dns=host.dns, mac=host.mac)
         

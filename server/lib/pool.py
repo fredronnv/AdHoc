@@ -401,6 +401,12 @@ class PoolManager(AdHocManager):
         except IntegrityError:
             raise ExtPoolInUseError()
         
+        self.db.put("DELETE FROM pool_literal_options WHERE `for`=:poolname", poolname=pool.oid)
+        self.db.put("DELETE FROM pool_host_map WHERE poolname=:poolname", poolname=pool.oid)
+        self.db.put("DELETE FROM pool_group_map WHERE poolname=:poolname", poolname=pool.oid)
+        self.db.put("DELETE FROM pool_class_map WHERE poolname=:poolname", poolname=pool.oid)
+        self.db.put("DELETE FROM pool_ranges WHERE pool=:poolname", poolname=pool.oid)
+        
         self.event_manager.add("destroy", pool=pool.oid)
         #print "Pool destroyed, name=", pool.oid
     

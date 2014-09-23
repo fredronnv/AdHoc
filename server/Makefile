@@ -20,15 +20,15 @@ install: clean
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p ${DISTDIR};\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./lib/version.template  | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ./lib/version.py ;\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./lib/adhoc_version.template  | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ./lib/adhoc_version.py ;\
 	cp -r .  ${DISTDIR};\
 	rm -rf ${DISTDIR}/testing ${DISTDIR}/tmp;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server_setup.txt >${DISTDIR}/INSTALL-server.txt;\
 	rm ${DISTDIR}/server_setup.txt; \
 	rm ${DISTDIR}/etc/bashrc.private; \
-	echo "adhoc_svn_version = \"$${svn_version}\"" > ${DISTDIR}/lib/version.py;\
-	echo "adhoc_release = \"$${revno}\"" >>${DISTDIR}/lib/version.py;\
+	echo "adhoc_svn_version = \"$${svn_version}\"" > ${DISTDIR}/lib/adhoc_version.py;\
+	echo "adhoc_release = \"$${revno}\"" >>${DISTDIR}/lib/adhoc_version.py;\
 	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;); \
 	(cd ${DISTDIR}; find . -name \*.svn -exec rm {} \;); \
 	(cd ${DISTDIR}; find . -name \*.gitignore -exec rm {} \;)

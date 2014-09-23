@@ -77,14 +77,14 @@ class T0440_networkSetAuthoritative(NetworkAdminTests):
     """ Test setting authoritative flag on a network"""
     
     def do(self):
-        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.network_create('network_test', False, u"Testnätverk 2")
         try:
             with AssertAccessError(self):
                 self.proxy.network_update('network_test', {"authoritative": True})
                 nd = self.superuser.network_fetch('network_test', {"network": True, "info": True, "authoritative": True})
                 assert nd.network == "network_test", "Bad network"
                 assert nd.authoritative, "Bad autoritativity"
-                assert nd.info == "Testnätverk 2", "Bad info"
+                assert nd.info == u"Testnätverk 2", "Bad info: is %s should be %s"%(nd.info,u"Testnätverk 2" )
         finally:
             try:
                 self.superuser.network_destroy('network_test')
@@ -96,14 +96,14 @@ class T0450_networkSetInfo(NetworkAdminTests):
     """ Test setting info on a network"""
     
     def do(self):
-        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.network_create('network_test', False, u"Testnätverk 2")
         try:
             with AssertAccessError(self):
-                self.proxy.network_update('network_test', {"info": "Provnät 1"})
+                self.proxy.network_update('network_test', {"info": u"Provnät 1"})
                 nd = self.superuser.network_fetch('network_test', {"network": True, "info": True, "authoritative": True})
                 assert nd.network == "network_test", "Bad network"
                 assert not nd.authoritative, "Bad autoritativity"
-                assert nd.info == "Provnät 1", "Bad info"
+                assert nd.info == u"Provnät 1", "Bad info"
         finally:
             try:
                 self.superuser.network_destroy('network_test')
@@ -120,14 +120,14 @@ class T0460_NetworkSetOption(NetworkAdminTests):
         except:
             pass
 
-        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.network_create('network_test', False, u"Testnätverk 2")
         
         try:
             with AssertAccessError(self):
                 self.proxy.network_options_update("network_test", {"subnet-mask": "255.255.255.0"})
                 nd = self.superuser.network_fetch('network_test', {"info": True, "network": True, "optionset": True, "optionset_data": {"subnet-mask": True}})
                 assert nd.network == "network_test", "Bad network id"
-                assert nd.info == "Testnätverk 2", "Bad info"
+                assert nd.info == u"Testnätverk 2", "Bad info"
                 assert nd.optionset_data["subnet-mask"] == "255.255.255.0", "Bad subnet-mask in options"
                 
         finally:
@@ -142,7 +142,7 @@ class T0470_NetworkUnsetOption(NetworkAdminTests):
     """ Test unsetting options on a network"""
     
     def do(self):
-        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.network_create('network_test', False, u"Testnätverk 2")
         
         try:
             with AssertAccessError(self):
@@ -152,7 +152,7 @@ class T0470_NetworkUnsetOption(NetworkAdminTests):
                 
                 nd = self.superuser.network_fetch("network_test", {"info": True, "network": True, "optionset_data": {"subnet-mask": True, "_remove_nulls": True}})
                 assert nd.network == "network_test", "Bad network id"
-                assert nd.info == "Testnätverk 2", "Bad info"
+                assert nd.info == u"Testnätverk 2", "Bad info"
                 assert "subnet-mask" not in nd.optionset_data, "Subnet-mask still in optionset_data"
                 
         finally:

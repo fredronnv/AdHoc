@@ -289,6 +289,10 @@ class HostClassManager(AdHocManager):
             self.db.put(q, classname=host_class.oid)
         except IntegrityError:
             raise ExtHostClassInUseError()
+        
+        q = "DELETE FROM class_literal_options WHERE `for`=:host_classname"
+        self.db.put(q, host_classname=host_class.oid)
+        
         self.event_manager.add("destroy", host_class=host_class.oid)
         #print "HostClass destroyed, name=", host_class.oid
             

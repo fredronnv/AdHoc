@@ -13,9 +13,9 @@ data_template = {
                  "changed_by": True,
                  "mtime": True,
                  "optionset_data": {"_": True, "_remove_nulls": True},
-                 "allowed_hosts": True,
-                 "allowed_groups": True,
-                 "allowed_host_classes": True,
+                 "granted_hosts": True,
+                 "granted_groups": True,
+                 "granted_host_classes": True,
                  "literal_options": True
                  }
 
@@ -230,35 +230,39 @@ class T1270_PoolUnsetOption(NetworkAdminTests):
                     pass
                 self.superuser.network_destroy('network_test')
                 
-class T1280_PoolAllowHost(NetworkAdminTests):
-    """ Test allowing two hosts into the pool"""
+class T1280_PoolGrantHost(NetworkAdminTests):
+    """ Test granting two hosts into the pool"""
     
     
     def do(self):
         self.sufficient_privs=["admin_all_pools","write_all_pools"]
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        self.superuser.host_create_with_name('20111111-007', '00:01:02:03:04:05', {})
+        self.superuser.host_create_with_name('20111111-008', '00:01:02:03:04:08', {})
         
         with AssertAccessError(self):
             try:
                 pass
-                self.proxy.pool_allow_host('QZ1243A', 'sol_ita_chalmers_se')
-                self.proxy.pool_allow_host('QZ1243A', 'nile_its_chalmers_se')
+                self.proxy.pool_grant_host('QZ1243A', '20111111-007')
+                self.proxy.pool_grant_host('QZ1243A', '20111111-008')
                 
                 ret = self.proxy.pool_fetch('QZ1243A', data_template)
-                assert len(ret.allowed_hosts)==2, "Wrong number of allowed hosts"
-                assert "sol_ita_chalmers_se" in ret.allowed_hosts, "No sol_ita_chalmers_se in allowed hosts"
-                assert "nile_its_chalmers_se" in ret.allowed_hosts, "No nile_its_chalmers_sein allowed hosts"
+                assert len(ret.granted_hosts)==2, "Wrong number of granted hosts"
+                assert "20111111-007" in ret.granted_hosts, "No 20111111-007 in granted hosts"
+                assert "20111111-008" in ret.granted_hosts, "No 20111111-008 in granted hosts"
                 
             finally:
                 try:
                     self.superuser.pool_destroy('QZ1243A')
                 except:
                     pass
+                self.superuser.host_destroy('20111111-007')
+                self.superuser.host_destroy('20111111-008')
                 self.superuser.network_destroy('network_test')
                    
-class T1281_PoolAllowGroup(NetworkAdminTests):
-    """ Test allowing a group into the pool"""
+class T1281_PoolGrantGroup(NetworkAdminTests):
+    """ Test granting a group into the pool"""
     
     def do(self):
         self.sufficient_privs=["admin_all_pools","write_all_pools"]
@@ -268,11 +272,11 @@ class T1281_PoolAllowGroup(NetworkAdminTests):
         with AssertAccessError(self):
             try:
                 pass
-                self.proxy.pool_allow_group('QZ1243A', 'altiris')
+                self.proxy.pool_grant_group('QZ1243A', 'altiris')
                 
                 ret = self.proxy.pool_fetch('QZ1243A', data_template)
-                assert len(ret.allowed_groups)==1, "Wrong number of allowed groups"
-                assert "altiris" in ret.allowed_groups, "No altiris in allowed groups"
+                assert len(ret.granted_groups)==1, "Wrong number of granted groups"
+                assert "altiris" in ret.granted_groups, "No altiris in granted groups"
                 
             finally:
                 try:
@@ -281,8 +285,8 @@ class T1281_PoolAllowGroup(NetworkAdminTests):
                     pass
                 self.superuser.network_destroy('network_test')
                 
-class T1282_PoolAllowHostClass(NetworkAdminTests):
-    """ Test allowing a host_class into the pool"""
+class T1282_PoolGrantHostClass(NetworkAdminTests):
+    """ Test granting a host_class into the pool"""
     
     def do(self):
         self.sufficient_privs=["admin_all_pools","write_all_pools"]
@@ -292,11 +296,11 @@ class T1282_PoolAllowHostClass(NetworkAdminTests):
         with AssertAccessError(self):
             try:
                 pass
-                self.proxy.pool_allow_host_class('QZ1243A', 'Pxe-IA64-PC-linux')
+                self.proxy.pool_grant_host_class('QZ1243A', 'Pxe-IA64-PC-linux')
                 
                 ret = self.proxy.pool_fetch('QZ1243A', data_template)
-                assert len(ret.allowed_host_classes)==1, "Wrong number of allowed host classes"
-                assert "Pxe-IA64-PC-linux" in ret.allowed_host_classes, "No Pxe-IA64-PC-linux in allowed host classes"
+                assert len(ret.granted_host_classes)==1, "Wrong number of granted host classes"
+                assert "Pxe-IA64-PC-linux" in ret.granted_host_classes, "No Pxe-IA64-PC-linux in granted host classes"
                 
             finally:
                 try:
@@ -305,36 +309,40 @@ class T1282_PoolAllowHostClass(NetworkAdminTests):
                     pass
                 self.superuser.network_destroy('network_test')
 
-class T1283_PoolDisallowHost(NetworkAdminTests):
-    """ Test disallowing two hosts from the pool"""
+class T1283_PoolRevokeHost(NetworkAdminTests):
+    """ Test revoking two hosts from the pool"""
     
     def do(self):
         self.sufficient_privs=["admin_all_pools","write_all_pools"]
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        self.superuser.host_create_with_name('20111111-007', '00:01:02:03:04:05', {})
+        self.superuser.host_create_with_name('20111111-008', '00:01:02:03:04:08', {})
         
         with AssertAccessError(self):
             try:
                 pass
-                self.superuser.pool_allow_host('QZ1243A', 'sol_ita_chalmers_se')
-                self.superuser.pool_allow_host('QZ1243A', 'nile_its_chalmers_se')
-                self.proxy.pool_disallow_host('QZ1243A', 'sol_ita_chalmers_se')
-                self.proxy.pool_disallow_host('QZ1243A', 'nile_its_chalmers_se')
+                self.superuser.pool_grant_host('QZ1243A', '20111111-007')
+                self.superuser.pool_grant_host('QZ1243A', '20111111-008')
+                self.proxy.pool_revoke_host('QZ1243A', '20111111-007')
+                self.proxy.pool_revoke_host('QZ1243A', '20111111-008')
                 
                 ret = self.proxy.pool_fetch('QZ1243A', data_template)
-                assert len(ret.allowed_hosts)==0, "Wrong number of allowed hosts"
-                assert "sol_ita_chalmers_se" not in ret.allowed_hosts, "sol_ita_chalmers_se still in allowed hosts"
-                assert "nile_its_chalmers_se" not in ret.allowed_hosts, "nile_its_chalmers_se still in allowed hosts"
+                assert len(ret.granted_hosts) == 0, "Wrong number of granted hosts"
+                assert "20111111-007 " not in ret.granted_hosts, "20111111-007 still in granted hosts"
+                assert "20111111-007" not in ret.granted_hosts, "20111111-007 still in granted hosts"
                 
             finally:
                 try:
                     self.superuser.pool_destroy('QZ1243A')
                 except:
                     pass
+                self.superuser.host_destroy('20111111-007')
+                self.superuser.host_destroy('20111111-008')
                 self.superuser.network_destroy('network_test')
  
-class T1284_PoolDisallowGroup(NetworkAdminTests):
-    """ Test disallowing a group from the pool"""
+class T1284_PoolRevokeGroup(NetworkAdminTests):
+    """ Test revoking a group from the pool"""
     
     def do(self):
         self.sufficient_privs=["admin_all_pools","write_all_pools"]
@@ -344,12 +352,12 @@ class T1284_PoolDisallowGroup(NetworkAdminTests):
         with AssertAccessError(self):
             try:
                 pass
-                self.superuser.pool_allow_group('QZ1243A', 'altiris')
-                self.proxy.pool_disallow_group('QZ1243A', 'altiris')
+                self.superuser.pool_grant_group('QZ1243A', 'altiris')
+                self.proxy.pool_revoke_group('QZ1243A', 'altiris')
                 
                 ret = self.proxy.pool_fetch('QZ1243A', data_template)
-                assert len(ret.allowed_groups)==0, "Wrong number of allowed groups"
-                assert "altiris" not in ret.allowed_groups, "altiris still in allowed groups"
+                assert len(ret.granted_groups)==0, "Wrong number of granted groups"
+                assert "altiris" not in ret.granted_groups, "altiris still in granted groups"
                 
             finally:
                 try:
@@ -358,8 +366,8 @@ class T1284_PoolDisallowGroup(NetworkAdminTests):
                     pass
                 self.superuser.network_destroy('network_test')
                 
-class T1285_PoolDisallowHostClass(NetworkAdminTests):
-    """ Test disallowing a host_class from the pool"""
+class T1285_PoolRevokeHostClass(NetworkAdminTests):
+    """ Test revoking a host_class from the pool"""
     
     def do(self):
         self.sufficient_privs=["admin_all_pools","write_all_pools"]
@@ -369,12 +377,12 @@ class T1285_PoolDisallowHostClass(NetworkAdminTests):
         with AssertAccessError(self):
             try:
                 pass
-                self.superuser.pool_allow_host_class('QZ1243A', 'Pxe-IA64-PC-linux')
-                self.proxy.pool_disallow_host_class('QZ1243A', 'Pxe-IA64-PC-linux')
+                self.superuser.pool_grant_host_class('QZ1243A', 'Pxe-IA64-PC-linux')
+                self.proxy.pool_revoke_host_class('QZ1243A', 'Pxe-IA64-PC-linux')
                 
                 ret = self.proxy.pool_fetch('QZ1243A', data_template)
-                assert len(ret.allowed_host_classes)==0, "Wrong number of allowed host classes"
-                assert "Pxe-IA64-PC-linux" not in ret.allowed_host_classes, "Pxe-IA64-PC-linux still in allowed host classes"
+                assert len(ret.granted_host_classes)==0, "Wrong number of granted host classes"
+                assert "Pxe-IA64-PC-linux" not in ret.granted_host_classes, "Pxe-IA64-PC-linux still in granted host classes"
                 
             finally:
                 try:

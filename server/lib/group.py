@@ -284,7 +284,11 @@ class GroupManager(AdHocManager):
   
     def add_group_to_group_groups_flat(self, group_name, parent):
         qif = "INSERT INTO group_groups_flat (groupname, descendant) VALUES (:groupname, :descendant)"
-        self.db.put(qif, groupname=group_name, descendant=group_name) # The group itself
+        try:
+            self.db.put(qif, groupname=group_name, descendant=group_name) # The group itself
+        except IntegrityError, e:
+            raise ExtGroupAlreadyExistsError()
+            
         g2 = group_name # Traverse the tree upward and fill in the group for every node traversed
         while True:
             parent = self.db.get("SELECT parent_group FROM groups WHERE groupname=:groupname", groupname=g2)[0][0] 
@@ -292,8 +296,6 @@ class GroupManager(AdHocManager):
                 break
             self.db.put(qif, groupname=parent, descendant=group_name)
             g2 = parent
-            
-        
 
          
     @entry(g_write)
@@ -305,6 +307,15 @@ class GroupManager(AdHocManager):
             self.db.put(q, groupname=group.oid)
         except IntegrityError:
             raise ExtGroupInUseError()
+        
+   
+        q = "DELETE FROM group_groups_flat WHERE descendant=:groupname"
+        self.db.put(q, groupname=group.oid)
+        
+        q = "DELETE FROM group_literal_options WHERE `for`=:groupname"
+        self.db.put(q, groupname=group.oid)
+        
+        
         self.event_manager.add("destroy", group=group.oid)
         optionset.destroy()
    
@@ -342,7 +353,7 @@ class GroupManager(AdHocManager):
         optionset = omgr.get_optionset(group.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
-            self.event_manager.add("update", group.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
+            self.event_manager.add("update", group=group.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
             
     @entry(AdHocSuperuserGuard)
     def gather_stats(self, parent=None):

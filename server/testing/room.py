@@ -8,7 +8,7 @@ from util import *
 
 class T0700_RoomList(UnAuthTests):
     """ Test room listing """
-
+    skip=True
     def do(self):
         with AssertAccessError(self):
             ret = self.proxy.room_dig({}, {"printers": True, "info": True, "room": True})

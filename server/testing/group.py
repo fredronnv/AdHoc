@@ -156,9 +156,9 @@ class T1150_GroupSetParent(ServiceDeskTests):
             pass
                 
         self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
-        self.superuser.host_create('QZ1243A', '00:01:02:03:04:05', {'group':'QZ1243A'})
-        self.superuser.host_create('QZ1243B', '00:01:02:03:04:06', {'group':'QZ1243A'})
-        self.superuser.host_create('QZ1243C', '00:01:02:03:04:07', {'group':'QZ1243A'})
+        self.superuser.host_create_with_name('20111111-007', '00:01:02:03:04:05', {'group':'QZ1243A'})
+        self.superuser.host_create_with_name('20111111-008', '00:01:02:03:04:06', {'group':'QZ1243A'})
+        self.superuser.host_create_with_name('20111111-009', '00:01:02:03:04:07', {'group':'QZ1243A'})
         with AssertAccessError(self):
             try:
                 
@@ -183,9 +183,9 @@ class T1150_GroupSetParent(ServiceDeskTests):
             
             finally:
                 try:
-                    self.superuser.host_destroy('QZ1243A')
-                    self.superuser.host_destroy('QZ1243B')
-                    self.superuser.host_destroy('QZ1243C')
+                    self.superuser.host_destroy('20111111-007')
+                    self.superuser.host_destroy('20111111-008')
+                    self.superuser.host_destroy('20111111-009')
                     self.superuser.group_destroy('QZ1243A')
                 except:
                     pass
@@ -193,7 +193,7 @@ class T1150_GroupSetParent(ServiceDeskTests):
                 
 class T1160_GroupSetOption(ServiceDeskTests):
     """ Test setting options on a group"""
-    
+
     def do(self):
         try:
             self.superuser.group_destroy('QZ1243A')
@@ -276,6 +276,7 @@ class T1180_GroupAddLiteralOption(SuperUserTests):
                 
 class T1180_GroupDestroyLiteralOption(SuperUserTests):
     """ Test destroying a literal option from a group"""
+ 
     def do(self):
         try:
             self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
