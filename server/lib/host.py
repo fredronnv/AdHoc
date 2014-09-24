@@ -402,14 +402,14 @@ class HostManager(AdHocManager):
         dq.table("hosts h")
         return "h.`dns`"
     
-    def generate_host_name():
+    def generate_host_name(self):
         """ Generates a free host name according to standard naming devised by the networking group"""
         
         today = date.today().strftime("%Y%m%d")
         
-        q = """SELECT id FROM hosts WHERE id LIKE :today-% ORDER BY id"""
+        q = """SELECT id FROM hosts WHERE id LIKE '%s-%%%%' ORDER BY id""" % today
         
-        res = self.db.get(q, today=today)
+        res = self.db.get(q)
         
         found_id = None
         for row in res:
