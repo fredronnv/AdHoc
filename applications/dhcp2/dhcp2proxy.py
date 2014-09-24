@@ -81,13 +81,15 @@ def process(command, output):
     if sep:
         arg = arg.rstrip(")")
     #print >>sys.stderr, cmd, sep, arg
-    global srv
+    global srv, srv_url
     
     args = arg.split(",", 1)
     
     try:
         if not srv:
-            srv = rpcc_client.RPCC("https://adhoc.ita.chalmers.se:8877")
+            if not srv_url:
+                srv_url = "https://adhoc.ita.chalmers.se:8877"
+            srv = rpcc_client.RPCC(srv_url)
         
         s = cmd + "(" + ",".join(args) + ")"
         
@@ -125,7 +127,7 @@ def process(command, output):
         if type(res) is not None:  
             output.write(s)
             
-        print output.getvalue().rstrip('\n')
+        #print output.getvalue().rstrip('\n')
         #print >>sys.stderr, "OBJECT VALUE='" + output.getvalue()+"'"
         return 0
             
@@ -140,6 +142,7 @@ def process(command, output):
     
 import os
 import StringIO
+srv_url = None
 srv = None
 import rpcc_client
 
@@ -158,8 +161,8 @@ while True:
         #print >>sys.stderr, "Finval=", finval
         output = StringIO.StringIO()
         process(finval, output)
-        print output.getvalue().rstrip("\n").encode("utf-8")
-        #print >>sys.stderr, output.getvalue().rstrip("\n")
+        outres = output.getvalue().rstrip("\n").encode("utf-8")
+        print outres
         sys.stdout.flush()
         fout.close()
         fin.close()
