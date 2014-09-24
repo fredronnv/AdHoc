@@ -27,7 +27,7 @@ class RawRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             BaseHTTPServer.BaseHTTPRequestHandler.finish(self)
         except socket.error, e:
-            sys.stderr.write(self.time() + " Error flushing output to %s: %s\n", self.client_address, e)
+            sys.stderr.write(self.time() + " Error flushing output to %s: %s\n" % ( self.client_address, e))
             if hasattr(self, "last_data"):
                 sys.stderr.write(self.time() + " Last input: " + self.last_data)
 

@@ -271,7 +271,7 @@ class XMLRPCProtocol(Protocol):
             retdata = xmlrpclib.dumps(response, methodresponse=1,
                                       allow_none=1, encoding='ISO-8859-1')
         except:
-            sys.stderr.write("Exception caugt when seralizing response for %s#%d(%s)\n" % (function, api_version, params))
+            sys.stderr.write("Exception caught when serializing response for %s#%d(%s)\n" % (function, api_version, params))
             raise
 
         return HTTPResponse(data=retdata, encoding='iso-8859-1',
