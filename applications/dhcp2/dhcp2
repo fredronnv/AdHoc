@@ -96,11 +96,11 @@ cd $MY_DIR
 #M A plain host is one that only need the network setup parameters, but no boot or installation options.
 #M Most machines are in this group. E.g. all self administered machines
 #M
-#M Use B<dhcp2 addhost hostname mac-address>
+#M Use B<dhcp2 addhost mac-address> dhcp2 will generate a host ID and print it.
 #M
-#M =head3 Finding a free hostname
+#M =head3 Adding a host with a free DNS entry of a network
 #M
-#M If you need to find a free hostname, the dhcp2 mkhost command may be of help. You need to know
+#M If you need to find a DNS entry for a fixed addresse, the dhcp2 mkhost command may be of help. You need to know
 #M which network the machine will be connected to. 
 #M
 #M Use B<dhcp2 mkhost -n network-name>
@@ -110,19 +110,6 @@ cd $MY_DIR
 #M To be able to use mkhost, you need to find out which network names that are acceptable. 
 #M
 #M Use B<dhcp2 lsnetworks> to get a list. The "Id" column lists the names.
-#M
-#M =head3 Triggering a reinstallation
-#M
-#M You can trigger a reinstallation of Linux hosts at next reboot by manipulating the I<bootmode> field of the host.
-#M
-#M Use B<dhcp2 chhost -b install hostname> 
-#M
-#M This will cause the backend script to generate a symlink in the TFTP area for the Linux installation that will
-#M divert the PXE reboot process to do a full kickstart instead of just a rebooot. 
-#M When the machine is ready, the machine will contact the TFTP server to remove the symlink. The DHCP backend 
-#M script will detect that the symlink is gone and returns the bootmode to its default I<disk> value. 
-#M You can abort the pending kickstart if you set the bootmode field back to I<disk>. However,
-#M a kickstart will not be aborted once started.
 #M
 #M =head3 Finding out the syntax of a dhcp2 subcommand
 #M
@@ -145,8 +132,8 @@ cd $MY_DIR
 #M to I<ns>. All subcommands may specify a comma separated list of legal aliases that also
 #M match the subcommand. These aliases may be used for specifying valid contractions of a subcommand
 #M or can specify valid aliases, contractions or not.
-#M Aliases may not in turn be abbreviated, thus if you specify the alias "luv" as a legal
-#M contraction for I<listuservolumes>, the subcommand I<lu> will not be recognized.
+#M Aliases may not in turn be abbreviated, thus if you specify the alias "lsnw" as a legal
+#M contraction for I<lssubnetworks>, the subcommand I<lsn> will not be recognized.
 #M
 #M =head1 GLOBAL OPTIONS
 #M
@@ -1742,7 +1729,7 @@ _validate_host_in_subnet()
 }
 
 #C
-#C Validator for host_in_db. This validates an argument supposed to be a valid host name in the database.
+#C Validator for host_in_db. This validates an argument supposed to be a valid host ID in the database.
 #C
 _validate_host_in_db()
 {
@@ -1752,19 +1739,19 @@ _validate_host_in_db()
     if db_exists host $_validate_host_in_db_arg ; then
         echo "$_validate_host_in_db_arg"
     else
-        echo "The host name $_validate_host_in_db_arg is unknown in the database" >&2
+        echo "The host ID $_validate_host_in_db_arg is unknown in the database" >&2
     fi
 }
 
 #C
-#C Validator for host_in_db. This validates an argument supposed to be a host name not in the database.
+#C Validator for host_in_db. This validates an argument supposed to be a host ID not in the database.
 #C
 _validate_host_not_in_db()
 {
     _validate_host_not_in_db_arg=$1
     
     if db_exists host $_validate_host_not_in_db_arg ; then
-        echo "The host name $_validate_host_not_in_db_arg is already in the database" >&2
+        echo "The host ID $_validate_host_not_in_db_arg is already in the database" >&2
     else
         echo "$_validate_host_not_in_db_arg"
     fi
@@ -2085,7 +2072,8 @@ child_died()
 
 proxy_cleanup()
 {	
-		rm -f $proxyin $proxyout $proxy_pid_file
+	:
+	rm -f $proxyin $proxyout $proxy_pid_file
 }
 
 proxy_start()
@@ -2153,7 +2141,7 @@ server_call()
 	trace "server_call: res = srv.$@"
     echo "res = srv.""$@" > "$proxyin"
 	cat $proxyout
-	
+	trace "server_call done"
     #echo "$result"
     #echo "Returning '$result' from server_call" >&2
 }
@@ -2219,17 +2207,14 @@ db_hostmac()
 
 db_hostadd()
 {
-    hname=$1
-    hmac=$2
-    hgrp=$3
-    hdns=$4
-    hstat=$5
-    hroom=$6
-    hinfo=$7
+    hmac=$1
+    hgrp=$2
+    hdns=$3
+    hstat=$4
+    hroom=$5
+    hinfo=$6
 
-    echo "Adding host $hname mac $hmac into group '$hgrp' of the database" >&2
-
-    
+    trace "New host will become member of the group '$hgrp'" >&2
 
     if [ -n "$hstat" ]; then
     	proxy_call "options['status']='$hstat'"
@@ -2250,16 +2235,7 @@ db_hostadd()
 	if [ -n "$hgrp" ]; then
 		proxy_call "options['group']='$hgrp'"
 	fi
-	
-	if db_hostindb $hname; then
-		if [ -n "$mac" ]; then
-			proxy_call "options['mac']='$hmac'"
-		fi
-		server_call "host_update('$hname', options)"
-    else
-    	server_call "host_create('$hname', '$hmac', options)"
-    fi
-	
+    server_call "host_create('$hmac', options)"
 	
 }
 
@@ -2519,49 +2495,15 @@ dhcp_format()
 }
 
 #M
-#M =head1 HOST CATEGORY CHECKING
+#M =head1 HOST IDENTIFIERS
 #M
-#M Each host entry has a host category code attached to it. The category code controls how the host may be handled
-#M using dhcp2. This functionality is here to make big mistakes less likely. It is not a security concept as the
-#M "protection" is easily circumvented.
+#M Each host has an identifier that is used in order to identify a host within dhcp2. (hostid)
 #M
-#M The available category codes and their meanings are stored in the DHCP database, so what is available may vary from time to time.
-#M Use the C<dhcp2 lscategories -l -i> command to get all the current details.
-#M
-#M Each code is connected with five "flags" that control the behaviour of dhcp2 and other programs. These are:
-#M
-#M =over
-#M
-#M =item listed
-#M
-#M This flag is not interpreted by dhcp2. It means that all hosts having this category code will be listed in a
-#M separate document over machines that are to be handled in special ways.
-#M
-#M =item install_ok
-#M
-#M This flag controls who may set the boot mode to "install", thus ordering a complete re-installation of the host
-#M at the next reboot. If set to B<Y>, anyone may order such a re-installation, if set to B<Owner>, only the person 
-#M listed as "owner" of the machine may order a reinstallation. If set to B<N> reinstallation using dhcp2 is blocked for everyone.
-#M
-#M =item info_req
-#M
-#M This controls whether dhcp2 will enforce that the I<info> field of the host should contain something. This affects the behaviour of
-#M C<dhcp2 chhost>. Valid values are B<Y>, and B<N>.
-#M
-#M =item change_data
-#M
-#M This flag controls who may change data for the host, including the category. Valid balues are B<Any>, and B<Owner>, with the
-#M obvious interpretation.
-#M
-#M =item manual_install
-#M
-#M This flag is not interpreted by dhcp2. However the backend of the database that controls things on the install server
-#M will, in case this flag is set to B<N>, remove any symlinks in the TFTP area that is typically used for doing a reinstallation.
-#M This includes manually created links, so this is an extra precaution that may be invoked for machines that will be
-#M very hard to restore in case of a mistaken reinstallation.
-#M
-#M =back
-#M
+#M These identifiers are on the form yyyymmdd-nnn, where yymmdd is the date the host was first entered into dhcp2
+#M and nnn is a three digit serial number beginning at 000.
+#M In the case of hosts transferred from the prevoous version of dhcp2, yyyymmdd signifies the date of latest change 
+#M in the old system.
+#M 
 
 check_entry_status()
 {
@@ -2640,7 +2582,7 @@ check_date()
 #M to get anything useful dune.
 #M
 
-#S addhost;;Add a host;2;2;hostname mac-address;Add a host to the DHCP database;21
+#S addhost;;Add a host;1;1;mac-address;Add a host to the DHCP database;21
 #O addhost;r;room;Assign room number
 #O addhost;d;DNS;Assign a DNS address
 #O addhost;f;;Force - bypass checks
@@ -2688,13 +2630,6 @@ addhost()
         esac
     done
 
-    if [ -z "$1" ]; then
-        echo "No hostname specified"
-        exit 2
-    fi
-
-
-    addhost_hostname=$1; shift
 #M
 #M If given, the dns is validated against DNS. If the B<-f> flag is not given
 #M the DNS canonical name will be used. If  the B<-f> flag is given
@@ -2798,7 +2733,7 @@ addhost()
 
     if [ -z "$addhost_g_flag" ]; then
         addhost_g_arg="plain";
-        echo "Note: -g group not specified, using group=plain"
+        trace "Note: -g group not specified, using group=plain"
     fi
 #M
 #M If the B<-g group> flag and arguments are not given, the group 'plain' is assumed.
@@ -2823,18 +2758,15 @@ addhost()
         echo "valid values are:"; lsestatus
     fi
 #M
-#M If the host name is already configured in the database, the command is aborted.
-#M
-    if db_hostindb $addhost_hostname; then
-        echo The host $addhost_hostname is already configured
-        exit 1
-    fi
-#M
-#M If the given MAC address is already present in the database, a warning message is given
+#M If the given MAC address is already present in the database, the command is aborted with an
+#M error message unless the -f flag is given. 
 #M
 
     if db_macindb ${addhost_macaddr}; then
-        echo "WARNING: The given MAC address is already present in the database"
+    	if [ -z "$addhost_f_flag" ]; then 
+        	echo "ERROR: The given MAC address is already present in the database, use -f to override"
+        	exit 1
+    	fi
     fi
 #M
 #M 
@@ -2847,9 +2779,7 @@ addhost()
             exit 1
         fi
     fi
-
-db_hostadd ${addhost_hostname} ${addhost_macaddr} "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_r_arg}" "${addhost_i_arg}"
-
+	db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_r_arg}" "${addhost_i_arg}"
 }
 
 #S addoption;ao;Add an option;2;2;key value;Add an option to a class, group, host, network, subnetwork, pool or a global option.;85
@@ -3142,7 +3072,7 @@ _chgroup_foundaflag()
 {
     chgroup_anyflag=1
 }
-#S chhost;;Change data for a host;1;1;hostname;Change the different data associated with a host;23
+#S chhost;;Change data for a host;1;1;host_id;Change the different data associated with a host;23
 #O chhost;d;dns;Change the DNS name
 #O chhost;r;room;Change the owner room number
 #O chhost;g;group;Change the group
@@ -3193,12 +3123,12 @@ chhost()
     chhost_anyflag=
 
     if [ -z "$1" ]; then
-        echo "No hostname specified"
+        echo "No host_id specified"
         exit 2
     fi
-    chhost_hostname=$1; shift
+    chhost_host_id=$1; shift
 
-    if db_hostindb ${chhost_hostname}; then
+    if db_hostindb ${chhost_host_id}; then
         :
     else
         echo "The host specified is unknown to the database"
@@ -3261,7 +3191,7 @@ chhost()
             proxy_call "update_template['info']='$chhost_i_arg'"
     	else  
         	proxy_call "update_template['info']=None"
-            echo "You just erased the information on the host ${chhost_hostname}, hope that is OK"
+            echo "You just erased the information on the host ${chhost_host_id}, hope that is OK"
     	fi
     fi
 
@@ -3270,7 +3200,7 @@ chhost()
         exit 0
     fi
    
-    server_call "host_update('${chhost_hostname}', update_template)"
+    server_call "host_update('${chhost_host_id}', update_template)"
 }
 
 _categorylist_fmt()
@@ -3699,34 +3629,34 @@ deletegroup()
     proxy_start
 	server_call "group_destroy('$deletegroup_groupname')"
 }
-#S deletehost;dh;Delete a host;1;1;hostname;Delete a host from the configuration;24
+#S deletehost;dh;Delete a host;1;1;host_id;Delete a host from the configuration;24
 #M =head2 I<Description>
 #M
 #M
-#M The deletehost subcommand deletes a host completely from the DHCP database. The host name
-#M I<must> match the host name in the database exactly. 
+#M The deletehost subcommand deletes a host completely from the DHCP database. The host ID
+#M I<must> match the host ID in the database exactly. 
 #M
 #M
 deletehost()
 {
     if [ -z "$1" ]; then
-        echo "No hostname specified"
+        echo "No host_id specified"
         exit 2
     fi
-    _deletehost_hostname=$1; shift
+    _deletehost_host_id=$1; shift
     
     proxy_start
-    if db_hostindb ${_deletehost_hostname}; then
+    if db_hostindb ${_deletehost_host_id}; then
         :
     else
         echo "The host specified is unknown to the database"
         exit 1
     fi  
 
-    if db_hostdelete $_deletehost_hostname; then
+    if db_hostdelete $_deletehost_host_id; then
         :
     else
-        echo "The host $_deletehost_hostname is not present in the DHCP configuration database"
+        echo "The host $_deletehost_host_id is not present in the DHCP configuration database"
     fi
 }
 
@@ -3877,7 +3807,7 @@ _lsgroups_fmt()
     sed s/NULL//g | awk -F'	' "{ printf(\"%-36s %-36s %16s %s\n\", \$1,\$2,\$3,\$4);}" |  sed 's/ *$//'
 }
 
-#S lshosts;lh;List hosts;0;1;[pattern];List configured hosts;25
+#S lshosts;lh;List hosts;0;1;[dns_pattern];List configured hosts;25
 #O lshosts;l;;Use long format
 #O lshosts;L;;Use the very long format
 #O lshosts;g;group;List hosts belonging to the group 'group'
@@ -3890,15 +3820,15 @@ _lsgroups_fmt()
 #M =head2 I<Description>
 #M
 #M The lshosts subcommand lists the configured hosts. An optional
-#M I<pattern> may be specified to limit the output to hosts whose name matches the given pattern.
-#M Pattern matching only occurs on the host name, not the mac address or any other output.
+#M I<dns_pattern> may be specified to limit the output to hosts whose DNS name matches the given pattern.
+#M Pattern matching only occurs on DNS entry, not the mac address or any other output.
 #M If you need to match against anything else, do a lshost -l or lshost -L and feed the output through grep.
 #M
 #M =head3 I<Format control>
 #M
-#M The default format only lists the hostnames.
+#M The default format only lists the host_id's.
 #M
-#M The long format (-l) gives hostname, MAC-address, room, expiration date and comments.
+#M The long format (-l) gives host_id, MAC-address, room, expiration date and comments.
 #M
 #M The very long format (-L) also gives the category, uname, and access group information.
 #M 
@@ -3985,6 +3915,7 @@ lshosts()
 
     format=\`id\`
     pattern="^[^	]*${1-.*}"
+    dns_pattern=$1
     
     data_template='"host":True'
 	search_exp=""
@@ -4022,7 +3953,7 @@ lshosts()
 		if [ -n "$search_exp" ]; then
 			search_exp="$search_exp, "
 		fi
-		search_exp="$search_exp'status_regexp':"
+		#search_exp="$search_exp'status_regexp':"
 		status_regexp=""
     	where="$where and ( 0 "
     	if [ -n "$lshosts_A_flag" ]; then
@@ -4055,7 +3986,7 @@ lshosts()
     	fi
     	#echo C $search_exp
     	status_regexp="$status_regexp)'"
-    	search_exp="$search_exp$status_regexp"
+    	#search_exp="$search_exp$status_regexp, "
     	where="$where ) and ( 0"
     	#echo D $search_exp
 	fi
@@ -4065,10 +3996,15 @@ lshosts()
     where="$where )"
     #echo F $search_exp
 
+	if [ -n "$dns_pattern" ]; then
+		search_exp="$search_exp 'dns_pattern': '*$dns_pattern*'"
+	fi
+	#echo "{$search_exp}" >&2
     if [ -n "$lshosts_L_flag" -o -n "$lshosts:L_flag" ]; then
 		proxy_start
-    	server_call "host_dig({$search_exp}, {$data_template})"  |  egrep "$pattern"  | _lshosts_L_fmt
+    	server_call "host_dig({$search_exp}, {$data_template})"   | _lshosts_L_fmt
 	fi
+	#echo APA >&2
 
     exit 0
 }
@@ -4892,9 +4828,9 @@ _progbar_zap()
     
 
 
-#S mkhost;;Make a new host entry;1;3;network [mac-address [pattern]];Find a free hostname in a network and enter it into the DHCP database;22
-#O mkhost;n;;Do not add any host, just display a free hostname
-#O mkhost;A;;Do not stop looking for free hosts when one is found - implies -n
+#S mkhost;;Make a new host entry;1;3;network [mac-address [pattern]];Find a free DNS name in a network and enter a new host with that entry;22
+#O mkhost;n;;Do not add any host, just display a free DNS name
+#O mkhost;A;;Do not stop looking for free DNS entries when one is found - implies -n
 #O mkhost;s;entry_status;Specify entry status[Active|Inactive]
 #O mkhost;r;room;Assign room number
 #O mkhost;g;group;Specify group
@@ -4903,12 +4839,12 @@ _progbar_zap()
 #M
 #M =head2 I<Description>
 #M
-#M The mkhost subcommand looks for a free hostname in a network, and if one is found calls addhost.
+#M The mkhost subcommand looks for a free DNS entry in a network, and if one is found calls addhost using the found DNS entry.
 #M
 #M Unless the -n flag or a I<pattern> are specified, the I<mac-address> is mandatory. If the -n flag is given, then
 #M the I<mac-address> argument is not checked for validity, but it must be a nonzero string in order to specify a I<pattern>.
 #M
-#M If a I<pattern> is specified, only hostnames that match the specfied pattern are considered for selection.
+#M If a I<pattern> is specified, only host_id's that match the specfied pattern are considered for selection.
 #M The first two IP addresses are not considered for selection because they are usually reserved for network
 #M equipment.
 #M
@@ -4926,7 +4862,7 @@ _progbar_zap()
 #M
 #M =item C
 #M
-#M Have a host name assigned to it as defined by gethostbyaddr(3)
+#M Have a host ID assigned to it.
 #M
 #M =item D
 #M
@@ -5525,6 +5461,7 @@ chpool()
 #M The chrange subcommand may be used to change start and end addresses of a pool range. 
 #M
 #M =head3 I<Changing DHCP server>
+#M
 #M Using the
 #M --dhcp_server option, the range may be reassigned to another DHCP server. If you do that, the units 
 #M that have used the range might get new IP addresses as the new server does not get any information
@@ -5908,7 +5845,7 @@ main "$@"
 #M
 #M =head2 Adding a host
 #M
-#M Suppose you get in a new laptop, and you want the DHCP server to give it the IP address of dhcp168-16.math.chalmers.se
+#M Suppose you get in a new laptop, running BeOS, and you want the DHCP server to give it the IP address of dhcp168-16.math.chalmers.se
 #M You also want to note the room number MC1234 and the username 'bill' so that we know where it is and who is responsible.
 #M The laptop has the mac address 01:12:34:c0:ff:fe and runs BeOS.
 #M
@@ -5917,90 +5854,54 @@ main "$@"
 #M The fact that it runs BeOS shows that it is not part of any automatic installation procedures. This goes for all
 #M machines that are self administered. Thus, we do not assign the machine to any group. (Backstage, "no group" really means
 #M the group named 'plain'. In case that shows up somewhere, it might be useful to know)
+#M dhcp2 will generate a unique ID with which the host can be easily identified later on. This ID is printed.
 #M
 #M Execute the command:
 #M
-#M dhcp2 addhost -r MC1234 -u bill dhcp168-16.math.chalmers.se  01:12:34:c0:ff:fe 
+#M dhcp2 addhost -r MC1234 -u bill -d dhcp168-16.math.chalmers.se  01:12:34:c0:ff:fe 
 #M
-#M
-#M =head2 Adding a host whose IP-number or hostname is not given.
-#M
-#M George at the Math dept. comes in with that old 486 box he bought at eBay, he quickly wants it registered. 
-#M Nobody cares about the hostname.
+#M 20140923-001
 #M 
-#M I<Solution:>
-#M
-#M Since George works at the math dept, he needs an IP address in the math network. Ask him about the room number and CID.
-#M He says that he works in MC2433 and his cid is gwb. The mac address is 00:01:80:c0:ff:fe
-#M
-#M The simple solution is to execute the command:
-#M
-#M dhcp2 mkhost -u gwb -r MC2433 math 00:01:80:c0:ff:fe 
-#M
-#M This will make dhcp2 scan the whole math network looking for free IP numbers, pick the first free number and enter that
-#M for the new machine. There is a catch doing this, however. If you want to keep some order, let's say you want to keep
-#M odd machines having names starting with 'dhcp', then you need to constrain dhcp2 to such names.
-#M
-#M To do that, specify a pattern, last in the command:
-#M
-#M dhcp2 mkhost -u gwb -r MC2433 math 00:01:80:c0:ff:fe dhcp
-#M
-#M If you are scary, you might just want to do a check first to see what is picked, then add the -n flag.
-#M
-#M dhcp2 mkhost -n -u gwb -r MC2433 math 00:01:80:c0:ff:fe dhcp
-#M
-#M If the turnout is OK, re-run the command without the -n flag.
-#M
-#M =head2 Temporary assignments
-#M
-#M For some strange reason, Jimmy shows up on a conference on linear algebra. He will only stay a week, but your 
-#M boss orders you to give him network access for his shiny iBook.
-#M
-#M I<Solution>
-#M
-#M We cannot expect Jimmy to have a CID or a room here at Chalmers so use your own CID and 
-#M skip the room entry. We also want the
-#M entry to expire when Jimmy leaves on March 21, 2005.
-#M
-#M Run this command
-#M
-#M dhcp2 mkhost -u $USER -e 2005-03-24 math 00:03:93:c0:ff:fe dhcp
-#M
 #M =head2 Invalidating an entry while keeping it
 #M
 #M Ron has left us, but we are not sure that he won't come back. We wish to turn off 
 #M his entry so that noone may spoof
-#M his mac address. He is using the machine starwars.tekno.chalmers.se
+#M his mac address. He is using the DNS name starwars.tekno.chalmers.se
 #M
 #M I<Solution:>
 #M
+#M Find the host identifier
+#M
+#M dhcp2 lsh starwars.tekno.chalmers.se
+#M
+#M 19880719-007
+#M
 #M Deactivate the entry using:
 #M
-#M dhcp2 chhost -s Inactive starwars.tekno.chalmers.se
+#M dhcp2 chhost -s Inactive 19880719-007
 #M
 #M Should he come back, you can activate the entry using
 #M
-#M dhcp2 chhost -s Active starwars.tekno.chalmers.se
+#M dhcp2 chhost -s Active 19880719-007
 #M
 #M =head2 Getting entry status
 #M
-#M You want to know the entry status of the machine www.whitehouse.gov
+#M You want to know the entry status of the machine with the ID 19880719-009
 #M
 #M  I<Solution:>
 #M
 #M Use the command:
 #M
-#M dchp2 lshosts -l www.whitehouse.gov
+#M dchp2 lshosts -l 19880719-009
 #M
-#M I<Note: you probably won't get any data on this particular machine - yet.>
 #M
 #M =head2 Creating a group
 #M
 #M Jerry wants to set up a bunch of very old IBM360/VM machines. Since they are so 
 #M old, they need to be reinstalled
 #M quite frequently from the machine omaha.medic.chalmers.se, IP 129.16.223.74. 
-#M The machine names in the group
-#M are {liz,mike,john,steve and susie}.dc.chalmers.se
+#M The machine ID's in the group
+#M are 19880719-{019,029,039,049,059} 
 #M
 #M  I<Solution:>
 #M
@@ -6061,15 +5962,15 @@ main "$@"
 #M
 #M Now, the group is ready to accept the machines:
 #M
-#M B<dhcp2 addhost -u liz -g ibmvm liz.dc.chalmers.se 00:00:01:01:19:74>
+#M B<dhcp2 addhost -u liz -g ibmvm 19880719-019 00:00:01:01:19:74>
 #M
-#M B<dhcp2 addhost -u mike -g ibmvm mike.dc.chalmers.se 00:00:01:01:19:75>
+#M B<dhcp2 addhost -u mike -g ibmvm 19880719-029 00:00:01:01:19:75>
 #M
-#M B<dhcp2 addhost -u john -g ibmvm john.dc.chalmers.se 00:00:01:01:19:76>
+#M B<dhcp2 addhost -u john -g ibmvm 19880719-039 00:00:01:01:19:76>
 #M
-#M B<dhcp2 addhost -u steve -g ibmvm steve.dc.chalmers.se 00:00:01:01:19:77>
+#M B<dhcp2 addhost -u steve -g ibmvm 19880719-049 00:00:01:01:19:77>
 #M
-#M B<dhcp2 addhost -u susie -g ibmvm susie.dc.chalmers.se 00:00:01:01:19:78>
+#M B<dhcp2 addhost -u susie -g ibmvm 19880719-059 00:00:01:01:19:78>
 #M
 #M Now, the group is ready, all he has to do is to call in his IT executive general and order him
 #M to install the machines. 
