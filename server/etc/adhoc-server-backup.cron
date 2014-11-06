@@ -1,3 +1,0 @@
-# adhoc-server @@ADHOC_RELEASE@@ – Make backusp of the database periodically
-# $Id: adhoc-server-backup.cron 387 2014-04-25 13:42:55Z bernerus@CHALMERS.SE $
-* * * * * srvadhoc /cdg/adhoc/adhoc-server/sbin/backup_mysql.sh
