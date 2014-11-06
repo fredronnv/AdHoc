@@ -45,11 +45,11 @@ class SSLConfig(object):
         #    self.ctx.load_verify_locations(chainfile)
 
     def wrap_socket(self, raw_socket):
-	return ssl.wrap_socket(raw_socket, 
-			       keyfile=self.keyfile, 
-			       certfile=self.certfile, 
-			       server_side=True,
-			       ssl_version=ssl.PROTOCOL_TLSv1)
+        return ssl.wrap_socket(raw_socket, 
+                               keyfile=self.keyfile, 
+                               certfile=self.certfile, 
+                               server_side=True,
+                               ssl_version=ssl.PROTOCOL_TLSv1)
 
 
 class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):

@@ -33,14 +33,14 @@ class AdHocServer(Server):
 class StartMe(object):
     def __init__(self, host, port, generic_password=None, enable_ssl=False):
 
-	ssl_config = None
+        ssl_config = None
         if enable_ssl:
             print "Enabling SSL"
             keyfile = os.environ.get('RPCC_SERVER_SSL_KEYFILE', 'etc/rpcc_server.key')
             certfile = os.environ.get('RPCC_SERVER_SSL_CERTFILE', 'etc/rpcc_server.cert')
             
 
-	    ssl_config = SSLConfig(keyfile, certfile)
+            ssl_config = SSLConfig(keyfile, certfile)
 
         srv = AdHocServer(host, port, ssl_config)
 
