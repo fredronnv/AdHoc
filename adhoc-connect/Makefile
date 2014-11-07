@@ -47,7 +47,7 @@ majorbump:
 	svn commit rel_major rel_minor rel_patch -m "Bumped major version to $${revno}"
 
 svnstatus:
-	if svn status | grep '^M' ; then \
+	if svn status | awk '{print $$1}' | grep 'M' ; then \
 	    false ; \
 	else \
 	    svn_version=`svnversion | cut -f2 -d:`;\
