@@ -137,13 +137,18 @@ EOF
         wget http://libslack.org/daemon/download/daemon-0.6.4-1.x86_64.rpm
         rpm -i daemon-0.6.4-1.x86_64.rpm
         
-23. Obtain a kerberos keytab for the principal HTTP/$HOSTNAME, Store the keytab file in ~/etc/server.keytab and 
+23. Obtain a kerberos keytab for the principal HTTP/$HOSTNAME@CHALMERS.SE (see below).
+    Store the keytab file in ~/etc/server.keytab and 
      make it owned and readable only for the server.
      Assuming that the keytab data is in the file $keytab and that is readable by the srvadhoc user:
         touch ~srvadhoc/etc/server.keytab
         chmod 640 ~srvadhoc/etc/server.keytab
         cat $keytab >~srvadhoc/etc/server.keytab
         rm $keytab
+        
+     NOTE: Obtaining a keytab is an administrative task. 
+     You will have to ask the Kerberos operations staff (teamunix@ita.chalmers.se) to get a keytab for
+     the principal HTTP/$HOSTNAME@CHALMERS.SE.
 
 24. Link in the cron job that makes backups of the database.
     This script has the path to the backup script hardwired, so if the server software is installed elsewhere than /cdg/adhoc, the
