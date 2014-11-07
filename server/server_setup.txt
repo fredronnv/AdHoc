@@ -145,7 +145,7 @@ EOF
         cat $keytab >~srvadhoc/etc/server.keytab
         rm $keytab
 
-43. Link in the cron job that makes backups of the database.
+24. Link in the cron job that makes backups of the database.
     This script has the path to the backup script hardwired, so if the server software is installed elsewhere than /cdg/adhoc, the
     cron job will have to be changed.
     
@@ -177,11 +177,11 @@ Part B. Installing the server software
 29. Tell Linux to start the adhoc server when booting
         /sbin/chkconfig --level 3 adhoc-server on
         
-20. Start server manually. This step assumes that you have installed the daemon utility as described under step 21. The startup script does not work with
+30. Start server manually. This step assumes that you have installed the daemon utility as described under step 21. The startup script does not work with
     the native RedHat daemon utility.
         /etc/init.d/adhoc-server start
         
-31. Check connectivity again, see step 267
+31. Check connectivity again, see step 27
  
 32. Transfer current setup from old database
  	 
@@ -191,7 +191,7 @@ Part B. Installing the server software
 
 33. Reboot and check that the server is running    
         /sbin/shutdown -r now
-        See step 26 for checking connectivity.
+        See step 27 for checking connectivity.
 
         
  UPGRADING THE SERVER SOFTWARE:
