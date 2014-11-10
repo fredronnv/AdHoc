@@ -1,205 +1,270 @@
-Server setup log. (from fresh RHEL6 system as delivered by operations staff, that is registered with RedHat)
-The instruction below assumes a RedHat EL 6 system with python and kerberos, including the python-kerberos package.
-In case you're reading this from a paper or an old file, make sure to get the latest revision of this document.
+ADHOC-SERVER INSTALLATION INSTRUCTIONS
+======================================
 
-INITIAL INSTALLATION:
-To be done once. 
+Version @@ADHOC_RELEASE@@
+
+The instructions assume a 64 bit Red Hat Enterprise Linux system version 6 
+with Python and Kerberos installed, including the python-kerberos package.
+The system should be registered to receive updates from Red Hat. A RHEL 6 
+virtual machine in IT Service' VMware Cluster conforms to this specification.
+
+In case you're reading this from a paper or an old file, make sure to get
+the latest revision of this document!
+
+
+INITIAL INSTALLATION
+====================
+
+To be done once only. 
+
 
 Part A: Server preparations
-This part prepares the server machine with the needed accounts, software and the AdHoc database.
+===========================
 
+This part prepares the server machine with the needed accounts, software 
+and the AdHoc database. The instructions assume that the AdHoc server 
+installed in /cdg/adhoc.
 
- 0. Log in and become root. In case you're reading this from a paper or an old file, make sure to get the latest revision of this document.
-    Make sure that $HOSTNAME and the hostname command returns the fully qualified host name. I.e. ending with .chalmers.se. If not, 
-    adjust the HOSTNAME line in /etc/sysconfig/network.
+Log in and become root. 
+
+ 0. Make sure that $HOSTNAME and the hostname command returns the fully qualified 
+    host name,  i.e. one ending with .chalmers.se. If not, adjust the HOSTNAMEnetwork.
+
+ 1. Download and install the the latest version of the daemon utility. This 
+    utility does a lot more than the daemon function supplied by RedHat. 
+
+    URL: http://libslack.org/daemon/download/
+
+    Currently (2014-08-26) we use the following commands
+
+      wget http://libslack.org/daemon/download/daemon-0.6.4-1.x86_64.rpm
+      rpm -i daemon-0.6.4-1.x86_64.rpm
+
+ 2. [Install /etc/krb5.keytab] NOT DONE
+
+ 3. Install MySQL server. 
+
+     yum install mysql-server
+   
+ 4. Install the latest version of MySQL connector for Python.
+
+    URL: http://dev.mysql.com/downloads/connector/python
+   
+    Currently (2014-08-27) we use the following commands
+   
+      wget http://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-1.2.3-1.el6.noarch.rpm
+      rpm -i mysql-connector-python-1.2.3-1.el6.noarch.rpm 
+     
+ 5. Start mysql server
+     /etc/init.d/mysqld start
+   
+ 6. Set mysql root password
+      RDBPW='tgilmeh'        <- Use something else than tgilmeh here, e.g. terces 
+      /usr/bin/mysqladmin -u root password "$RDBPW"
+      mysql -p <<EOF
+	SET PASSWORD FOR 'root'@'$HOSTNAME' = PASSWORD('$RDBPW');
+	GRANT ALL PRIVILEGES ON *.* TO 'root'@'$HOSTNAME' WITH GRANT OPTION;
+EOF
+
+ 7. Configure mysql to run on level 3
+      /sbin/chkconfig --level 3 mysqld on
+ 
+ 8. Reboot and check that mysqld starts.
+      /sbin/shutdown -r now
+ 
+ 9. Log in again and become root. Check that mysqld is running
+      /etc/init.d/mysqld status
+      ps -ef | grep mysqld
+ 
+ 
+ 12. Grant privileges for the local user srvadhoc to the database. Enter the
+     MySQL root password previously defined when asked for the password
+     
+       DBPW=mxyzptlk         <- Or something better
+        
+       mysql -u root -p <<EOF
+         CREATE USER 'srvadhoc'@'$HOSTNAME' IDENTIFIED BY '$DBPW';
+         GRANT USAGE ON *.* TO 'srvadhoc' IDENTIFIED BY '$DBPW' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0 ;
+         GRANT SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES ON  AdHoc.* TO  'srvadhoc'@'$HOSTNAME';
+         COMMIT;
+EOF
+
+13. Open the firewall for TCP packets on port 8877 but from .chalmers.se only.
+    The exact syntax depends on how you have set up your iptables configuration.
+    Regard the following as an example only:
+     
+       -A INPUT -m state --state NEW -m tcp -p tcp --dport 8877 -s 129.16.0.0/16 -j ACCEPT
+   
+14. Create the local user 'srvadhoc' with the personal group 'srvadhoc' using the 
+    UID and GID specified below:
+
+      groupadd -g 127397 srvadhoc
+      mkdir -p /cdg
+      useradd  -r -u 127397 -g 127397 -m -d /cdg/adhoc srvadhoc        
+
+--------------------------------------------------------------------------------
+
+15. Change to the srvadhoc user.
+      su - srvadhoc
+
+16. Verify that you are not root anymore
+      id
+
+17. Clean up the home directory. This removes the skeleton stuff from 
+    useradd which we do not want.
+      rm -rf .??*        [MIGHT NOT BE NEEDED]
+      
+18. Make a directory for the server's keys and certificates
+      mkdir etc
+
+19. Download the latest adhoc server distribution and unpack, still logged
+    in as the srvadhoc user
+
+    URL: https://utveckling.its.chalmers.se/project/2
+
+    For this release, we use the following commands:
     
- 1. Install /etc/krb5.keytab (see CSD-wiki for instructions as to obtain such a keytab)
- 
- 2. Install MySQL server.
-        yum install mysql-server
-    In this step you may encounter that the machine is not registered with RedHat. In that case (or someone who has) need(s) an account 
-    at RedHat and run the commands:
-        subscription-manager register
-        rhnreg_ks --force --profilename special --activationkey c8a5d97e879f63d357055080f620cf06
-    Then rerun yum as indicated above.
- 
- 3. Install mysql connector for python.
-        wget --no-check-certificate https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-1.1.6-1.el6.noarch.rpm
-        rpm -i mysql-connector-python-1.1.6-1.el6.noarch.rpm
- 
- 4. Start mysql server
-        /etc/init.d/mysqld start
-        
- 5. Set mysql root password
-        RDBPW='tgilmeh'        <- Use something else than tgilmeh here, e.g. terces ;-)
-        /usr/bin/mysqladmin -u root password "$RDBPW"
-        mysql -p <<EOF
-            CREATE USER 'root'@'$HOSTNAME' IDENTIFIED BY '$RDBPW'; 
-            GRANT ALL PRIVILEGES ON *.* TO 'root'@'$HOSTNAME' WITH GRANT OPTION;
-EOF
-        
- 6. Configure mysql to run on level 3
-        /sbin/chkconfig --level 3 mysqld on
-        
- 7. Reboot and check that mysqld starts.
-        /sbin/shutdown -r now
-        
- 8. Log in. If you have enabled GSSAPI ssh and have a kerberos ticket you should get in without giving a password.
- 
- 9. Become root again and reinitialize RDBPW
-        sudo -s
-        RDBPW='tgilmeh'  <- or rather what you used before rebooting
- 
-10. Check that mysqld is running:
-        ps -ef | grep mysqld
-        root      1484     1  0 17:38 ?        00:00:00 /bin/sh /usr/bin/mysqld_safe --datadir=/var/lib/mysql --socket=/var/lib/mysql/mysql.sock --pid-file=/var/run/mysqld/mysqld.pid --basedir=/usr --user=mysql
-        mysql     1586  1484  0 17:38 ?        00:00:00 /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --user=mysql --log-error=/var/log/mysqld.log --pid-file=/var/run/mysqld/mysqld.pid --socket=/var/lib/mysql/mysql.sock
- 
-11. Grant privileges for the local user srvadhoc to the database.  Enter $RDPW when asked for the password.
-        DBPW=mxyzptlk       <- Or something better
-        
-        mysql -u root -p <<EOF
-        CREATE USER 'srvadhoc'@'$HOSTNAME' IDENTIFIED BY '$DBPW';
-        GRANT USAGE ON *.* TO 'srvadhoc' IDENTIFIED BY '$DBPW' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0 ;
-        GRANT SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES ON  AdHoc.* TO  'srvadhoc'@'$HOSTNAME';
-        COMMIT;
-EOF
+      cd ~srvadhoc
+     
+      wget --no-check-certificate https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/files/adhoc-server-@@ADHOC_RELEASE@@.tar
+      tar xf adhoc-server-@@ADHOC_RELEASE@@.tar
+      ln -s adhoc-server-@@ADHOC_RELEASE@@ adhoc-server
+      ADHOC_RUNTIME_HOME=`(cd adhoc-server; pwd)`
 
-12: Open the firewall
-  
-     Add the following two lines BEFORE ALL REJECT lines near the end of /etc/sysconfig/iptables:
-        
-        # AdHoc Server
-        -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp -s 129.16/16 --dport 8877 -j ACCEPT
-        
-     Then restart the firewall:
-        /etc/init.d/iptables restart
-         
-13. Create the group and local user srvadhoc
-        groupadd -g 127397 srvadhoc
-        mkdir -p /cdg
-        useradd  -r -u 127397 -g 127397 -m -d /cdg/adhoc srvadhoc        
+20. Create the AdHoc database. Use the MySQL root password previously defined
+    when asked to enter password
+    
+      mysql -u root -p <$ADHOC_RUNTIME_HOME/database.sql
 
-14. Change to the srvadhoc user, keep the root db password in the environment.
-        su - srvadhoc
+21. Set up SSL
+      Order and install SSL certificates. For testing, see below.
+
+      Put the key file into ~/etc/$HOSTNAME.key
+      Make the file unreadable 
+      except for the server user 'srvadhoc'.
+      Assuming that the key is is the file $keyfile and the certificate 
+      and chain is in $certfile and $chainfile respectively:
+
+		touch ~/etc/$HOSTNAME.key
+		chmod 600 ~/etc/$HOSTNAME.key
+		cat $keyfile >~/etc/$HOSTNAME.key
+		chmod 400 ~/etc/$HOSTNAME.key
+		rm $keyfile
+
+      Concatenate the certificate file with the chain file and store the 
+      result into the file $ADHOC_RUNTIME_HOME/etc/`hostname`.cert
         
-15. Verify that you are not root anymore
-        id
+        cat $certfile $chainfile >~/etc/$HOSTNAME.cert
         
-16. Clean up the home directory. This removes the skeleton stuff from useradd which we do not want.
-        rm -rf .??*
+      Make the file readable by everyone and not writable by anyone.
         
-17. Make a directory for the server's keys and certificates
-        mkdir etc
-        
-18. Download the adhoc server distribution and unpack
-        wget --no-check-certificate https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/files/adhoc-server-@@ADHOC_RELEASE@@.tar
-        tar xf adhoc-server-@@ADHOC_RELEASE@@.tar
-        ln -s adhoc-server-@@ADHOC_RELEASE@@ adhoc-server
-        ADHOC_RUNTIME_HOME=`(cd adhoc-server; pwd)`
-               
-19. Create the AdHoc database
-        mysql -u root -p <$ADHOC_RUNTIME_HOME/database.sql
-        
-20. Set up SSL
-        Order and install SSL certificates. For testing, see below:
-        Put the key file into ~/etc/$HOSTNAME.key. Make the file unreadable except for the server user.
-        Assuming that the key is is the file $keyfile and the certificate and chain is in $certfile and $chainfile respectively:
-                touch ~/etc/$HOSTNAME.key
-                chmod 600 ~/etc/$HOSTNAME.key
-                cat $keyfile >~/etc/$HOSTNAME.key
-                chmod 400 ~/etc/$HOSTNAME.key
-                rm $keyfile
-        Concatenate the certificate file with the chain file and store the result into the file $ADHOC_RUNTIME_HOME/etc/`hostname`.cert
-        
-                cat $certfile $chainfile >~/etc/$HOSTNAME.cert
-        
-        Make the file readable by everyone and not writable by anyone.
-        
-                chmod 444 ~/etc/$HOSTNAME.cert
+        chmod 444 ~/etc/$HOSTNAME.cert
                 
-        FOR TESTING ONLY:
-        Make a self signed certificate:
-                touch ~/etc/$HOSTNAME.key ~/etc/$HOSTNAME.cert
-                chmod 600 ~/etc/$HOSTNAME.key
-                chmod 644 ~/etc/$HOSTNAME.cert
-                openssl genrsa -out ~/etc/$HOSTNAME.key 2048
-                openssl req -new -x509 -key ~/etc/$HOSTNAME.key -out ~/etc/$HOSTNAME.cert -days 3650 -subj /CN=$HOSTNAME
-                chmod 400 ~/etc/$HOSTNAME.key
-                chmod 444 ~/etc/$HOSTNAME.cert
+	  FOR TESTING ONLY:
+	  How to make a self signed certificate:
 
-        
-21. Exit back to the root user and reinitialize ADHOC_RUNTIME_HOME
+        cd ~srvadhoc
+		touch ~/etc/$HOSTNAME.key ~/etc/$HOSTNAME.cert
+		chmod 600 ~/etc/$HOSTNAME.key
+		chmod 644 ~/etc/$HOSTNAME.cert
+		openssl genrsa -out ~/etc/$HOSTNAME.key 2048
+		openssl req -new -x509 -key ~/etc/$HOSTNAME.key -out ~/etc/$HOSTNAME.cert -days 3650 -subj /CN=$HOSTNAME
+		chmod 400 ~/etc/$HOSTNAME.key
+		chmod 444 ~/etc/$HOSTNAME.cert
+
+22. Exit back to the root user
         exit
-        ADHOC_RUNTIME_HOME=`(cd ~srvadhoc/adhoc-server; pwd)`
-                   
-22. Download and install the daemon utility. This utility does a lot more than the daemon function supplied by RedHat.
-        wget http://libslack.org/daemon/download/daemon-0.6.4-1.x86_64.rpm
-        rpm -i daemon-0.6.4-1.x86_64.rpm
-        
-23. Obtain a kerberos keytab for the principal HTTP/$HOSTNAME@CHALMERS.SE (see below).
-    Store the keytab file in ~/etc/server.keytab and 
-     make it owned and readable only for the server.
-     Assuming that the keytab data is in the file $keytab and that is readable by the srvadhoc user:
+       
+--------------------------------------------------------------------------------
+
+23. Now as the root user again, reinitialize ADHOC_RUNTIME_HOME
+
+      ADHOC_RUNTIME_HOME=`(cd ~srvadhoc/adhoc-server; pwd)`
+
+24. Obtain a kerberos keytab for the principal HTTP/$HOSTNAME@CHALMERS.SE (see below on how to do that).
+    Store the keytab file in ~srvadhoc/etc/server.keytab and 
+    make it owned and readable only for the server.
+    Assuming that the keytab data is in the file $keytab and that is readable by the srvadhoc user:
         touch ~srvadhoc/etc/server.keytab
         chmod 640 ~srvadhoc/etc/server.keytab
         cat $keytab >~srvadhoc/etc/server.keytab
         rm $keytab
         
      NOTE: Obtaining a keytab is an administrative task. 
-     You will have to ask the Kerberos operations staff (teamunix@ita.chalmers.se) to get a keytab for
-     the principal HTTP/$HOSTNAME@CHALMERS.SE.
+           You will have to ask the Kerberos operations staff (teamunix@ita.chalmers.se) to get a keytab for
+           the principal HTTP/$HOSTNAME@CHALMERS.SE.
 
-24. Link in the cron job that makes backups of the database.
-    This script has the path to the backup script hardwired, so if the server software is installed elsewhere than /cdg/adhoc, the
-    cron job will have to be changed.
-    
-        ln -s $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron /etc/cron.d/adhoc-server-backup
-        
 Part B. Installing the server software
-25. Configure the server startup environment. Check that RDBPW and DBPW contains the correct passwords before continuing.
-        
-        cd ~srvadhoc/etc
-        touch bashrc.private
-        chmod 600 bashrc.private
-        sed s/YYY/$DBPW/ <../adhoc-server/etc/bashrc.private.prototype | sed s/ZZZ/$RDBPW/ >bashrc.private
-        chown srvadhoc:srvadhoc bashrc.private
-        
-26. Start the server. 
-        su srvadhoc $ADHOC_RUNTIME_HOME/bin/startserver.sh
- 
-27. Check connectivity. Replace <adhoc_server_host> with the actual FQDN of the AdHoc Server you just started. The server should only be
-     accessible from within Chalmers network, 129.16/16
-     
-        Start your browser and go to the following url:
-        https://<adhoc_server_host>:8877
-        The displayed page show say "Welcome to the AdHoc RPCC Server" on its first line.
-        Stop the server with ctrl-C
 
-28. Link in the startup script
-        ln -s $ADHOC_RUNTIME_HOME/etc/init.d/adhoc-server.sh /etc/init.d/adhoc-server
-  
-29. Tell Linux to start the adhoc server when booting
-        /sbin/chkconfig --level 3 adhoc-server on
+26. Configure the server startup environment. Check that RDBPW and DBPW 
+    contains the correct passwords before proceeding.
         
-30. Start server manually. This step assumes that you have installed the daemon utility as described under step 21. The startup script does not work with
-    the native RedHat daemon utility.
+      cd ~srvadhoc/etc
+      touch bashrc.private
+      chmod 600 bashrc.private
+      sed s/YYY/$DBPW/ <../adhoc-server/etc/bashrc.private.prototype | sed s/ZZZ/$RDBPW/ >bashrc.private
+      chown srvadhoc:srvadhoc bashrc.private
+
+27. Start the server. 
+
+      su srvadhoc $ADHOC_RUNTIME_HOME/bin/startserver.sh
+
+28. Check connectivity. Replace <adhoc_server_host> with the actual FQDN 
+    of the AdHoc Server you just started. The server should only be accessible
+    from within Chalmers network, 129.16.0.0/255.255.0.0. Start your browser 
+    and go to the following url:
+
+	  https://<adhoc_server_host>:8877
+
+     The displayed page should read
+	  
+	    "Welcome to the AdHoc RPCC Server"
+	    
+	  on the first line.
+	  Stop the server with <Ctrl>-C.
+
+29. Link in the startup script
+
+      ln -s $ADHOC_RUNTIME_HOME/etc/init.d/adhoc-server.sh /etc/init.d/adhoc-server
+
+30. Tell Linux to start the adhoc server at boot time
+
+      /sbin/chkconfig --level 3 adhoc-server on
+
+31. Start server manually. This step assumes that you have installed the 
+    daemon utility as described under step 1. The startup script does not 
+    work with the native RedHat daemon utility.
+
         /etc/init.d/adhoc-server start
         
-31. Check connectivity again, see step 27
- 
-32. Transfer current setup from old database
- 	 
-        Run the script:
-            $ADHOC_RUNTIME_HOME/migrate_data
-        Leave the install level password as is because it is used by the backup script.
+32. Check connectivity again, see step 28.
 
-33. Reboot and check that the server is running    
+33. Link in the cron job that creates the the database backup. This script 
+    has the path to the backup script hardwired, so if the server software 
+    is installed elsewhere than /cdg/adhoc, the cron job will have to be 
+    changed.
+    
+    It is necessary that the script file is owned by root in order to be
+    run by cron.
+    
+      ln -s $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron /etc/cron.d/adhoc-server-backup
+      chown root:root  $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron
+
+34. Transfer current setup from old database
+ 	Run the script:
+
+      $ADHOC_RUNTIME_HOME/migrate_data
+
+    Leave the install level password as is because it is used by the 
+    backup script.
+
+35. Reboot and check that the server is running    
         /sbin/shutdown -r now
-        See step 27 for checking connectivity.
+        See step 28 for checking connectivity.
 
-        
- UPGRADING THE SERVER SOFTWARE:
+
+UPGRADING THE SERVER SOFTWARE
+=============================
  
  Assuming logged in as root:
  
@@ -213,7 +278,7 @@ Part B. Installing the server software
         wget https://utveckling.its.chalmers.se/downloads/adhoc-server-@@ADHOC_RELEASE@@.tar
         tar xf adhoc-server-@@ADHOC_RELEASE@@.tar
  
- 4. Change the achod-server link to point to the new release
+ 4. Change the adhoc-server link to point to the new release
         rm -f adhoc-server
         ln -s adhoc-server-@@ADHOC_RELEASE@@ adhoc-server
         
