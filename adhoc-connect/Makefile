@@ -19,7 +19,7 @@ install: clean
 	done
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	mkdir -p ${DISTDIR} ${DISTDIR}/etc ${DISTDIR}/sbin;\
+	mkdir -p ${DISTDIR} ${DISTDIR}/etc/cron.d ${DISTDIR}/sbin;\
 	cp -r INSTALL.txt dhcpd-snmp  ${DISTDIR};\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./sbin/adhoc-connect.sh | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/sbin/adhoc-connect.sh ;\
