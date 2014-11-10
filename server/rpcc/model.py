@@ -950,7 +950,12 @@ class Manager(object):
         self.base_query(dq)
         dq.where(dq.get_select_at(0) + "=" + dq.var(mid))
         try:
-            (args,) = dq.run()
+            args = []
+            (arglist, ) = dq.run()
+            for arg in arglist:
+                if type(arg) is bytearray: # MySql connector 2.0 returns strings ar bytearray
+                        arg = str(arg)
+                args.append(arg)
             return args
         except:
             raise self.model_lookup_error(value=mid)
