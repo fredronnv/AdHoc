@@ -1,15 +1,36 @@
+INSTALLATION PROCEDURE:
 
-To install on a DHCP server, become root and run:
-    mkdir -p /cdg/adhoc
-    cd /cdg/adhoc
-    tar xf adhoc-connect-x.y.z.tar
-    ln -s adhoc-connect-x.y.z adhoc-connect
-    cd adhoc-connect
-    cp etc/adhoc-connect.cron /etc/cron.d
-    
- To upgrade:
-    cd /cdg/adhoc
-    wget https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/files/adhoc-connect-v.w.u.tar
-    rm adhoc-connect
-    ln -s adhoc-connect-v.w.u adhoc-connect
-    cp etc/adhoc-connect.cron /etc/cron.d (probably not necessary though)
+Installation assumes a system running Red Hat Enterprise Linux 6.x in
+enforced mode with the dhcp package installed.
+
+
+mkdir -p /cdg/adhoc/
+cd /cdg/adhoc/
+wget --no-check-certificate https://utveckling.its.chalmers.se/sites/\
+utveckling.its.chalmers.se/files/adhoc-connect-x.y.z.tar
+tar -xf adhoc-connect-x.y.z.tar
+ln -s adhoc-connect-x.y.z adhoc-connect
+restorecon -FR /cdg
+rm adhoc-connect-x.y.z.tar
+
+cd /etc/cron.d
+ln -s /cdg/adhoc/adhoc-connect/etc/cron.d/adhoc-connect .
+restorecon -F adhoc-connect 
+
+
+---------------------------------------------------------------------------
+
+UPGRADE PROCEDURE:
+
+cd /cdg/adhoc/
+wget --no-check-certificate https://utveckling.its.chalmers.se/sites/\
+utveckling.its.chalmers.se/files/adhoc-connect-v.w.u.tar
+tar -xf adhoc-connect-v.w.u.tar
+restorecon -RF adhoc-connect-v.w.u
+
+rm adhoc-connect
+ln -s adhoc-connect-v.w.u adhoc-connect
+restorecon -F adhoc-connect
+
+rm adhoc-connect-v.w.u.tar
+rm -rf adhoc-connect-x.y.z              (eventually)
