@@ -946,16 +946,12 @@ class Manager(object):
         return None
 
     def args_for_model(self, mid):
+        mysql_connector_2 = False  # Change here if using MySQL connector version 2.x.x
         dq = self.db.dynamic_query()
         self.base_query(dq)
         dq.where(dq.get_select_at(0) + "=" + dq.var(mid))
         try:
-            args = []
-            (arglist, ) = dq.run()
-            for arg in arglist:
-                if type(arg) is bytearray: # MySql connector 2.0 returns strings ar bytearray
-                        arg = str(arg)
-                args.append(arg)
+            (args, ) = dq.run()
             return args
         except:
             raise self.model_lookup_error(value=mid)
