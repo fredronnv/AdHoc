@@ -710,6 +710,9 @@ class MySQLDatabase(Database):
         host = host or self.server.config("DB_HOST")
         port = port or self.server.config("DB_PORT")
         socket = port or self.server.config("DB_SOCKET")
+        
+        if mysql.connector.__version_info__[0] > 1:
+            raise exterror.ExtRuntimeError("The server is not supporting the use om MySQL connector version 2 and above")
 
         self.connect_args = {"user": user, "password": password, "db": database}
         if host:
