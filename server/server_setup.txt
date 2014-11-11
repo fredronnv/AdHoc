@@ -46,7 +46,10 @@ Log in and become root.
 
      yum install mysql-server
    
- 4. Install the latest version of MySQL connector for Python.
+ 4. Install the latest version of MySQL connector version 1.x.x for Python.
+ 
+    NOTE: Do NOT install version 2 or above. These version contains incompatible changes
+          that has not been tested.
 
     URL: http://dev.mysql.com/downloads/connector/python
    
