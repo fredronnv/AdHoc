@@ -92,7 +92,7 @@ ask()
 install_cronlink()
 {
     rm -f /etc/cron.d/$PKGNAME
-    ln -fs $TOPDIR/$PKGNAME /etc/cron.d/$PKGNAME
+    ln -fs $TOPDIR/$PKGNAME/etc/cron.d/adhoc-connect /etc/cron.d/$PKGNAME
 }
 
 install_version()
@@ -116,7 +116,7 @@ install_version()
         restorecon -FR `echo $TOPDIR | cut -f-2 -d/`
         restorecon -F $PKGNAME
         cronlink=`readlink /etc/cron.d/$PKGNAME` || install_cronlink
-        if [ "$cronlink" != "$TOPDIR/$PKGNAME" ]; then
+        if [ "$cronlink" != "$TOPDIR/$PKGNAME/etc/cron.d/adhoc-connect" ]; then
             install_cronlink
         fi
 }
