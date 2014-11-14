@@ -20,11 +20,13 @@ install: clean
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p ${DISTDIR} ${DISTDIR}/etc/cron.d ${DISTDIR}/sbin;\
-	cp -r INSTALL.txt dhcpd-snmp  ${DISTDIR};\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./sbin/adhoc-connect.sh | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/sbin/adhoc-connect.sh ;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./etc/cron.d/adhoc-connect | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/etc/cron.d/adhoc-connect
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/etc/cron.d/adhoc-connect \
+	chmod +x ${DISTDIR}/sbin/adhoc-connect.sh \
+	cp ./install-upgrade.sh ${DISTDIR} \
+	chmod +x ${DISTDIR}/install-upgrade.sh
 	
 release: svnstatus install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
