@@ -44,7 +44,6 @@ get_available_versions()
     # Fetch the available urls and extract the versions of the package
     available_urls=`get_available_urls`
     for v in $available_urls; do
-        echo v=$v >&2
         v1=`echo $v | cut -f2- -d/`
         v2=`basename $v1 .tar`
         ret="$ret $v2"
@@ -100,7 +99,6 @@ install_version()
 {
         echo "Installing $1"
         cd $TOPDIR
-        pwd
         available_urls=`get_available_urls`
         for url in $available_urls; do
             if echo $url | grep $1; then
