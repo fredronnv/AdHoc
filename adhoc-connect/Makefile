@@ -23,9 +23,9 @@ install: clean
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./sbin/adhoc-connect.sh | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/sbin/adhoc-connect.sh ;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./etc/cron.d/adhoc-connect | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/etc/cron.d/adhoc-connect \
-	chmod +x ${DISTDIR}/sbin/adhoc-connect.sh \
-	cp ./install-upgrade.sh ${DISTDIR} \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/etc/cron.d/adhoc-connect; \
+	chmod +x ${DISTDIR}/sbin/adhoc-connect.sh; \
+	cp ./install-upgrade.sh ${DISTDIR}; \
 	chmod +x ${DISTDIR}/install-upgrade.sh
 	
 release: svnstatus install
