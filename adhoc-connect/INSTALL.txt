@@ -14,7 +14,7 @@ Expand and configure the distribution archive:
 
 tar -xof adhoc-connect-x.y.z.tar
 cd adhoc-connect-x.y.z
-./install-upgrade.sh
+./install-upgrade.sh finish
 
 ---------------------------------------------------------------------------
 
@@ -23,3 +23,5 @@ UPGRADE PROCEDURE:
 cd /cdg/adhoc/adhoc-connect
 
 ./install-upgrade.sh
+
+Ths script will prompt for installation of the latest version if that is not already installed.

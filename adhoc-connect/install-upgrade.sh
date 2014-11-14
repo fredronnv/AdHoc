@@ -7,6 +7,7 @@
 #
 FILENAME=`readlink -f $0`
 DIRNAME=`dirname $FILENAME`
+BASENAME=`basename $FILENAME`
 TOPDIR=`dirname $DIRNAME`
 PKG=${DIRNAME##/*/}
 PKGNAME=${PKG%-*}
@@ -18,20 +19,21 @@ if [ $EUID -ne 0 ]; then
     exit 1
 fi
 
-CATALOG_URL="https://utveckling.its.chalmers.se/project/2"
-CATALOG_OUTPUT=`mktemp`
-available_urls=
-
+# Utility to use for premature exit with a message, makes code cleaner.
 die()
 {
     echo $i
     exit 1
 }
 
+# Fetch the available download URL's from the distribution server
 get_available_urls()
 {
-    # Get the available versions of the package, return a list of urls
+	CATALOG_OUTPUT=`mktemp`  # Temp file to hold HTML of the project page
+    # Download the project page that lists the available downloads
     wget --no-check-certificate -O $CATALOG_OUTPUT $CATALOG_URL  >/dev/null 2>&1 || die "Cannot contact $CATALOG_URL"
+    
+    # Extract the links that contains $PKGNAME and sort them. Latest version will end up last
     urls=`grep "<a href=" $CATALOG_OUTPUT | sed "s/<a href/\\n<a href/g" | \
                 sed 's/\"/\"><\/a>\n/2' | grep href | grep $PKGNAME | \
                 sed 's/<a href="//' | sed 's?"></a>??' | sort`
@@ -53,14 +55,14 @@ get_available_versions()
 
 get_installed_versions()
 {
+	# List the versiona that has already been downloaded and unpacked
     ls $TOPDIR | grep $PKGNAME- | egrep -v '\.tar.*$'
 }
 
 ask() 
 {
-    # http://djm.me/ask
+    # Basic ask for yes/no asker. Courtesy of http://djm.me
     while true; do
- 
         if [ "${2:-}" = "Y" ]; then
             prompt="Y/n"
             default=Y
@@ -89,12 +91,16 @@ ask()
     done
 }
 
+# Install symlink to the cron configuration
 install_cronlink()
 {
     rm -f /etc/cron.d/$PKGNAME
     ln -fs $TOPDIR/$PKGNAME/etc/cron.d/adhoc-connect /etc/cron.d/$PKGNAME
 }
 
+# Download and unpack the selected version, then finish the installation
+# using the downloaded version of this script in case something has changed
+# in the installation procedure in the new version.
 install_version()
 {
         echo "Installing $1"
@@ -110,9 +116,18 @@ install_version()
         echo "Downloading from " $dl_url
         wget --no-check-certificate $dl_url >/dev/null 2>&1 || die "Cannot download $dl_url"
         tar xof $1.tar || die "Cannot unpack $1.tar"
+        rm -f $1.tar
+        # Now finish the installation using the install script of the *new* version
+    	sh ./$1/$BASENAME finish
+}
+
+# Finish up the installation. This either called manually in the first installation
+# or by this script in the previous version
+finish_installation()
+{
+		cd $TOPDIR
         rm -f $PKGNAME || die "Cannot remove activation link $PKGNAME"
         ln -fs $1 $PKGNAME || die "Failed to activate $1"
-        rm -f $1.tar
         restorecon -FR `echo $TOPDIR | cut -f-2 -d/`
         restorecon -F $PKGNAME
         cronlink=`readlink /etc/cron.d/$PKGNAME` || install_cronlink
@@ -121,6 +136,16 @@ install_version()
         fi
 }
 
+if [ "$1" == "finish" ]; then
+	finish_installation "$PKGVERSION"
+	exit $?
+fi
+
+# If not called with the finish argument, list the available
+# and installed versions anc check if there is an new version to install
+CATALOG_URL="https://utveckling.its.chalmers.se/project/2"
+
+available_urls=
 available_versions=`get_available_versions`
 installed_versions=`get_installed_versions`
 active_version=`readlink $TOPDIR/$PKGNAME`
@@ -154,6 +179,5 @@ elif [ "$active_version" \< "$top_version" ]; then
         install_version $top_version
     fi
 fi
-
 
 ##[End of File]##
