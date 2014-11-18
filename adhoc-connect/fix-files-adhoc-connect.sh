@@ -66,7 +66,7 @@ main()
         
     #
     if ask "Continue and setup $PKGNAME version $PKGVERSION? (y/n): "; then
-        # The real work begins here  
+
         echo 'Setting up adhoc-connect ...'
         echo
         
