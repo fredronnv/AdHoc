@@ -76,7 +76,7 @@ main()
         # Create a symbolic link pointing at the current version
         cd $DIRNAME/.. || die "Cannot change to $PKGNAME top directory"
         rm -f $PKGNAME
-        ln -f --symbolic $PKG $PKGNAME || die "Failed to link $PKGNAME to $PKG
+        ln -f --symbolic $PKG $PKGNAME || die "Failed to link $PKGNAME to $PKG"
         
         # Fix SELinux context errors
         restorecon -FR $DIRNAME || die "SELinux context on $DIRNAME could not be reset"
