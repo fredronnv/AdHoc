@@ -14,36 +14,27 @@ AUTO=auto
 
 log()
 {
-        msg="`date '+%F %T'` INFO  $@"
-        echo "$msg" >>$LOGFILE
+    msg="`date '+%F %T'` INFO  $@"
+    echo "$msg" >>$LOGFILE
 }
 
 err()
 {
-        msg="`date '+%F %T'` ERROR $@"
-        echo "$msg" >>$LOGFILE
-        echo "$msg" >/dev/stderr
+    msg="`date '+%F %T'` ERROR $@"
+    echo "$msg" >>$LOGFILE
+    echo "$msg" >/dev/stderr
 }
 
 fatal()
 {
-        msg="`date '+%F %T'` FATAL $@"
-        echo "$msg" >>$LOGFILE
-        echo "$msg" >/dev/stderr
-        exit 1
+    msg="`date '+%F %T'` FATAL $@"
+    echo "$msg" >>$LOGFILE
+    echo "$msg" >/dev/stderr
+    exit 1
 }
 
-install_conf()
+restart_server()
 {
-	# Do syntax check first
-    if [ /usr/sbin/dhcpd -t -cf ${TMP_CONF} >/dev/null 2>&1 ]; then
-        fatal "$@ not approved by dhcpd"
-    else
-    	# Save old config in case restarting server fails
-        mv ${DHCPD_CONF} ${DHCPD_CONF}.bak || fatal "Failed to move away ${DHCPD_CONF} to backup file"
-        mv ${TMP_CONF} ${DHCPD_CONF} || fatal "Failing to install fetched dhcpd.conf"
-    fi
-    log "$@ conf installed"
     if /etc/init.d/dhcpd restart >/dev/null 2>&1 ;  then
         :
     else
@@ -54,18 +45,39 @@ install_conf()
         log "dhcpd restarted with previous configuration"
         return
     fi
+}
+
+install_conf()
+{
+    # Do syntax check first
+    if /usr/sbin/dhcpd -t -cf ${TMP_CONF} >/dev/null 2>&1; then
+        # Save old config in case restarting server fails
+        cp ${DHCPD_CONF} ${DHCPD_CONF}.bak || fatal "Failed to copy ${DHCPD_CONF} to backup file"
+        mv ${TMP_CONF} ${DHCPD_CONF} || fatal "Failing to install fetched dhcpd.conf" 
+    else
+        fatal "$@ not approved by dhcpd"
+    fi
+    log "$@ conf installed"
+    restart_server
     log "dhcpd restarted with new configuration"
 }
 
-touch ${DHCPD_CONF}  # Makes sure it exists
-if [ `egrep -v '^#' ${DHCPD_CONF} | wc -l` -lt 10 ]; then
+main()
+{
+    touch ${DHCPD_CONF}  # Makes sure it exists
+    if [ `egrep -v '^#' ${DHCPD_CONF} | wc -l` -lt 10 ]; then
         wget -q -O ${TMP_CONF} ${ADHOC_URL}/dhcpd/${ADHOC_API_VERSION} || fatal "Failed fetching dhcpd.conf from ${ADHOC_URL}"
         install_conf "Initial dhcpd.conf"
         exit 0
-fi
+    fi
 
-wget -q -O  ${TMP_CONF} ${ADHOC_URL}/dhcpd/${ADHOC_API_VERSION}/${AUTO} || fatal "Failed fetching ${AUTO} dhcpd.conf from ${ADHOC_URL}"
-if [ `cat ${TMP_CONF} | wc -l` -gt 10 ]; then
+    wget -q -O  ${TMP_CONF} ${ADHOC_URL}/dhcpd/${ADHOC_API_VERSION}/${AUTO} || fatal "Failed fetching ${AUTO} dhcpd.conf from ${ADHOC_URL}"
+    if [ `cat ${TMP_CONF} | wc -l` -gt 10 ]; then
         install_conf "Updated dhcpd.conf"
         exit 0
-fi
+    fi
+}
+
+main "$@"
+#
+##[END of File]##
