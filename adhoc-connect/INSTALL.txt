@@ -3,25 +3,35 @@ FIRST TIME INSTALLATION PROCEDURE:
 Installation assumes a system running Red Hat Enterprise Linux 6.x in
 enforced mode with the dhcp package installed.
 
-
 Create the installation directory:
 
 mkdir -p /cdg/adhoc/
 restorecon -FR /cdg
 cd /cdg/adhoc/
 
+Download the adhoc-connect package from the distribution server
+wget --no-check-certificate https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/files/adhoc-connect-x.y.z.tar
+
 Expand and configure the distribution archive:
 
 tar -xof adhoc-connect-x.y.z.tar
 cd adhoc-connect-x.y.z
-./install-upgrade.sh finish
+./fix-files-adhoc-connect.sh
+
+Install a symlink from /etc/cron.d to the cron configuration file
+
+cd /etc/cron.d
+ln -s /cdg/adhoc/adhoc-connect/etc/cron.d/adhoc-connect .
 
 ---------------------------------------------------------------------------
 
 UPGRADE PROCEDURE:
 
-cd /cdg/adhoc/adhoc-connect
+cd /cdg/adhoc
 
-./install-upgrade.sh
+Download the adhoc-connect package from the distribution server
+wget --no-check-certificate https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/files/adhoc-connect-x.y.z.tar
 
-Ths script will prompt for installation of the latest version if that is not already installed.
+tar -xof adhoc-connect-x.y.z.tar
+cd adhoc-connect-x.y.z
+./fix-files-adhoc-connect.sh
