@@ -1,0 +1,9 @@
+fix-files-adhoc-connect.sh uid=0 gid=0 mode=0744 type=file
+INSTALL.txt uid=0 gid=0 mode=0644 type=file
+etc uid=0 gid=0 mode=0755 type=dir
+cron.d uid=0 gid=0 mode=0755 type=dir
+adhoc-connect uid=0 gid=0 type=file
+..
+..
+sbin uid=0 gid=0 mode=0755 type=dir
+adhoc-connect.sh uid=0 gid=0 mode=0544 type=file

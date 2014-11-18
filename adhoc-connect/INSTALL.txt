@@ -14,7 +14,7 @@ wget --no-check-certificate https://utveckling.its.chalmers.se/sites/utveckling.
 
 Expand and configure the distribution archive:
 
-tar -xof adhoc-connect-x.y.z.tar
+tar -xf adhoc-connect-x.y.z.tar
 cd adhoc-connect-x.y.z
 ./fix-files-adhoc-connect.sh
 
@@ -32,6 +32,6 @@ cd /cdg/adhoc
 Download the adhoc-connect package from the distribution server
 wget --no-check-certificate https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/files/adhoc-connect-x.y.z.tar
 
-tar -xof adhoc-connect-x.y.z.tar
+tar -xf adhoc-connect-x.y.z.tar
 cd adhoc-connect-x.y.z
 ./fix-files-adhoc-connect.sh

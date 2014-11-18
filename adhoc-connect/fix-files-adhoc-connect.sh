@@ -70,9 +70,6 @@ main()
         echo 'Setting up adhoc-connect ...'
         echo
         
-        # Change ownership of all files in current version in case tar -o was not used
-        chown -Rh root:root $DIRNAME || die "Failed to chown $DIRNAME to root:root"
-        
         # Create a symbolic link pointing at the current version
         cd $DIRNAME/.. || die "Cannot change to $PKGNAME top directory"
         rm -f $PKGNAME

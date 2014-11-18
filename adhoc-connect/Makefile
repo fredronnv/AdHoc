@@ -29,10 +29,16 @@ install: clean
 	chmod +x ${DISTDIR}/fix-files-adhoc-connect.sh; \
 	cp ./INSTALL.txt ${DISTDIR}
 	
-release: svnstatus install
+release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	rm -rf ${DISTDIR}/../adhoc-connect-$${revno}; \
-	(cd ${DISTDIR}/..; mv adhoc-connect adhoc-connect-$${revno};tar cf ${RELEASEDIR}/adhoc-connect-$${revno}.tar adhoc-connect-$${revno})
+	(cd ${DISTDIR}/..; \
+        mv adhoc-connect adhoc-connect-$${revno}; \
+        mtreefile=`mktemp -t mtree`; \
+	echo '#mtree v1.0' >$$mtreefile; \
+        echo "adhoc-connect-$${revno} uid=0 gid=0 mode=0755 type=dir" >>$$mtreefile ; \
+	cat ${TOP}/adhoc-connect/dist.mtree >>$$mtreefile ;\
+        tar cf ${RELEASEDIR}/adhoc-connect-$${revno}.tar @$$mtreefile; rm -f $$mtreefile )
 
 patchbump:
 	(patch=`cat rel_patch`; patch=`expr $${patch} + 1`; echo $${patch} > rel_patch)
