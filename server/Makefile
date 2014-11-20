@@ -24,7 +24,9 @@ install: clean
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ./lib/adhoc_version.py ;\
 	cp -r .  ${DISTDIR};\
 	rm -rf ${DISTDIR}/testing ${DISTDIR}/tmp;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server_setup.txt >${DISTDIR}/INSTALL-server.txt;\
+        cp ./fix-files-adhoc-server.sh ${DISTDIR}; \
+        chmod +x ${DISTDIR}/fix-files-adhoc-server.sh; \
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server_setup.txt >${DISTDIR}/INSTALL.txt;\
 	rm ${DISTDIR}/server_setup.txt; \
 	rm ${DISTDIR}/etc/bashrc.private; \
 	echo "adhoc_svn_version = \"$${svn_version}\"" > ${DISTDIR}/lib/adhoc_version.py;\

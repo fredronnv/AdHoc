@@ -1,13 +1,12 @@
 #!/bin/bash
 
-#  
 # Changes ownership and creates the required symbolic link when
-# installing the adhoc-connect package.
+# installing the adhoc-server package.
 #
-# Synopsis: ./fix-files-adhoc-connect.sh
+# Synopsis: ./fix-files-adhoc-server.sh
 #
 # Author : Johan Landin <johan.landin@chalmers.se>
-# Changed: 2014-11-18
+# Changed: 2014-11-20
 
 # Define various variables
 #
@@ -60,28 +59,25 @@ main()
     if [ "$EUID" != "0" ]; then 
         die "Only root should run this, exiting..."
     fi
-        
+
     if ask "Continue and setup $PKGNAME version $PKGVERSION? (y/n): "; then
 
-        echo 'Setting up $PKGNAME ...'
-        echo
+       echo 'Setting up $PKGNAME ...'
+       echo
         
-        # Create a symbolic link pointing at the current version
-        cd $DIRNAME/.. || die "Cannot change to $PKGNAME top directory"
-        rm -f $PKGNAME
-        ln -f --symbolic $PKG $PKGNAME || die "Failed to link $PKGNAME to $PKG"
+       # Change ownership of all files in the current version
+       chown -Rh srvadhoc:srvadhoc $DIRNAME
         
-        # Fix SELinux context errors
-        restorecon -FR $DIRNAME || die "SELinux context on $DIRNAME could not be reset"
-        restorecon -F $PKGNAME || die "SELinux context on $PKGNAME could not be reset"
-        exit $?
-
+       # Create a symbolic link pointing at the current version
+       cd $DIRNAME/.. || die "Cannot change to $PKGNAME top directory"
+       rm -f $PKGNAME
+       ln -f --symbolic $PKG $PKGNAME || die "Failed to link $PKGNAME to $PKG"
+       chown -h srvadhoc:srvadhoc $PKGNAME || die "Could not change ownership of files in $PKG"
+           
     else
-        #
         echo 'No action taken ...'
         echo
         exit 0
-        #
     fi
 }
 
