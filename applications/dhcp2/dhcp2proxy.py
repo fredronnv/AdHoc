@@ -7,6 +7,12 @@ Created on 28 jan 2014
 import sys
 import kerberos
 import pprint
+import json
+import collection
+
+# For jsom compatibility
+true=True
+false=False
 
 
 def template2keys(template, indent=1):
@@ -85,21 +91,11 @@ def process(command, output):
     #print >>sys.stderr, cmd, sep, arg
     global srv, srv_url
     
-    arglist = []
-    brgs = []
-    
-    if arg:
-        arglist=eval(arg)
-    if len(arglist):
-        a=arglist[0]
-        brgs.append(a)
-    if len(arglist) > 1:
-        b=arglist[1]
-        brgs.append(b)
-    
-    args=[]
-    for x in brgs:
-    	args.append(pprint.pformat(x))
+    # Parse args using json, then split the list in its
+    # first level components and serialize each element back
+    # while keeping key/value pairs in dicts ordered
+    jobj = json.loads('['+arg+']', object_pairs_hook=collections.OrderedDict)
+    args=[json.dumps(x) for x in jobj]
     
     try:
         if not srv:
