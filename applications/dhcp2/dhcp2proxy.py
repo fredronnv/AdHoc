@@ -5,6 +5,7 @@ Created on 28 jan 2014
 @author: bernerus
 '''
 import sys
+import kerberos
 
 
 def template2keys(template, indent=1):
@@ -107,9 +108,12 @@ def process(command, output):
             except:
                 print >>sys.stderr, "Unexpected error from server:", e
             return 1
+        
+        except kerberos.GSSError:
+            raise
              
-        except Exception:
-            #print >>sys.stderr, "Exception on command:", s
+        except Exception, e:
+            print >>sys.stderr, "Exception on command:", e
             raise
         #print >> sys.stderr, "RES=%s" % res
         s = ""
@@ -130,7 +134,11 @@ def process(command, output):
         #print output.getvalue().rstrip('\n')
         #print >>sys.stderr, "OBJECT VALUE='" + output.getvalue()+"'"
         return 0
-            
+    
+    except kerberos.GSSError:
+            print >> sys.stderr, "You need a Kerberos ticket. See kinit(1)"
+            raise
+                
     except KeyError, e:
         print >> sys.stderr, e
         try:
@@ -160,9 +168,16 @@ while True:
         finval = fin.read()
         #print >>sys.stderr, "Finval=", finval
         output = StringIO.StringIO()
-        process(finval, output)
-        outres = output.getvalue().rstrip("\n").encode("utf-8")
-        print outres
-        sys.stdout.flush()
+        try:
+            process(finval, output) 
+            outres = output.getvalue().rstrip("\n").encode("utf-8")
+            print outres
+            sys.stdout.flush()
+        except:
+            sys.stdout.flush()
+            sys.stderr.flush()
+            fout.close()
+            fin.close()
+            sys.exit(1)
         fout.close()
         fin.close()

@@ -237,7 +237,7 @@ class RPCC(object):
             (res, ctx) = kerberos.authGSSClientInit("HTTP@" + self._host)
             kerberos.authGSSClientStep(ctx, "")
             token = kerberos.authGSSClientResponse(ctx)
-            print "TOKEN=",token
+            #print >>sys.stderr, "TOKEN=",token
             args.append(token)
 
         # Perform call, measuring passed time.

@@ -2057,12 +2057,16 @@ store_proxy_pid()
 }
 
 child_died()
-{
-    exitvalue=$?
+{   
     if kill -0 $1 >/dev/null 2>&1; then
     	return
-	fi
-	error "Proxy process died, Exit status $exitvalue"
+	elif wait $1; then
+	   error "Proxy process died, Exit status 0"
+	   exitvalue=0
+    else
+       error "Proxy process terminated due to an error"
+       exitvalue=1
+    fi
 	trap - INT TERM EXIT # Dont try to stop the proxy, it is already dead.
 	# Do the cleanup that proxy_stop would have done here will also prevent that 
 	proxy_cleanup
