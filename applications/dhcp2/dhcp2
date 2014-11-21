@@ -2060,7 +2060,7 @@ child_died()
 {   
     if kill -0 $1 >/dev/null 2>&1; then
     	return
-	elif wait $1; then
+    elif wait $1; then
 	   error "Proxy process died, Exit status 0"
 	   exitvalue=0
     else
