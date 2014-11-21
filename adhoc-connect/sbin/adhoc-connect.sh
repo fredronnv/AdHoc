@@ -9,7 +9,12 @@ TMP_CONF=/etc/dhcp/dhcpd.conf.new
 DHCPD_CONF=/etc/dhcp/dhcpd.conf
 ADHOC_URL=https://adhoc.ita.chalmers.se:8877
 ADHOC_API_VERSION=0
-LOGFILE=/var/log/adhoc-connect.log
+
+ADHOC_USER_HOME=/cdg/adhoc
+VARDIR=${ADHOC_USER_HOME}/var
+LOGDIR=${VARDIR}/log
+LOGFILE=${LOGDIR}/adhoc-connect.log
+
 AUTO=auto
 
 log()
