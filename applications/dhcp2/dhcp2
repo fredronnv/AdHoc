@@ -4711,8 +4711,6 @@ mkgroup()
     if [ -z "$mkgroup_i_flag" ]; then
     	echo "Please enter some information about the group using the -i flag"
     	exit 2
-	else
-		echo "$mkgroup_i_arg"
 	fi
 
     if db_groupexists $mkgroup_groupname; then
