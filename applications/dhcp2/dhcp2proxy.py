@@ -98,7 +98,18 @@ def process(command, output):
         #print >> sys.stderr, "EXEC: %s" % s
         try:
             exec s
-        except (rpcc_client.RPCCValueError,rpcc_client.RPCCLookupError,rpcc_client.RPCCRuntimeError,rpcc_client.RPCCTypeError) as e:
+        except rpcc_client.RPCCRuntimeError as e:
+            e=e[0]
+            try:
+                if e.name == 'RuntimeError::AccessDenied':
+                    print >>sys.stderr, "Access denied. Needed privileges %s" % e.desc.lower()
+                else:
+                    print >>sys.stderr, "%s: %s" % (e.name, e.desc)
+            except:
+                print >>sys.stderr, "Unexpected error from server:", e
+            raise
+            
+        except (rpcc_client.RPCCValueError,rpcc_client.RPCCLookupError,rpcc_client.RPCCTypeError) as e:
             e=e[0]
             try:
                 if e["value"]:
@@ -107,7 +118,7 @@ def process(command, output):
                     print >>sys.stderr, "%s" % e.desc
             except:
                 print >>sys.stderr, "Unexpected error from server:", e
-            return 1
+            raise
         
         except kerberos.GSSError:
             raise
