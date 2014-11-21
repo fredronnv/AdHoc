@@ -166,7 +166,7 @@ EOF
 13. Install and configure the adhoc-server distibution
 
    cd /cdg/adhoc
-   tar -xof adhoc-server-x.y.z.tar
+   tar -xf adhoc-server-x.y.z.tar
 
    cd adhoc-server-x.y.z
    ./fix-files-adhoc-server.sh
