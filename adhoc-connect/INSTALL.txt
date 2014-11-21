@@ -22,6 +22,7 @@ Install a symlink from /etc/cron.d to the cron configuration file
 
 cd /etc/cron.d
 ln -s /cdg/adhoc/adhoc-connect/etc/cron.d/adhoc-connect .
+restorecon -F adhoc-connect
 
 ---------------------------------------------------------------------------
 
