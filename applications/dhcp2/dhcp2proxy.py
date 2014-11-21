@@ -6,6 +6,7 @@ Created on 28 jan 2014
 '''
 import sys
 import kerberos
+import pprint
 
 
 def template2keys(template, indent=1):
@@ -84,7 +85,21 @@ def process(command, output):
     #print >>sys.stderr, cmd, sep, arg
     global srv, srv_url
     
-    args = arg.split(",", 1)
+    arglist = []
+    brgs = []
+    
+    if arg:
+        arglist=eval(arg)
+    if len(arglist):
+        a=arglist[0]
+        brgs.append(a)
+    if len(arglist) > 1:
+        b=arglist[1]
+        brgs.append(b)
+    
+    args=[]
+    for x in brgs:
+    	args.append(pprint.pformat(x))
     
     try:
         if not srv:
