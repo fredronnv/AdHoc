@@ -3813,44 +3813,32 @@ _lsgroups_fmt()
 
 #S lshosts;lh;List hosts;0;1;[dns_pattern];List configured hosts;25
 #O lshosts;l;;Use long format
-#O lshosts;L;;Use the very long format
-#O lshosts;g;group;List hosts belonging to the group 'group'
-#O lshosts;a;;Only list active entries 
-#O lshosts;i;;Only list inactive entries
+#O lshosts;g;group;List hosts belonging groups matching a group name pattern
 #O lshosts;A;;Include active entries
-#O lshosts;I;;Include entries that are not active (inactive or dead)
+#O lshosts;I;;Include entries that are inactive
 #O lshosts;D;;Include dead entries
 #O lshosts;m;mac-pattern;List hosts matching a MAC pattern
+#O lshosts;r;room-pattern;List hosts registeren in a room matching a pattern
+#O lshosts;d;description_pattern;List hosts whose description (info) matches a pattern
+#O lshosts;i;id_pattern;List hosts whise ID matches a pattern.
 #M
 #M =head2 I<Description>
 #M
 #M The lshosts subcommand lists the configured hosts. An optional
 #M I<dns_pattern> may be specified to limit the output to hosts whose DNS name matches the given pattern.
-#M Pattern matching only occurs on DNS entry, not the mac address or any other output.
-#M If you need to match against anything else, do a lshost -l or lshost -L and feed the output through grep.
+#M 
+#M Other flags allow you to further limit the output to hosts matching patterns for MAC-address, group name,
+#M room or description. Patterns can have the wildcards * a,d ? meaning any text or a single character.
 #M
 #M =head3 I<Format control>
 #M
 #M The default format only lists the host_id's.
 #M
-#M The long format (-l) gives host_id, MAC-address, room, expiration date and comments.
-#M
-#M The very long format (-L) also gives the category, uname, and access group information.
+#M The long format (-l) gives host_id, dns name, MAC-address, status, group, room and comments.
 #M 
 #M =head3 I<Selection control>
 #M
-#M The default is to select only active, non-expired entries.
-#M
-#M The -a flag alters the selection to also include expired, but active entries.
-#M
-#M The -i flag alters the selection to only include inactive entries.
-#M
-#M There are five uppercase lettered flags that may be used for composing selections.
-#M
-#M These come in two groups: -A, -I and -D makes selections using the entry status.
-#M Note that you must use at least one flag in each group to get ant results at all,
-#M which is to say that the flags within each group are cumulative. If you don't select
-#M one, you haven't selected any entries at all.
+#M There are three uppercase lettered flags that may be used for composing selections on status.
 #M
 #M The -A flag selects the active entries.
 #M
@@ -3858,41 +3846,14 @@ _lsgroups_fmt()
 #M
 #M The -D flag selects entries marked to be dead.
 #M
-#M There are some predefined, sensible combinations of the abovementioned uppercase flags:
-#M
-#M The -a flag is the equivalent of the -A flag, which will give you all entries
-#M that are active.
-#M 
-#M The -i flag is the equivalent of the -I flag, which will give you all entries that
-#M are not active, i.e. both Inactive and dead entries.
-#M
-#M The default (no flags) is the equivalent of the -A, -I and -N flags which will give
-#M you all entries.
-#M
-#M The flags -a and -i are mutually exclusive. 
+#M The default (no flags) is the equivalent of the -A, -I flags which will give
+#M you all entries except those marked to be dead.
 #M 
 #M
 lshosts()
 {
     for i in "$@"; do
         case "$i" in
-            -a)
-                if [ -n "$lshosts_i_flag" ]; then
-                    echo "The -i and -a flags are mutually exclusive"
-                    return 1
-                fi
-                lshosts_a_flag=$i; shift
-                ;;
-            -i)
-                if [ -n "$lshosts_a_flag" ]; then
-                    echo "The -a and -i flags are mutually exclusive"
-                    return 1
-                fi
-                lshosts_i_flag=$i; shift
-                ;;
-            -N)
-                lshosts_N_flag=$i; shift
-                ;;
             -A)
                 lshosts_A_flag=$i; shift
                 ;;
@@ -3906,6 +3867,10 @@ lshosts()
                 lshosts_g_flag=$i; shift
                 lshosts_g_arg=$1; shift
                 ;;
+            -i)
+                lshosts_i_flag=$i; shift
+                lshosts_i_arg=$1; shift
+                ;;
             -m)
                 lshosts_m_flag=$i; shift
                 lshosts_m_arg=$1; shift
@@ -3913,8 +3878,13 @@ lshosts()
             -l)
                 lshosts_l_flag=$i; shift
                 ;;
-            -L)
-                lshosts_L_flag=$i; shift
+            -r) 
+            	lshosts_r_flag=$i; shift
+                lshosts_r_arg=$1; shift
+                ;;
+            -d) 
+            	lshosts_d_flag=$i; shift
+                lshosts_d_arg=$1; shift
                 ;;
             --)
                 shift;break
@@ -3933,11 +3903,21 @@ lshosts()
         mac_pattern="$lshosts_m_arg"
     fi
     
+    if [ -n "$lshosts_r_flag" ]; then
+        room_pattern="$lshosts_r_arg"
+    fi
     
-    if [ -n "$lshosts_l_flag" -o -n "$lshosts_L_flag" ]; then
+    if [ -n "$lshosts_d_flag" ]; then
+        description_pattern="$lshosts_d_arg"
+    fi
+    
+    if [ -n "$lshosts_i_flag" ]; then
+        id_pattern="$lshosts_i_arg"
+    fi
+    
+    if [ -n "$lshosts_l_flag" ]; then
         data_template='"host":true,"dns":true,"mac":true,"group":true,"status":true,"room":true,"info":true'
-        format="id,dns,mac,\`group\`,entry_status,room,info"
-        echo "Host ID	DNS	Mac	Group	EStatus	Room	Info" | _lshosts_l_fmt
+        echo "Host ID	DNS	Mac	Group	 Status	 Room	 Info" | _lshosts_l_fmt
     fi
     
     if [ -z "$lshosts_a_flag$lshosts_i_flag$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
@@ -3954,30 +3934,18 @@ lshosts()
     fi
 
     #echo $data_template
-    where="where 1 "
     if [ -n "$lshosts_g_flag" ]; then
-        search_exp="$search_exp 'group': '$lshosts_g_arg'"
-        where="$where and \`group\` = '$lshosts_g_arg'"
+        search_exp="$search_exp 'group_pattern': '$lshosts_g_arg',"
     fi
-    #echo SEARCH_EXP= $search_exp
 
-
+    status_regexp=""
     if [ -n "${lshosts_A_flag}${lshosts_I_flag}${lshosts_D_flag}" ]; then
-        if [ -n "$search_exp" ]; then
-            search_exp="$search_exp, "
-        fi
-        #search_exp="$search_exp'status_regexp':"
-        status_regexp=""
-        where="$where and ( 0 "
+        
         if [ -n "$lshosts_A_flag" ]; then
-            where="$where or entry_status = 'Active'"
             status_regexp="'(${status_regexp}Active"
         fi
-        #echo A $search_exp
-
 
         if [ -n "$lshosts_I_flag" ]; then
-            where="$where or entry_status != 'Active'"
             if [ -n "$status_regexp" ]; then
                 status_regexp="$status_regexp|"
             else
@@ -3985,11 +3953,8 @@ lshosts()
             fi
             status_regexp="${status_regexp}Inactive"
         fi
-        #echo B $search_exp
-    
     
         if [ -n "$lshosts_D_flag" ]; then
-            where="$where or entry_status = 'Dead'"
             if [ -n "$status_regexp" ]; then
                 status_regexp="$status_regexp|"
             else
@@ -3997,30 +3962,38 @@ lshosts()
             fi
             status_regexp="${status_regexp}Dead"
         fi
-        #echo C $search_exp
         status_regexp="$status_regexp)'"
-        #search_exp="$search_exp$status_regexp, "
-        where="$where ) and ( 0"
-        #echo D $search_exp
     fi
-
-    #echo E $search_exp
-    
-    where="$where )"
-    #echo F $search_exp
 
     if [ -n "$dns_pattern" ]; then
         search_exp="$search_exp'dns_pattern':'*$dns_pattern*',"
     fi
     
     if [ -n "$mac_pattern" ]; then
-        search_exp="$search_exp'mac_pattern':'*$mac_pattern*'"
+        search_exp="$search_exp'room_pattern':'*$mac_pattern*',"
     fi
     
+    if [ -n "$room_pattern" ]; then
+        search_exp="$search_exp'mac_pattern':'*$room_pattern*',"
+    fi
+    
+    if [ -n "$description_pattern" ]; then
+        search_exp="$search_exp'info_pattern':'*$description_pattern*',"
+    fi
+    
+    if [ -n "$id_pattern" ]; then
+        search_exp="$search_exp'host_pattern':'*$id_pattern*',"
+    fi
+    
+    if [ -n "$status_regexp" ]; then
+    	search_exp="$search_exp'status_regexp':$status_regexp,"
+	fi
+    
+    
     #echo G "{$search_exp}" >&2
-    if [ -n "$lshosts_L_flag" -o -n "$lshosts:L_flag" ]; then
+    if [ -n "$lshosts_l_flag" ]; then
         proxy_start
-        server_call "host_dig({$search_exp},{$data_template})"   | _lshosts_L_fmt
+        server_call "host_dig({$search_exp},{$data_template})"   | _lshosts_l_fmt
     fi
 
     exit 0
@@ -4028,13 +4001,9 @@ lshosts()
 
 _lshosts_l_fmt()
 {
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-12s %42s %17s %30s %-8s %7s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8);}" |  sed 's/ *$//'
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-12s %42s %18s %32s %-9s %-8s %-8s %7s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8);}" |  sed 's/ *$//'
 }
 
-_lshosts_L_fmt()
-{
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-12s %42s %17s %30s %-10s %-8s %-8s %7s %12s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11);}" |  sed 's/ *$//'
-}
 #S lsnetworks;ln;List networks;0;0;;List shared networks defined in the DHCP database;64
 #M
 #M =head2 I<Description>
