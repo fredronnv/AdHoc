@@ -8,7 +8,7 @@ import sys
 import kerberos
 import pprint
 import json
-import collection
+import collections
 
 # For jsom compatibility
 true=True
@@ -49,9 +49,9 @@ def print_struct_in_order(x, kvtuples, template, output, indent=1):
         if key.startswith('_'):
             continue
         keyval = kvtuple[1].strip()
-        if keyval == "False":  # Hmm, this is probably not supported
+        if keyval == "False" or keyval == "false":  # Hmm, this is probably not supported
             raise ValueError("Never use False as a value to _dig or _fetch functions")
-        if keyval == "True":
+        if keyval == "True" or keyval == "true":
             if x[key]:
                 if type(x[key]) is list:
                     values.append(x[key])
@@ -82,21 +82,53 @@ def print_object_in_template_order(obj, template, output, indent=1):
  
  
 def process(command, output):
+    global srv, srv_url
+    
     res = None
     (cmd, sep, arg) = command.partition("(")
-    #print >>sys.stderr, cmd, sep, arg
+    #print >>sys.stderr, "CMD=",cmd, "sep=", sep, "arg=",arg
     arg = arg.strip()
     if sep:
         arg = arg.rstrip(")")
-    #print >>sys.stderr, cmd, sep, arg
-    global srv, srv_url
+    #print >>sys.stderr, "CMD=",cmd, "sep=", sep, "arg=",arg
     
+#=======
     # Parse args using json, then split the list in its
     # first level components and serialize each element back
     # while keeping key/value pairs in dicts ordered
-    jobj = json.loads('['+arg+']', object_pairs_hook=collections.OrderedDict)
+    jarg = '['+arg+']'
+    #print >>sys.stderr,"Jarg="
+    jarg = jarg.replace("'",'"')
+    jarg = jarg.replace(",}","}")
+    #pprint.pprint(jarg, stream=sys.stderr)
+    jobj = json.loads(jarg, object_pairs_hook=collections.OrderedDict)
+    #print >>sys.stderr,"Jobj="
+    #pprint.pprint(jobj, stream=sys.stderr)
     args=[json.dumps(x) for x in jobj]
+    #print >>sys.stderr,"Args="
+    #pprint.pprint(args, stream=sys.stderr)
+#>>>>>>> .r612
     
+    # Parse the arg string inti its lowest level parts
+#     i = 0
+#     bracelevels = 0
+#     accum=""
+#     while i < len(arg):
+#         c = arg[i]
+#         if c == '{':
+#             bracelevels += 1
+#         if c == '}':
+#             bracelevels -= 1
+#         if bracelevels:
+#             accum = accum + c
+#         else:
+#             if c==",":
+#                 args += accum
+#                 accum=""
+#         i += 1
+#     if accum:
+#         args += accum
+        
     try:
         if not srv:
             if not srv_url:
@@ -109,7 +141,8 @@ def process(command, output):
         #print >> sys.stderr, "EXEC: %s" % s
         try:
             exec s
-        except rpcc_client.RPCCRuntimeError as e:
+            #print >>sys.stderr, "EXEC DONE"
+        except rpcc_client.RPCCRuntimeError, e:
             e=e[0]
             try:
                 if e.name == 'RuntimeError::AccessDenied':
@@ -120,7 +153,7 @@ def process(command, output):
                 print >>sys.stderr, "Unexpected error from server:", e
             raise
             
-        except (rpcc_client.RPCCValueError,rpcc_client.RPCCLookupError,rpcc_client.RPCCTypeError) as e:
+        except (rpcc_client.RPCCValueError,rpcc_client.RPCCLookupError,rpcc_client.RPCCTypeError),  e:
             e=e[0]
             try:
                 if e["value"]:
