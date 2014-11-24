@@ -3820,6 +3820,7 @@ _lsgroups_fmt()
 #O lshosts;A;;Include active entries
 #O lshosts;I;;Include entries that are not active (inactive or dead)
 #O lshosts;D;;Include dead entries
+#O lshosts;m;mac-pattern;List hosts matching a MAC pattern
 #M
 #M =head2 I<Description>
 #M
@@ -3905,6 +3906,10 @@ lshosts()
                 lshosts_g_flag=$i; shift
                 lshosts_g_arg=$1; shift
                 ;;
+            -m)
+                lshosts_m_flag=$i; shift
+                lshosts_m_arg=$1; shift
+                ;;
             -l)
                 lshosts_l_flag=$i; shift
                 ;;
@@ -3922,11 +3927,15 @@ lshosts()
     dns_pattern=$1
     
     data_template='"host":True'
-	search_exp=""
-	
+    search_exp=""
+    
+    if [ -n "$lshosts_m_flag" ]; then
+        mac_pattern="$lshosts_m_arg"
+    fi
+    
     
     if [ -n "$lshosts_l_flag" -o -n "$lshosts_L_flag" ]; then
-    	data_template='"host":True,"dns":True,"mac":True,"group":True,"status":True,"room":True,"info":True'
+        data_template='"host":True,"dns":True,"mac":True,"group":True,"status":True,"room":True,"info":True'
         format="id,dns,mac,\`group\`,entry_status,room,info"
         echo "Hostname	DNS	Mac	Group	EStatus	Room	Info" | _lshosts_l_fmt
     fi
@@ -3944,71 +3953,75 @@ lshosts()
         lshosts_I_flag='I'
     fi
 
-	#echo $data_template
+    #echo $data_template
     where="where 1 "
     if [ -n "$lshosts_g_flag" ]; then
-    	search_exp="$search_exp 'group': '$lshosts_g_arg'"
+        search_exp="$search_exp 'group': '$lshosts_g_arg'"
         where="$where and \`group\` = '$lshosts_g_arg'"
     fi
     #echo SEARCH_EXP= $search_exp
 
 
-	if [ -n "${lshosts_A_flag}${lshosts_I_flag}${lshosts_D_flag}" ]; then
-		if [ -n "$search_exp" ]; then
-			search_exp="$search_exp, "
-		fi
-		#search_exp="$search_exp'status_regexp':"
-		status_regexp=""
-    	where="$where and ( 0 "
-    	if [ -n "$lshosts_A_flag" ]; then
+    if [ -n "${lshosts_A_flag}${lshosts_I_flag}${lshosts_D_flag}" ]; then
+        if [ -n "$search_exp" ]; then
+            search_exp="$search_exp, "
+        fi
+        #search_exp="$search_exp'status_regexp':"
+        status_regexp=""
+        where="$where and ( 0 "
+        if [ -n "$lshosts_A_flag" ]; then
             where="$where or entry_status = 'Active'"
             status_regexp="'(${status_regexp}Active"
-    	fi
-    	#echo A $search_exp
+        fi
+        #echo A $search_exp
 
 
-    	if [ -n "$lshosts_I_flag" ]; then
+        if [ -n "$lshosts_I_flag" ]; then
             where="$where or entry_status != 'Active'"
             if [ -n "$status_regexp" ]; then
-				status_regexp="$status_regexp|"
-			else
-				status_regexp="'("
-			fi
-			status_regexp="${status_regexp}Inactive"
-    	fi
-    	#echo B $search_exp
+                status_regexp="$status_regexp|"
+            else
+                status_regexp="'("
+            fi
+            status_regexp="${status_regexp}Inactive"
+        fi
+        #echo B $search_exp
     
     
-    	if [ -n "$lshosts_D_flag" ]; then
+        if [ -n "$lshosts_D_flag" ]; then
             where="$where or entry_status = 'Dead'"
             if [ -n "$status_regexp" ]; then
-				status_regexp="$status_regexp|"
-			else
-				status_regexp="'("
-			fi
-			status_regexp="${status_regexp}Dead"
-    	fi
-    	#echo C $search_exp
-    	status_regexp="$status_regexp)'"
-    	#search_exp="$search_exp$status_regexp, "
-    	where="$where ) and ( 0"
-    	#echo D $search_exp
-	fi
+                status_regexp="$status_regexp|"
+            else
+                status_regexp="'("
+            fi
+            status_regexp="${status_regexp}Dead"
+        fi
+        #echo C $search_exp
+        status_regexp="$status_regexp)'"
+        #search_exp="$search_exp$status_regexp, "
+        where="$where ) and ( 0"
+        #echo D $search_exp
+    fi
 
     #echo E $search_exp
     
     where="$where )"
     #echo F $search_exp
 
-	if [ -n "$dns_pattern" ]; then
-		search_exp="$search_exp 'dns_pattern': '*$dns_pattern*'"
-	fi
-	#echo "{$search_exp}" >&2
+    if [ -n "$dns_pattern" ]; then
+        search_exp="$search_exp'dns_pattern':'*$dns_pattern*',"
+    fi
+    
+    if [ -n "$mac_pattern" ]; then
+        search_exp="$search_exp'mac_pattern':'*$mac_pattern*'"
+    fi
+    
+    #echo G "{$search_exp}" >&2
     if [ -n "$lshosts_L_flag" -o -n "$lshosts:L_flag" ]; then
-		proxy_start
-    	server_call "host_dig({$search_exp}, {$data_template})"   | _lshosts_L_fmt
-	fi
-	#echo APA >&2
+        proxy_start
+        server_call "host_dig({$search_exp},{$data_template})"   | _lshosts_L_fmt
+    fi
 
     exit 0
 }
