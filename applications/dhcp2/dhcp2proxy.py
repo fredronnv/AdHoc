@@ -107,7 +107,7 @@ def process(command, output):
     args=[json.dumps(x) for x in jobj]
     #print >>sys.stderr,"Args="
     #pprint.pprint(args, stream=sys.stderr)
-#>>>>>>> .r612
+
     
     # Parse the arg string inti its lowest level parts
 #     i = 0
