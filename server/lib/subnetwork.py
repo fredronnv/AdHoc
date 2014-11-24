@@ -5,6 +5,7 @@
 from rpcc import *
 from shared_network import *
 import struct
+import ipaddr
 from optionset import *
 from option_def import *
 
@@ -18,12 +19,20 @@ class ExtSubnetworkAlreadyExistsError(ExtLookupError):
     desc = "The subnetwork ID is already in use"
 
     
+class ExtSubnetworkOverlapsExisting(ExtValueError):
+    desc = "The given subnetwor overlaps an already existing subnetwork"
+
+    
 class ExtSubnetworkInUseError(ExtValueError):
     desc = "The subnetwork is referred to by other objects. It cannot be destroyed"  
     
-    
+       
 class ExtSubnetworkInvalidError(ExtValueError):
-    desc = "the subnetwork specifcation is invalid"  
+    desc = "the subnetwork specifcation is invalid"
+    
+    
+class ExtSubnetworkInUseByDHCPServerError(ExtSubnetworkInUseError):
+    desc = "The operation would leave a DHCP server without a defined subnetwork. This is not allowed"
 
 
 class ExtSubnetworkID(ExtString):
@@ -186,7 +195,7 @@ class IPV4Match(Match):
         q1 += q.var(val)
         q1 += ") <= INET_ATON(SUBSTRING_INDEX(id,'/',1)) + ((1 << (32 - CONVERT(SUBSTRING_INDEX(id,'/',-1), UNSIGNED) ))-1)"
         q.where(q1)
- 
+
         
 class SubnetworkManager(AdHocManager):
     name = "subnetwork_manager"
@@ -234,6 +243,8 @@ class SubnetworkManager(AdHocManager):
         
         optionset = self.optionset_manager.create_optionset()
         
+        self.checkoverlap(id)
+        
         q = """INSERT INTO subnetworks (id, network, info, changed_by, optionset) 
                VALUES (:id, :network, :info, :changed_by, :optionset)"""
         try:
@@ -243,8 +254,12 @@ class SubnetworkManager(AdHocManager):
             raise ExtSubnetworkAlreadyExistsError()
         self.event_manager.add("create", subnetwork=id, parent_object=network, info=info, 
                         authuser=fun.session.authuser, optionset=optionset)
+        
     @entry(g_write)
     def destroy_subnetwork(self, fun, subnetwork):
+        
+        if self.dhcp_servers(subnetwork):
+            raise ExtSubnetworkInUseByDHCPServerError()
         
         subnetwork.get_optionset().destroy()
         
@@ -257,12 +272,52 @@ class SubnetworkManager(AdHocManager):
         self.event_manager.add("destroy", subnetwork=subnetwork.oid)
         
         #print "Subnetwork destroyed, id=", id
+     
+    def checkoverlap(self, cidr):
+        """ Check if the given CIDR overlaps any of the existing subnetworks"""
+        n1 = ipaddr.IPNetwork(cidr)
         
+        for row in self.db.get("SELECT id FROM subnetworks"):
+            n2 = ipaddr.IPNetwork(row[0])
+            if n1.overlaps(n2) or n2.overlaps(n1):
+                raise ExtSubnetworkOverlapsExisting()
+            
+    def dhcp_servers(self, cidr): 
+        """ Return the set of dhcp servers contained within the cidr"""
+        
+        nw = ipaddr.IPNetwork(cidr)   
+        q = """SELECT id FROM dhcp_servers"""
+        
+        servers = set()
+        
+        for row in self.db.get(q):
+            dhcp_server_name = row[0]
+            dhcp_server_ip = sochet.gethostbyname(dhcp_server_name)
+            if nw.contains(ipaddr.IPv4Address(dhcp_derver_ip)):
+                servers.add(dhcp_server_name)
+                
+        return servers
+                     
 
     @entry(g_write)
     def update_options(self, fun, subnetwork, updates):
         omgr = fun.optionset_manager
         optionset = omgr.get_optionset(subnetwork.optionset)
+        
+        if key=='id':
+            self.checkoverlap(value)
+            
+        
+            
         for (key, value) in updates.iteritems():
+            
+            """ Changing the ID means changing the range of IP addresses for the subnetwork.
+                This may result in two bad things. A subnetwork overlap or that we leave
+                one or more of our DHCP servers in the cold"""
+            if key=='id':
+                self.checkoverlap(value)
+                if self.dhcp_servers(subnetwork) != self.dhcp_servers(value):
+                    raise ExtSubnetworkInUseByDHCPServerError()
+                
             optionset.set_option_by_name(key, value)
             self.event_manager.add("update",  subnetwork=subnetwork.oid, option=key, option_value=unicode(value), authuser=fun.session.authuser)
