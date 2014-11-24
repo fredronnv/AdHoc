@@ -54,9 +54,9 @@ TEST=`which test`
 # The code is designed to handle all the strange ways that man lead up to this script.
 MY_SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$MY_SOURCE" ]; do # resolve $MY_SOURCE until the file is no longer a symlink
-	MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
-	MY_SOURCE="$(readlink "$MY_SOURCE")"
-	[[ $MY_SOURCE != /* ]] && MY_SOURCE="$MY_DIR/$MY_SOURCE" # if $MY_SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+    MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
+    MY_SOURCE="$(readlink "$MY_SOURCE")"
+    [[ $MY_SOURCE != /* ]] && MY_SOURCE="$MY_DIR/$MY_SOURCE" # if $MY_SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 pushd . > /dev/null
 MY_DIR="$( cd -P "$( dirname "$MY_SOURCE" )" && pwd )"
@@ -662,7 +662,7 @@ do_subcmd()
                         exit 2
                     fi
 #C OK, we got an arg, shell we send it through a validator ?
-					proxy_start
+                    proxy_start
                     eval _do_subcmd_validator=\"\$_${subcmd}_${_larg}_validator\"
                     if [ -n "${_do_subcmd_validator}" ]; then
 #C Yes, rewrite the syntax name to a real function name
@@ -686,7 +686,7 @@ do_subcmd()
                 fi
                 ;;
             -*)
-            	proxy_start
+                proxy_start
                 _sarg=${_arg:1}
                 eval _do_subcmd_tmp=\"\$_${subcmd}_${_sarg}_flag\"
                 if [ "$_do_subcmd_tmp" != "${_arg:1}" -a "$_arg" != "-h" ]; then
@@ -704,7 +704,7 @@ do_subcmd()
                     fi
                     eval _do_subcmd_validator=\"\$_${subcmd}_${_sarg}_validator\"
                     if [ -n "${_do_subcmd_validator}" ]; then
-                    	proxy_start
+                        proxy_start
                         eval _do_subcmd_validator="_validate_${_do_subcmd_validator}"
                         _do_subcmd_tmp=`${_do_subcmd_validator} "$1"`
                         if [ -z "${_do_subcmd_tmp}" ]; then
@@ -723,7 +723,7 @@ do_subcmd()
             *)
                 _do_subcmd_arglist="$_do_subcmd_arglist '$_arg'"
                 #_argsleft=`expr $_argsleft + 1`
-				_argsleft=$((_argsleft+1))
+                _argsleft=$((_argsleft+1))
                 ;;
         esac
 #    echo _do_subcmd_arglist="$_do_subcmd_arglist"
@@ -1656,7 +1656,7 @@ _validate_mac_address()
         dec=`printf "%s\n" "ibase=16; $j" | bc 2>/dev/null`
        
         if [ -z "$dec" ]; then
-	    echo "Invalid mac address: $ether_in" >&2
+            echo "Invalid mac address: $ether_in" >&2
             return
         fi
         if [ "$dec" -ge 0 -a "$dec" -le 255 ]; then
@@ -1733,7 +1733,7 @@ _validate_host_in_subnet()
 #C
 _validate_host_in_db()
 {
-	
+    
     _validate_host_in_db_arg=$1
     
     if db_exists host $_validate_host_in_db_arg ; then
@@ -1803,8 +1803,8 @@ _validate_netmask_or_null()
     _validate_netmask_or_null_arg=$1
 
     if [ -z "$_validate_netmask_or_null_arg" ]; then
-	echo ""
-	return
+        echo ""
+        return
     fi
 
     _validate_netmask "$_validate_netmask_or_null_arg"
@@ -1849,28 +1849,28 @@ _validate_ipaddr()
 #C
 _validate_cidr()
 {
-	trace "Validating CIDR '$1'"
-	_validate_cidr_arg=$1
-	_validate_cidr_ip=`echo ${_validate_cidr_arg} | cut -f1 -d/`
-	_validate_cidr_bits=`echo ${_validate_cidr_arg} | cut -f2 -d/`
-	
-	_validated_cidr_ip=`_validate_ipaddr "$_validate_cidr_ip"`
-	
-	if [ -z "$_validated_cidr_ip" ]; then
-		return
-	fi
-	
-	if [ -z "$_validate_cidr_bits" ]; then
-		echo "CIDR must contain a / followed by a number between 1 and 31" >&2
-		return
-	fi
-	
-	if [ $_validate_cidr_bits -lt 1 -o $_validate_cidr_bits -gt 31 ]; then
-		echo "CIDR size must be between 1 and 31" >&2
-		return
-	fi
-	
-	echo "${_validated_cidr_ip}/${_validate_cidr_bits}"
+    trace "Validating CIDR '$1'"
+    _validate_cidr_arg=$1
+    _validate_cidr_ip=`echo ${_validate_cidr_arg} | cut -f1 -d/`
+    _validate_cidr_bits=`echo ${_validate_cidr_arg} | cut -f2 -d/`
+    
+    _validated_cidr_ip=`_validate_ipaddr "$_validate_cidr_ip"`
+    
+    if [ -z "$_validated_cidr_ip" ]; then
+        return
+    fi
+    
+    if [ -z "$_validate_cidr_bits" ]; then
+        echo "CIDR must contain a / followed by a number between 1 and 31" >&2
+        return
+    fi
+    
+    if [ $_validate_cidr_bits -lt 1 -o $_validate_cidr_bits -gt 31 ]; then
+        echo "CIDR size must be between 1 and 31" >&2
+        return
+    fi
+    
+    echo "${_validated_cidr_ip}/${_validate_cidr_bits}"
 }
 #C
 #C Validator for leasetime
@@ -1926,9 +1926,9 @@ _validate_description()
 _validate_dhcpserver()
 {
     _validate_dhcpserver_arg=$1
-	proxy_start
-	
-	did=`server_call "dhcp_server_dig({'dhcp_server':'$_validate_dhcpserver_arg'}, {'dhcp_server':True})"`
+    proxy_start
+    
+    did=`server_call "dhcp_server_dig({'dhcp_server':'$_validate_dhcpserver_arg'}, {'dhcp_server':true})"`
 
     if [ x"$_validate_dhcpserver_arg" != x"$did" ]; then
         echo "Invalid DHCP server specifier '$_validate_dhcpserver_arg'" >&2
@@ -1956,28 +1956,28 @@ _validate_category()
 #C
 _validate_network_name()
 {
-	_validate_network_name_arg=$1
+    _validate_network_name_arg=$1
 
-	rv=`echo $_validate_network_name_arg | grep '^[0-9A-Za-z_][-0-9A-Za-z_]*$'`
-	if [ -z "$rv" ]; then
-		echo "The network name $_validate_network_name_arg is invalid" >&2
-		return
-	fi
-	echo $rv
+    rv=`echo $_validate_network_name_arg | grep '^[0-9A-Za-z_][-0-9A-Za-z_]*$'`
+    if [ -z "$rv" ]; then
+        echo "The network name $_validate_network_name_arg is invalid" >&2
+        return
+    fi
+    echo $rv
 }
 #C
 #C Validator for pool names
 #C
 _validate_pool_name()
 {
-	_validate_pool_name_arg=$1
+    _validate_pool_name_arg=$1
 
-	rv=`echo $_validate_pool_name_arg | grep '^[0-9A-Za-z_][-0-9A-Za-z_]*$'`
-	if [ -z "$rv" ]; then
-		echo "The pool name $_validate_pool_name_arg is invalid" >&2
-		return
-	fi
-	echo $rv
+    rv=`echo $_validate_pool_name_arg | grep '^[0-9A-Za-z_][-0-9A-Za-z_]*$'`
+    if [ -z "$rv" ]; then
+        echo "The pool name $_validate_pool_name_arg is invalid" >&2
+        return
+    fi
+    echo $rv
 }
 #C
 #C Validator for usernames
@@ -1992,13 +1992,13 @@ _validate_username()
             rv=`/usr/bin/ldapsearch -u -x -LLL -h ldap.chalmers.se -b ou=users,dc=chalmers,dc=se uid="${_validate_username_arg}" uidNumber | grep uidNumber | cut -f2 -d' '`
     fi
     if [ -z "$rv" ]; then
-	echo "You must specify a known username" >&2
-	return
+        echo "You must specify a known username" >&2
+        return
     fi
 #M or if its numeric uid is less than 200, the command is aborted with an error message.
     if [ "$rv" -lt 200 ]; then
-	echo "You must specify a known uname of a real user. System accounts may not be used." >&2
-	return
+        echo "You must specify a known uname of a real user. System accounts may not be used." >&2
+        return
     fi
 
     echo $_validate_username_arg
@@ -2036,48 +2036,48 @@ _validate_group_in_db()
 
 fetch_proxy_pid()
 {
-	if [ -r ${proxy_pid_file} ]; then
-		local_proxy_pid=`cat $proxy_pid_file`
-		#echo "Fetched proxy id=$proxy_pid from file $proxy_pid_file" >&2
-		echo $local_proxy_pid
-	else
-		:
-		#echo "No proxy_pid file ${proxy_pid_file}" >&2
-	fi
+    if [ -r ${proxy_pid_file} ]; then
+        local_proxy_pid=`cat $proxy_pid_file`
+        #echo "Fetched proxy id=$proxy_pid from file $proxy_pid_file" >&2
+        echo $local_proxy_pid
+    else
+        :
+        #echo "No proxy_pid file ${proxy_pid_file}" >&2
+    fi
 }
 
 store_proxy_pid()
 {
-	touch ${proxy_pid_file}
-	#echo "Created proxy id file ${proxy_pid_file}" >&2
-	chmod 700 ${proxy_pid_file}
-	#echo "Chmodded proxy id file ${proxy_pid_file}" >&2
-	echo $1 >${proxy_pid_file}
-	#echo "Stored proxy id $1 into file ${proxy_pid_file}" >&2
+    touch ${proxy_pid_file}
+    #echo "Created proxy id file ${proxy_pid_file}" >&2
+    chmod 700 ${proxy_pid_file}
+    #echo "Chmodded proxy id file ${proxy_pid_file}" >&2
+    echo $1 >${proxy_pid_file}
+    #echo "Stored proxy id $1 into file ${proxy_pid_file}" >&2
 }
 
 child_died()
 {   
     if kill -0 $1 >/dev/null 2>&1; then
-    	return
+        return
     elif wait $1; then
-	   error "Proxy process died, Exit status 0"
-	   exitvalue=0
+       error "Proxy process died, Exit status 0"
+       exitvalue=0
     else
        error "Proxy process terminated due to an error"
        exitvalue=1
     fi
-	trap - INT TERM EXIT # Dont try to stop the proxy, it is already dead.
-	# Do the cleanup that proxy_stop would have done here will also prevent that 
-	proxy_cleanup
-    	
+    trap - INT TERM EXIT # Dont try to stop the proxy, it is already dead.
+    # Do the cleanup that proxy_stop would have done here will also prevent that 
+    proxy_cleanup
+        
     exit $exitvalue
 }
 
 proxy_cleanup()
-{	
-	:
-	rm -f $proxyin $proxyout $proxy_pid_file
+{    
+    :
+    rm -f $proxyin $proxyout $proxy_pid_file
 }
 
 proxy_start()
@@ -2085,12 +2085,12 @@ proxy_start()
     proxy_pid=`fetch_proxy_pid`
 
     if [ -n "$proxy_pid" ]; then
-		return
+        return
     fi
     #echo "SERVER_CALL CMD=" "$@" >&2
 
     #trace "Starting proxy by pid=$$"
- 				
+                 
     mkfifo $proxyin $proxyout
     /usr/bin/env python $MY_DIR/dhcp2proxy.py $proxyin $proxyout &
 
@@ -2107,32 +2107,32 @@ proxy_start()
 
 proxy_stop()
 {
-	#echo "proxy_stop: Subshell=${BASH_SUBSHELL},BASHPID=${BASHPID}"
-	if  [ $BASH_SUBSHELL -eq 0 ]; then
-		
-		proxy_pid=`fetch_proxy_pid`
-		
-		trace "proxy_stop: proxy_pid=$proxy_pid"
-		
-		if [ -n "$proxy_pid" ]; then
-			trace "Killing proxy $proxy_pid" 
-			kill $proxy_pid 2>/dev/null
-			wait $proxy_pid 2>/dev/null
-		fi
-	
-		proxy_cleanup
-	else
-		trace "proxy_stop: Not in main shell" >&2
-	fi
+    #echo "proxy_stop: Subshell=${BASH_SUBSHELL},BASHPID=${BASHPID}"
+    if  [ $BASH_SUBSHELL -eq 0 ]; then
+        
+        proxy_pid=`fetch_proxy_pid`
+        
+        trace "proxy_stop: proxy_pid=$proxy_pid"
+        
+        if [ -n "$proxy_pid" ]; then
+            trace "Killing proxy $proxy_pid" 
+            kill $proxy_pid 2>/dev/null
+            wait $proxy_pid 2>/dev/null
+        fi
+    
+        proxy_cleanup
+    else
+        trace "proxy_stop: Not in main shell" >&2
+    fi
 }
 
 proxy_call()
 {
-	local result
-	#echo "proxyin=" $proxyin >&2
+    local result
+    #echo "proxyin=" $proxyin >&2
     trace "proxy_call: ""$@"
     echo "$@" > "$proxyin"
-	cat $proxyout >/dev/null
+    cat $proxyout >/dev/null
     #result=`cat $proxyout`
     #echo "$result"
     #echo "Proxy_call Result='"$result"'" >&2
@@ -2140,12 +2140,12 @@ proxy_call()
 
 server_call()
 {
-	local result
-	
-	trace "server_call: res = srv.$@"
+    local result
+    
+    trace "server_call: res = srv.$@"
     echo "res = srv.""$@" > "$proxyin"
-	cat $proxyout
-	trace "server_call done"
+    cat $proxyout
+    trace "server_call done"
     #echo "$result"
     #echo "Returning '$result' from server_call" >&2
 }
@@ -2153,7 +2153,7 @@ server_call()
 
 adhoc()
 {
-	adhoc_call.py $1
+    adhoc_call.py $1
 }
 
 ip2num()
@@ -2187,23 +2187,23 @@ num2ip()
 
 db_hostgroup()
 {
-	proxy_start
+    proxy_start
     if [ -z "$2" ]; then
-    	server_call "host_dig({'host':'$1'}, {'group':True})"
+        server_call "host_dig({'host':'$1'}, {'group':true})"
     else
-    	server_call "host_update('$1', {'group':'$2'})"
+        server_call "host_update('$1', {'group':'$2'})"
         echo "$2"
     fi
 }
 
 db_hostmac()
 {
-	proxy_start
+    proxy_start
     if [ -z "$2" ]; then
-    	server_call "host_fetch('$1', {'mac':True})"
+        server_call "host_fetch('$1', {'mac':true})"
         #sqql "select \`mac\` from hostlist where id='$1' limit 1"
     else
-    	server_call "host_update('$1', {'mac':'$2'})"
+        server_call "host_update('$1', {'mac':'$2'})"
         #sqql "update hostlist set \`mac\` = '$2', \`changed_by\` = '$USER' where \`id\` = '$1' limit 1"
         echo $2
     fi
@@ -2221,26 +2221,26 @@ db_hostadd()
     trace "New host will become member of the group '$hgrp'" >&2
 
     if [ -n "$hstat" ]; then
-    	proxy_call "options['status']='$hstat'"
+        proxy_call "options['status']='$hstat'"
     fi
 
     if [ -n "$hroom" ]; then
-    	proxy_call "options['room']='$hroom'"
+        proxy_call "options['room']='$hroom'"
     fi
 
     if [ -n "$hinfo" ]; then
-    	proxy_call "options['info']='$hinfo'"
+        proxy_call "options['info']='$hinfo'"
     fi
-	
-	if [ -n "$hdns" ]; then
-		proxy_call "options['dns']='$hdns'"
-	fi
-	
-	if [ -n "$hgrp" ]; then
-		proxy_call "options['group']='$hgrp'"
-	fi
+    
+    if [ -n "$hdns" ]; then
+        proxy_call "options['dns']='$hdns'"
+    fi
+    
+    if [ -n "$hgrp" ]; then
+        proxy_call "options['group']='$hgrp'"
+    fi
     server_call "host_create('$hmac', options)"
-	
+    
 }
 
 db_addroom()
@@ -2251,14 +2251,14 @@ db_addroom()
 
     echo "Adding room $rname ($rinfo) into the database" >&2
 
-	proxy_start
-	server_call "room_create('$rname','$rprint','$rinfo')"
+    proxy_start
+    server_call "room_create('$rname','$rprint','$rinfo')"
 }
         
 db_spaceexists()
 {
-	proxy_start
-	_sname=`server_call "optionspace_dig({'optionspace':'$1'}, {'optionspace':True})"`
+    proxy_start
+    _sname=`server_call "optionspace_dig({'optionspace':'$1'}, {'optionspace':true})"`
 
     if [ "$_sname"  = "$1" ]; then
         return 0
@@ -2268,8 +2268,8 @@ db_spaceexists()
 
 db_poolrangeexists()
 {
-	proxy_start
-	_rname=`server_call "pool_range_dig({'start_ip':'$1'}, {'start_ip':True})"`
+    proxy_start
+    _rname=`server_call "pool_range_dig({'start_ip':'$1'}, {'start_ip':true})"`
 
     if [ "$_rname"  = "$1" ]; then
         return 0
@@ -2279,8 +2279,8 @@ db_poolrangeexists()
 
 db_classexists()
 {
-	proxy_start
-	_cname=`server_call "host_class_dig({'host_class':'$1'}, {'host_class':True})"`
+    proxy_start
+    _cname=`server_call "host_class_dig({'host_class':'$1'}, {'host_class':true})"`
 
     if [ "$_cname"  = "$1" ]; then
         return 0
@@ -2290,8 +2290,8 @@ db_classexists()
 
 db_grouphasmembers()
 {
-	proxy_start
-	_hnames=`server_call "host_dig({'group':'$1'}, {'host':True})"`
+    proxy_start
+    _hnames=`server_call "host_dig({'group':'$1'}, {'host':true})"`
 
     if [ -n "$_hnames" ]; then
         return 0
@@ -2301,8 +2301,8 @@ db_grouphasmembers()
 
 db_groupexists()
 {
-	proxy_start
-	_gname=`server_call "group_dig({'group':'$1'}, {'group':True})"`
+    proxy_start
+    _gname=`server_call "group_dig({'group':'$1'}, {'group':true})"`
     if [ "$_gname"  = "$1" ]; then
         return 0
     fi
@@ -2311,8 +2311,8 @@ db_groupexists()
 
 db_optionspaceexists()
 {
-	proxy_start
-	_osname=`server_call "optionspace_dig({'optionspace':'$1'}, {'optionspace':True})"`
+    proxy_start
+    _osname=`server_call "optionspace_dig({'optionspace':'$1'}, {'optionspace':true})"`
     if [ "$_osname"  = "$1" ]; then
         return 0
     fi
@@ -2321,8 +2321,8 @@ db_optionspaceexists()
 
 db_optionexists()
 {
-	proxy_start
-	_oname=`server_call "option_def_dig({'option_def':'$1'}, {'option_def':True})"` 
+    proxy_start
+    _oname=`server_call "option_def_dig({'option_def':'$1'}, {'option_def':true})"` 
     #_oname=`sqql "select name from dhcp_option_defs where name = '$1'"`
     
     if [ "$_oname"  = "$1" ]; then
@@ -2333,8 +2333,8 @@ db_optionexists()
 
 db_roomexists()
 {
-	proxy_start
-	_rname=`server_call "room_dig({'room':'$1'}, {'room':True})"`
+    proxy_start
+    _rname=`server_call "room_dig({'room':'$1'}, {'room':true})"`
     
     if [ "$_rname"  = "$1" ]; then
         return 0
@@ -2344,8 +2344,8 @@ db_roomexists()
 
 db_poolexists()
 {
-	proxy_start
-	_pname=`server_call "pool_dig({'pool':'$1'}, {'pool':True})"`
+    proxy_start
+    _pname=`server_call "pool_dig({'pool':'$1'}, {'pool':true})"`
 
     if [ "$_pname"  = "$1" ]; then
         return 0
@@ -2355,8 +2355,8 @@ db_poolexists()
 
 db_macindb()
 {
-	proxy_start
-	_hnames=`server_call "host_dig({'mac':'$1'}, {'host':True})"`
+    proxy_start
+    _hnames=`server_call "host_dig({'mac':'$1'}, {'host':true})"`
 
     if [ -n "$_hnames" ]; then
         return 0
@@ -2385,8 +2385,8 @@ db_hostdelete()
 
 db_networkexists()
 {
-	proxy_start
-	_nname=`server_call "network_dig({'network':'$1'},{'network':True})"`
+    proxy_start
+    _nname=`server_call "network_dig({'network':'$1'},{'network':true})"`
     
     if [ "$_nname"  = "$1" ]; then
         return 0
@@ -2395,8 +2395,8 @@ db_networkexists()
 }
 
 db_subnetworkexists()
-{	proxy_start
-	_snname=`server_call "subnetwork_dig({'subnetwork':'$1'},{'subnetwork':True})"`
+{    proxy_start
+    _snname=`server_call "subnetwork_dig({'subnetwork':'$1'},{'subnetwork':true})"`
     
     if [ "$_snname"  = "$1" ]; then
         return 0
@@ -2457,20 +2457,20 @@ db_exists()
             return 1
             ;;
         optionspace)
-        	if db_optionspaceexists $2; then
-        		return 0
-        	fi
-        	return 1
-        	;;
+            if db_optionspaceexists $2; then
+                return 0
+            fi
+            return 1
+            ;;
         host)
             if db_hostindb $2; then
                 return 0
             fi
             return 1
             ;;
-		global)
-	    	return 0
-	    	 ;;
+        global)
+            return 0
+             ;;
         *)
             echo "db_exists: unsupported entity type $1"
             exit 2
@@ -2514,36 +2514,36 @@ check_entry_status()
     trace "Checking entry status value $1"
     
     if [ "$1" = "Active" ]; then
-		return 0 
-	fi
-	if [ "$1" = "Inactive" ]; then
-		return 0 
-	fi
-	if [ "$1" = "Dead" ]; then
-		return 0 
-	fi
+        return 0 
+    fi
+    if [ "$1" = "Inactive" ]; then
+        return 0 
+    fi
+    if [ "$1" = "Dead" ]; then
+        return 0 
+    fi
     return 1
 }
 
 check_room()
 {
     trace "Checking room $1"
-	proxy_start
-	buildings=`server_call "building_dig({}, {'re':True})"`
+    proxy_start
+    buildings=`server_call "building_dig({}, {'re':true})"`
     trace "Found buildings=$buildings"
     for re in $buildings; do
         rv=`echo  $1 | egrep "^$re"`
-	    trace "Matching RE $re"
+        trace "Matching RE $re"
             if [ "$rv" == "$1" ]; then
                 return 0
         fi
     done
 
     echo "The room number seems to be invalid"
-	server_call "building_dig({},{'info':True, 're':True})" | while read bid ; do
-    	#echo "$bid" | hexdump -C
-    	binfo=`echo "$bid" | cut -f1`
-    	bre=`echo "$bid" | cut -f2`
+    server_call "building_dig({},{'info':true, 're':true})" | while read bid ; do
+        #echo "$bid" | hexdump -C
+        binfo=`echo "$bid" | cut -f1`
+        bre=`echo "$bid" | cut -f2`
         echo "  Room" numbers in $binfo should match $bre
     done
     return 1
@@ -2640,71 +2640,71 @@ addhost()
 #M and the canonical name differs from the given name, the given name is nevertheless
 #M used and a warning is issued.
 #M
-	if [ -n "$addhost_d_flag" ]; then
-		addhost_dnsname=$addhost_d_arg
-		addhost_dnsname1=`_validate_fqdn ${addhost_dnsname} nowarn`
-		if [ -n "$addhost_dnsname1" -a "$addhost_dnsname1" != "$addhost_dnsname" ]; then
-			if [ -z "$addhost_f_flag" ]; then
+    if [ -n "$addhost_d_flag" ]; then
+        addhost_dnsname=$addhost_d_arg
+        addhost_dnsname1=`_validate_fqdn ${addhost_dnsname} nowarn`
+        if [ -n "$addhost_dnsname1" -a "$addhost_dnsname1" != "$addhost_dnsname" ]; then
+            if [ -z "$addhost_f_flag" ]; then
                 echo Using the fully qualified name "'${addhost_dnsname1}'" instead of "'${addhost_dnsname}'" 
-				addhost_dnsname=$addhost_dnsname1
-			else
-				echo Warning: The given DNS name "'$addhost_dnsname'" differs from the DNS canonical name "'$addhost_dnsname1'"
-				echo Using the given name anyway.
-				addhost_dnsname1=$addhost_dnsname
-			fi
-		fi
-	
+                addhost_dnsname=$addhost_dnsname1
+            else
+                echo Warning: The given DNS name "'$addhost_dnsname'" differs from the DNS canonical name "'$addhost_dnsname1'"
+                echo Using the given name anyway.
+                addhost_dnsname1=$addhost_dnsname
+            fi
+        fi
+    
     
 #M
 #M If the B<-f> flag is not given, the command will abort under
 #M any of the following conditions:
 #M 
 #M =over
-		if [ -n "$addhost_dnsname1" ]; then
-			addhost_dnsname=$addhost_dnsname1;
-		else
+        if [ -n "$addhost_dnsname1" ]; then
+            addhost_dnsname=$addhost_dnsname1;
+        else
 #M
 #M =item 1
 #M
 #M The given DNS name cannot be looked up using I<dig(1)>
-        	if [ -z "$addhost_f_flag" ]; then
-            	echo "The DNS name specified is invalid. Use -f to override"
-            	exit 1
-        	else
-            	echo "WARNING: The host name specified is invalid - using force"
-        	fi
-    	fi
+            if [ -z "$addhost_f_flag" ]; then
+                echo "The DNS name specified is invalid. Use -f to override"
+                exit 1
+            else
+                echo "WARNING: The host name specified is invalid - using force"
+            fi
+        fi
 #M
 #M =item 2
 #M
 #M The DNS name's IP address is not within a configured subnet.
 #M
-		trace "Validating DNS within subnet"
-    	if _validate_host_in_subnet "${addhost_dnsname}" nowarn >/dev/null; then
-        	:
-    	else
-        	if [ -z  "$addhost_f_flag" ]; then
-            	echo "The host's IP address is not within a configured subnet. Use -f to override"
-        		exit 1
-        	else
-            	echo "Warning: The host's IP address is not within a configured subnet"
-            	echo "DHCP services will not work"
-        	fi
-    	fi 
+        trace "Validating DNS within subnet"
+        if _validate_host_in_subnet "${addhost_dnsname}" nowarn >/dev/null; then
+            :
+        else
+            if [ -z  "$addhost_f_flag" ]; then
+                echo "The host's IP address is not within a configured subnet. Use -f to override"
+                exit 1
+            else
+                echo "Warning: The host's IP address is not within a configured subnet"
+                echo "DHCP services will not work"
+            fi
+        fi 
 #M
 #M =item 3
 #M
 #M There is a host at the given DNS name that is active and answers to a ping request
-		trace "Pinging"
-		if /usr/sbin/ping ${addhost_dnsname} 1 >/dev/null 2>&1; then
-        	if [ -z "$addhost_f_flag" ]; then
-            	echo "The host is in use. Use -f to override"
-            	exit 1
-        	else
-            	echo "WARNING: The host is in use - using force"
-        	fi
-    	fi
-	fi
+        trace "Pinging"
+        if /usr/sbin/ping ${addhost_dnsname} 1 >/dev/null 2>&1; then
+            if [ -z "$addhost_f_flag" ]; then
+                echo "The host is in use. Use -f to override"
+                exit 1
+            else
+                echo "WARNING: The host is in use - using force"
+            fi
+        fi
+    fi
 #M
 #M =item 4
 #M
@@ -2767,10 +2767,10 @@ addhost()
 #M
 
     if db_macindb ${addhost_macaddr}; then
-    	if [ -z "$addhost_f_flag" ]; then 
-        	echo "ERROR: The given MAC address is already present in the database, use -f to override"
-        	exit 1
-    	fi
+        if [ -z "$addhost_f_flag" ]; then 
+            echo "ERROR: The given MAC address is already present in the database, use -f to override"
+            exit 1
+        fi
     fi
 #M
 #M 
@@ -2783,7 +2783,7 @@ addhost()
             exit 1
         fi
     fi
-	db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_r_arg}" "${addhost_i_arg}"
+    db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_r_arg}" "${addhost_i_arg}"
 }
 
 #S addoption;ao;Add an option;2;2;key value;Add an option to a class, group, host, network, subnetwork, pool or a global option.;85
@@ -2882,19 +2882,19 @@ opoption()
     fi
     _opoption_oname="$1"
     if [ $opoption_gtype = "global" ]; then
-		opoption_arg="global"
+        opoption_arg="global"
     fi
     case $option_op in
 
-    add)
-    	_addoption "$opoption_arg" "$_opoption_oname" "$2" "$opoption_gtype"
-	;;
-    change)
-        _choption "$opoption_arg" "$_opoption_oname" "$2" "$opoption_gtype"
-	;;
-    remove)
-        _rmoption "$opoption_arg" "$_opoption_oname" "$opoption_gtype"
-	;;
+        add)
+            _addoption "$opoption_arg" "$_opoption_oname" "$2" "$opoption_gtype"
+            ;;
+        change)
+            _choption "$opoption_arg" "$_opoption_oname" "$2" "$opoption_gtype"
+            ;;
+        remove)
+            _rmoption "$opoption_arg" "$_opoption_oname" "$opoption_gtype"
+            ;;
     esac
 }
 
@@ -2912,17 +2912,17 @@ _addoption()
         return
     fi
 
-	if _hasoptions_group $_addoption_group $_addoption_gtype | grep "$_addoption_key" >/dev/null 2>&1 ; then
+    if _hasoptions_group $_addoption_group $_addoption_gtype | grep "$_addoption_key" >/dev/null 2>&1 ; then
         echo The option $_addoption_key is already defined for the $_addoption_gtype $_addoption_group, use the choption command to change
         return
     fi
     proxy_start
-    otype=`server_call "option_def_fetch('$_addoption_key',{'type':True})"`
+    otype=`server_call "option_def_fetch('$_addoption_key',{'type':true})"`
     if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
-    	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':${_addoption_value}})"
-	else
-    	server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
-	fi	
+        server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':${_addoption_value}})"
+    else
+        server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
+    fi    
 }
 
 #S addroom;ar;Add a room;1;2;roomcode [info];Add a room to the DHCP database;101
@@ -3028,9 +3028,9 @@ chgroup()
         echo "The group $chgroup_groupname is not defined in the database"
         exit 2
     fi
-	proxy_start
-	proxy_call "update_template={}"
-	#proxy_call "update_template={}"
+    proxy_start
+    proxy_call "update_template={}"
+    #proxy_call "update_template={}"
     if [ -n "$chgroup_P_flag" ];then
         _chgroup_foundaflag
         if db_groupexists "$chgroup_P_arg"; then
@@ -3056,7 +3056,7 @@ chgroup()
         if [ -n "$chgroup_I_arg" ]; then
             proxy_call "update_template['info']='$chgroup_I_arg'"
         else
-        	proxy_call "update_template['info']=None"
+            proxy_call "update_template['info']=None"
             echo "You just erased the information on the group ${chgroup_groupname}, hope that is OK"
         fi
     fi
@@ -3094,7 +3094,7 @@ chhost()
 
     for i in "$@"; do
         case "$i" in
-        	-d)
+            -d)
                 chhost_d_flag=$i; shift
                 chhost_d_arg=$1; shift
                 ;;
@@ -3139,14 +3139,14 @@ chhost()
         exit 1
     fi  
     
-	proxy_start
-	proxy_call "update_template={}"
-	
-	if [ -n "$chhost_d_flag" ];then
+    proxy_start
+    proxy_call "update_template={}"
+    
+    if [ -n "$chhost_d_flag" ];then
         _chhost_foundaflag
         validated_dns_arg=`_validate_fqdn $chhost_d_arg`
         if [ -z "$validated_dns_arg" ]; then
-        	echo "WARNING: The DNS name specified is invalid"
+            echo "WARNING: The DNS name specified is invalid"
         fi
         proxy_call "update_template['dns']='$chhost_d_arg'"
     fi
@@ -3163,7 +3163,7 @@ chhost()
     if [ -n "$chhost_g_flag" ]; then
         _chhost_foundaflag
         if db_groupexists $chhost_g_arg; then
-        	proxy_call "update_template['group']='$chhost_g_arg'"
+            proxy_call "update_template['group']='$chhost_g_arg'"
         else
             echo "The group $chhost_g_arg is not defined in the database"
             exit 2
@@ -3172,7 +3172,7 @@ chhost()
     if [ -n "$chhost_r_flag" ]; then
         _chhost_foundaflag
         if check_room "$chhost_r_arg"; then
-        	proxy_call "update_template['room']='$chhost_r_arg'"
+            proxy_call "update_template['room']='$chhost_r_arg'"
         else
             exit 1
         fi
@@ -3181,7 +3181,7 @@ chhost()
     if [ -n "$chhost_s_flag"  ]; then
         _chhost_foundaflag
         if check_entry_status "$chhost_s_arg"; then
-        	proxy_call "update_template['status']='$chhost_s_arg'"
+            proxy_call "update_template['status']='$chhost_s_arg'"
         else
             echo "The entry status value given is not valid"
             echo "valid values are: Active, Inactive or Dead"
@@ -3193,10 +3193,10 @@ chhost()
         _chhost_foundaflag
         if [ -n "$chhost_i_arg" ]; then
             proxy_call "update_template['info']='$chhost_i_arg'"
-    	else  
-        	proxy_call "update_template['info']=None"
+        else  
+            proxy_call "update_template['info']=None"
             echo "You just erased the information on the host ${chhost_host_id}, hope that is OK"
-    	fi
+        fi
     fi
 
     if [ -z "$chhost_anyflag" ]; then
@@ -3251,33 +3251,33 @@ _choption()
     fi
     
     if _hasoptions_group $_choption_group $_choption_gtype | grep "$_choption_key" >/dev/null 2>&1 ; then
-    	:
-	else
+        :
+    else
         if [ "$_choption_gtype" = "global" ]; then
-        	echo "$_choption_key is not defined as a global option, use the addooption command to add it"
- 		else
-			echo The option $_choption_key is not defined for the $_choption_gtype $_choption_group, use the addoption command to add it
-		fi
+            echo "$_choption_key is not defined as a global option, use the addooption command to add it"
+        else
+            echo The option $_choption_key is not defined for the $_choption_gtype $_choption_group, use the addoption command to add it
+        fi
 
         return
     fi
     
     proxy_start
-    otype=`server_call "option_def_fetch('$_choption_key',{'type':True})"`
-	if [ "${_choption_gtype}" = "global" ]; then
-		global_option_id=`server_call "global_option_dig({'name':'$_choption_key'},{'global_option':True})"`
-		if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
-			server_call "global_option_update($global_option_id,{'value':${_choption_value}})"
-		else
-			server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
- 		fi
-	else
-		if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
-			server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':${_choption_value}})"
-		else
-			server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
-		fi
-	fi
+    otype=`server_call "option_def_fetch('$_choption_key',{'type':true})"`
+    if [ "${_choption_gtype}" = "global" ]; then
+        global_option_id=`server_call "global_option_dig({'name':'$_choption_key'},{'global_option':true})"`
+        if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
+            server_call "global_option_update($global_option_id,{'value':${_choption_value}})"
+        else
+            server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
+        fi
+    else
+        if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
+            server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':${_choption_value}})"
+        else
+            server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
+        fi
+    fi
 }
 
 #S chroom;cr;Change a room;1;1;room_code;Change the data stored for a room in the database;102
@@ -3320,21 +3320,21 @@ chroom()
         exit 1
     fi
 
-	proxy_call "options={}"
+    proxy_call "options={}"
 
     if [ -n "$chroom_p_flag" ]; then
         if check_printer "$chroom_p_arg"; then
             proxy_call "options['printers']='$chroom_p_arg'"
         else
             exit 1
-        fi	
+        fi    
     fi
 
     if [ -n "$chroom_i_flag" ]; then
         proxy_call "options['info']='$chroom_i_arg'"
     fi
 
-	server_call "room_update('$_chroom_id', options)"
+    server_call "room_update('$_chroom_id', options)"
 }
 
 #S defoption;;Define an option;2;3;name type [info];Define a new option;83
@@ -3361,9 +3361,9 @@ defoption()
                 defoption_s_arg=$1; shift
                 ;;
             -q)
-            	defoption_q_flag=$i; shift
-            	defoption_q_arg=$1; shift
-            	;;
+                defoption_q_flag=$i; shift
+                defoption_q_arg=$1; shift
+                ;;
             --)
                 shift;break
                 ;;
@@ -3397,26 +3397,26 @@ defoption()
         text|ip-address|boolean|string)
             ;;
 #M =item encapsulate <optionspace>
-		encapsulate\ *)
-			$_defoption_encapsulate_what=`echo $_defoption_type | cut -f2- -d' '`
-			$_defoption_type = "encapsulate"
-			_defoption_optstring="'encapsulate':'$_defoption_encapsulate_what', $_defoption_optstring"
-			;;
+        encapsulate\ *)
+            $_defoption_encapsulate_what=`echo $_defoption_type | cut -f2- -d' '`
+            $_defoption_type = "encapsulate"
+            _defoption_optstring="'encapsulate':'$_defoption_encapsulate_what', $_defoption_optstring"
+            ;;
 #M
 #M =item unsigned integer n
 #M
 #M Where n is a number specifying the number of significant bits, 8, 16 or 32
 #M
         unsigned\ integer\ 8)
-        	;;
+            ;;
         unsigned\ integer\ 16)
-        	;;
+            ;;
         unsigned\ integer\ 32)
-        	;;
+            ;;
         integer\ 8)
-        	;;
+            ;;
         integer\ 16)
-        	;;
+            ;;
         integer\ 32)
             ;;
 #M =item array of x
@@ -3433,8 +3433,8 @@ defoption()
             ;;
         *)
             echo "The type '$_defoption_type' is illegal, "
-			echo "Valid types are text,ip-address,boolean,string,unsigned n, integer n where n is either 8, 16 or 32"
-			echo "Also valid is array of t, where t is any of the above basic types"
+            echo "Valid types are text,ip-address,boolean,string,unsigned n, integer n where n is either 8, 16 or 32"
+            echo "Also valid is array of t, where t is any of the above basic types"
 
             return
             ;;
@@ -3458,48 +3458,48 @@ defoption()
 #M
 #M Qualifies the option as a parameter that is an array of the specified type
 
-	if [ -n "$defoption_q_flag" ]; then
-		case $defoption_q_arg in
-			array)
-			_defoption_optstring="'qualifier':'$defoption_q_arg', $_defoption_optstring"
-			;;
-			parameter|parameter-array)
-			defoption_no_code='Yes'
-			_defoption_optstring="'qualifier':'$defoption_q_arg', $_defoption_optstring"
-			;;
-		*)
-			echo "The qualifier '$defoption_q_arg' is illegal"
-			echo "Valid qualifiers are array, parameter or parameter-array"
-			echo "Parameter is used for options not defined in the DHCP protocol"
-			return
-			;;
-		esac
-	fi
-	
+    if [ -n "$defoption_q_flag" ]; then
+        case $defoption_q_arg in
+            array)
+                _defoption_optstring="'qualifier':'$defoption_q_arg', $_defoption_optstring"
+                ;;
+            parameter|parameter-array)
+                defoption_no_code='Yes'
+                _defoption_optstring="'qualifier':'$defoption_q_arg', $_defoption_optstring"
+                ;;
+            *)
+                echo "The qualifier '$defoption_q_arg' is illegal"
+                echo "Valid qualifiers are array, parameter or parameter-array"
+                echo "Parameter is used for options not defined in the DHCP protocol"
+                return
+                ;;
+        esac
+    fi
+    
 #M
 #M =back
 #M
-	_defoption_code_py='None'
+    _defoption_code_py='None'
     _defoption_scope="NULL";
     if [ -n "$defoption_c_flag" -a -n "$defoption_c_arg" ]; then
-    	if [ -n "$defoption_no_code" ]; then
-    		echo "When specifying a parameter, no DHCP code may be given"
-			return
-		fi
+        if [ -n "$defoption_no_code" ]; then
+            echo "When specifying a parameter, no DHCP code may be given"
+            return
+        fi
         _defoption_code_check=`echo $defoption_c_arg | egrep '^[0-9]*$' 2>/dev/null`
         if [ -z "$_defoption_code_check" ]; then
             echo "The DHCP code must be decimal numeric"
             return
-    	else
-    		_defoption_code_py=$_defoption_code_check
-    	fi
+        else
+            _defoption_code_py=$_defoption_code_check
+        fi
         
-		_defoption_scope="'dhcp'"
+        _defoption_scope="'dhcp'"
     fi
     
     if [ -n "$defoption_s_flag" ]; then
         if db_spaceexists $defoption_s_arg; then
-        	$_defoption_optstring="optionspace='$defoption_s_arg', $_defoption_optstring"
+            $_defoption_optstring="optionspace='$defoption_s_arg', $_defoption_optstring"
         else
             echo "The namespace '$defoption_s_arg' is not defined. Define it using the defspace subcommand"
             return
@@ -3521,8 +3521,8 @@ defoption()
 #M
 defspace()
 {
-	
-	for i in "$@"; do
+    
+    for i in "$@"; do
         case "$i" in
             -s)
                 defspace_s_flag=$i; shift
@@ -3544,8 +3544,8 @@ defspace()
     fi
     _defspace_type='vendor'
     if [ -n "$defspace_s_flag" ]; then
-    	_defspace_type='site'
-	fi		
+        _defspace_type='site'
+    fi        
     
     server_call "optionspace_create('$_defspace_name', '$_defspace_type', '$_defspace_info')"
 }
@@ -3565,8 +3565,8 @@ deleteoption()
         echo "The option '$_deleteoption_name' is not defined"
         return
     fi
-	proxy_start
-	server_call "option_def_destroy('$_deleteoption_name')"
+    proxy_start
+    server_call "option_def_destroy('$_deleteoption_name')"
 }
 #S deleteroom;;Delete a room;1;1;room_id;Delete a room entry in the database;103
 #M
@@ -3584,8 +3584,8 @@ deleteroom()
         echo "The room $_deleteroom_name' is not defined"
         return
     fi
-	proxy_start
-	server_call "room_destroy('$_deleteroom_name')"
+    proxy_start
+    server_call "room_destroy('$_deleteroom_name')"
 }
 #S deletespace;;Delete namespace;1;1;name;Delete an option namespace;82
 #M
@@ -3603,8 +3603,8 @@ deletespace()
         echo "The namespace '$_deletespace_name' is not defined"
         return
     fi
-	proxy_start
-	server_call "optionspace_destroy('$_deletespace_name')"
+    proxy_start
+    server_call "optionspace_destroy('$_deletespace_name')"
 }
 
 #S deletegroup;dg;Delete a group;1;1;group_name;Delete a host group;43
@@ -3616,14 +3616,14 @@ deletegroup()
 {
     deletegroup_groupname=$1;
 
-        if db_groupexists $deletegroup_groupname; then
-            :
-        else
-            echo "The group $deletegroup_groupname does not exist"
-            exit 2
-        fi
-	proxy_start
-    deletegroup_memlist=`server_call "host_dig({'group':'$deletegroup_groupname'}, {'host':True})"`
+    if db_groupexists $deletegroup_groupname; then
+        :
+    else
+        echo "The group $deletegroup_groupname does not exist"
+        exit 2
+    fi
+    proxy_start
+    deletegroup_memlist=`server_call "host_dig({'group':'$deletegroup_groupname'}, {'host':true})"`
     if [ -n "$deletegroup_memlist" ]; then
         echo "The group must be empty to be deleted. It contains the following hosts:"
         echo $deletegroup_memlist
@@ -3631,7 +3631,7 @@ deletegroup()
     fi
     
     proxy_start
-	server_call "group_destroy('$deletegroup_groupname')"
+    server_call "group_destroy('$deletegroup_groupname')"
 }
 #S deletehost;dh;Delete a host;1;1;host_id;Delete a host from the configuration;24
 #M =head2 I<Description>
@@ -3720,14 +3720,14 @@ lsclasses()
         esac
     done
 
-    format="'host_class':True"
+    format="'host_class':true"
     pattern="^[^	]*${1-.*}"
     if [ -n "$lsclasses_l_flag" ]; then
-    	format="'host_class':True, 'vendor_class_id':True, 'optionspace':True"
+        format="'host_class':true, 'vendor_class_id':true, 'optionspace':true"
         echo "Class name	Vendor class id	Option space" | _lsclasses_fmt
     fi
 
-	proxy_start
+    proxy_start
     server_call "host_class_dig({}, {$format})" | egrep "$pattern" | _lsclasses_fmt
     exit 0
 }
@@ -3767,28 +3767,28 @@ lsgroups()
     done
 
     format=\`groupname\`
-	data_template="'group':True"
+    data_template="'group':true"
     pattern="^[^	]*${1-.*}"
     if [ -n "$lsgroups_l_flag" ]; then
         format=\`groupname\`,\`parent_group\`,mountclass,\`info\`
-		data_template="'group':True, 'parent':True, 'info':True"
+        data_template="'group':true, 'parent':true, 'info':true"
         echo "Group name	Parent group Info" | _lsgroups_fmt
     fi
     if [ -n "$lsgroups_L_flag" ]; then
         format=\`groupname\`,\`parent_group\`,\`next_server\`,\`server_name\`,\`server_identifier\`,\`optionspace\`,config_group,mountclass,\`filename\`
-		data_template="'group':True, 'parent':True, 'optionspace':True, 'info':True"
+        data_template="'group':true, 'parent':true, 'optionspace':true, 'info':true"
         echo "Group name	Parent group	Option space	Info" | _lsgroups_fmt
     fi
     if [ -n "$lsgroups_R_flag" ]; then
-		proxy_start
-        matching_groups=`server_call 'group_dig({}, {"group":True})' | egrep "$pattern"`
+        proxy_start
+        matching_groups=`server_call 'group_dig({}, {"group":true})' | egrep "$pattern"`
         #echo MG $matching_groups
         for g in "$matching_groups"; do
             _lsgroup $g
         done
     else
-		proxy_start
-		server_call "group_dig({}, {$data_template} )" | egrep "$pattern" | _lsgroups_fmt
+        proxy_start
+        server_call "group_dig({}, {$data_template} )" | egrep "$pattern" | _lsgroups_fmt
     fi
     exit 0
 }
@@ -3796,9 +3796,9 @@ lsgroups()
 _lsgroup()
 {
     lsgroups_g=$1
-	proxy_start
+    proxy_start
     server_call "group_fetch('$lsgroups_g', {$data_template})" | _lsgroups_fmt
-    g_parent=`server_call "group_fetch('$lsgroups_g', {'parent':True})"`
+    g_parent=`server_call "group_fetch('$lsgroups_g', {'parent':true})"`
     if [ -n "$g_parent" -a "$lsgroups_g" != 'plain' ]; then 
         _lsgroup $g_parent;
     fi
@@ -3926,7 +3926,7 @@ lshosts()
     pattern="^[^	]*${1-.*}"
     dns_pattern=$1
     
-    data_template='"host":True'
+    data_template='"host":true'
     search_exp=""
     
     if [ -n "$lshosts_m_flag" ]; then
@@ -3935,9 +3935,9 @@ lshosts()
     
     
     if [ -n "$lshosts_l_flag" -o -n "$lshosts_L_flag" ]; then
-        data_template='"host":True,"dns":True,"mac":True,"group":True,"status":True,"room":True,"info":True'
+        data_template='"host":true,"dns":true,"mac":true,"group":true,"status":true,"room":true,"info":true'
         format="id,dns,mac,\`group\`,entry_status,room,info"
-        echo "Hostname	DNS	Mac	Group	EStatus	Room	Info" | _lshosts_l_fmt
+        echo "Host ID	DNS	Mac	Group	EStatus	Room	Info" | _lshosts_l_fmt
     fi
     
     if [ -z "$lshosts_a_flag$lshosts_i_flag$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
@@ -4028,12 +4028,12 @@ lshosts()
 
 _lshosts_l_fmt()
 {
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-32s %32s %17s %36s %-8s %7s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8);}" |  sed 's/ *$//'
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-12s %42s %17s %30s %-8s %7s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8);}" |  sed 's/ *$//'
 }
 
 _lshosts_L_fmt()
 {
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-32s %32s %17s %41s %-10s %-8s %-8s %7s %12s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11);}" |  sed 's/ *$//'
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-12s %42s %17s %30s %-10s %-8s %-8s %7s %12s %10s %s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11);}" |  sed 's/ *$//'
 }
 #S lsnetworks;ln;List networks;0;0;;List shared networks defined in the DHCP database;64
 #M
@@ -4079,8 +4079,8 @@ _lshosts_L_fmt()
 lsnetworks()
 {
     echo "Network	Auth	Info" | _lsnetworks_fmt
-	proxy_start
-    server_call "network_dig({}, {'network':True, 'authoritative':True, 'info':True})" | egrep "$pattern" | _lsnetworks_fmt
+    proxy_start
+    server_call "network_dig({}, {'network':true, 'authoritative':true, 'info':true})" | egrep "$pattern" | _lsnetworks_fmt
 }
 
 _lsnetworks_fmt()
@@ -4188,41 +4188,41 @@ lsoptions()
     if [ -z "$lsoptions_gtype" ]; then
         echo "Name	Option space	DHCP code	Type	Info" | _lsoptions_all_fmt
         proxy_start
-        server_call "option_def_dig({}, {'option_def':True, 'optionspace':True, 'code':True, 'type':True, 'info':True})" | sort -n -k 3 -t '	' | _lsoptions_all_fmt
+        server_call "option_def_dig({}, {'option_def':true, 'optionspace':true, 'code':true, 'type':true, 'info':true})" | sort -n -k 3 -t '	' | _lsoptions_all_fmt
         return
     fi
 
 # Globally defined options
     if [ -n "$lsoptions_G_flag" ]; then
-    	proxy_start
-    	server_call "global_option_dig({}, {'name':True, 'value':True, 'info':True})" | _lsoptions_group_fmt
+        proxy_start
+        server_call "global_option_dig({}, {'name':true, 'value':true, 'info':true})" | _lsoptions_group_fmt
     fi
     
-	olen=${olen:-0}
-	vlen=${olen:-0}
+    olen=${olen:-0}
+    vlen=${olen:-0}
 
-	_lsoptions_do 
-	_lsoptions_do print
+    _lsoptions_do 
+    _lsoptions_do print
 }
 
 _lsoptions_do()
 {
-	local lsoptions_c_arg=$lsoptions_c_arg
-	local lsoptions_n_arg=$lsoptions_n_arg
-	local lsoptions_s_arg=$lsoptions_s_arg
-	local lsoptions_H_arg=$lsoptions_H_arg
-	local lsoptions_g_arg=$lsoptions_g_arg
-	local lsoptions_p_arg=$lsoptions_p_arg
-	local lsoptions_c_flag=$lsoptions_c_flag
-	local lsoptions_n_flag=$lsoptions_n_flag
-	local lsoptions_s_flag=$lsoptions_s_flag
-	local lsoptions_H_flag=$lsoptions_H_flag
-	local lsoptions_g_flag=$lsoptions_g_flag
-	local lsoptions_p_flag=$lsoptions_p_flag
-	local lsoptions_gtype=$lsoptions_gtype
-	
-	
-	_lsoptions_print=$1
+    local lsoptions_c_arg=$lsoptions_c_arg
+    local lsoptions_n_arg=$lsoptions_n_arg
+    local lsoptions_s_arg=$lsoptions_s_arg
+    local lsoptions_H_arg=$lsoptions_H_arg
+    local lsoptions_g_arg=$lsoptions_g_arg
+    local lsoptions_p_arg=$lsoptions_p_arg
+    local lsoptions_c_flag=$lsoptions_c_flag
+    local lsoptions_n_flag=$lsoptions_n_flag
+    local lsoptions_s_flag=$lsoptions_s_flag
+    local lsoptions_H_flag=$lsoptions_H_flag
+    local lsoptions_g_flag=$lsoptions_g_flag
+    local lsoptions_p_flag=$lsoptions_p_flag
+    local lsoptions_gtype=$lsoptions_gtype
+    
+    
+    _lsoptions_print=$1
 # Options defined for a group
     if [ -n "$lsoptions_g_flag" ]; then
         if db_groupexists $lsoptions_g_arg; then
@@ -4234,27 +4234,27 @@ _lsoptions_do()
         seen_options=
         found_options=`_hasoptions_group $lsoptions_g_arg group`
         if [ -n "$found_options" ]; then
-    		if [ -n "$_lsoptions_print" ];then
-            	echo
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo
+            fi
             _lsoptions_group $lsoptions_g_arg 'group' "$found_options" "$seen_options"
             seen_options="$seen_options $found_options"
         fi
         proxy_start
-        lsoptions_g_arg=`server_call "group_fetch('$lsoptions_g_arg', {'parent':True})"`
+        lsoptions_g_arg=`server_call "group_fetch('$lsoptions_g_arg', {'parent':true})"`
         while [ -n "$lsoptions_g_arg"  -a "$lsoptions_g_arg" != "NULL" ]; do
             found_options=`_hasoptions_group $lsoptions_g_arg group`
             if [ -n "$found_options" ]; then
-            	if [ -n "$_lsoptions_print" ];then
-                	echo
-            	fi
+                if [ -n "$_lsoptions_print" ];then
+                    echo
+                fi
                 _lsoptions_group $lsoptions_g_arg 'group' "$found_options" "$seen_options"
             fi
             lsoptions_child=$lsoptions_g_arg
-        	lsoptions_g_arg=`server_call "group_fetch('$lsoptions_g_arg', {'parent':True})"`
-        	if [ "$lsoptions_g_arg" = "$lsoptions_child" ]; then
-        		lsoptions_g_arg=""
-    		fi
+            lsoptions_g_arg=`server_call "group_fetch('$lsoptions_g_arg', {'parent':true})"`
+            if [ "$lsoptions_g_arg" = "$lsoptions_child" ]; then
+                lsoptions_g_arg=""
+            fi
             seen_options="$seen_options $found_options"
         done
     fi
@@ -4264,34 +4264,34 @@ _lsoptions_do()
         if db_exists $lsoptions_gtype $lsoptions_s_arg ; then
             :
         else
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "No uch $lsoptions_gtype: $lsoptions_s_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "No uch $lsoptions_gtype: $lsoptions_s_arg"
+            fi
             return;
         fi
     
         found_options=`_hasoptions_group $lsoptions_s_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
-        	if [ -n "$_lsoptions_print" ];then
-            	echo
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo
+            fi
             _lsoptions_group $lsoptions_s_arg 'subnetwork' "$found_options" "$seen_options"
             seen_options="$seen_options $found_options"
         else
             echo "No options are defined for $lsoptions_gtype $lsoptions_s_arg"
         fi
         proxy_start
-        lsoptions_n_arg=`server_call "subnetwork_fetch('$lsoptions_s_arg', {'network':True})"`
+        lsoptions_n_arg=`server_call "subnetwork_fetch('$lsoptions_s_arg', {'network':true})"`
         found_options=`_hasoptions_group $lsoptions_n_arg network`
         if [ -n "$found_options" ]; then
-        	if [ -n "$_lsoptions_print" ];then
-            	echo
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo
+            fi
             _lsoptions_group $lsoptions_n_arg 'network' "$found_options" "$seen_options"
         else
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "No options are defined for network $lsoptions_n_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "No options are defined for network $lsoptions_n_arg"
+            fi
             return
         fi
     fi
@@ -4301,22 +4301,22 @@ _lsoptions_do()
         if db_exists $lsoptions_gtype $lsoptions_c_arg ; then
             :
         else
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "No such $lsoptions_gtype: $lsoptions_c_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "No such $lsoptions_gtype: $lsoptions_c_arg"
+            fi
             return;
         fi
     
         found_options=`_hasoptions_group $lsoptions_c_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "Options for $lsoptions_gtype $lsoptions_c_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "Options for $lsoptions_gtype $lsoptions_c_arg"
+            fi
             _lsoptions_group $lsoptions_c_arg $lsoptions_gtype "$found_options" ""
         else
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "No options are defined for $lsoptions_gtype $lsoptions_c_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "No options are defined for $lsoptions_gtype $lsoptions_c_arg"
+            fi
             return
         fi
     fi
@@ -4326,22 +4326,22 @@ _lsoptions_do()
         if db_exists $lsoptions_gtype $lsoptions_p_arg ; then
             :
         else
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "No such $lsoptions_gtype: $lsoptions_p_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "No such $lsoptions_gtype: $lsoptions_p_arg"
+            fi
             return;
         fi
     
         found_options=`_hasoptions_group $lsoptions_p_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "Options for $lsoptions_gtype $lsoptions_p_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "Options for $lsoptions_gtype $lsoptions_p_arg"
+            fi
             _lsoptions_group $lsoptions_p_arg $lsoptions_gtype "$found_options" ""
         else
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "No options are defined for $lsoptions_gtype $lsoptions_p_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "No options are defined for $lsoptions_gtype $lsoptions_p_arg"
+            fi
             return
         fi
     fi
@@ -4350,22 +4350,22 @@ _lsoptions_do()
         if db_exists $lsoptions_gtype $lsoptions_n_arg ; then
             :
         else
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "No such $lsoptions_gtype: $lsoptions_n_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "No such $lsoptions_gtype: $lsoptions_n_arg"
+            fi
             return;
         fi
     
         found_options=`_hasoptions_group $lsoptions_n_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "Options for $lsoptions_gtype $lsoptions_n_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "Options for $lsoptions_gtype $lsoptions_n_arg"
+            fi
             _lsoptions_group $lsoptions_n_arg $lsoptions_gtype "$found_options" ""
         else
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "No options are defined for $lsoptions_gtype $lsoptions_n_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "No options are defined for $lsoptions_gtype $lsoptions_n_arg"
+            fi
             return
         fi
     fi
@@ -4376,54 +4376,54 @@ _lsoptions_do()
         if [ -n "$_lsoptions_g_arg" ]; then
             :
         else
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "No such host: $lsoptions_H_arg"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "No such host: $lsoptions_H_arg"
+            fi
             return;
         fi
         seen_options=
         found_options=`_hasoptions_group $lsoptions_H_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
-        	if [ -n "$_lsoptions_print" ];then
-            	echo "Options for host $lsoptions_H_arg:"
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo "Options for host $lsoptions_H_arg:"
+            fi
             _lsoptions_group $lsoptions_H_arg $lsoptions_gtype "$found_options" "$seen_options"
         fi
         seen_options=$found_options
     
         found_options=`_hasoptions_group $_lsoptions_g_arg group`
         if [ -n "$found_options" ]; then
-        	if [ -n "$_lsoptions_print" ];then
-            	echo 
-        	fi
-        	_lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
+            if [ -n "$_lsoptions_print" ];then
+                echo 
+            fi
+            _lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
             seen_options="$seen_options $found_options"
         fi
         proxy_start
-        _lsoptions_g_arg=`server_call "group_fetch('$_lsoptions_g_arg', {'parent':True})"`
+        _lsoptions_g_arg=`server_call "group_fetch('$_lsoptions_g_arg', {'parent':true})"`
         while [ -n "$_lsoptions_g_arg"  -a "$_lsoptions_g_arg" != "NULL" ]; do
             found_options=`_hasoptions_group $_lsoptions_g_arg group`
             if [ -n "$found_options" ]; then
-            	if [ -n "$_lsoptions_print" ];then
-                	echo
-            	fi
+                if [ -n "$_lsoptions_print" ];then
+                    echo
+                fi
                 _lsoptions_group $_lsoptions_g_arg 'group' "$found_options" "$seen_options"
             fi
             _lsoptions_child=$_lsoptions_g_arg
             proxy_start
-            _lsoptions_g_arg=`server_call "group_fetch('$_lsoptions_g_arg', {'parent':True})"`
+            _lsoptions_g_arg=`server_call "group_fetch('$_lsoptions_g_arg', {'parent':true})"`
             if [ "$_lsoptions_g_arg" = "$_lsoptions_child" ]; then
-            	_lsoptions_g_arg=""
-        	fi
+                _lsoptions_g_arg=""
+            fi
             seen_options="$seen_options $found_options"
         done
     
         _lsoptions_subnet=`find_subnet $lsoptions_H_arg`
         if [ -n "$_lsoptions_subnet" ]; then
-        	if [ -n "$_lsoptions_print" ];then
-            	echo
-            	echo The host belongs to subnet $_lsoptions_subnet
-        	fi
+            if [ -n "$_lsoptions_print" ];then
+                echo
+                echo The host belongs to subnet $_lsoptions_subnet
+            fi
             lsoptions_H_flag=
             lsoptions -s $_lsoptions_subnet
             
@@ -4438,12 +4438,12 @@ find_subnet()
     fi
     proxy_start
     if echo $1 | grep . >/dev/null 2>&1; then
-    	hdns=$1
-	else
-    	hdns=`server_call "host_fetch('$1', {'dns':True})"`
-	fi
+        hdns=$1
+    else
+        hdns=`server_call "host_fetch('$1', {'dns':true})"`
+    fi
     fs_ip=`dig +short $hdns` 
-    sn=`server_call "subnetwork_dig({'subnetwork_covers':'$fs_ip'},{'subnetwork':True})"`
+    sn=`server_call "subnetwork_dig({'subnetwork_covers':'$fs_ip'},{'subnetwork':true})"`
     if [ -n "$sn" ]; then
         echo $sn
         return 0
@@ -4473,9 +4473,9 @@ _lsoptions_group()
         if echo "$4" | grep $o >/dev/null; then
             :
         else
-        	if [ "$o" != 'NULL' ]; then
-            	unseen="$unseen $o"
-        	fi
+            if [ "$o" != 'NULL' ]; then
+                unseen="$unseen $o"
+            fi
         fi
     done
             
@@ -4485,56 +4485,56 @@ _lsoptions_group()
         unseen=`echo $unseen | tr '\n' ' '` # Strips leading blank and converts newlines to blanks
 #       unseen=`echo "'$unseen'" | sed "s/ /','/g"`
 #       echo unseen=$unseen
-		_lsoption_group_header="Name	Value from $_lsoptions_group_gtype $1	Description"
-		px=${_lsoptions_group_gtype}
-		if [ "$px" = "class" ]; then
-			px="host_class"
-		fi
-		if [ -z "$_lsoptions_print" ];then
-			ol=`echo "$_lsoption_group_header" | awk -F '	' '{print $1}' | wc -c`
-			vl=`echo "$_lsoption_group_header" | awk -F '	' '{print $2}' | wc -c`
-			olen=$((ol > olen ? ol : olen))
-			vlen=$((vl > vlen ? vl : vlen))
-			
-			for o in $unseen; do
-				proxy_start
-				val=`server_call "${px}_fetch('$1',{'optionset_data': {'$o': True}})"`
-			    		ol=`echo $o | wc -c`
-			    		olen=$((ol > olen ? ol : olen))
-			    		vl=`echo $val | wc -c`
-			    		vlen=$((vl > vlen ? vl : vlen))
-			done
-		else
-	        echo "$_lsoption_group_header" | _lsoptions_group_fmt_var $olen $vlen  
-	        for o in $unseen; do
-	            case $o in
-	                 *)
-	                	proxy_start
-	                    val=`server_call "${px}_fetch('$1',{'optionset_data': {'$o': True}})"`
-			    		info=`server_call "option_def_dig({'option_def':'$o'}, {'info':True})"`
-	                    echo $o"	"$val"	"$info | _lsoptions_group_fmt_var $olen $vlen
-	                    ;;
-	             esac
-	        done
-		fi
+        _lsoption_group_header="Name	Value from $_lsoptions_group_gtype $1	Description"
+        px=${_lsoptions_group_gtype}
+        if [ "$px" = "class" ]; then
+            px="host_class"
+        fi
+        if [ -z "$_lsoptions_print" ];then
+            ol=`echo "$_lsoption_group_header" | awk -F '	' '{print $1}' | wc -c`
+            vl=`echo "$_lsoption_group_header" | awk -F '	' '{print $2}' | wc -c`
+            olen=$((ol > olen ? ol : olen))
+            vlen=$((vl > vlen ? vl : vlen))
+            
+            for o in $unseen; do
+                proxy_start
+                val=`server_call "${px}_fetch('$1',{'optionset_data': {'$o': true}})"`
+                        ol=`echo $o | wc -c`
+                        olen=$((ol > olen ? ol : olen))
+                        vl=`echo $val | wc -c`
+                        vlen=$((vl > vlen ? vl : vlen))
+            done
+        else
+            echo "$_lsoption_group_header" | _lsoptions_group_fmt_var $olen $vlen  
+            for o in $unseen; do
+                case $o in
+                     *)
+                        proxy_start
+                        val=`server_call "${px}_fetch('$1',{'optionset_data': {'$o': true}})"`
+                        info=`server_call "option_def_dig({'option_def':'$o'}, {'info':true})"`
+                        echo $o"	"$val"	"$info | _lsoptions_group_fmt_var $olen $vlen
+                        ;;
+                 esac
+            done
+        fi
     fi
 }
 
 _hasoptions_group()
 {
-	
+    
     _hasoptions_group_gtype=$2
     px=${_hasoptions_group_gtype}
-	if [ "$px" = "class" ]; then
-		px="host_class"
-	fi
+    if [ "$px" = "class" ]; then
+        px="host_class"
+    fi
     proxy_start
     #echo "proxy_pid H=$proxy_pid" >&2
     if [ "$_hasoptions_group_gtype" = "global" ]; then
-		v1=`server_call "global_option_dig({'min_id':0}, {'name': True})" | tr '\n' ' '`
-	else
-		v1=`server_call "${px}_fetch('$1', {'options': True})" | tr '\n' ' '`
-	fi
+        v1=`server_call "global_option_dig({'min_id':0}, {'name': true})" | tr '\n' ' '`
+    else
+        v1=`server_call "${px}_fetch('$1', {'options': true})" | tr '\n' ' '`
+    fi
     #echo "V1=$v1" >&2
     echo "$v1"
 }
@@ -4595,11 +4595,11 @@ lspools()
     echo "Range served by	Range Start	Range End" | _lspoolrange_fmt
     
     proxy_start
-    pools=`server_call 'pool_dig({},{"pool":True})'`
+    pools=`server_call 'pool_dig({},{"pool":true})'`
     
     for p in $pools; do
-		server_call "pool_fetch('$p',{'pool':True,'network':True,'max_lease_time':True,'info':True})" | _lspools_fmt
-		server_call "pool_range_dig({'pool':'$p'},{'served_by_data':{'dns':True},'start_ip':True,'end_ip':True})" | _lspoolrange_fmt
+        server_call "pool_fetch('$p',{'pool':true,'network':true,'max_lease_time':true,'info':true})" | _lspools_fmt
+        server_call "pool_range_dig({'pool':'$p'},{'served_by_data':{'dns':true},'start_ip':true,'end_ip':true})" | _lspoolrange_fmt
         echo
     done
 }
@@ -4623,8 +4623,8 @@ lsrooms()
 {
     pattern="^[^	]*${1-.*}"
     echo "ID	Printer	Info"  | _lsrooms_fmt
-	proxy_start
-    server_call "room_dig({'info_not_like': 'Auto inserted%'}, {'room':True, 'printers':True, 'info':True})" | egrep "$pattern" | _lsrooms_fmt
+    proxy_start
+    server_call "room_dig({'info_not_like': 'Auto inserted%'}, {'room':true, 'printers':true, 'info':true})" | egrep "$pattern" | _lsrooms_fmt
 }
 
 _lsrooms_fmt()
@@ -4663,8 +4663,8 @@ _lsrooms_fmt()
 lssubnetworks()
 {
     echo "Id	Netmask	Network	Info" | _lssubnetworks_fmt
-	proxy_start
-    server_call "subnetwork_dig({}, {'subnetwork':True,'network':True,'info':True})" | egrep "$pattern" | _lssubnetworks_fmt
+    proxy_start
+    server_call "subnetwork_dig({}, {'subnetwork':true,'network':true,'info':true})" | egrep "$pattern" | _lssubnetworks_fmt
 }
 
 _lssubnetworks_fmt()
@@ -4722,9 +4722,9 @@ mkgroup()
     fi
     
     if [ -z "$mkgroup_i_flag" ]; then
-    	echo "Please enter some information about the group using the -i flag"
-    	exit 2
-	fi
+        echo "Please enter some information about the group using the -i flag"
+        exit 2
+    fi
 
     if db_groupexists $mkgroup_groupname; then
         echo "The group $mkgroup_groupname is already defined"
@@ -4738,7 +4738,7 @@ mkgroup()
         exit 2
     fi
     proxy_start
-	server_call "group_create('$mkgroup_groupname', '$mkgroup_P_arg', '$mkgroup_i_arg', {})"
+    server_call "group_create('$mkgroup_groupname', '$mkgroup_P_arg', '$mkgroup_i_arg', {})"
   }
 ##
 ## Utilities for mkhost
@@ -4822,7 +4822,7 @@ _progbar_incr()
     while [ $_progbar_nowbar -lt $_progbar_bars ]; do
         echo -e "*\c"
         #_progbar_nowbar=`expr $_progbar_nowbar + 1
-    	_progbar_nowbar=$((_progbar_nowbar + 1))
+        _progbar_nowbar=$((_progbar_nowbar + 1))
     done
 }
 
@@ -4931,15 +4931,15 @@ mkhost()
     done
 
     mkhost_net=$1; shift
-	mkhost_mac=`_validate_mac_address $1`;
-	if [ -z "$mkhost_mac" ]; then
-	    exit 2
-	fi
+    mkhost_mac=`_validate_mac_address $1`;
+    if [ -z "$mkhost_mac" ]; then
+        exit 2
+    fi
     
     mkhost_pattern=$2
     #echo  "Mkhost pattern=$mkhost_pattern"
-	proxy_start
-	mkhost_subnetworks=`server_call "subnetwork_dig({'network':'$mkhost_net'}, {'subnetwork':True})"`
+    proxy_start
+    mkhost_subnetworks=`server_call "subnetwork_dig({'network':'$mkhost_net'}, {'subnetwork':true})"`
 
     if [ -z "$mkhost_subnetworks" ]; then
         echo "The Network $mkhost_net is empty or is undefined";
@@ -4954,7 +4954,7 @@ mkhost()
 #
 # Get the size of the addresses there are in the subnetwork
 #
-		mkhost_naddrs=`server_call "subnetwork_fetch('$mkhost_subnetwork', {'size': True})"`
+        mkhost_naddrs=`server_call "subnetwork_fetch('$mkhost_subnetwork', {'size': true})"`
         #mkhost_tothosts=`expr $mkhost_tothosts + $mkhost_naddrs`;
         mkhost_tothosts=$((mkhost_tothosts + mkhost_naddrs))
 #
@@ -4970,7 +4970,7 @@ mkhost()
     mkhost_naddrlist=`echo $mkhost_naddrlist`
 
     for mkhost_subnetwork_id in $mkhost_subnetworks; do
-    	mkhost_subnetwork=`server_call "subnetwork_fetch('$mkhost_subnetwork_id', {'start_ip':True})"`
+        mkhost_subnetwork=`server_call "subnetwork_fetch('$mkhost_subnetwork_id', {'start_ip':true})"`
         mkhost_naddrs=`echo $mkhost_naddrlist | cut -f1 -d' '`
 #
 # Convert the first IP addres to a decimal number, then use that number for counting IP addresses
@@ -5031,8 +5031,8 @@ mkhost()
 #M
 rmoption()
 {
-	option_op="remove"
-	opoption "$@"
+    option_op="remove"
+    opoption "$@"
 }
 
 _rmoption()
@@ -5042,8 +5042,8 @@ _rmoption()
     _rmoption_gtype=$3
  
     if _hasoptions_group $_rmoption_group $_rmoption_gtype | grep "$_rmoption_key" >/dev/null 2>&1 ; then
-    	:
-	else
+        :
+    else
         echo The option $_rmoption_key is not defined for the $_rmoption_gtype $_rmoption_group.
         return
     fi
@@ -5109,13 +5109,13 @@ addnetwork()
     fi
 
     if [ -n "$addnetwork_A_flag" -a -n "$addnetwork_noA_flag" ]; then
-	echo "You cannot specify both -A and --noA flags"
-	exit 1
+        echo "You cannot specify both -A and --noA flags"
+        exit 1
     fi
 
-    _addnetwork_authoritative='True'
+    _addnetwork_authoritative='true'
     if [ -n "$addnetwork_noA_flag" ];then
-        _addnetwork_authoritative='False'
+        _addnetwork_authoritative='false'
     fi
   
     if [ -z "$addnetwork_i_arg" ]; then
@@ -5123,7 +5123,7 @@ addnetwork()
         exit 1
     fi
     
-	server_call "network_create('$addnetwork_network', ${_addnetwork_authoritative}, '$addnetwork_i_arg')"
+    server_call "network_create('$addnetwork_network', ${_addnetwork_authoritative}, '$addnetwork_i_arg')"
     
 }
 #S addsubnetwork;;Add a subnetwork;2;2;IP-address network;Add a new subnetwork to a network;66
@@ -5152,7 +5152,7 @@ addsubnetwork()
     addsubnetwork_id=`_validate_cidr $1`
 
     if [ -z "$addsubnetwork_id" ]; then
-    	echo "No subnetwork?"
+        echo "No subnetwork?"
         return;
     fi
 
@@ -5168,7 +5168,7 @@ addsubnetwork()
         echo "The specified network is unknown"
         exit 1
     fi
-	
+    
     server_call "subnetwork_create('$addsubnetwork_id', '$addsubnet_network', '$addsubnetwork_i_arg')"
 
 }
@@ -5194,7 +5194,7 @@ deletesubnetwork()
         exit 1
     fi
 
-	server_call "subnetwork_destroy('$deletesubnetwork_subnetwork')"
+    server_call "subnetwork_destroy('$deletesubnetwork_subnetwork')"
 }
 #S deletenetwork;;Delete a network;1;1;network-name;Delete a network from the database;63
 #M =head2 I<Description>
@@ -5218,8 +5218,8 @@ deletenetwork()
         echo "The network '$deletenetwork_network' does not exist"
         exit 1
     fi
-	
-	server_call "network_destroy('$deletenetwork_network')"
+    
+    server_call "network_destroy('$deletenetwork_network')"
 
 }
 #S mkpool;;Create a pool;1;1;pool-name;Create a dynamic address pool;72
@@ -5266,14 +5266,14 @@ mkpool()
     fi
     mkpool_poolname=`_validate_pool_name "$1"`
     if [ -z "$mkpool_poolname" ]; then
-	echo "You must supply a valid pool name"
-	exit 1
+        echo "You must supply a valid pool name"
+        exit 1
     fi
     proxy_call "options={}"
 
     if [ -n "$mkpool_optionspace_flag" ]; then
         if db_exists optionspace $mkpool_optionspace_arg; then
-        	proxy_call "options['optionspace']='$mkpool_optionspace_arg'"
+            proxy_call "options['optionspace']='$mkpool_optionspace_arg'"
         else
             echo "The optionspace '$mkpool_optionspace_arg' is unknown";
             exit 1
@@ -5293,7 +5293,7 @@ mkpool()
     fi
 
     if [ -n "$mkpool_max_lease_flag" ]; then
-    	proxy_call "options['max_lease_time']=$mkpool_max_lease_arg"
+        proxy_call "options['max_lease_time']=$mkpool_max_lease_arg"
     fi
 
     if [ -n "$mkpool_i_flag" ]; then
@@ -5367,7 +5367,7 @@ addrange()
         echo "Start address must be less or equal to the end address"
         exit 1
     fi
-	server_call "pool_range_create('$addrange_start', '$addrange_end', '$addrange_pool', '$addrange_dhcp_server_arg')"
+    server_call "pool_range_create('$addrange_start', '$addrange_end', '$addrange_pool', '$addrange_dhcp_server_arg')"
 }
 
 #S rmrange;;Remove an address range;1;1;From_address;Remove an IP address range from a pool;75
@@ -5391,7 +5391,7 @@ rmrange()
         exit 1
     fi
 
-	server_call "pool_range_destroy('$rmrange_start')"
+    server_call "pool_range_destroy('$rmrange_start')"
 }
 #S chpool;;Change pool configuration;1;1;pool_name;Change the configuration of a pool;76
 #O chpool;max_lease;seconds;Specify maximum lease time;;leasetime
@@ -5428,8 +5428,8 @@ chpool()
         esac
     done
 
-	proxy_start
-	
+    proxy_start
+    
     if db_exists pool $1; then
         :
     else
@@ -5467,7 +5467,7 @@ chpool()
         proxy_call "options['info']='$chpool_i_arg'"
     fi
 
-	server_call "pool_update('$chpool_poolname', options)"
+    server_call "pool_update('$chpool_poolname', options)"
 }
 #S chrange;;Change range;1;3;range_start [new_start [new_end]];Change data of a range;77
 #O chrange;dhcp_server;server_code;Specify which DHCP server will serve the range;;dhcpserver
@@ -5524,8 +5524,8 @@ chrange()
     if [ -n "$chrange_new_start" ]; then
         _chrange_start_num=`ip2num $chrange_new_start`
         if [ -z "$chrange_new_end" ]; then
-        	proxy_start
-        	chrange_new_end=`server_call "pool_range_fetch('$chrange_start', {'end_ip':True})"`      
+            proxy_start
+            chrange_new_end=`server_call "pool_range_fetch('$chrange_start', {'end_ip':true})"`      
         fi
         _chrange_end_num=`ip2num $chrange_new_end`
         if $TEST $_chrange_start_num -gt $_chrange_end_num; then
@@ -5600,8 +5600,8 @@ chnetwork()
     chnetwork__anyflag=
 
     if [ -n "$chnetwork_A_flag" -a -n "$chnetwork_noA_flag" ]; then
-	echo "You cannot specify both -A and --noA flags"
-	exit 1
+        echo "You cannot specify both -A and --noA flags"
+        exit 1
     fi
 
 
@@ -5616,9 +5616,9 @@ chnetwork()
         echo "The specified network is unknown"
         exit 1
     fi
-	
-	proxy_start
-	proxy_call "options = {}"
+    
+    proxy_start
+    proxy_call "options = {}"
 
     if [ -n "$chnetwork_n_flag" ];then
         _chnetwork_foundaflag
@@ -5632,17 +5632,17 @@ chnetwork()
 
     if [ -n "$chnetwork_noA_flag" ]; then
         _chnetwork_foundaflag
-        proxy_call "options['authoritative'] = False"
+        proxy_call "options['authoritative'] = false"
     fi
 
     if [ -n "$chnetwork_A_flag" ]; then
         _chnetwork_foundaflag
-        proxy_call "options['authoritative'] = True"
+        proxy_call "options['authoritative'] = true"
     fi
 
-	if [ -n "$chnetwork_anyflag" ]; then
-		server_call "network_update('$chnetwork_network', options)"
-	fi
+    if [ -n "$chnetwork_anyflag" ]; then
+        server_call "network_update('$chnetwork_network', options)"
+    fi
 
 }
 
@@ -5664,7 +5664,7 @@ chsubnetwork()
 
     for i in "$@"; do
         case "$i" in
-        	-n)
+            -n)
                 chsubnetwork_n_flag=$i; shift
                 chsubnetwork_n_arg=$1; shift
                 ;;
@@ -5699,13 +5699,13 @@ chsubnetwork()
     proxy_call "options={}"
 
     if [ -n "$chsubnetwork_network_name_flag" ];then
-    	if db_exists network $chsubnetwork_network_name_arg; then
-        	_chsubnetwork_foundaflag
-        	proxy_call "options['network']='$chsubnetwork_network_name_arg'"
-    	else
-    		echo "The specified network does not exist" >&2
-    		exit 1
-    	fi
+        if db_exists network $chsubnetwork_network_name_arg; then
+            _chsubnetwork_foundaflag
+            proxy_call "options['network']='$chsubnetwork_network_name_arg'"
+        else
+            echo "The specified network does not exist" >&2
+            exit 1
+        fi
     fi
 
     if [ -n "$chsubnetwork_i_flag" ];then
@@ -5714,11 +5714,11 @@ chsubnetwork()
     fi
     
     if [ -n "$chsubnetwork_n_flag" ]; then
-    	if [ -n `_validate_cidr $chsubnetwork_n_arg` ]; then
-    		_chsubnetwork_foundaflag
-    		proxy_call "options['subnetwork']='$chsubnetwork_n_arg'"
-    	fi
-	fi
+        if [ -n `_validate_cidr $chsubnetwork_n_arg` ]; then
+            _chsubnetwork_foundaflag
+            proxy_call "options['subnetwork']='$chsubnetwork_n_arg'"
+        fi
+    fi
 
     server_call "subnetwork_update('$chsubnetwork_subnetwork', options)"
 
@@ -5753,9 +5753,9 @@ grant()
                 shift;break
                 ;;
         esac
-	done
+    done
 
-	if db_exists pool $1; then
+    if db_exists pool $1; then
         :
     else
         echo "The pool named $1 is not defined"
@@ -5814,7 +5814,7 @@ revoke()
         esac
     done
     
-	if db_exists pool $1; then
+    if db_exists pool $1; then
         :
     else
         echo "The pool named $1 is not defined"
