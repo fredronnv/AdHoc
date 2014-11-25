@@ -37,7 +37,7 @@ class T0210_SubnetworkFetch(UnAuthTests):
             
 class T0220_SubnetworkCreate(NetworkAdminTests):
     """ Test subnetwork_create """
-    wip=True
+
     def do(self):  
         try:
             self.superuser.network_destroy('network_test')
@@ -78,7 +78,7 @@ class T0220_SubnetworkCreate(NetworkAdminTests):
         
 class T0230_SubnetworkDestroy(NetworkAdminTests):
     """ Test subnetwork destroy """
-    wip=True
+
     def do(self):
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.subnetwork_create('192.5.55.0/24', 'network_test', "TestSubnetwork")
@@ -94,6 +94,102 @@ class T0230_SubnetworkDestroy(NetworkAdminTests):
                 pass
             try:
                 self.superuser.network_destroy('network_test')
+            except:
+                pass
+            
+class T0231_SubnetworkDestroyDHCP(NetworkAdminTests):
+    """ Test subnetwork destroy on a crucial subnetwork """
+
+    def do(self):
+        try:
+            with AssertAccessError(self):
+                with AssertRPCCError("ValueError::SubnetworkInUse::SubnetworkInUseByDHCPServer", True):
+                    self.proxy.subnetwork_destroy('129.16.4.88/29')  # A DHCP server is supposed to  be configured on 129.16.4.92
+        finally:
+            try:
+                self.superuser.subnetwork_create("129.16.4.88/29", 'dhcp-ng', 'Chalmers DHCP NG server 1')
+            except:
+                pass
+
+
+class T0232_SubnetworkModifyRangeExcludingDHCPServer(NetworkAdminTests):
+    """ Test subnetwork modify to exclude a DHCP server"""
+
+    def do(self):
+        try:
+            with AssertAccessError(self):
+                with AssertRPCCError("ValueError::SubnetworkInUse::SubnetworkInUseByDHCPServer", True):
+                    self.proxy.subnetwork_update('129.16.4.88/29', {"subnetwork":"129.16.4.88/30"})   # A DHCP server is supposed to  be configured on 129.16.4.92
+        finally:
+            try:
+                self.superuser.subnetwork_update("129.16.4.88/30", {"subnetwork":"129.16.4.88/29"})
+            except:
+                pass
+            
+class T0233_SubnetworkCreateOverlapping(NetworkAdminTests):
+    """ Test creating a subnetwork that overlaps an already existing subnetwork"""
+
+    def do(self):
+        try:
+            self.superuser.network_destroy('network_testoverlap')
+        except:
+            pass
+        self.superuser.network_create('network_testoverlap', False, "Testnätverk 2")
+        self.superuser.subnetwork_create('192.5.55.0/24', 'network_testoverlap', "TestSubnetwork") 
+        try:
+            with AssertAccessError(self):
+                with AssertRPCCError("ValueError::SubnetworkOverlapsExisting", True):
+                    self.proxy.subnetwork_create('192.5.0.0/16', 'network_testoverlap', "TestSubnetwork")  
+                with AssertRPCCError("ValueError::SubnetworkOverlapsExisting", True):
+                    self.proxy.subnetwork_create('192.5.55.64/26', 'network_testoverlap', "TestSubnetwork") 
+        finally:
+            try:
+                self.superuser.subnetwork_destroy('192.5.0.0/16')
+            except:
+                pass
+            try:
+                self.superuser.subnetwork_destroy('192.5.55.0/24')
+            except:
+                pass
+            try:
+                self.superuser.subnetwork_destroy('192.5.55.64/26')
+            except:
+                pass
+            try:
+                self.superuser.network_destroy('network_testoverlap')
+            except:
+                pass 
+        
+class T0234_SubnetworkModifyToOverlapping(NetworkAdminTests):
+    """ Test modifying a subnetwork so that it overlaps an already existing subnetwork"""
+
+    def do(self):
+        try:
+            self.superuser.network_destroy('network_testoverlap')
+        except:
+            pass
+        self.superuser.network_create('network_testoverlap', False, "Testnätverk 2")
+        self.superuser.subnetwork_create('192.5.55.0/24', 'network_testoverlap', "TestSubnetwork") 
+        try:
+            with AssertAccessError(self):
+                self.proxy.subnetwork_create('192.5.54.0/24', 'network_testoverlap', "TestSubnetwork")  
+                with AssertRPCCError("ValueError::SubnetworkOverlapsExisting", True):
+                    self.proxy.subnetwork_update('192.5.54.0/24', {"subnetwork":"192.5.54.0/23"}) 
+        finally:
+            try:
+                self.superuser.subnetwork_destroy('192.5.55.0/24')
+            except:
+                pass
+            try:
+                self.superuser.subnetwork_destroy('192.5.54.0/24')
+            except:
+                pass
+            try:
+                self.superuser.subnetwork_destroy('192.5.54.0/23')
+            except:
+                pass
+            try:
+                self.superuser.network_destroy('network_testoverlap')
             except:
                 pass
         
