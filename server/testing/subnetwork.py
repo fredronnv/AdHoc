@@ -37,12 +37,20 @@ class T0210_SubnetworkFetch(UnAuthTests):
             
 class T0220_SubnetworkCreate(NetworkAdminTests):
     """ Test subnetwork_create """
-    
+    wip=True
     def do(self):  
         try:
             self.superuser.network_destroy('network_test')
         except:
             pass
+        try:
+            self.superuser.subnetwork_destroy('192.5.55.0/24')
+        except rpcc_client.RPCCError, e:
+            if e[0].name.startswith("LookupError"):
+                pass
+            else:
+                raise
+    
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         with AssertAccessError(self):
             try:
@@ -62,7 +70,7 @@ class T0220_SubnetworkCreate(NetworkAdminTests):
                 assert ret.info == "TestSubnetwork", "Info is " + ret.info + "but should be 'TestSubnetwork'"
             finally:
                 try:
-                    self.proxy.subnetwork_destroy('192.5.55.0/24')
+                    self.superuser.subnetwork_destroy('192.5.55.0/24')
                 except:
                     pass
                 self.superuser.network_destroy('network_test')
@@ -70,7 +78,7 @@ class T0220_SubnetworkCreate(NetworkAdminTests):
         
 class T0230_SubnetworkDestroy(NetworkAdminTests):
     """ Test subnetwork destroy """
-    
+    wip=True
     def do(self):
         self.superuser.network_create('network_test', False, "Testnätverk 2")
         self.superuser.subnetwork_create('192.5.55.0/24', 'network_test', "TestSubnetwork")
