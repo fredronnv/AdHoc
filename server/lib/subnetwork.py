@@ -258,7 +258,7 @@ class SubnetworkManager(AdHocManager):
     @entry(g_write)
     def destroy_subnetwork(self, fun, subnetwork):
         
-        if self.dhcp_servers(subnetwork):
+        if self.dhcp_servers(subnetwork.oid):
             raise ExtSubnetworkInUseByDHCPServerError()
         
         subnetwork.get_optionset().destroy()
@@ -284,16 +284,18 @@ class SubnetworkManager(AdHocManager):
             
     def dhcp_servers(self, cidr): 
         """ Return the set of dhcp servers contained within the cidr"""
-        
         nw = ipaddr.IPNetwork(cidr)   
-        q = """SELECT id FROM dhcp_servers"""
+        q = """SELECT name FROM dhcp_servers"""
         
         servers = set()
         
         for row in self.db.get(q):
             dhcp_server_name = row[0]
-            dhcp_server_ip = sochet.gethostbyname(dhcp_server_name)
-            if nw.contains(ipaddr.IPv4Address(dhcp_derver_ip)):
+            try:
+                dhcp_server_ip = socket.gethostbyname(dhcp_server_name)
+            except socket.gaierror:
+                continue
+            if nw.Contains(ipaddr.IPv4Address(dhcp_server_ip)):
                 servers.add(dhcp_server_name)
                 
         return servers
@@ -316,7 +318,7 @@ class SubnetworkManager(AdHocManager):
                 one or more of our DHCP servers in the cold"""
             if key=='id':
                 self.checkoverlap(value)
-                if self.dhcp_servers(subnetwork) != self.dhcp_servers(value):
+                if self.dhcp_servers(subnetwork.oid) != self.dhcp_servers(value):
                     raise ExtSubnetworkInUseByDHCPServerError()
                 
             optionset.set_option_by_name(key, value)
