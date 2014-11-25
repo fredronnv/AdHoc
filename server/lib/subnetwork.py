@@ -166,6 +166,13 @@ class Subnetwork(AdHocModel):
     @update("subnetwork", ExtSubnetworkID)
     @entry(g_write)
     def set_id(self, value):
+        """ Changing the ID means changing the range of IP addresses for the subnetwork.
+                This may result in two bad things. A subnetwork overlap or that we leave
+                one or more of our DHCP servers in the cold"""
+        self.manager.checkoverlap(value, self.oid)
+        if self.manager.dhcp_servers(self.oid) != self.manager.dhcp_servers(value):
+                    raise ExtSubnetworkInUseByDHCPServerError()
+                
         q = "UPDATE subnetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
         self.manager.rename_object(self, value)
@@ -273,11 +280,15 @@ class SubnetworkManager(AdHocManager):
         
         #print "Subnetwork destroyed, id=", id
      
-    def checkoverlap(self, cidr):
+    def checkoverlap(self, cidr, from_cidr=None):
         """ Check if the given CIDR overlaps any of the existing subnetworks"""
         n1 = ipaddr.IPNetwork(cidr)
+        #print "n1=",cidr
         
         for row in self.db.get("SELECT id FROM subnetworks"):
+            #print "n2=", row[0]
+            if from_cidr and from_cidr==row[0]:  # This allows an existing suvnetwork to be changed
+                continue
             n2 = ipaddr.IPNetwork(row[0])
             if n1.overlaps(n2) or n2.overlaps(n1):
                 raise ExtSubnetworkOverlapsExisting()
@@ -303,23 +314,11 @@ class SubnetworkManager(AdHocManager):
 
     @entry(g_write)
     def update_options(self, fun, subnetwork, updates):
+        
+        print "Subnetwork update, subnetwork==",subnetwork, "updates=", updates
         omgr = fun.optionset_manager
         optionset = omgr.get_optionset(subnetwork.optionset)
-        
-        if key=='id':
-            self.checkoverlap(value)
-            
-        
             
         for (key, value) in updates.iteritems():
-            
-            """ Changing the ID means changing the range of IP addresses for the subnetwork.
-                This may result in two bad things. A subnetwork overlap or that we leave
-                one or more of our DHCP servers in the cold"""
-            if key=='id':
-                self.checkoverlap(value)
-                if self.dhcp_servers(subnetwork.oid) != self.dhcp_servers(value):
-                    raise ExtSubnetworkInUseByDHCPServerError()
-                
             optionset.set_option_by_name(key, value)
             self.event_manager.add("update",  subnetwork=subnetwork.oid, option=key, option_value=unicode(value), authuser=fun.session.authuser)
