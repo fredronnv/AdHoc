@@ -3989,11 +3989,13 @@ lshosts()
     	search_exp="$search_exp'status_regexp':$status_regexp,"
 	fi
     
-    
     #echo G "{$search_exp}" >&2
+
+    proxy_start
     if [ -n "$lshosts_l_flag" ]; then
-        proxy_start
         server_call "host_dig({$search_exp},{$data_template})"   | _lshosts_l_fmt
+	else
+		server_call "host_dig({$search_exp},{$data_template})"
     fi
 
     exit 0

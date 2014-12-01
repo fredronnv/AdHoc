@@ -61,9 +61,9 @@ main()
         die "Only root should run this, exiting..."
     fi
         
-    if ask "Continue and setup $PKGNAME version $PKGVERSION? (y/n): "; then
+    if ask "Continue and setup $PKGNAME version $PKGVERSION?: "; then
 
-        echo 'Setting up $PKGNAME ...'
+        echo "Setting up $PKGNAME ..."
         echo
         
         # Create a symbolic link pointing at the current version

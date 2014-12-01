@@ -17,12 +17,14 @@ LOGFILE=${LOGDIR}/adhoc-connect.log
 
 AUTO=auto
 
+# Prepend a timestamp to the message and send it to the log file
 log()
 {
     msg="`date '+%F %T'` INFO  $@"
     echo "$msg" >>$LOGFILE
 }
 
+# Like log but sent message both to stderr and to the log file
 err()
 {
     msg="`date '+%F %T'` ERROR $@"
@@ -30,10 +32,19 @@ err()
     echo "$msg" >/dev/stderr
 }
 
+# Like error but terminate execution afterwards
 fatal()
 {
     msg="`date '+%F %T'` FATAL $@"
     echo "$msg" >>$LOGFILE
+    echo "$msg" >/dev/stderr
+    exit 1
+}
+
+# like fatal but does not log the error. Use when logging cannot be done
+die()
+{
+    msg="`date '+%F %T'` FATAL $@"
     echo "$msg" >/dev/stderr
     exit 1
 }
@@ -68,7 +79,10 @@ install_conf()
 }
 
 main()
-{
+{   
+    mkdir -p ${LOGDIR} || die "Cannot create directory for $LOGFILE"
+    touch $LOGFILE || die "Cannot update $LOGFILE"
+
     touch ${DHCPD_CONF}  # Makes sure it exists
     if [ `egrep -v '^#' ${DHCPD_CONF} | wc -l` -lt 10 ]; then
         wget -q -O ${TMP_CONF} ${ADHOC_URL}/dhcpd/${ADHOC_API_VERSION} || fatal "Failed fetching dhcpd.conf from ${ADHOC_URL}"
