@@ -38,7 +38,8 @@ release: install
 	echo '#mtree v1.0' >$$mtreefile; \
         echo "adhoc-connect-$${revno} uid=0 gid=0 mode=0755 type=dir" >>$$mtreefile ; \
 	cat ${TOP}/adhoc-connect/dist.mtree >>$$mtreefile ;\
-        tar cf ${RELEASEDIR}/adhoc-connect-$${revno}.tar @$$mtreefile; rm -f $$mtreefile )
+        tar cf ${RELEASEDIR}/adhoc-connect-$${revno}.tar @$$mtreefile; rm -f $$mtreefile );\
+        cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_adhoc-connect.txt
 
 patchbump:
 	(patch=`cat rel_patch`; patch=`expr $${patch} + 1`; echo $${patch} > rel_patch)

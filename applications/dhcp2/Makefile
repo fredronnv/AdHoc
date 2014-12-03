@@ -22,7 +22,7 @@ install: clean
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p ${DISTDIR};\
-	cp dhcp2proxy.py ${TOP}/client/rpcc_client.py ${DISTDIR};\
+	cp INSTALL.txt dhcp2proxy.py ${TOP}/client/rpcc_client.py ${DISTDIR};\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < dhcp2 | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/dhcp2 ;\
 	(cd ${DISTDIR}; chmod +x dhcp2; ./dhcp2 Release; mv ./dhcp2-* ./dhcp2 ) ;\
@@ -30,7 +30,8 @@ install: clean
 
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	(cd ${DISTDIR}/..; mv dhcp2 dhcp2-$${revno};tar cf ${RELEASEDIR}/dhcp2-$${revno}.tar dhcp2-$${revno})
+	(cd ${DISTDIR}/..; mv dhcp2 dhcp2-$${revno};tar cf ${RELEASEDIR}/dhcp2-$${revno}.tar dhcp2-$${revno});\
+	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_dhcp2.txt
 	
 patch: svnstatus patchbump install
 
