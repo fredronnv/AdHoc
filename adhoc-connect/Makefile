@@ -31,13 +31,13 @@ install: clean
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	rm -rf ${DISTDIR}/../adhoc-connect-$${revno}; \
+        cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_adhoc_connect.txt ;\
 	(cd ${DISTDIR}/..; \
         mv adhoc-connect adhoc-connect-$${revno}; \
         mtreefile=`mktemp -t mtree`; \
 	echo '#mtree v1.0' >$$mtreefile; \
         echo "adhoc-connect-$${revno} uid=0 gid=0 mode=0755 type=dir" >>$$mtreefile ; \
 	cat ${TOP}/adhoc-connect/dist.mtree >>$$mtreefile ;\
-        cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_adhoc_connect.txt ;\
         tar cf ${RELEASEDIR}/adhoc-connect-$${revno}.tar @$$mtreefile; rm -f $$mtreefile )
 
 patchbump:
