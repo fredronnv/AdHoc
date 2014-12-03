@@ -25,9 +25,8 @@ install: clean
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./etc/cron.d/adhoc-connect | \
 	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/etc/cron.d/adhoc-connect; \
 	chmod 544 ${DISTDIR}/sbin/adhoc-connect.sh; \
-	cp ./fix-files-adhoc-connect.sh ${DISTDIR}; \
-	chmod +x ${DISTDIR}/fix-files-adhoc-connect.sh; \
-	cp ./INSTALL.txt ${DISTDIR}
+	cp ./INSTALL.txt ./fix-files-adhoc-connect.sh ${DISTDIR}; \
+	chmod +x ${DISTDIR}/fix-files-adhoc-connect.sh;
 	
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\

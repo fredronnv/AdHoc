@@ -37,7 +37,7 @@ install: clean
 
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-        cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_adhoc-server.tar ;\
+        cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_adhoc-server.txt ;\
 	(cd ${DISTDIR}/..; mv adhoc-server adhoc-server-$${revno};tar cf ${RELEASEDIR}/adhoc-server-$${revno}.tar adhoc-server-$${revno})
 
 patch: svnstatus patchbump install release
