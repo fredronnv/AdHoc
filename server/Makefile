@@ -35,12 +35,10 @@ install: clean
 	(cd ${DISTDIR}; find . -name \*.svn -exec rm {} \;); \
 	(cd ${DISTDIR}; find . -name \*.gitignore -exec rm {} \;)
 
-	
-	
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	(cd ${DISTDIR}/..; mv adhoc-server adhoc-server-$${revno};tar cf ${RELEASEDIR}/adhoc-server-$${revno}.tar adhoc-server-$${revno}) ;\
-	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_adhoc-server.tar
+        cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_adhoc-server.tar ;\
+	(cd ${DISTDIR}/..; mv adhoc-server adhoc-server-$${revno};tar cf ${RELEASEDIR}/adhoc-server-$${revno}.tar adhoc-server-$${revno})
 
 patch: svnstatus patchbump install release
 

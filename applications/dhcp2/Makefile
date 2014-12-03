@@ -30,8 +30,8 @@ install: clean
 
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	(cd ${DISTDIR}/..; mv dhcp2 dhcp2-$${revno};tar cf ${RELEASEDIR}/dhcp2-$${revno}.tar dhcp2-$${revno});\
-	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_dhcp2.txt
+	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_dhcp2.txt ;\
+	(cd ${DISTDIR}/..; mv dhcp2 dhcp2-$${revno};tar cf ${RELEASEDIR}/dhcp2-$${revno}.tar dhcp2-$${revno};)
 	
 patch: svnstatus patchbump install
 
