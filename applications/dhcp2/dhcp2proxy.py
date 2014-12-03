@@ -7,13 +7,9 @@ Created on 28 jan 2014
 import sys
 import kerberos
 import pprint
-import json
-import collections
 
-# For jsom compatibility
 true=True
 false=False
-
 
 def template2keys(template, indent=1):
     #print >>sys.stderr, "    " * indent + "Template2keys: template=", template, "indent=", indent
@@ -92,50 +88,13 @@ def process(command, output):
         arg = arg.rstrip(")")
     #print >>sys.stderr, "CMD=",cmd, "sep=", sep, "arg=",arg
     
-#=======
-    # Parse args using json, then split the list in its
-    # first level components and serialize each element back
-    # while keeping key/value pairs in dicts ordered
-    jarg = '['+arg+']'
-    #print >>sys.stderr,"Jarg="
-    jarg = jarg.replace("'",'"')
-    jarg = jarg.replace(",}","}")
-    #pprint.pprint(jarg, stream=sys.stderr)
-    jobj = json.loads(jarg, object_pairs_hook=collections.OrderedDict)
-    #print >>sys.stderr,"Jobj="
-    #pprint.pprint(jobj, stream=sys.stderr)
-    args=[json.dumps(x) for x in jobj]
-    #print >>sys.stderr,"Args="
-    #pprint.pprint(args, stream=sys.stderr)
-
-    
-    # Parse the arg string inti its lowest level parts
-#     i = 0
-#     bracelevels = 0
-#     accum=""
-#     while i < len(arg):
-#         c = arg[i]
-#         if c == '{':
-#             bracelevels += 1
-#         if c == '}':
-#             bracelevels -= 1
-#         if bracelevels:
-#             accum = accum + c
-#         else:
-#             if c==",":
-#                 args += accum
-#                 accum=""
-#         i += 1
-#     if accum:
-#         args += accum
-        
     try:
         if not srv:
             if not srv_url:
                 srv_url = "https://adhoc.ita.chalmers.se:8877"
             srv = rpcc_client.RPCC(srv_url)
         
-        s = cmd + "(" + ",".join(args) + ")"
+        s = cmd + "(" + arg + ")"
         
         #print >> sys.stderr, "CMD=%s" % cmd
         #print >> sys.stderr, "EXEC: %s" % s
@@ -173,11 +132,24 @@ def process(command, output):
         #print >> sys.stderr, "RES=%s" % res
         s = ""
         if cmd.endswith("_dig") or cmd.endswith("_fetch"):
-            #print >>sys.stderr, "ARGS1=", args[1]
-            print_object_in_template_order(res, args[1], output)
-            #print >>sys.stderr, output.getvalue().rstrip('\n')
-            
-            #print >>sys.stderr, "OBJECT VAL='" + output.getvalue() + "'"
+        # Extract the last argument as the template
+            depth=0 
+            template=""
+            for i in range(len(arg)-1,0,-1):
+                if arg[i]=='}':
+                    depth += 1
+                    continue
+                if arg[i]=='{':
+                    depth -= 1
+                    continue
+                if arg[i] == ',' and depth==0:
+                    template=arg[i+1:]
+                    break
+            else:
+                print >>sys.stderr, "Syntax error to dig or fetch RPC. Cannot find data template parameter"
+            	return 1
+
+            print_object_in_template_order(res, template, output)
             return 0
                 
         if type(res) is unicode or type(res) is str:
