@@ -23,11 +23,11 @@ WHAT YOU NEED
 
 A. adhoc-server-x.y.z.tar, the adhoc server package.
 
-   URL: https://utveckling.its.chalmers.se/project/2
+   URL: https://utveckling.ita.chalmers.se/project/2
    
    Currently (2014-11-17) we use the following command
    
-   wget https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/\
+   wget https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/\
    files/adhoc-server-1.4.6.tar
    
 B. The latest version of the daemon utility. This utility does a lot 

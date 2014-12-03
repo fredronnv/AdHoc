@@ -10,7 +10,7 @@ restorecon -FR /cdg
 cd /cdg/adhoc/
 
 Download the adhoc-connect package from the distribution server
-wget --no-check-certificate https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/files/adhoc-connect-x.y.z.tar
+wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/adhoc-connect-x.y.z.tar
 
 Expand and configure the distribution archive:
 
@@ -31,8 +31,8 @@ UPGRADE PROCEDURE:
 cd /cdg/adhoc
 
 Download the adhoc-connect package from the distribution server
-wget --no-check-certificate https://utveckling.its.chalmers.se/sites/utveckling.its.chalmers.se/files/adhoc-connect-x.y.z.tar
+wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/adhoc-connect-u.v.w.tar
 
-tar -xf adhoc-connect-x.y.z.tar
-cd adhoc-connect-x.y.z
+tar -xf adhoc-connect-u.v.w.tar
+cd adhoc-connect-u.v.w
 ./fix-files-adhoc-connect.sh
