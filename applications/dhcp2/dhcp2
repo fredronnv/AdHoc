@@ -3920,7 +3920,7 @@ lshosts()
         echo "Host ID	DNS	Mac	Group	 Status	 Room	 Info" | _lshosts_l_fmt
     fi
     
-    if [ -z "$lshosts_a_flag$lshosts_i_flag$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
+    if [ -z "$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
         lshosts_A_flag='A'
         lshosts_I_flag='I'
     fi
@@ -3970,11 +3970,11 @@ lshosts()
     fi
     
     if [ -n "$mac_pattern" ]; then
-        search_exp="$search_exp'room_pattern':'*$mac_pattern*',"
+        search_exp="$search_exp'mac_pattern':'*$mac_pattern*',"
     fi
     
     if [ -n "$room_pattern" ]; then
-        search_exp="$search_exp'mac_pattern':'*$room_pattern*',"
+        search_exp="$search_exp'room_pattern':'*$room_pattern*',"
     fi
     
     if [ -n "$description_pattern" ]; then

@@ -163,7 +163,9 @@ def process(command, output):
         return 0
     
     except kerberos.GSSError:
+            print >> sys.stderr
             print >> sys.stderr, "You need a Kerberos ticket. See kinit(1)"
+            print >> sys.stderr
             raise
                 
     except KeyError, e:
