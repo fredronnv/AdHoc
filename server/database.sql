@@ -896,7 +896,8 @@ CREATE TABLE IF NOT EXISTS `rpcc_result` (
 CREATE TABLE IF NOT EXISTS `rpcc_result_int` (
   `resid` int(11) NOT NULL COMMENT 'Reference to resultset',
   `value` int(11) DEFAULT NULL COMMENT 'An integer value in the result set',
-  KEY `resid` (`resid`)
+  KEY `resid` (`resid`),
+  KEY `value` (`value`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Results that are integers, per result ID';
 
 
@@ -909,7 +910,8 @@ CREATE TABLE IF NOT EXISTS `rpcc_result_int` (
 CREATE TABLE IF NOT EXISTS `rpcc_result_string` (
   `resid` int(11) NOT NULL COMMENT 'Reference to resultset',
   `value` varchar(128) COLLATE utf8_bin DEFAULT NULL COMMENT 'A string value in the result set',
-  KEY `resid` (`resid`)
+  KEY `resid` (`resid`),
+  KEY `value` (`value`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Results that are strings, per result ID';
 
 -- --------------------------------------------------------
@@ -935,7 +937,9 @@ CREATE TABLE IF NOT EXISTS `rpcc_session_string` (
   `session_id` varchar(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Reference to session ID',
   `name` varchar(30) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Name of variable',
   `value` varchar(30) COLLATE utf8_bin DEFAULT NULL COMMENT 'Value of variable',
-  KEY `session_id` (`session_id`)
+  KEY `session_id` (`session_id`),
+  KEY `name` (`name`),
+  KEY `value` (`value`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table for storing data for a session';
 
 
