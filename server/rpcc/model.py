@@ -1022,7 +1022,7 @@ class Manager(object):
             raise AttributeError(attr)
 
     def new_result_set(self):
-        q = "SELECT resid FROM rpcc_result WHERE expires > :now"
+        q = "SELECT resid FROM rpcc_result WHERE expires < :now"
         for (expired,) in self.db.get_all(q, now=self.function.started_at()):
             q = "DELETE FROM rpcc_result_string WHERE resid=:r"
             self.db.put(q, r=expired)
