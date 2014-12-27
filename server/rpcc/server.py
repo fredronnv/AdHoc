@@ -282,6 +282,15 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             ret = {'result': result}
             if db:
                 db.commit()
+                
+        except exterror.ExtInternalError as e:
+            print(e.intdesc)
+            traceback.print_exc()
+            s = e.struct()
+            ret = {'error': s}
+            if db:
+                db.rollback()
+                
         except exterror.ExtError as e:
             s = e.struct()
             ret = {'error': s}
