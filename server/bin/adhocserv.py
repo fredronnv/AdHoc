@@ -38,7 +38,6 @@ class StartMe(object):
             print "Enabling SSL"
             keyfile = os.environ.get('RPCC_SERVER_SSL_KEYFILE', 'etc/rpcc_server.key')
             certfile = os.environ.get('RPCC_SERVER_SSL_CERTFILE', 'etc/rpcc_server.cert')
-            
 
             ssl_config = SSLConfig(keyfile, certfile)
 
@@ -56,25 +55,7 @@ class StartMe(object):
         srv.register_manager(event.EventManager)
         srv.generic_password=generic_password
         
-        # Find the server directory and register all managers and functions in the modules found.
-        seen_managers = []  # Avoid duplicating registrations. This can happen if managers are imported from other objects.
-        
-        for file in os.listdir(serverdir):
-            mo = re.match(r"^([a-z_]+).py$", file)
-            if not mo:
-                continue
-            module = __import__(mo.group(1))
-            for name, obj in inspect.getmembers(module):
-                if inspect.isclass(obj):
-                    if issubclass(obj, model.Manager):
-                        if hasattr(obj, "name") and obj.name and obj.name not in seen_managers:
-                            try:
-                                srv.register_manager(obj)
-                                seen_managers.append(obj.name)
-                            except:
-                                print "Failed to register manager ", obj, " in module", mo.group(1)
-                                raise
-            srv.register_functions_from_module(module)
+        srv.register_from_directory(serverdir)
         
         srv.register_manager(authentication.NullAuthenticationManager)
         srv.enable_global_functions()

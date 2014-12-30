@@ -365,6 +365,30 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     def register_categories_from_module(self, mod):
         self.api_handler.add_categories_from_module(mod)
+    
+    def register_from_directory(self, dirname):
+        """ Register functions and managers found in python files within a directory"""
+        import re
+        import inspect
+        import model
+        seen_managers = []  # Avoid duplicating registrations. This can happen if managers are imported from other objects.
+        
+        for filename in os.listdir(dirname):
+            mo = re.match(r"^([a-z0-9_]+).py$", filename)
+            if not mo:
+                continue
+            module = __import__(mo.group(1))
+            for _name, obj in inspect.getmembers(module):
+                if inspect.isclass(obj):
+                    if issubclass(obj, model.Manager):
+                        if hasattr(obj, "name") and obj.name and obj.name not in seen_managers:
+                            try:
+                                self.register_manager(obj)
+                                seen_managers.append(obj.name)
+                            except:
+                                print "Failed to register manager ", obj, " in module", mo.group(1)
+                                raise
+            self.register_functions_from_module(module)
 
     def get_server_id(self):
         """Returns a string that is unique to this server instance,
