@@ -1,0 +1,260 @@
+
+
+Default tables for RPCC using ORACLE:
+=====================================
+
+CREATE TABLE rpcc_session (
+  id VARCHAR(40) NOT NULL PRIMARY KEY,
+  expires TIMESTAMP NOT NULL
+);
+
+CREATE TABLE rpcc_session_string (
+  session_id VARCHAR(40) NOT NULL,
+  FOREIGN KEY (session_id) REFERENCES rpcc_session(id),
+  name VARCHAR(30) NOT NULL,
+  value VARCHAR(30)
+);
+
+CREATE TABLE rpcc_result (
+  resid INTEGER NOT NULL PRIMARY KEY,
+  manager VARCHAR(32) NOT NULL,
+  expires TIMESTAMP NOT NULL
+);
+
+CREATE TABLE rpcc_result_string (
+  resid INTEGER NOT NULL,
+  FOREIGN KEY (resid) REFERENCES rpcc_result(resid),
+  value VARCHAR2(128)
+);
+
+CREATE TABLE rpcc_result_int (
+  resid INTEGER NOT NULL,
+  FOREIGN KEY (resid) REFERENCES rpcc_result(resid),
+  value INTEGER
+);
+
+CREATE TABLE rpcc_mutex (
+  id INTEGER NOT NULL PRIMARY KEY,
+  name VARCHAR2(64) NOT NULL,
+  holder_session VARCHAR2(40),
+  holder_public VARCHAR2(128),
+  last_change TIMESTAMP,
+  forced CHAR
+);
+
+CREATE UNIQUE INDEX rpcc_idx_mutex_name ON rpcc_mutex(name);
+
+CREATE SEQUENCE rpcc_seq_mutex_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_mutex_id
+BEFORE INSERT ON rpcc_mutex
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_mutex_id.nextval INTO :new.id FROM DUAL;
+  SELECT SYSDATE INTO :new.last_change FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_mutex_var (
+  id INTEGER NOT NULL PRIMARY KEY,
+  mutex_id INTEGER NOT NULL,
+    FOREIGN KEY (mutex_id) REFERENCES rpcc_mutex(id),
+  name VARCHAR2(64) NOT NULL,
+  collection CHAR NOT NULL
+);
+
+CREATE UNIQUE INDEX rpcc_idx_mutvar_name ON rpcc_mutex_var(mutex_id, name);
+
+CREATE SEQUENCE rpcc_seq_mutvar_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_mutvar_id
+BEFORE INSERT ON rpcc_mutex_var
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_mutvar_id.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_mutex_var_val (
+  var INTEGER NOT NULL,
+    FOREIGN KEY (var) REFERENCES rpcc_mutex_var(id),
+  value VARCHAR2(256) NOT NULL
+);
+
+
+CREATE TABLE rpcc_event_type (
+  id INTEGER NOT NULL PRIMARY KEY,
+  name VARCHAR(32) NOT NULL,
+  CONSTRAINT rpcc_cst_evtype_uniq UNIQUE (name)
+);
+
+CREATE SEQUENCE rpcc_seq_evtype_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_evtype_id
+BEFORE INSERT ON rpcc_event_type
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_evtype_id.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_event (
+  id INTEGER NOT NULL PRIMARY KEY,
+  typ INTEGER NOT NULL REFERENCES rpcc_event_type(id),
+  created TIMESTAMP NOT NULL,
+  parent REFERENCES rpcc_event(id)
+);
+
+CREATE SEQUENCE rpcc_seq_evid;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_evid
+BEFORE INSERT ON rpcc_event
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_evid.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_event_str_attr (
+  id INTEGER NOT NULL PRIMARY KEY,
+  name VARCHAR(32) NOT NULL,
+  CONSTRAINT rpcc_cst_evstrattr_uniq UNIQUE (name)
+);
+
+CREATE SEQUENCE rpcc_seq_evstrattr_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_evstrattr_id
+BEFORE INSERT ON rpcc_event_str_attr
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_evstrattr_id.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_event_str (
+  event INTEGER NOT NULL REFERENCES rpcc_event(id),
+  attr INTEGER NOT NULL REFERENCES rpcc_event_str_attr(id),
+  value VARCHAR(2000)
+);
+
+CREATE UNIQUE INDEX rpcc_idx_evstr ON rpcc_event_str(event, attr);
+
+CREATE TABLE rpcc_event_int_attr (
+  id INTEGER NOT NULL PRIMARY KEY,
+  name VARCHAR(32) NOT NULL,
+  CONSTRAINT rpcc_cst_evintattr_uniq UNIQUE (name)
+);
+
+CREATE SEQUENCE rpcc_seq_evintattr_id;
+
+CREATE OR REPLACE TRIGGER rpcc_trg_evintattr_id
+BEFORE INSERT ON rpcc_event_int_attr
+FOR EACH ROW
+BEGIN
+  SELECT rpcc_seq_evintattr_id.nextval INTO :new.id FROM DUAL;
+END;
+/
+
+CREATE TABLE rpcc_event_int (
+  event INTEGER NOT NULL REFERENCES rpcc_event(id),
+  attr INTEGER NOT NULL REFERENCES rpcc_event_int_attr(id),
+  value INTEGER
+);
+
+CREATE UNIQUE INDEX rpcc_idx_evint ON rpcc_event_int(event, attr);
+
+
+
+
+Default tables fpr RPCC using MySQL:
+====================================
+
+-- Server version: 5.0.95
+
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+
+
+CREATE TABLE IF NOT EXISTS `rpcc_mutex` (
+  `id` int(11) NOT NULL auto_increment COMMENT 'Mutex id',
+  `name` varchar(64) collate ascii_bin NOT NULL COMMENT 'Mutex name',
+  `holder_session` varchar(40) collate ascii_bin NOT NULL COMMENT 'Session of holder',
+  `holder_public` varchar(128) character set utf8 collate utf8_bin NOT NULL COMMENT 'Public name of holder',
+  `last_change` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time of last change',
+  `forced` char(1) collate ascii_bin NOT NULL COMMENT 'Whether stolen or not. (Y/N)',
+  PRIMARY KEY  (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Rpcc Mutex list' AUTO_INCREMENT=1 ;
+
+CREATE TABLE IF NOT EXISTS `rpcc_mutex_var` (
+  `id` int(11) NOT NULL auto_increment,
+  `mutex_id` int(11) NOT NULL,
+  `name` varchar(64) collate ascii_bin NOT NULL,
+  `collection` char(1) collate ascii_bin NOT NULL,
+  PRIMARY KEY  (`id`),
+  UNIQUE KEY `mutex_id_2` (`mutex_id`,`name`),
+  KEY `mutex_id` (`mutex_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Table holding mutex variables' AUTO_INCREMENT=1 ;
+
+
+CREATE TABLE IF NOT EXISTS `rpcc_mutex_var_val` (
+  `var` int(11) NOT NULL COMMENT 'ref to variable',
+  `value` varchar(256) character set utf8 collate utf8_bin NOT NULL COMMENT 'Value of variable',
+  KEY `var` (`var`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Rpcc mutex variable values';
+
+
+CREATE TABLE IF NOT EXISTS `rpcc_result` (
+  `resid` int(11) NOT NULL COMMENT 'Result identifier',
+  `manager` varchar(32) collate ascii_bin NOT NULL COMMENT 'Reference to the code that is supposed to handle the result.',
+  `expires` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT 'Time when result can be deleted.',
+  PRIMARY KEY  (`resid`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Table for search result sets';
+
+
+CREATE TABLE IF NOT EXISTS `rpcc_result_int` (
+  `resid` int(11) NOT NULL COMMENT 'Reference to resultset',
+  `value` int(11) default NULL COMMENT 'An integer value in the result set',
+  KEY `resid` (`resid`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='Results that are integers, per result ID';
+
+
+CREATE TABLE IF NOT EXISTS `rpcc_result_string` (
+  `resid` int(11) NOT NULL COMMENT 'Reference to resultset',
+  `value` varchar(128) collate utf8_bin default NULL COMMENT 'A string value in the result set',
+  KEY `resid` (`resid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Results that are strings, per result ID';
+
+
+CREATE TABLE IF NOT EXISTS `rpcc_session` (
+  `id` varchar(40) collate ascii_bin NOT NULL COMMENT 'Session key',
+  `expires` timestamp NOT NULL default '0000-00-00 00:00:00' COMMENT 'Time whensession expires',
+  PRIMARY KEY  (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='RPCC session management';
+
+
+CREATE TABLE IF NOT EXISTS `rpcc_session_string` (
+  `session_id` varchar(40) character set ascii collate ascii_bin NOT NULL COMMENT 'Reference to session ID',
+  `name` varchar(30) character set ascii collate ascii_bin NOT NULL COMMENT 'Name of variable',
+  `value` varchar(30) collate utf8_bin default NULL COMMENT 'Value of variable',
+  KEY `session_id` (`session_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='Table for storing data for a session';
+
+
+ALTER TABLE `rpcc_mutex_var`
+  ADD CONSTRAINT `rpcc_mutex_var_ibfk_1` FOREIGN KEY (`mutex_id`) REFERENCES `rpcc_mutex` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+ALTER TABLE `rpcc_mutex_var_val`
+  ADD CONSTRAINT `rpcc_mutex_var_val_ibfk_1` FOREIGN KEY (`var`) REFERENCES `rpcc_mutex_var` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+ALTER TABLE `rpcc_result_int`
+  ADD CONSTRAINT `rpcc_result_int_ibfk_1` FOREIGN KEY (`resid`) REFERENCES `rpcc_result` (`resid`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+ALTER TABLE `rpcc_result_string`
+  ADD CONSTRAINT `rpcc_result_string_ibfk_1` FOREIGN KEY (`resid`) REFERENCES `rpcc_result` (`resid`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+ALTER TABLE `rpcc_session_string`
+  ADD CONSTRAINT `rpcc_session_string_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `rpcc_session` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;

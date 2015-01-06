@@ -1,0 +1,13 @@
+
+* Bugfix: make sure to re-raise specific access errors.
+
+  The RPCTypedFunction .access() method goes through all the RPCAccess
+  subclasses in a RPCTypedFunction subclass' .grants attribute (a
+  list), and if any one of them says yes then access to the function
+  is allowed.
+
+  If none of them says yes, 
+
+--This line, and those below, will be ignored--
+
+M    function.py
