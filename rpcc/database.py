@@ -38,7 +38,7 @@ import threading
 import datetime
 import re
 
-import default_tables
+
 import exterror
 
 try:
@@ -52,6 +52,73 @@ try:
     #from mysql.connector.cursor import MySQLCursor
 except:
     pass
+
+try:
+    import sqlite3
+except:
+    pass
+
+from enum import Enum, unique
+
+# Classes for describing databases in way independent of database engines
+class VType(Enum):
+    """ Enumeration of column types """
+    integer = 1
+    string = 2
+    datetime = 3
+    float = 4
+    blob = 5
+    
+class EngineType(Enum):
+    """ Enumeratuon of database table engine types"""
+    temporary = 1
+    memory = 2
+    transactional = 3
+    big = 4
+    
+    
+
+class DBColumn(object):
+    """ Column description class"""
+    def __init__(self, name, value_type, size=None, autoincrement=None, index=None, primary=False, unique=False, not_null=False):
+        self.name = name
+        
+        if type(value_type) is not VType:
+            raise TypeError("Bad type for database table column")
+        self.value_type = value_type
+        self.size = size
+        if value_type is not VType.integer and autoincrement:
+            raise TypeError("Autoincrement is only for integer type columns")
+        self.autoincrement = autoincrement
+        self.index=index
+        self.primary=primary
+        self.unique=unique
+        self.index=index
+        self.not_null=not_null
+        
+
+class DBTable(object):
+    """Table description class"""
+    def __init__(self, name, desc=None, engine=None, collation=None, columns=None):
+        self.name = name
+        self.desc = desc
+        self.engine = engine
+        self.collation = collation
+        if columns:
+            self.columns = columns
+        else:
+            self.columns = []
+        
+    def add_column(self, column):
+        if type(column) is DBColumn:
+            self.columns.append(column)
+        else:
+            raise TypeError("Database column is not of type DBColumn")
+        
+    def column_names(self):
+        return [x.name for x in self.columns]
+    
+import default_tables
 
 
 class DatabaseError(Exception):
@@ -390,8 +457,8 @@ class DatabaseLink(object):
                 self.execute(curs, q, v)
                 return self.iterator(curs)
             except Exception as e:
-                print "ERROR", e
-                print "ERROR ARGUMENTS", e.args
+                #print "ERROR", e
+                #print "ERROR ARGUMENTS", e.args
                 self.exception(e, q, v)
         finally:
             pass
@@ -484,6 +551,10 @@ class Database(object):
 
     def query(self):
         return self.query_class()
+    
+    def table_exists(self, table_spec):
+        raise NotImplementedError()
+        
 
 
 ###
@@ -748,32 +819,92 @@ class MySQLDatabase(Database):
         default_tables.check_default_mysql_tables(lnk)
         self.return_link(lnk)
 
+class SQLiteIterator(DatabaseIterator):
+    def convert(self, row):
+        # TODO: Check if any data types need special treatment like in OracleIterator
+        return row
+    
+class SQLiteDynamicQuery(DynamicQuery):
+    def dbvar(self, name):
+        return "%(" + name + ")s"
+
+    def dblimit(self, limit):
+        return "LIMIT %d" % (limit,)
+    
+class SQLiteLink(DatabaseLink):
+    
+    query_class = SQLiteDynamicQuery
+    
+    def __init__(self, *args, **kwargs):
+        DatabaseLink.__init__(self, *args, **kwargs)
+        self.re = re.compile(":([a-z0-9_]+)")
+        
+    def iterator(self, curs):
+        return curs
+
+    def convert(self, query):
+        return self.re.sub("%(\\1)s", query)
+
+    def execute(self, curs, query, values):
+        curs.execute(query, values)
+
+    def insert(self, dummy, query, **kwargs):
+        if not self.open:
+            raise LinkClosedError()
+
+        if self.database.debug:
+            print id(self), "QUERY:", query
+            print id(self), "ARGS: ", kwargs
+
+        curs = self.link.cursor()
+        try:
+            try:
+                if isinstance(query, DynamicQuery):
+                    q = query.query()
+                    v = query.values
+                else:
+                    v = kwargs
+                    q = self.convert(query)
+                curs.execute(q, v)
+                return curs.lastrowid
+            except Exception as e:
+                print "DBEXCEPTION:", e, type(e)
+                self.exception(e, q, v)
+        finally:
+            curs.close()
+            
+    def exception(self, inner, query, args):
+        if self.database.server.config("DEBUG_SQL", default=False):
+            print "ERROR IN QUERY: ", query
+            print "WITH ARGUMENTS: ", args
+            print "INNER ERROR: ", inner
+        if isinstance(inner, sqlite3.OperationalError):
+            message = inner.message
+            (msg, param) = message.split(":")
+            if msg=="no such table":
+                raise InvalidTableError(param, inner=inner) 
+            raise IntegrityError(message, inner=inner)
+
+
 class SQLiteDatabase(Database):
     query_class = SQLiteDynamicQuery
     link_class = SQLiteLink
 
     def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):
-        user = user or self.server.config("DB_USER")
-        password = password or self.server.config("DB_PASSWORD")
-        database = database or self.server.config("DB_DATABASE")
-        host = host or self.server.config("DB_HOST")
-        port = port or self.server.config("DB_PORT")
-        socket = port or self.server.config("DB_SOCKET")
+        if not database:
+            database="rpcc_scratch_database"
+        self.connect_args = {"database": database}
         
-        self.connect_args = {"user": user, "password": password, "db": database}
-        if host:
-            self.connect_args["host"] = host
-            if port:
-                self.connect_args["port"] = int(port)
-        elif socket:
-            self.connect_args["unix_socket"] = socket
-        else:
-            raise ValueError()
+        
+    def check_rpcc_tables_old(self):
+        lnk = self.get_link()
+        default_tables.check_default_mysql_tables(lnk)
+        self.return_link(lnk)
 
     def get_link(self):
         try:
-            # TODO raw_link = mysql.connector.connect(**self.connect_args)
-            # TODO return self.link_class(self, raw_link)
+            raw_link = sqlite3.connect(**self.connect_args)
+            return self.link_class(self, raw_link)
         except:
             raise
             raise exterror.ExtRuntimeError("Database has gone away")
@@ -783,10 +914,81 @@ class SQLiteDatabase(Database):
             link.rollback()
         link.close()
 
-    def check_rpcc_tables(self):
+    def check_rpcc_tables(self, fix=False):
         lnk = self.get_link()
-        default_tables.check_default_sqlite_tables(lnk)
+        tables_spec = default_tables._spec
+        for table_spec in tables_spec:
+            self.table_check(table_spec, lnk, fix=fix)
         self.return_link(lnk)
+        
+    def col_sql_type(self, col):
+        if col.value_type == VType.integer:
+            return "INTEGER "
+        if col.value_type == VType.string:
+            return  "TEXT "
+        if col.value_type == VType.datetime:
+            return  "NUMERIC "
+        if col.value_type == VType.float:
+            return  "REAL "
+        if col.value_type == VType.blob:
+            return  "NONE "
+        
+    def table_check(self, table_spec, link, fix=False):
+        q_check = "SELECT " + \
+                  ", ".join(table_spec.column_names()) + \
+                  " FROM " + table_spec.name + " LIMIT 1"
+        
+        while(True):
+            try:
+                dummy = list(link.get(q_check))
+                return True
+            except InvalidIdentifierError as e:
+                if fix:
+                    for col in table_spec.columns:
+                        try:
+                            q_addcol = "ALTER TABLE %s ADD COLUMN %s TYPE " % (table_spec.name, col.name)
+                            q_addcol += self.col_sql_type(col)
+                            
+                            # TODO: Column type specification not done
+                            link.put(q_addcol)
+                        except:
+                            print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (col, table_spec.name)
+                            return False
+                    continue
+                else:
+                    print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (e.identifier, table_spec.name)
+                    return False
+                
+            except InvalidTableError as e:
+                if fix:
+                    try:
+                        q_create = "CREATE TABLE %s( "
+                        colsqls = []
+                        for col in table_spec.columns:
+                            colsql = col.name + " "
+                            colsql += self.col_sql_type(col) + " "
+                            if col.primary:
+                                colsql += "PRIMARY KEY NOT NULL"
+                            else:
+                                if col.unique:
+                                    colsql += "UNIQUE "
+                                if col.not_null:
+                                    colsql += "NOT NULL "
+                            colsqls.append(colsql)
+                        q_create += ", ".join(colsqls) + ")"
+                            
+                        link.put(q_create%table_spec.name)
+                        
+                    except:
+                        print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
+                        return False
+                    continue
+                else:
+                    print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
+                    return False
+            except Exception as e:
+                raise
+        
 
 if __name__ == '__main__':
     if False:

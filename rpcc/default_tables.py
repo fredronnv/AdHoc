@@ -2,41 +2,8 @@
 
 import database
 
-class VType:
-    class Integer: pass
-    class String: pass
-    class Datetime: pass
-    class Blob: pass
-
-
-class DBColumn(object):
-    def __init__(self, name, value_type, size=None, autoincrement=None, index=None, primary=False):
-        self.name = name
-        
-        if type(value_type) is not VType:
-            raise TypeError("Bad type for database table column")
-        self.value_type = value_type
-        self.size = size
-        if value_type is not VType.Integer:
-            raise TypeError("Autoincrement is only for integer type columns")
-        self.autoincrement = autoincrement
-
-class DBTable(object):
-    
-    def __init__(self, name, desc=None, engine=None, collation=None):
-        self.name = name
-        self.desc = desc
-        self.engine = engine
-        self.collation = collation
-        self.columns = []
-        
-    def add_column(self, column):
-        if type(column) is DBColumn:
+from database import *
             
-            self.columns.append(column)
-        else:
-            raise TypeError("Database column is not of type DBColumn")
-    
 
 def table_exists(db, q_check, tbl, cols, fix, q_create, q_addcol):
     while(True):
@@ -80,61 +47,43 @@ def oracle_exists(db, tbl, tblspec, fix=False):
 #TODO: Add column type specification
 
 _spec = [ 
-            {"rpcc_result":
-                {
-                    "columns":
-                     {
-                        "resid":{"type":"integer", "precision": 16, "primary_key":True, "autoincrement":True},
-                        "manager":{"type":"varchar", "precision": 32, "index":True},
-                        "expires":{"type":"datetime"}
-                     },
-                     "engine":"memory"
-                }
-            },
-            
-            {"rpcc_result_string": 
-                {
-                    "columns":
-                    {
-                        "resid":{"type":"integer", "precision": 16},
-                        "value":{"type":"varchar", "precision": 64, "index":True}
-                    },
-                    "engine": "memory"
-                }
-            },
-            
-            {"rpcc_result_int": 
-                {
-                    "columns":
-                    {
-                        "resid":{"type":"integer", "precision": 16},
-                        "value":{"type":"integer", "precision": 16, "index":True}
-                    },
-                    "engine": "memory"
-                }
-            },
-            {"rpcc_session":
-                {
-                    "columns":
-                    {
-                        "id": {"type":"varchar", "precision": 64, "primary_key":True}, 
-                        "expires":{"type":"datetime"}
-                    }
-                 },
-                 "engine":"innodb",
-            },
-              
-            {"rpcc_session_string":
-                {
-                    "columns":
-                    {
-                         "session_id": {"type":"varchar", "precision": 64, "primary_key":True},
-                         "name":{"type":"varchar", "precision": 32},
-                         "value":{"type":"varchar", "precision": 64, "index":True}
-                    }
-                 },
-                 "engine":"innodb",
-            }
+          DBTable("rpcc_result", "Dig results help table", 
+                  engine=EngineType.memory,
+                  columns=
+                  [
+                   DBColumn("resid", VType.integer, 16, primary=True, autoincrement=True),
+                   DBColumn("manager", VType.string, 32, index=True),
+                   DBColumn("expires", VType.datetime),
+                   ]),
+          DBTable("rpcc_result_string", "Dig string results help table",
+                  engine=EngineType.memory,
+                  columns = 
+                  [
+                   DBColumn("resid", VType.integer, 16),
+                   DBColumn("value", VType.string, 64, index=True),
+                  ]),
+          DBTable("rpcc_result_int", "Dig integer results help table",
+                  engine=EngineType.memory,
+                  columns = 
+                  [
+                   DBColumn("resid", VType.integer, 16),
+                   DBColumn("value", VType.integer, 16, index=True),
+                  ]),
+          DBTable("rpcc_session",
+                  engine=EngineType.transactional,
+                  columns =
+                  [
+                   DBColumn("id", VType.string, 64, primary=True),
+                   DBColumn("expires", VType.datetime),
+                   ]),
+          DBTable("rpcc_session_string", 
+                  engine=EngineType.transactional,
+                  columns = 
+                  [
+                   DBColumn("session_id", VType.string, 64, primary=True),
+                   DBColumn("name", VType.string, 32),
+                   DBColumn("value",VType.string, 64, index=True),
+                   ]),
           ]
            
 _ospec = [
@@ -173,18 +122,17 @@ def check_default_mysql_tables(db, fix=False, spec=_spec):
 def sqlite_exists(db, tbl, tblspec, fix=False):
 
     q_check = "SELECT " + ", ".join(tblspec.keys()) + " FROM " + tbl + " LIMIT 1"
-    q_create = "CREATE TABLE :t()";
     q_addcol = "ALTER TABLE :t ADD COLUMN :c TYPE X"
 
     q_create = "CREATE TABLE :t(";
     colspec = []
     for colname, typespec in tblspec.iteritems():
         colspec.append( colname + " " + sqlite_coltype(typespec))
-    q.create += ",".join(colspec)
+        q_create += ",".join(colspec)
     return table_exists(db, q_check, tbl, tblspec, fix, q_create, q_addcol);
 
 def sqlite_coltype(typespec):
-    
+    pass
 
 def check_default_sqlite_tables(db, fix=False, spec=_spec):
     ok = True
