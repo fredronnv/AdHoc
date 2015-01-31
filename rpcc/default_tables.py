@@ -45,8 +45,7 @@ def oracle_exists(db, tbl, tblspec, fix=False):
     return table_exists(db, q_check, tbl, tblspec, fix, q_create, q_addcol);
    
 #TODO: Add column type specification
-
-_spec = [ 
+_dig_tables=[
           DBTable("rpcc_result", "Dig results help table", 
                   engine=EngineType.memory,
                   columns=
@@ -69,22 +68,9 @@ _spec = [
                    DBColumn("resid", VType.integer, 16),
                    DBColumn("value", VType.integer, 16, index=True),
                   ]),
-          DBTable("rpcc_session",
-                  engine=EngineType.transactional,
-                  columns =
-                  [
-                   DBColumn("id", VType.string, 64, primary=True),
-                   DBColumn("expires", VType.datetime),
-                   ]),
-          DBTable("rpcc_session_string", 
-                  engine=EngineType.transactional,
-                  columns = 
-                  [
-                   DBColumn("session_id", VType.string, 64, primary=True),
-                   DBColumn("name", VType.string, 32),
-                   DBColumn("value",VType.string, 64, index=True),
-                   ]),
-          ]
+              ]
+
+
            
 _ospec = [
        ("rpcc_session",("id", "expires")),
@@ -94,7 +80,7 @@ _ospec = [
        ("rpcc_result_int", ("resid", "value"))]
 
 
-def check_default_oracle_tables(db, fix=False, spec=_spec):
+def check_default_oracle_tables(db, fix=False, spec=_dig_tables):
     ok = True
     for (tbl, tblspec) in spec.iteritems():
         if not oracle_exists(db, tbl, tblspec, fix):
@@ -110,7 +96,7 @@ def mysql_exists(db, tbl, tblspec, fix=False):
     return table_exists(db, q_check, tbl, tblspec, fix, q_create, q_addcol);
 
 
-def check_default_mysql_tables(db, fix=False, spec=_spec):
+def check_default_mysql_tables(db, fix=False, spec=_dig_tables):
     ok = True
     for (tbl, tblspec) in spec.iteritems():
         if not mysql_exists(db, tbl, tblspec, fix):
@@ -134,7 +120,7 @@ def sqlite_exists(db, tbl, tblspec, fix=False):
 def sqlite_coltype(typespec):
     pass
 
-def check_default_sqlite_tables(db, fix=False, spec=_spec):
+def check_default_sqlite_tables(db, fix=False, spec=_dig_tables):
     ok = True
     for (tbl, tblspec) in spec.iteritems():
         if not sqlite_exists(db, tbl, tblspec, fix):

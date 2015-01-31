@@ -117,8 +117,12 @@ class SessionManager(model.Manager):
         raise NotImplementedError()
 
 
+from database import DBTable, DBColumn, EngineType, VType
 class DatabaseBackedSessionManager(SessionManager):
-    def base_query(self, dq):
+    
+    
+    @classmethod
+    def base_query(cls, dq):
         dq.select("id", "expires")
         dq.table("rpcc_session")
 
@@ -147,7 +151,28 @@ class DatabaseBackedSessionManager(SessionManager):
         self.db.put(q, sesn=newid, exp=expires)
         self.db.commit()
         return newid
-
+    
+    @classmethod
+    def on_register(cls, srv, db):
+        session_tables=[
+          DBTable("rpcc_session",
+                  engine=EngineType.transactional,
+                  columns =
+                  [
+                   DBColumn("id", VType.string, 64, primary=True),
+                   DBColumn("expires", VType.datetime),
+                   ]),
+          DBTable("rpcc_session_string", 
+                  engine=EngineType.transactional,
+                  columns = 
+                  [
+                   DBColumn("session_id", VType.string, 64, primary=True),
+                   DBColumn("name", VType.string, 32),
+                   DBColumn("value",VType.string, 64, index=True),
+                   ]),
+          ]
+        db.database.specify_tables(cls, session_tables)
+                
     def destroy_session(self, sesnid):
         # When destroying a session, all mutexes held by it are first
         # released, if mutexes are enabled in the server. This counts

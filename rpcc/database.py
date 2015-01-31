@@ -59,6 +59,7 @@ except:
     pass
 
 from enum import Enum, unique
+from interror import IntInvalidUsageError
 
 # Classes for describing databases in way independent of database engines
 class VType(Enum):
@@ -80,14 +81,14 @@ class EngineType(Enum):
 
 class DBColumn(object):
     """ Column description class"""
-    def __init__(self, name, value_type, size=None, autoincrement=None, index=None, primary=False, unique=False, not_null=False):
+    def __init__(self, name, value_type=None, size=None, autoincrement=None, index=None, primary=False, unique=False, not_null=False):
         self.name = name
         
-        if type(value_type) is not VType:
+        if value_type and type(value_type) is not VType:
             raise TypeError("Bad type for database table column")
         self.value_type = value_type
         self.size = size
-        if value_type is not VType.integer and autoincrement:
+        if value_type and value_type is not VType.integer and autoincrement:
             raise TypeError("Autoincrement is only for integer type columns")
         self.autoincrement = autoincrement
         self.index=index
@@ -96,6 +97,12 @@ class DBColumn(object):
         self.index=index
         self.not_null=not_null
         
+    def set_value_type(self, value_type):
+        if type(value_type) is not VType:
+            raise TypeError("Bad type for database table column")
+        if value_type is not VType.integer and self.autoincrement:
+            raise TypeError("Cannot set table value_type to anything but integer because autioncrement is already set")
+        self.value_type = value_type
 
 class DBTable(object):
     """Table description class"""
@@ -223,6 +230,7 @@ class DynamicQuery(object):
         self.selects = []
         self.aliases = set()
         self.tables = set()
+        self.table_aliases = {} # Collects table aliases
         self.outers = set()
         self.conditions = set()
         self.subqueries = []
@@ -268,8 +276,14 @@ class DynamicQuery(object):
     def table(self, *tbls):
         for tbl in tbls:
             if tbl not in self.tables:
+                if tbl in self.aliases:
+                    raise IntInvalidUsageError("Table name '%s' duplicates an already used table alias")
                 self.tables.add(tbl)
+                alias = self._alias(tbl)
+                if alias != tbl and alias in self.tables:
+                    raise IntInvalidUsageError("Table alias '%s' duplicates an already defined table name")
                 self.aliases.add(self._alias(tbl))
+                self.table_aliases[self._alias(tbl)] = tbl
 
     def outer(self, tblalias, onexpr):
         """Limited OUTER JOIN functionality.
@@ -542,6 +556,17 @@ class Database(object):
         self.lock = threading.Lock()
         self.init(**args)
         self.debug = server.config("DEBUG_SQL", default=False)
+        self.dynamic_table_specs = {} # Dict keyed by manager type containng table specs for that manager
+     
+    def specify_tables(self, cls, tables):
+        """ Specify a list of table specifications for a manager"""
+        self.dynamic_table_specs[cls] = tables
+        
+    def get_tables_spec(self, cls):
+        """ Return a list of table specifications for a manager, if present"""
+        if cls in self.dynamic_table_specs:
+            return self.dynamic_table_specs[cls]
+        return None
 
     def get_link(self):
         raise NotImplementedError()
@@ -554,8 +579,36 @@ class Database(object):
     
     def table_exists(self, table_spec):
         raise NotImplementedError()
-        
-
+    
+    def add_tables_from_dynamic_query(self, dq, cls):
+        if not isinstance(dq, DynamicQuery):
+            raise ValueError("dq argument is not a DynamicQuery")
+        if cls in self.dynamic_table_specs:
+            return
+        table_list = []
+        for t in dq.tables:
+            if " " in t:
+                t, _alias = t.split()
+            dt=DBTable(t, desc="Dynamically created table")
+            for sel in dq.selects:
+                if "." in sel:
+                    tbl, col = sel.split(".")
+                else:
+                    if len(dq.tables) < 1:
+                        raise ValueError("No tables defined in base query for selects in %s"%dq)
+                    if len(dq.tables) > 1:
+                        raise ValueError("Selects specified ambigously in base query of %s"%dq)
+                    tbl = list(dq.tables)[0]
+                    col = sel
+                if tbl in dq.table_aliases:
+                    tbl = dq.table_aliases[tbl]
+                if " " in tbl:
+                    tbl, _alias = tbl.split()
+                if tbl == t:
+                    dcol = DBColumn(col)
+                    dt.add_column(dcol)
+            table_list.append(dt)
+        self.specify_tables(cls, table_list)
 
 ###
 # Oracle specifics
@@ -914,11 +967,11 @@ class SQLiteDatabase(Database):
             link.rollback()
         link.close()
 
-    def check_rpcc_tables(self, fix=False):
+    def check_rpcc_tables(self, tables_spec=default_tables._dig_tables, fix=False):
         lnk = self.get_link()
-        tables_spec = default_tables._spec
         for table_spec in tables_spec:
-            self.table_check(table_spec, lnk, fix=fix)
+            if not self.table_check(table_spec, lnk, fix=fix):
+                raise ValueError("Database Tables validation failed")
         self.return_link(lnk)
         
     def col_sql_type(self, col):
@@ -931,6 +984,8 @@ class SQLiteDatabase(Database):
         if col.value_type == VType.float:
             return  "REAL "
         if col.value_type == VType.blob:
+            return  "NONE "
+        if not col.value_type:
             return  "NONE "
         
     def table_check(self, table_spec, link, fix=False):
@@ -962,7 +1017,7 @@ class SQLiteDatabase(Database):
             except InvalidTableError as e:
                 if fix:
                     try:
-                        q_create = "CREATE TABLE %s( "
+                        q_create = "CREATE TABLE %s( " % (table_spec.name)
                         colsqls = []
                         for col in table_spec.columns:
                             colsql = col.name + " "
@@ -977,7 +1032,7 @@ class SQLiteDatabase(Database):
                             colsqls.append(colsql)
                         q_create += ", ".join(colsqls) + ")"
                             
-                        link.put(q_create%table_spec.name)
+                        link.put(q_create)
                         
                     except:
                         print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)

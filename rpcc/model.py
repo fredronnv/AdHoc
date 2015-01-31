@@ -889,6 +889,7 @@ class Manager(object):
             styp.optional[skey.key] = (skey.exttype, skey.desc)
 
         return styp
+    
         
     @classmethod
     def on_register(cls, srv, db):
@@ -901,8 +902,25 @@ class Manager(object):
 
         If the database has not yet been enabled in the server,
         the db argument will be None.
+        
+        The method should return True if database table checks
+        has been performed.
         """
-        pass
+        return False
+    
+    @classmethod
+    def do_register(cls, srv, db):
+        """ This method is called from the server. It attempts to
+        build a database table sepcification from what is known about
+        the model we manage, and then passes on control to the model-
+        defined on_register method."""
+        cls.on_register(srv, db)
+        if cls in db.database.dynamic_table_specs:
+            return  # Specs already there for this class.
+        dq = db.dynamic_query()
+        cls.base_query(dq)
+        db.database.add_tables_from_dynamic_query(dq, cls) # Collect table definition in the database object.
+
 
     @classmethod
     def _add_search(cls, method_name, *args, **kwargs):
@@ -931,7 +949,8 @@ class Manager(object):
     def init(self, *args, **kwargs):
         return
 
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         """Fill a supplied empty DynamicQuery instance, to set it up to 
         select the attributes that the model expects as input.
 
@@ -949,6 +968,7 @@ class Manager(object):
         mysql_connector_2 = False  # Change here if using MySQL connector version 2.x.x
         dq = self.db.dynamic_query()
         self.base_query(dq)
+        #self.db.add_table_from_dynamic_query(dq) # Collect table definition in the database object.
         dq.where(dq.get_select_at(0) + "=" + dq.var(mid))
         try:
             (args, ) = dq.run()

@@ -137,6 +137,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         self.digs_n_updates = False
         self.mutexes_enabled = False
         self.events_enabled = False
+        self.tables_checked = False
 
         self.manager_by_name = {}
         for cls in self.manager_classes:
@@ -558,6 +559,36 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     def enable_digs_and_updates(self):
         self.api_handler.generate_model_stuff()
         self.digs_n_updates = True
+        
+    def check_tables(self, tables_spec=None, dynamic=False, fix=False):
+        """ Checks and possibly fixes the needed database tables.
+            If fix is set to True, any missing tables or columns in the tables will be created.
+            If dynamic is set to True, the automatic tables specification, built while enabling digs
+            is also checked and possibly fixed.
+            If tables_spec is given, that specification is checked, but never fixed"""
+            
+        if not self.database:
+            raise ExtInternalError("Server function %s uses database, but no database is defined" % "check_rpcc_tables")
+        if not self.digs_n_updates:
+            raise ValueError("You must enable digs and updates before checking the tables.")
+        
+        self.database.check_rpcc_tables(fix=fix)
+        
+        if dynamic:
+            if not self.digs_n_updates:
+                raise ValueError("Dynamic tables cannot be checked or fixed before digs and updates are enabled")
+            
+            for mgr in self.get_all_managers():
+                dtspec = self.database.get_tables_spec(mgr)
+                # TODO: Introspect models and managers and build a tables specification
+                if dtspec:
+                    self.database.check_rpcc_tables(tables_spec=dtspec, fix=fix)
+            
+        if tables_spec:
+            self.database.check_rpcc_tables(tables_spec=tables_spec, fix=False)
+        
+        self.tables_checked=True
+        
 
     ###
     # model.Manager subclasses this server handles. Registered under a
@@ -566,7 +597,10 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     ###
     def register_manager(self, manager_class):
         if self.digs_n_updates:
-            raise ValueError("You must register all models and managers after digs and updates.")
+            raise ValueError("You must register all models and managers before enabling digs and updates.")
+        if self.tables_checked:
+            raise ValueError("You must register all models and managers before checking tables")
+        
         self.manager_by_name[manager_class._name()] = manager_class
 
         modelcls = manager_class.manages
@@ -579,7 +613,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             db = None
 
         try:
-            manager_class.on_register(self, db)
+            manager_class.do_register(self, db)
         finally:
             if db:
                 self.database.return_link(db)
@@ -611,6 +645,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     def register_model(self, model_class):
         if self.digs_n_updates:
             raise ValueError("You must register all models and managers before enabling digs and updates.")
+        if self.tables_checked:
+            raise ValueError("You must register all models and managers before checking tables")
         self.model_by_name[model_class._name()] = model_class
 
     def get_all_models(self):
