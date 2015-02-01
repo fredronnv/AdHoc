@@ -19,9 +19,11 @@ import documentation
 import authentication
 import request_handler
 import default_function
+import exttype
 from exterror import ExtInternalError
 
 from function import Function
+from rpcc.database import DBColumn, VType
 
 try:
     import ssl
@@ -572,6 +574,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         if not self.digs_n_updates:
             raise ValueError("You must enable digs and updates before checking the tables.")
         
+        
         self.database.check_rpcc_tables(fix=fix)
         
         if dynamic:
@@ -579,15 +582,53 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                 raise ValueError("Dynamic tables cannot be checked or fixed before digs and updates are enabled")
             
             for mgr in self.get_all_managers():
+                
                 dtspec = self.database.get_tables_spec(mgr)
                 # TODO: Introspect models and managers and build a tables specification
                 if dtspec:
+                    self.generate_column_types(mgr, dtspec)
                     self.database.check_rpcc_tables(tables_spec=dtspec, fix=fix)
             
         if tables_spec:
             self.database.check_rpcc_tables(tables_spec=tables_spec, fix=False)
         
         self.tables_checked=True
+        
+    def generate_column_types(self, mgr, dtspec):
+        for api in self.api_handler.apis:
+            types = api.types
+            my_type = types[mgr.manages.name+"-templated-data"]
+            model_name = mgr.manages.name
+            if not model_name in my_type.optional:
+                continue
+            my_id_type_tuple = my_type.optional[model_name]
+            my_id_type = my_id_type_tuple[0]
+            if issubclass(my_id_type, exttype.ExtString):
+                vtype = VType.string
+            if issubclass(my_id_type, exttype.ExtInteger):
+                vtype = VType.integer
+            
+            table = dtspec[0]
+            col = table.columns[0] # Id must be in the first column
+            col.set_value_type(vtype)
+            col.primary=True
+            
+            for i in range(0, len(dtspec)):
+                table = dtspec[i]
+                for j in range(0, len(table.columns)):
+                    if j == 0:
+                        continue
+                    col = table.columns[j]
+                    my_col_type_tuple = my_type.optional[col.name]
+                    my_col_type = my_col_type_tuple[0]
+                    vtype = None
+                    if issubclass(my_col_type, exttype.ExtString):
+                        vtype = VType.string
+                    if issubclass(my_col_type, exttype.ExtInteger):
+                        vtype = VType.integer
+                    col.set_value_type(vtype)
+   
+            
         
 
     ###

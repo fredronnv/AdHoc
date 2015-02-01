@@ -40,6 +40,7 @@ import re
 
 
 import exterror
+from _sqlite3 import InternalError
 
 try:
     import cx_Oracle
@@ -96,6 +97,7 @@ class DBColumn(object):
         self.unique=unique
         self.index=index
         self.not_null=not_null
+        self.owning_table=None
         
     def set_value_type(self, value_type):
         if type(value_type) is not VType:
@@ -103,6 +105,12 @@ class DBColumn(object):
         if value_type is not VType.integer and self.autoincrement:
             raise TypeError("Cannot set table value_type to anything but integer because autioncrement is already set")
         self.value_type = value_type
+        
+    def set_primary(self):
+        self.primary=True
+        
+    def unset_primary(self):
+        self.primary=False
 
 class DBTable(object):
     """Table description class"""
@@ -111,14 +119,20 @@ class DBTable(object):
         self.desc = desc
         self.engine = engine
         self.collation = collation
+        self.primary_col = None
+        self.columns = []
         if columns:
-            self.columns = columns
-        else:
-            self.columns = []
+            for c in columns:
+                self.add_column(c)
         
     def add_column(self, column):
         if type(column) is DBColumn:
+            if self.primary_col and column.primary:
+                raise ValueError("Data table already has a column specified as primary")
+            if column.primary:
+                self.primary_col=column
             self.columns.append(column)
+            column.owning_table=self
         else:
             raise TypeError("Database column is not of type DBColumn")
         
@@ -427,8 +441,8 @@ class DatabaseLink(object):
     def iterator(self, curs):
         return self.iterator_class(curs)
 
-    def convert(self, query):
-        return query
+    def convert(self, query, values):
+        return query, values
 
     def execute(self, curs, query, values):
         raise NotImplementedError()
@@ -462,11 +476,9 @@ class DatabaseLink(object):
         try:
             try:
                 if isinstance(query, DynamicQuery):
-                    q = query.query()
-                    v = query.values
+                    q, v = self.convert(query.query(), query.values)
                 else:
-                    q = self.convert(query)
-                    v = kwargs
+                    q, v = self.convert(query, kwargs)
 
                 self.execute(curs, q, v)
                 return self.iterator(curs)
@@ -494,17 +506,17 @@ class DatabaseLink(object):
         try:
             try:
                 if isinstance(query, DynamicQuery):
-                    q = query.query()
-                    v = query.values
+                    v = query.values()
+                    q, v = self.convert(query.query(), query.values())
                 else:
-                    q = self.convert(query)
                     v = kwargs
+                    q, v = self.convert(query, kwargs)
                 self.execute(curs, q, v)
                 if self.database.debug:
                     print id(self), "-> ", curs.rowcount
                 return curs.rowcount
             except Exception as e:
-                self.exception(e, q, v)
+                self.exception(e, query, v)
         finally:
             curs.close()
 
@@ -595,9 +607,9 @@ class Database(object):
                     tbl, col = sel.split(".")
                 else:
                     if len(dq.tables) < 1:
-                        raise ValueError("No tables defined in base query for selects in %s"%dq)
+                        raise ProgrammingError("No tables defined in base query for selects in %s"%dq)
                     if len(dq.tables) > 1:
-                        raise ValueError("Selects specified ambigously in base query of %s"%dq)
+                        raise ProgrammingError("Selects specified ambigously in base query of %s"%dq)
                     tbl = list(dq.tables)[0]
                     col = sel
                 if tbl in dq.table_aliases:
@@ -681,11 +693,9 @@ class OracleLink(DatabaseLink):
         try:
             try:
                 if isinstance(query, DynamicQuery):
-                    q = query.query()
-                    kw = query.values
+                    q, kw = self.convert(query.query(), query.values())
                 else:
-                    q = self.convert(query)
-                    kw = kwargs
+                    q, kw = self.convert(query, kwargs)
 
                 var = curs.var(cx_Oracle.NUMBER)
                 kw["last_insert_id"] = var
@@ -766,8 +776,8 @@ class MySQLLink(DatabaseLink):
         DatabaseLink.__init__(self, *args, **kwargs)
         self.re = re.compile(":([a-z0-9_]+)")
 
-    def convert(self, query):
-        return self.re.sub("%(\\1)s", query)
+    def convert(self, query, values):
+        return self.re.sub("%(\\1)s", query), values
 
     def execute(self, curs, query, values):
         curs.execute(query, values)
@@ -784,11 +794,9 @@ class MySQLLink(DatabaseLink):
         try:
             try:
                 if isinstance(query, DynamicQuery):
-                    q = query.query()
-                    v = query.values
+                    q, v = self.convert(query.query(), query.values())
                 else:
-                    v = kwargs
-                    q = self.convert(query)
+                    q, v = self.convert(query, kwargs)
                 curs.execute(q, v)
                 return curs.lastrowid
             except Exception as e:
@@ -895,8 +903,19 @@ class SQLiteLink(DatabaseLink):
     def iterator(self, curs):
         return curs
 
-    def convert(self, query):
-        return self.re.sub("%(\\1)s", query)
+    def convert(self, query, values):
+        values_usage = {}
+        value_list = []
+        try:
+            for m in self.re.finditer(query):
+                key=m.group(0)[1:]
+                value_list.append(values[key])
+                values_usage[key]=True
+        except KeyError:
+            raise ProgrammingError("No value for query parameter %s" % key)
+        if len(values_usage) != len(values):
+            raise ProgrammingError("One or more values unused in query")
+        return self.re.sub("?", query), value_list
 
     def execute(self, curs, query, values):
         curs.execute(query, values)
@@ -937,6 +956,7 @@ class SQLiteLink(DatabaseLink):
             if msg=="no such table":
                 raise InvalidTableError(param, inner=inner) 
             raise IntegrityError(message, inner=inner)
+        raise
 
 
 class SQLiteDatabase(Database):
