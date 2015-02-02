@@ -376,38 +376,58 @@ class Function(object):
 class SessionedFunction(Function):
     params = [("session", default_type.ExtSession, "Execution context")]
 
-
+    
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_fetch_functions() to create the actual update functions.
-class FetchFunction(SessionedFunction):
+class FetchFunction(Function):
+        
     def do(self):
         # Find the object and template.
+        
         params = self.get_parameters()
         obj = getattr(self, params[-2][0])
         tmpl = getattr(self, params[-1][0])
         return obj.apply_template(self.api.version, tmpl)
 
+# This class is _dynamically_ (i.e. automatically) subclassed by
+# api.create_fetch_functions() to create the actual update functions.
+class FetchSessionedFunction(FetchFunction):
+    params = [("session", default_type.ExtSession, "Execution context")]
 
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
-class UpdateFunction(SessionedFunction):
+class UpdateFunction(Function):
     creates_event = True
     def do(self):
+        if self.server.sessions_enabled:
+            self.params = [("session", default_type.ExtSession, "Execution context")]
         params = self.get_parameters()
         obj = getattr(self, params[-2][0])
         upd = getattr(self, params[-1][0])
         obj.apply_update(self.api.version, upd)
 
-
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
-class DigFunction(SessionedFunction):
+class UpdateSessionedFunction(UpdateFunction):
+    params = [("session", default_type.ExtSession, "Execution context")]
+    
+
+# This class is _dynamically_ (i.e. automatically) subclassed by
+# api.create_dig_functions() to create the actual update functions.
+class DigFunction(Function):
     def do(self):
+        if self.server.sessions_enabled:
+            self.params = [("session", default_type.ExtSession, "Execution context")]
         mgr = getattr(self, self.dig_manager)
         resid = mgr.perform_search(self.search)
         objs = mgr.models_by_result_id(resid)
         return [o.apply_template(self.api.version, self.template) for o in objs]
 
+# This class is _dynamically_ (i.e. automatically) subclassed by
+# api.create_dig_functions() to create the actual update functions.
+class DigSessionedFunction(DigFunction):
+    params = [("session", default_type.ExtSession, "Execution context")]
+    
 # This class is mostly for demonstration purposes.
 # A SimpleFunction has no parameters by default, neither any database and does not do any logging
 class SimpleFunction(Function):

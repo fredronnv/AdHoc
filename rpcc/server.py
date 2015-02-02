@@ -137,6 +137,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     def __init__(self, address, port, ssl_config=None, handler_class=None):
         self.database = None
         self.digs_n_updates = False
+        self.sessions_enabled = False
         self.mutexes_enabled = False
         self.events_enabled = False
         self.tables_checked = False
@@ -337,6 +338,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         if not issubclass(cls, Function):
             raise ValueError("Can only register subclasses of Function, %s is not" % (cls,))
         self.api_handler.add_function(cls)
+        
 
     def register_category(self, cls):
         self.api_handler.add_category(cls)
@@ -663,6 +665,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             self.register_function(default_function.FunSessionStart)
             self.register_function(default_function.FunSessionStop)
             self.register_function(default_function.FunSessionInfo)
+            self.sessions_enabled = True
 
         elif issubclass(manager_class, authentication.AuthenticationManager):
             self.register_function(default_function.FunSessionAuthLogin)
