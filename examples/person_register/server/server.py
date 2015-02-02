@@ -12,6 +12,7 @@ srv.register_manager(DatabaseBackedSessionManager)
 srv.register_manager(PersonManager)
 srv.register_model(Person)
 srv.register_function(PersonCreate)
+srv.register_function(PersonRemove)
 
 srv.enable_digs_and_updates()
 

@@ -2,7 +2,8 @@
 
 from rpcc import *
 
-### Model description of a person record containing first and last names and an age
+
+# Model description of a person record containing first and last names and an age
 #
 # Possible errors 
 class ExtNoSuchPersonError(ExtLookupError):
@@ -11,6 +12,7 @@ class ExtNoSuchPersonError(ExtLookupError):
 
 class ExtPersonAlreadyExistsError(ExtLookupError):
     desc = "The person id already exists"
+
     
 # Desription of how we identify the person    
 class ExtPersonId(ExtString):
@@ -18,10 +20,11 @@ class ExtPersonId(ExtString):
     desc = "ID of a person"
     regexp = "^[a-z]{1,8}$"
 
+
 # The person record itself
 class ExtPerson(ExtPersonId):
     name = "person"
-    desc = "A Person record"
+    desc = "A Person record, identified by its ID"
 
     # Defines how we look up the person. This method is called in the context
     # of an RPCC function
@@ -31,13 +34,16 @@ class ExtPerson(ExtPersonId):
     def lookup(self, fun, cval):
         # Hand over the lookup to the peron_manager
         return fun.person_manager.get_person(cval)
+    
     #
     # The output function is the opposite of a lookup. It takes a person record
     # and returns its identifier
     def output(self, _fun, obj):
-        #print "Person output", obj, obj.__dict__
+        # print "Person output", obj, obj.__dict__
         return obj.oid
+
     
+# Function to create a person record. These fuctions are not generated from the model    
 class PersonCreate(Function):
     extname = "person_create"
     params = [("id", ExtPersonId, "Person identifier"),
@@ -49,18 +55,30 @@ class PersonCreate(Function):
 
     def do(self):
         self.person_manager.create_person(self.id, self.firstname, self.lastname, self.age)
+        
+        
+# Function to remove a person record
+class PersonRemove(Function):
+    extname = "person_remove"
+    params = [("person", ExtPerson, "Person to remove")]  # Note: Not using ExtPErsonId here. This forces a lookup so we know that he person exists.
+    desc = "Removes a person from the database"
+    
+    returns = (ExtNull)
+    
+    def do(self):
+        self.person_manager.remove_person(self.person)  # Send along the person object here,not its id.
 
 #
 # The model class defines whats in the Person object and what can be done with it.
 #
 class Person(Model):
     name = "person"  # The external name of the class, but is also used internally.
-    exttype = ExtPerson # The class exposed to the outer world
+    exttype = ExtPerson  # The class exposed to the outer world
     id_type = unicode  # The type of the identifier
 
     # The init function takes a row from the database and fills in the 
     # attributes of the Person object.
-    def init(self, *args, **_kwargs): # Watch out, this is not the constructor
+    def init(self, *args, **_kwargs):  # Note!, this is not the constructor
         a = list(args)  # Note that using this construct, the order is important
         # order here should match the order in the dq.select statement
         # in the manager's base_query classmethod. See below.
@@ -88,10 +106,10 @@ class Person(Model):
     
     # The following method specifies how to change the age of a person
     @update("age", ExtInteger)
-
     def set_age(self, new_age):
         q = "UPDATE persons SET age=:age WHERE id=:id"
         self.db.put(q, id=self.oid, age=new_age)
+         
             
 class PersonManager(Manager):
     name = "person_manager"
@@ -126,7 +144,7 @@ class PersonManager(Manager):
         return "ds.firstname"
         
     @search("lastname", StringMatch)
-    def s_lasstname(self, dq):
+    def s_lastname(self, dq):
         dq.table("persons ds")
         return "ds.lastname"
         
@@ -145,3 +163,10 @@ class PersonManager(Manager):
         except IntegrityError, e:
             print e
             raise ExtPersonAlreadyExistsError()
+        
+    def remove_person(self, person):
+        
+        q = """DELETE FROM persons WHERE id=:id"""
+        
+        self.db.put(q, id=person.oid)
+            
