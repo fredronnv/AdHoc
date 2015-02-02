@@ -117,7 +117,7 @@ class PersonManager(Manager):
 
     @search("person", StringMatch)
     def s_person(self, dq):
-        dq.table("person ds")
+        dq.table("persons ds")
         return "ds.id"
     
     @search("firstname", StringMatch)
@@ -140,7 +140,7 @@ class PersonManager(Manager):
         q = """INSERT INTO persons (id, firstname, lastname, age) 
                VALUES (:person_id, :firstname, :lastname, :age)"""
         try:
-            self.db.put(q, person_id=person_id, firstname=firstname, lastname=lastname, age=age, birthdate=12)
+            self.db.put(q, person_id=person_id, firstname=firstname, lastname=lastname, age=age)
             
         except IntegrityError, e:
             print e
