@@ -754,8 +754,8 @@ class OracleDatabase(Database):
 ###
 class MySQLDynamicQuery(DynamicQuery):
     def dbvar(self, name):
-        return "%(" + name + ")s"
-        #return ":" + name
+        #return "%(" + name + ")s"
+        return ":" + name 
 
     def dblimit(self, limit):
         return "LIMIT %d" % (limit,)
@@ -887,7 +887,7 @@ class SQLiteIterator(DatabaseIterator):
     
 class SQLiteDynamicQuery(DynamicQuery):
     def dbvar(self, name):
-        return "%(" + name + ")s"
+        return ":" + name 
 
     def dblimit(self, limit):
         return "LIMIT %d" % (limit,)
@@ -932,16 +932,16 @@ class SQLiteLink(DatabaseLink):
         try:
             try:
                 if isinstance(query, DynamicQuery):
-                    q = query.query()
-                    v = query.values
+                    raw_values = query.values
+                    q, v = self.convert(query.query(), query.values)
                 else:
-                    v = kwargs
-                    q = self.convert(query)
+                    raw_values = kwargs
+                    q, v = self.convert(query, kwargs)
                 curs.execute(q, v)
                 return curs.lastrowid
             except Exception as e:
                 print "DBEXCEPTION:", e, type(e)
-                self.exception(e, q, v)
+                self.exception(e, q, raw_values)
         finally:
             curs.close()
             
@@ -953,8 +953,11 @@ class SQLiteLink(DatabaseLink):
         if isinstance(inner, sqlite3.OperationalError):
             message = inner.message
             (msg, param) = message.split(":")
-            if msg=="no such table":
+            if msg == "no such table":
                 raise InvalidTableError(param, inner=inner) 
+            raise IntegrityError(message, inner=inner)
+        if isinstance(inner, sqlite3.IntegrityError):
+            message = inner.message
             raise IntegrityError(message, inner=inner)
         raise
 
