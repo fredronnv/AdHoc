@@ -965,7 +965,6 @@ class Manager(object):
         return None
 
     def args_for_model(self, mid):
-        mysql_connector_2 = False  # Change here if using MySQL connector version 2.x.x
         dq = self.db.dynamic_query()
         self.base_query(dq)
         #self.db.add_table_from_dynamic_query(dq) # Collect table definition in the database object.
