@@ -1,4 +1,5 @@
 eclipse.preferences.version=1
+encoding//examples/hello_to/client/rpcc_client.py=utf-8
 encoding//examples/person_register/client/rpcc_client.py=utf-8
 encoding//rpcc/database.py=utf-8
 encoding//rpcc/example2-client.py=utf-8

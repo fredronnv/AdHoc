@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.6
 
-from rpcc import SimpleFunction, ExtString, exttype, Server 
+from rpcc import *
 
 
 class FnHello(SimpleFunction):
@@ -23,4 +23,5 @@ class FnHelloTo(SimpleFunction):
 srv = Server("localhost", 12121)
 srv.register_function(FnHello)
 srv.register_function(FnHelloTo)
+srv.register_function(default_function.FunServerFunctionDefinition)  # This internal function is needed my the rpcc_client library.
 srv.serve_forever()
