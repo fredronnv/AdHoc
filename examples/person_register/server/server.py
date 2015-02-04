@@ -1,14 +1,13 @@
 #!/usr/bin/env python2.6
 
 from rpcc import *
-from person import *
+from person import *  # Import the person model
 
 srv = Server("localhost", 12121) # Create a server instance
 
 srv.enable_documentation()  # Enable documentation functions
 
-srv.enable_database(SQLiteDatabase)
-srv.register_manager(DatabaseBackedSessionManager)
+srv.enable_database(SQLiteDatabase, database="person_database")
 srv.register_manager(PersonManager)
 srv.register_model(Person)
 srv.register_function(PersonCreate)

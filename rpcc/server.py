@@ -552,8 +552,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         self.register_function(default_function.FunMutexWatchdogStop)
         self.register_function(default_function.FunMutexWatchdogDestroy)
 
-    def enable_database(self, database_class):
-        self.database = database_class(self)
+    def enable_database(self, database_class, **kwargs):
+        self.database = database_class(self, **kwargs)
 
     def enable_documentation(self):
         self.register_function(default_function.FunServerListFunctions)

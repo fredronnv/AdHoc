@@ -966,7 +966,7 @@ class SQLiteDatabase(Database):
     query_class = SQLiteDynamicQuery
     link_class = SQLiteLink
 
-    def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):
+    def init(self, database=None):
         if not database:
             database="rpcc_scratch_database"
         self.connect_args = {"database": database}
