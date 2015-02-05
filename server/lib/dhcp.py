@@ -152,7 +152,7 @@ class DHCPManager(AdHocManager):
             #print name, value, mtime, my_id
             if name == 'ddns-update-style' and value == 'ad-hoc':
                 continue  # This mode is not supported in later versions of the dhcpd server
-            self.db.insert("id", qp, name=name, value=value, changedby="DHCP2-ng", mtime=mtime, id=my_id)
+            self.db.insert("id", qp, name=name, value=value, changedby="DCONF-ng", mtime=mtime, id=my_id)
         
         qf = "SELECT name, value, changed_by, mtime, id FROM optionlist WHERE gtype='global'"
         qp = "INSERT INTO global_options (name, value, changed_by, mtime, id) VALUES (:name, :value, :changedby, :mtime, :id)"
@@ -388,7 +388,7 @@ class DHCPManager(AdHocManager):
             # Add yet unseen rooms into the rooms table    
             if room and room not in rooms:
                 self.db.insert(id, "INSERT INTO rooms (id, info, changed_by) VALUES (:id, :info, :changed_by)",
-                               id=room, info="Auto inserted on hosts migration", changed_by="dhcp2-ng")
+                               id=room, info="Auto inserted on hosts migration", changed_by="dconf-ng")
                 rooms.add(room)
             
             optset = self.optionsetManager.create_optionset()

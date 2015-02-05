@@ -141,7 +141,7 @@
 
   - När det gäller optionernas värden, så är frågan hur uppslag
     "normalt" kommer att ske. Konfigfilsgeneratorn kommer att läsa
-    alla optioner i klump. dhcp2-kommandot likaså.
+    alla optioner i klump. dconf-kommandot likaså.
 
     Det mest effektiva bör sannolikt vara att hämta alla satta
     optioner när Optionset-instansen skapas. Det normala

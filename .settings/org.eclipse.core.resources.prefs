@@ -1,5 +1,5 @@
 eclipse.preferences.version=1
-encoding//applications/dhcp2/rpcc_client.py=utf-8
+encoding//applications/dconf/rpcc_client.py=utf-8
 encoding//client/rpcc_client.py=utf-8
 encoding//lib/python2.6/rpcc_client.py=utf-8
 encoding//server/docroot/lib/python2.6/rpcc_client.py=utf-8
