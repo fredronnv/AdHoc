@@ -9,9 +9,9 @@
 
 from rpcc import *
 
+
 class FnAdd2(SimpleFunction):
     extname = "add2"
-    to_version = 0
     params = [("num1", exttype.ExtInteger, "Number 1"),
               ("num2", exttype.ExtInteger, "Number 2")]
 
@@ -25,7 +25,6 @@ class FnAdd2(SimpleFunction):
 
 class FnSub2(SimpleFunction):
     extname = "sub2"
-    to_version = 0
     params = [("num1", exttype.ExtInteger, "Number 1"),
               ("num2", exttype.ExtInteger, "Number 2")]
 
@@ -36,9 +35,9 @@ class FnSub2(SimpleFunction):
     def do(self):
         return self.num1 - self.num2
     
+    
 class FnMul2(SimpleFunction):
     extname = "mul2"
-    to_version = 0
     params = [("num1", exttype.ExtInteger, "Number 1"),
               ("num2", exttype.ExtInteger, "Number 2")]
 
@@ -49,15 +48,16 @@ class FnMul2(SimpleFunction):
     def do(self):
         return self.num1 * self.num2
 
+
 # Define a structure to be returned from the div2 function    
 class ExtDivisionResult(ExtStruct):
     name = "division-result"
     mandatory = { "quotient": (ExtInteger, "Quotient of division"),
                   "residue": (ExtInteger, "Residue after divsion")}
     
+    
 class FnDiv2(SimpleFunction):
     extname = "div2"
-    to_version = 0
     params = [("denominator", ExtInteger, "Denominator"),
               ("dividend", exttype.ExtInteger, "Dividend")]
 
