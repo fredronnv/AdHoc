@@ -50,7 +50,7 @@ esac
 TEST=`which test`
 
 
-# Code below extracts into MY_DIR the path to the directori in which the actual dhcp2 script lives.
+# Code below extracts into MY_DIR the path to the directori in which the actual dconf script lives.
 # The code is designed to handle all the strange ways that man lead up to this script.
 MY_SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$MY_SOURCE" ]; do # resolve $MY_SOURCE until the file is no longer a symlink
@@ -66,21 +66,21 @@ cd $MY_DIR
 
 #D 
 #D =pod
-#D =head4 dhcp2 - DHCP control program
+#D =head4 dconf - DHCP configuration program
 #D
-#D The command suite I<dhcp2> implements a CLI interface to the Avancez DHCP online configuration system (AdHoc). 
+#D The command suite I<dconf> implements a CLI interface to the Avancez DHCP online configuration system (AdHoc). 
 #D
 #M =head1 NAME
 #M
-#M dhcp2 - DHCP control program
+#M dconf - DHCP configuration program
 #M
 #M =head1 SYNOPSIS
 #M
-#M dhcp2 [global options] subcommand [options...]
+#M dconf [global options] subcommand [options...]
 #M
 #M =head1 DESCRIPTION
 #M
-#M The command suite dhcp2 implements a CLI interface to the Avancez DHCP online configuration system (AdHoc).
+#M The command suite dconf implements a CLI interface to the Avancez DHCP online configuration system (AdHoc).
 #M
 #M =head1 USAGE
 #M
@@ -96,30 +96,30 @@ cd $MY_DIR
 #M A plain host is one that only need the network setup parameters, but no boot or installation options.
 #M Most machines are in this group. E.g. all self administered machines
 #M
-#M Use B<dhcp2 addhost mac-address> dhcp2 will generate a host ID and print it.
+#M Use B<dconf addhost mac-address> dconf will generate a host ID and print it.
 #M
 #M =head3 Adding a host with a free DNS entry of a network
 #M
-#M If you need to find a DNS entry for a fixed addresse, the dhcp2 mkhost command may be of help. You need to know
+#M If you need to find a DNS entry for a fixed addresse, the dconf mkhost command may be of help. You need to know
 #M which network the machine will be connected to. 
 #M
-#M Use B<dhcp2 mkhost -n network-name>
+#M Use B<dconf mkhost -n network-name>
 #M
 #M =head3 Finding out network names
 #M
 #M To be able to use mkhost, you need to find out which network names that are acceptable. 
 #M
-#M Use B<dhcp2 lsnetworks> to get a list. The "Id" column lists the names.
+#M Use B<dconf lsnetworks> to get a list. The "Id" column lists the names.
 #M
-#M =head3 Finding out the syntax of a dhcp2 subcommand
+#M =head3 Finding out the syntax of a dconf subcommand
 #M
 #M If you are unsure about the syntax for a subcommand, jyst type
 #M
-#M B<dhcp2 >I<subcommand> B<-h>
+#M B<dconf >I<subcommand> B<-h>
 #M
 #M If you need a little more help: 
 #M
-#M use B<dhcp2 >I<subcommand> B<--help>
+#M use B<dconf >I<subcommand> B<--help>
 #M
 #M =head1 ABBREVIATIONS
 #M 
@@ -861,9 +861,9 @@ help()
 
 man()
 {
-#   echo dhcp2 man "$@" >&2
+#   echo dconf man "$@" >&2
     man_pager="| less"
-    man_formatter="| pod2man --center=DHCP2\(1\) --release=$version --section='Embedded\ Manual' | nroff -man"
+    man_formatter="| pod2man --center=DCONF\(1\) --release=$version --section='Embedded\ Manual' | nroff -man"
     man_o_arg=
 
     for i in "$@"; do
@@ -878,7 +878,7 @@ man()
                 shift
                 ;;
             -M)
-                man_formatter="| pod2man --section=1 --release=$version --center='Chalmers ITS Sysadmin Documentation' --name=DHCP2"
+                man_formatter="| pod2man --section=1 --release=$version --center='Chalmers ITS Sysadmin Documentation' --name=DCONF"
                 shift
                 ;;
             -n)
@@ -982,7 +982,7 @@ _syntaxexpand()
 #M
 Release()
 {
-#    echo "dhcp2 Release " "$@"
+#    echo "dconf Release " "$@"
 #   exit
 
     offspring=$1; 
@@ -1630,7 +1630,7 @@ _validate_validator()
 #M
 #M =head1 CANONICAL ETHERNET ADDRESSES
 #M
-#M Dhcp2 checks all given ethernet addresses and rewrites them on the form xx:xx:xx:xx:xx:xx
+#M Dconf checks all given ethernet addresses and rewrites them on the form xx:xx:xx:xx:xx:xx
 #M All parts of the ethernet address is supposed to be in hexadecimal, 0-9a-fA-F. Each field is 
 #M first converted to upper case, translated to decimal, checked for range between 0 and 255, and then
 #M converted back to lower case hexadecimal. This means that an address given as 00:08:a4:Fe:35:CA, which is
@@ -2092,7 +2092,7 @@ proxy_start()
     #trace "Starting proxy by pid=$$"
                  
     mkfifo $proxyin $proxyout
-    /usr/bin/env python $MY_DIR/dhcp2proxy.py $proxyin $proxyout &
+    /usr/bin/env python $MY_DIR/dconfproxy.py $proxyin $proxyout &
 
     store_proxy_pid $!
     proxy_pid=`fetch_proxy_pid`
@@ -2501,11 +2501,11 @@ dhcp_format()
 #M
 #M =head1 HOST IDENTIFIERS
 #M
-#M Each host has an identifier that is used in order to identify a host within dhcp2. (hostid)
+#M Each host has an identifier that is used in order to identify a host within dconf. (hostid)
 #M
-#M These identifiers are on the form yyyymmdd-nnn, where yymmdd is the date the host was first entered into dhcp2
+#M These identifiers are on the form yyyymmdd-nnn, where yymmdd is the date the host was first entered into dconf
 #M and nnn is a three digit serial number beginning at 000.
-#M In the case of hosts transferred from the prevoous version of dhcp2, yyyymmdd signifies the date of latest change 
+#M In the case of hosts transferred from the prevoous version of dconf, yyyymmdd signifies the date of latest change 
 #M in the old system.
 #M 
 
@@ -5528,11 +5528,11 @@ chrange()
 #S reload;;Reload DHCP servers;0;0;;Trigger a reload of the DHCP server configurations;002
 #M =head2 I<Description>
 #M
-#M The reload subcommand initates a reload of the DHCP server configurations by updating the global dhcp2_timestamp option
+#M The reload subcommand initates a reload of the DHCP server configurations by updating the global dconf_timestamp option
 #M
 reload()
 {
-    choption -G dhcp2_timestamp `date +%FT%T`
+    choption -G dconf_timestamp `date +%FT%T`
 }
 #S chnetwork;;Change network;1;1;network-name;Change name and parameters of an already defined network;62
 #O chnetwork;A;;Turn on authoritativity for the network (excludes the use of --noA);;
@@ -5821,9 +5821,9 @@ revoke()
 # Run the command
 #proxy_start
 #server_call "session_start()"
-export proxyin="/tmp/dhcp2_in_$$"
-export proxyout="/tmp/dhcp2_out_$$"
-export proxy_pid_file="/tmp/dhcp2_proxy_pid_$$"
+export proxyin="/tmp/dconf_in_$$"
+export proxyout="/tmp/dconf_out_$$"
+export proxy_pid_file="/tmp/dconf_proxy_pid_$$"
 trap "proxy_stop" INT TERM EXIT
 main "$@" 
 #M
@@ -5840,11 +5840,11 @@ main "$@"
 #M The fact that it runs BeOS shows that it is not part of any automatic installation procedures. This goes for all
 #M machines that are self administered. Thus, we do not assign the machine to any group. (Backstage, "no group" really means
 #M the group named 'plain'. In case that shows up somewhere, it might be useful to know)
-#M dhcp2 will generate a unique ID with which the host can be easily identified later on. This ID is printed.
+#M dconf will generate a unique ID with which the host can be easily identified later on. This ID is printed.
 #M
 #M Execute the command:
 #M
-#M dhcp2 addhost -r MC1234 -u bill -d dhcp168-16.math.chalmers.se  01:12:34:c0:ff:fe 
+#M dconf addhost -r MC1234 -u bill -d dhcp168-16.math.chalmers.se  01:12:34:c0:ff:fe 
 #M
 #M 20140923-001
 #M 
@@ -5858,17 +5858,17 @@ main "$@"
 #M
 #M Find the host identifier
 #M
-#M dhcp2 lsh starwars.tekno.chalmers.se
+#M dconf lsh starwars.tekno.chalmers.se
 #M
 #M 19880719-007
 #M
 #M Deactivate the entry using:
 #M
-#M dhcp2 chhost -s Inactive 19880719-007
+#M dconf chhost -s Inactive 19880719-007
 #M
 #M Should he come back, you can activate the entry using
 #M
-#M dhcp2 chhost -s Active 19880719-007
+#M dconf chhost -s Active 19880719-007
 #M
 #M =head2 Getting entry status
 #M
@@ -5893,7 +5893,7 @@ main "$@"
 #M
 #M First, create a group to put the machines in. Let's call the group I<ibmvm>.
 #M
-#M B<dhcp2 mkgroup ibmvm>
+#M B<dconf mkgroup ibmvm>
 #M
 #M Next thing is to configure the group with an option set so that they will install 
 #M from omaha. The old IBM manual says nothing about networks at all, but these boxen 
@@ -5926,37 +5926,37 @@ main "$@"
 #M
 #M First, we have to define the namespace I<IBMSUN>, do that using
 #M
-#M B<dhcp2 defspace IBMSUN "Namespace for old IBM machines refurbished by Sun">
+#M B<dconf defspace IBMSUN "Namespace for old IBM machines refurbished by Sun">
 #M
 #M The last argument is only meant as a clue for humans, please be informative.
 #M
 #M Next, we define the options:
 #M
-#M B<dhcp2 defoption -s IBMSUN -c 73 ibm-mount-options text "NFS options to use when mounting from install server">
+#M B<dconf defoption -s IBMSUN -c 73 ibm-mount-options text "NFS options to use when mounting from install server">
 #M 
-#M B<dhcp2 defoption -s IBMSUN -c 88 ibm-install-server-ip-address ip-address "IP address of install server">
+#M B<dconf defoption -s IBMSUN -c 88 ibm-install-server-ip-address ip-address "IP address of install server">
 #M
-#M B<dhcp2 defoption -s IBMSUN -c 99 ibm-install-server-hostname text "Hostname of install server">
+#M B<dconf defoption -s IBMSUN -c 99 ibm-install-server-hostname text "Hostname of install server">
 #M
 #M Now, we have defined the options, let's give them values for the I<ibmvm> group of hosts:
 #M
-#M B<dhcp2 addoption -g ibmvm ibm-mount-options "rsize=4096">
+#M B<dconf addoption -g ibmvm ibm-mount-options "rsize=4096">
 #M
-#M B<dhcp2 addoption -g ibmvm ibm-install-server-ip-address 129.16.223.74>
+#M B<dconf addoption -g ibmvm ibm-install-server-ip-address 129.16.223.74>
 #M
-#M B<dhcp2 addoption -g ibmvm ibm-install-server-hostname omaha.medic.chalmers.se>
+#M B<dconf addoption -g ibmvm ibm-install-server-hostname omaha.medic.chalmers.se>
 #M
 #M Now, the group is ready to accept the machines:
 #M
-#M B<dhcp2 addhost -u liz -g ibmvm 19880719-019 00:00:01:01:19:74>
+#M B<dconf addhost -u liz -g ibmvm 19880719-019 00:00:01:01:19:74>
 #M
-#M B<dhcp2 addhost -u mike -g ibmvm 19880719-029 00:00:01:01:19:75>
+#M B<dconf addhost -u mike -g ibmvm 19880719-029 00:00:01:01:19:75>
 #M
-#M B<dhcp2 addhost -u john -g ibmvm 19880719-039 00:00:01:01:19:76>
+#M B<dconf addhost -u john -g ibmvm 19880719-039 00:00:01:01:19:76>
 #M
-#M B<dhcp2 addhost -u steve -g ibmvm 19880719-049 00:00:01:01:19:77>
+#M B<dconf addhost -u steve -g ibmvm 19880719-049 00:00:01:01:19:77>
 #M
-#M B<dhcp2 addhost -u susie -g ibmvm 19880719-059 00:00:01:01:19:78>
+#M B<dconf addhost -u susie -g ibmvm 19880719-059 00:00:01:01:19:78>
 #M
 #M Now, the group is ready, all he has to do is to call in his IT executive general and order him
 #M to install the machines. 

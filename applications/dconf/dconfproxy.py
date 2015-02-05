@@ -186,8 +186,8 @@ import rpcc_client
 fifo_in = sys.argv[1]
 fifo_out = sys.argv[2]
 
-update_template = {}  # For use by dhcp2
-options = {}  # For use by dhcp2
+update_template = {}  # For use by dconf
+options = {}  # For use by dconf
 
 while True:
         fin = open(fifo_in, "r")
