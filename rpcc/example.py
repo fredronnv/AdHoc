@@ -33,9 +33,9 @@ class FnAdd2(Function):
         return self.num1 + self.num2 + self.num3
 
 
-import authenticator
+import authentication
 class MyServer(Server):
-    authenticator = authenticator.NullAuthenticator
+    authenticator = authentication.NullAuthenticationManager
 
 srv = Server("venus.ita.chalmers.se", 12121)
 srv.register_function(FnAdd)
