@@ -1,5 +1,5 @@
 #!/usr/bin/env python2.6
-
+# -*- coding: utf-8 -*-
 from rpcc import *
 from person import *  # Import the person model
 

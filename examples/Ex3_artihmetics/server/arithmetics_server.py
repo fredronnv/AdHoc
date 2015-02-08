@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.6
+# -*- coding: utf-8 -*-
 
 # This server implements four artihmetics functions.
 # It also demonstrates returning structured data and

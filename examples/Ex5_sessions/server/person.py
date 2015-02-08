@@ -1,3 +1,6 @@
+#!/usr/bin/env python2.6
+# -*- coding: utf-8 -*-
+
 from rpcc import *
 
 
@@ -41,7 +44,7 @@ class ExtPerson(ExtPersonId):
         return obj.oid
 
     
-# Function to create a person record. These fuctions are not generated from the model    
+# Function to create a person record. These functions are not generated from the model    
 class PersonCreate(SessionedFunction):
     extname = "person_create"
     params = [("id", ExtPersonId, "Person identifier"),
