@@ -91,6 +91,7 @@ HTML documentation:
 
 from exttype import *
 from xmlnode import HTMLNode
+from encodings.utf_8 import decode
 
 
 class Documentation(object):
@@ -468,8 +469,8 @@ td.type{
                         r.td().tt().cdata(key)
                         type_name(r.td(), typ)
                         r.td().cdata(desc or "")
-                
-        return html.xml()
+                        
+        return html.xml().decode("utf-8")
 
     def function_as_struct(self, apivers, funname):
         api = self.server.api_handler.get_api(apivers)
