@@ -83,11 +83,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     manager_classes = []
     model_classes = []
 
-    # If docroot is set, a default "GET" HTTP-method handler will be
-    # enabled, and serve documents from docroot.
-
-    docroot = None
-
     api_version_comments = {}
 
     # Service name, visible in the WSDL portType and in server_get_version().
@@ -116,8 +111,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         #('/spnego+apache-xmlrpc', RPCKRB5ApacheXMLRPCProtocolHandler),
         #('/spnego+SOAP', RPCKRB5SOAPProtocolHandler),
 
-        # Default GET handler added only if self.docroot is set
-        # ('__GET__', RPCStaticDocumentHandler),
         ]
 
     # Environment variable prefix. All configuration for this server is
