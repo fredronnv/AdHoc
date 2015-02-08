@@ -105,10 +105,10 @@ class StaticDocumentProtocol(Protocol):
         try:
             path = os.path.join(self.docroot, path)
             if os.path.exists(path):
-                data = file(os.path.join(self.docroot, path)).read()
+                data = file(path).read()
             else:
                 mime_type, enc, data = error404
-        except:
+        except Exception as e:
             mime_type, enc, data = error404
 
         if mime_type == 'text/html' and not enc:
