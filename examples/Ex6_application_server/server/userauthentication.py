@@ -23,7 +23,7 @@ class UserAuthenticationManager(AuthenticationManager):
         
     def login(self, session, username, password, generic_password):
         
-        if generic_password and password==generic_password:
+        if generic_password and password == generic_password:
             session.set("authuser", username)
             return
         if self.server.config("SUPERUSER_PASSWORD", default=None):
@@ -31,7 +31,7 @@ class UserAuthenticationManager(AuthenticationManager):
                 session.set("authuser", "#root#")
                 return
         try:
-            user = self.server.user_manager.get_user(username)
+            user = self.user_manager.get_user(username)
         except LookupError:  # Hide the lookup error, don't give clues as to what was wrong
             raise exterror.ExtAuthenticationFailedError() 
         if self.check_pw(user.password, password):
@@ -41,4 +41,3 @@ class UserAuthenticationManager(AuthenticationManager):
 
     def logout(self, session):
         session.unset("authuser")
-
