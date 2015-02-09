@@ -178,6 +178,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         self.add_default_protocol_handlers()
         self.documentation = documentation.Documentation(self)
+        self.generic_password = self.config("GENERIC_PASSWORD", default=None)
 
     def config(self, varname, **kwargs):
         envvar = (self.envvar_prefix + varname).upper()

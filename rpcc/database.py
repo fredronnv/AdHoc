@@ -952,7 +952,10 @@ class SQLiteLink(DatabaseLink):
             print "INNER ERROR: ", inner
         if isinstance(inner, sqlite3.OperationalError):
             message = inner.message
-            (msg, param) = message.split(":")
+            if ":" in message:
+                (msg, param) = message.split(":")
+            else:
+                msg = message
             if msg == "no such table":
                 raise InvalidTableError(param, inner=inner) 
             raise IntegrityError(message, inner=inner)

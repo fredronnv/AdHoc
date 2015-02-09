@@ -37,10 +37,10 @@ class AuthenticationManager(model.Manager):
         # DO NOT IMPLEMENT THIS - it is a model-less manager!
         raise NotImplementedError()
 
-    def login(self, session, username, password):
+    def login(self, _session, _username, _password, _generic_password):
         raise NotImplementedError()
 
-    def logout(self, session):
+    def logout(self, _session):
         raise NotImplementedError()
 
     @classmethod
@@ -57,7 +57,7 @@ class AuthenticationManager(model.Manager):
     
 class NullAuthenticationManager(AuthenticationManager):
     
-    def login(self, session, username, password):
+    def login(self, session, username, password, _generic_password):
         if username == password:
             session.set("authuser", username)
         else:
@@ -127,8 +127,11 @@ class KerberosAuthenticationManager(AuthenticationManager):
 
 
 class SuperuserOnlyAuthenticationManager(AuthenticationManager):
-    def login(self, session, username, password):
-        if username == '#root#' and password == self.server.config("SUPERUSER_PASSWORD"):
+    def login(self, session, username, password, _generic_password):
+        su_password = self.server.config("SUPERUSER_PASSWORD", default=None)
+        if not su_password:
+            raise exterror.ExtAuthenticationFailedError()
+        if username == '#root#' and password == su_password:
             session.set("authuser", "#root#")
         else:
             raise exterror.ExtAuthenticationFailedError()
