@@ -23,12 +23,13 @@ import exttype
 from exterror import ExtInternalError
 
 from function import Function
-from rpcc.database import DBColumn, VType
+from rpcc.database import VType
 
 try:
     import ssl
 except:
     pass
+
 
 class SSLConfig(object):
     keyfile = None
@@ -39,12 +40,6 @@ class SSLConfig(object):
             self.keyfile = keyfile
         if certfile:
             self.certfile = certfile
-
-        #self.ctx = SSL.Context(SSL.SSLv23_METHOD)
-        #self.ctx.use_privatekey_file(keyfile)
-        #self.ctx.use_certificate_file(certfile)
-        #if chainfile:
-        #    self.ctx.load_verify_locations(chainfile)
 
     def wrap_socket(self, raw_socket):
         return ssl.wrap_socket(raw_socket, 
@@ -100,18 +95,17 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     default_protocol_handlers = [
         ('/RPC2', protocol.XMLRPCProtocol),
         ('/xmlrpc', protocol.XMLRPCProtocol),
-        #('__POST__', protocol.XMLRPCProtocol),
+        # ('__POST__', protocol.XMLRPCProtocol),
         ('/apache-xmlrpc', protocol.ApacheXMLRPCProtocol),
         ('/json', protocol.JSONProtocol),
         ('/WSDL', protocol.WSDLProtocol),
         ('/SOAP', protocol.SOAPProtocol),
         ('/api', protocol.FunctionDefinitionProtocol),
 
-        #('/spnego+xmlrpc', RPCKRB5XMLRPCProtocolHandler),
-        #('/spnego+apache-xmlrpc', RPCKRB5ApacheXMLRPCProtocolHandler),
-        #('/spnego+SOAP', RPCKRB5SOAPProtocolHandler),
-
-        ]
+        # ('/spnego+xmlrpc', RPCKRB5XMLRPCProtocolHandler),
+        # ('/spnego+apache-xmlrpc', RPCKRB5ApacheXMLRPCProtocolHandler),
+        # ('/spnego+SOAP', RPCKRB5SOAPProtocolHandler),
+    ]
 
     # Environment variable prefix. All configuration for this server is
     # prefixed by this string. Default is "RPCC_", so
@@ -217,12 +211,12 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             return res
 
     def function_start(self, funobj, args, starttime, api_version):
-        #print "Function_start", funobj.__dict__, args, api_version
+        # print "Function_start", funobj.__dict__, args, api_version
         with self.thread_lock:
             self.running_functions[funobj] = (args, starttime, api_version)
 
     def function_stop(self, funobj):
-        #print "Function_stop", funobj.__dict__
+        # print "Function_stop", funobj.__dict__
         with self.thread_lock:
             try:
                 del self.running_functions[funobj]
@@ -273,8 +267,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                 funobj.set_db_link(db)
             else:
                 db = None
-            #print
-            #print "RPC: ", function
+            # print
+            # print "RPC: ", function
             self.function_start(funobj, params, start_time, api_version)
             result = funobj.call(params)
             ret = {'result': result}
@@ -308,8 +302,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         
         if funobj:
             self.function_stop(funobj)
-        #print "RPC END:", function
-        #print
+        # print "RPC END:", function
+        # print
         
         if db:
             self.database.return_link(db)
@@ -333,7 +327,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             raise ValueError("Can only register subclasses of Function, %s is not" % (cls,))
         self.api_handler.add_function(cls)
         
-
     def register_category(self, cls):
         self.api_handler.add_category(cls)
 
@@ -350,7 +343,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         import types
 
         for (_key, value) in mod.__dict__.items():
-            if type(value) != types.TypeType:
+            if isinstance(value, types.TypeType):
                 continue
             if not issubclass(value, Function):
                 continue
@@ -424,7 +417,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             return self.server_public_url
         prot = "http"
         if self.ssl_enabled:
-            prot="https"
+            prot = "https"
         return "%s://%s:%d/" % (prot, self.instance_address, self.instance_port)
 
     ###
@@ -480,16 +473,16 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         if prefix in self.protocol_handlers:
             prothandler = self.protocol_handlers[prefix]
-            start = time.time()
+#             start = time.time()
             ret = prothandler.request(httphandler, rest, data)
-            if type(ret) == type(""):
-                resstr = ret
-                isstr = "Response was string"
-            else:
-                resstr = ret.data
-                isstr = ""
+#             if isinstance(ret, str):
+#                 resstr = ret
+#                 isstr = "Response was string"
+#             else:
+#                 resstr = ret.data
+#                 isstr = ""
 
-            #print "\nDISPATCH", "%lx" % (id(prothandler),), time.ctime(), "path:", path, "response length:", len(resstr), "elapsed:", "%.1f" % (time.time()-start,), isstr
+#             print "\nDISPATCH", "%lx" % (id(prothandler),), time.ctime(), "path:", path, "response length:", len(resstr), "elapsed:", "%.1f" % (time.time()-start,), isstr
             return ret
 
         method = httphandler.command
@@ -499,7 +492,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                 prothandler = self.protocol_handlers[defkey]
             except LookupError:
                 return response.HTTP404()
-            start = time.time()
+#           start = time.time()
             ret = prothandler.request(httphandler, path, data)
             return ret
 
@@ -570,7 +563,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         if not self.digs_n_updates:
             raise ValueError("You must enable digs and updates before checking the tables.")
         
-        
         self.database.check_rpcc_tables(fix=fix)
         
         if dynamic:
@@ -588,14 +580,14 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         if tables_spec:
             self.database.check_rpcc_tables(tables_spec=tables_spec, fix=False)
         
-        self.tables_checked=True
+        self.tables_checked = True
         
     def generate_column_types(self, mgr, dtspec):
         for api in self.api_handler.apis:
             types = api.types
-            my_type = types[mgr.manages.name+"-templated-data"]
+            my_type = types[mgr.manages.name + "-templated-data"]
             model_name = mgr.manages.name
-            if not model_name in my_type.optional:
+            if model_name not in my_type.optional:
                 continue
             my_id_type_tuple = my_type.optional[model_name]
             my_id_type = my_id_type_tuple[0]
@@ -605,9 +597,9 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                 vtype = VType.integer
             
             table = dtspec[0]
-            col = table.columns[0] # Id must be in the first column
+            col = table.columns[0]  # Id must be in the first column
             col.set_value_type(vtype)
-            col.primary=True
+            col.primary = True
             
             for i in range(0, len(dtspec)):
                 table = dtspec[i]
@@ -624,9 +616,6 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                         vtype = VType.integer
                     col.set_value_type(vtype)
    
-            
-        
-
     ###
     # model.Manager subclasses this server handles. Registered under a
     #    name, which the magic get method in Function uses to create

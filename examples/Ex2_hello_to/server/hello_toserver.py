@@ -12,6 +12,7 @@ class FnHello(SimpleFunction):
     def do(self):
         return "Hello my friend"
 
+
 class FnHelloTo(SimpleFunction):
     extname = "hello_to"
     params = [("me", ExtString, "Name of someone to say hello to")]

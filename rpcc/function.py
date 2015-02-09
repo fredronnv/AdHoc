@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.3
 
 from exttype import *
 import default_type
@@ -73,7 +74,7 @@ class Function(object):
     # List of FunctionCategory subclasses that this function considers
     # itself to belong to. The Categories can also specify which
     # functions they consider belong to them.
-    #categories = []
+    # categories = []
 
     # If True, the Function will likely create at least one Event, and a
     # marker event should be created/destroyed.
@@ -114,7 +115,7 @@ class Function(object):
         pars = funbases[0].get_parameters()
         for par in cls.__dict__.get("params", []):
             if len(par) == 2:
-                pars.append( (par[0], par[1], None) )
+                pars.append( (par[0], par[1], None))
             else:
                 pars.append(par)
 
@@ -389,15 +390,18 @@ class FetchFunction(Function):
         tmpl = getattr(self, params[-1][0])
         return obj.apply_template(self.api.version, tmpl)
 
+
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_fetch_functions() to create the actual update functions.
 class FetchSessionedFunction(FetchFunction):
     params = [("session", default_type.ExtSession, "Execution context")]
 
+
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
 class UpdateFunction(Function):
     creates_event = True
+    
     def do(self):
         if self.server.sessions_enabled:
             self.params = [("session", default_type.ExtSession, "Execution context")]
@@ -405,6 +409,7 @@ class UpdateFunction(Function):
         obj = getattr(self, params[-2][0])
         upd = getattr(self, params[-1][0])
         obj.apply_update(self.api.version, upd)
+
 
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
@@ -423,10 +428,12 @@ class DigFunction(Function):
         objs = mgr.models_by_result_id(resid)
         return [o.apply_template(self.api.version, self.template) for o in objs]
 
+
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_dig_functions() to create the actual update functions.
 class DigSessionedFunction(DigFunction):
     params = [("session", default_type.ExtSession, "Execution context")]
+    
     
 # This class is mostly for demonstration purposes.
 # A SimpleFunction has no parameters by default, neither any database and does not do any logging

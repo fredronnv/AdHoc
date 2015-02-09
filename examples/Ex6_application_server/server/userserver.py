@@ -3,12 +3,14 @@
 
 from rpcc import *
 from user import *
+from userauthentication import *
+
 
 class UserServer(Server):
-    envvar_prefix = "USERSERVER_"
+    envvar_prefix = "USERSERVICE_"
 
 if __name__ == "__main__":    
-    srv = UserServer("localhost", 12121) # Create a server instance
+    srv = UserServer("localhost", 12121)  # Create a server instance
     
     srv.enable_documentation()  # Enable documentation functions
     
@@ -27,6 +29,6 @@ if __name__ == "__main__":
     
     srv.enable_static_documents('docroot')
     
-    srv.serve_forever() # Start serving. 
-    # Now point your browser to http://localhost:12121/api/0
+    srv.serve_forever()  # Start serving. 
+    # Now point your browser to http://localhost:12121
     # Also run sqlite3 on the database rpcc_scratch_database
