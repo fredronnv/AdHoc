@@ -97,6 +97,7 @@ class T0230_SubnetworkDestroy(NetworkAdminTests):
             except:
                 pass
             
+            
 class T0231_SubnetworkDestroyDHCP(NetworkAdminTests):
     """ Test subnetwork destroy on a crucial subnetwork """
 
@@ -119,12 +120,13 @@ class T0232_SubnetworkModifyRangeExcludingDHCPServer(NetworkAdminTests):
         try:
             with AssertAccessError(self):
                 with AssertRPCCError("ValueError::SubnetworkInUse::SubnetworkInUseByDHCPServer", True):
-                    self.proxy.subnetwork_update('129.16.4.88/29', {"subnetwork":"129.16.4.88/30"})   # A DHCP server is supposed to  be configured on 129.16.4.92
+                    self.proxy.subnetwork_update('129.16.4.88/29', {"subnetwork": "129.16.4.88/30"})   # A DHCP server is supposed to  be configured on 129.16.4.92
         finally:
             try:
-                self.superuser.subnetwork_update("129.16.4.88/30", {"subnetwork":"129.16.4.88/29"})
+                self.superuser.subnetwork_update("129.16.4.88/30", {"subnetwork": "129.16.4.88/29"})
             except:
                 pass
+            
             
 class T0233_SubnetworkCreateOverlapping(NetworkAdminTests):
     """ Test creating a subnetwork that overlaps an already existing subnetwork"""
@@ -160,6 +162,7 @@ class T0233_SubnetworkCreateOverlapping(NetworkAdminTests):
             except:
                 pass 
         
+        
 class T0234_SubnetworkModifyToOverlapping(NetworkAdminTests):
     """ Test modifying a subnetwork so that it overlaps an already existing subnetwork"""
 
@@ -174,7 +177,7 @@ class T0234_SubnetworkModifyToOverlapping(NetworkAdminTests):
             with AssertAccessError(self):
                 self.proxy.subnetwork_create('192.5.54.0/24', 'network_testoverlap', "TestSubnetwork")  
                 with AssertRPCCError("ValueError::SubnetworkOverlapsExisting", True):
-                    self.proxy.subnetwork_update('192.5.54.0/24', {"subnetwork":"192.5.54.0/23"}) 
+                    self.proxy.subnetwork_update('192.5.54.0/24', {"subnetwork": "192.5.54.0/23"}) 
         finally:
             try:
                 self.superuser.subnetwork_destroy('192.5.55.0/24')

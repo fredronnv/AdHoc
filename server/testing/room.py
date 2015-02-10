@@ -8,10 +8,12 @@ from util import *
 
 class T0700_RoomList(UnAuthTests):
     """ Test room listing """
-    skip=True
+    skip = True
+    
     def do(self):
         with AssertAccessError(self):
-            ret = self.proxy.room_dig({}, {"printers": True, "info": True, "room": True})
+            # ret = 
+            self.proxy.room_dig({}, {"printers": True, "info": True, "room": True})
             
             #assert len(ret) > 0, "Too few rooms returned"
             #for ds in ret:
@@ -24,7 +26,7 @@ class T0710_RoomFetch(UnAuthTests):
     def do(self):
         rooms = [x.room for x in self.superuser.room_dig({}, {"room":True})]
         
-        n=0
+        n = 0
         for room in rooms:
             ret = self.proxy.room_fetch(room, {"printers": True, "info": True, "room": True})
             assert "printers" in ret, "Key printers missing in returned struct from room_fetch"

@@ -11,7 +11,8 @@ class T0600_OptionspaceList(UnAuthTests):
 
     def do(self):
         with AssertAccessError(self):
-            ret = self.proxy.optionspace_dig({}, {"type": True, "info": True, "optionspace": True})
+            #ret = 
+            self.proxy.optionspace_dig({}, {"type": True, "info": True, "optionspace": True})
             
             #assert len(ret) > 0, "Too few optionspaces returned"
             #for ds in ret:

@@ -8,7 +8,6 @@ sys.path.append(os.environ["ADHOC_RUNTIME_HOME"] + "/rpcc_client")
 
 import rpcc_client
 import getpass
-import pprint
 
 
 class ADHOCNotATestSystem(Exception):
@@ -37,7 +36,8 @@ class RPCC(rpcc_client.RPCC):
             self.proxy.rpcs_called.add(self.funname)   # Remember rpcs successfully executed, for statistics
             ret = super(RPCC.FunctionProxy, self).__call__(*args, **kwdict)
             if(self.funname != "server_function_definition"):
-                docdict = self.proxy._server_docdict(self.funname)
+                # docdict = 
+                self.proxy._server_docdict(self.funname)
                 # pprint.pprint(docdict)
 #                 try:
 #                     self.proxy.check_type(ret, docdict.returns, path=[])
@@ -63,7 +63,7 @@ class RPCC(rpcc_client.RPCC):
         fn = super(RPCC, self).__getattr__(name)
         return fn
 
-    def __init__(self, url, user=None, password=None, api_version=None, return_attrdicts=True, convert_digs=False, try_json=True, basic_exceptions=True, superuser=None):
+    def __init__(self, url, user=None, password=None, api_version=None, return_attrdicts=True, convert_digs=False, _try_json=True, basic_exceptions=True, superuser=None):
         self._return_attrdicts = return_attrdicts
         self._convert_digs = convert_digs
         self._basic_exceptions = basic_exceptions
@@ -187,7 +187,7 @@ class RPCC(rpcc_client.RPCC):
         if not superu:
             superu = self  # otherwise we're probably the superuser ourselves
         try:
-            superu.account_create(self.username(),"Fornamn","Efternamn")
+            superu.account_create(self.username(), "Fornamn", "Efternamn")
         except rpcc_client.RPCCError, e:
             if not e.is_error("AccountAlreadyExists"):
                 raise
@@ -202,16 +202,14 @@ class RPCC(rpcc_client.RPCC):
         except rpcc_client.RPCCError, e:
             if not e.is_error("PrivilegeAlreadyGranted"):
                 raise
-        print "Granted privilege %s for %s" %(priv, self.username())
+        print "Granted privilege %s for %s" % (priv, self.username())
         
-
     def set_privileges(self, *privs):
         self.clear_privileges(reset=False)
 
         for priv in privs:
             self.add_privilege(priv)
         self.reset_session()
-
 
     def reset_session(self, password=None):
         if not password and self.password:
