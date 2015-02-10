@@ -326,7 +326,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         if not issubclass(cls, Function):
             raise ValueError("Can only register subclasses of Function, %s is not" % (cls,))
         self.api_handler.add_function(cls)
-        
+
     def register_category(self, cls):
         self.api_handler.add_category(cls)
 
@@ -343,7 +343,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         import types
 
         for (_key, value) in mod.__dict__.items():
-            if isinstance(value, types.TypeType):
+            if type(value) != types.TypeType:  # Using isinstance does not work here
                 continue
             if not issubclass(value, Function):
                 continue

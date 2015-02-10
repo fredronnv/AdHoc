@@ -967,7 +967,6 @@ class Manager(object):
     def args_for_model(self, mid):
         dq = self.db.dynamic_query()
         self.base_query(dq)
-        #self.db.add_table_from_dynamic_query(dq) # Collect table definition in the database object.
         dq.where(dq.get_select_at(0) + "=" + dq.var(mid))
         try:
             (args, ) = dq.run()

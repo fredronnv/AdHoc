@@ -62,7 +62,7 @@ except:
 from enum import Enum, unique
 from interror import IntInvalidUsageError
 
-# Classes for describing databases in way independent of database engines
+# Classes for describing databases in a way independent of database engines
 class VType(Enum):
     """ Enumeration of column types """
     integer = 1
@@ -481,10 +481,10 @@ class DatabaseLink(object):
                     q, v = self.convert(query, kwargs)
 
                 self.execute(curs, q, v)
-                return self.iterator(curs)
+                return curs
             except Exception as e:
-                #print "ERROR", e
-                #print "ERROR ARGUMENTS", e.args
+                # print "ERROR", e
+                # print "ERROR ARGUMENTS", e.args
                 self.exception(e, q, v)
         finally:
             pass
@@ -875,10 +875,87 @@ class MySQLDatabase(Database):
             link.rollback()
         link.close()
 
-    def check_rpcc_tables(self):
+    def check_rpcc_tables_old(self):
         lnk = self.get_link()
         default_tables.check_default_mysql_tables(lnk)
         self.return_link(lnk)
+    
+    def check_rpcc_tables(self, tables_spec=default_tables._dig_tables, fix=False):
+        lnk = self.get_link()
+        for table_spec in tables_spec:
+            if not self.table_check(table_spec, lnk, fix=fix):
+                raise ValueError("Database Tables validation failed")
+        self.return_link(lnk)
+        
+    def col_sql_type(self, col):
+        if col.value_type == VType.integer:
+            return "INT(11) "
+        if col.value_type == VType.string:
+            return  "VARCHAR(256) "
+        if col.value_type == VType.datetime:
+            return  "DATEME "
+        if col.value_type == VType.float:
+            return  "DOUBLE "
+        if col.value_type == VType.blob:
+            return  "BLOB "
+        if not col.value_type:
+            raise ValueError("MySQL database column has no type")
+        
+    def table_check(self, table_spec, link, fix=False):
+        q_check = "SELECT " + \
+                  ", ".join(table_spec.column_names()) + \
+                  " FROM " + table_spec.name + " LIMIT 1"
+        
+        while(True):
+            try:
+                dummy = list(link.get(q_check))
+                return True
+            except InvalidIdentifierError as e:
+                if fix:
+                    for col in table_spec.columns:
+                        try:
+                            q_addcol = "ALTER TABLE %s ADD COLUMN %s TYPE " % (table_spec.name, col.name)
+                            q_addcol += self.col_sql_type(col)
+                            
+                            # TODO: Column type specification not done
+                            link.put(q_addcol)
+                        except:
+                            print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (col, table_spec.name)
+                            return False
+                    continue
+                else:
+                    print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (e.identifier, table_spec.name)
+                    return False
+                
+            except InvalidTableError as e:
+                if fix:
+                    try:
+                        q_create = "CREATE TABLE %s( " % (table_spec.name)
+                        colsqls = []
+                        for col in table_spec.columns:
+                            colsql = col.name + " "
+                            colsql += self.col_sql_type(col) + " "
+                            if col.primary:
+                                colsql += "PRIMARY KEY NOT NULL"
+                            else:
+                                if col.unique:
+                                    colsql += "UNIQUE "
+                                if col.not_null:
+                                    colsql += "NOT NULL "
+                            colsqls.append(colsql)
+                        q_create += ", ".join(colsqls) + ")"
+                            
+                        link.put(q_create)
+                        
+                    except:
+                        print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
+                        return False
+                    continue
+                else:
+                    print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
+                    return False
+            except Exception as e:
+                raise
 
 class SQLiteIterator(DatabaseIterator):
     def convert(self, row):

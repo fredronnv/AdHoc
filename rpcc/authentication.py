@@ -51,8 +51,8 @@ class AuthenticationManager(model.Manager):
         except:
             return False
         
-    @classmethod    
-    def base_query(cls, dq):
+    @classmethod
+    def base_query(cls, dq):  # Dummy method. Do not remove
         return None
     
 class NullAuthenticationManager(AuthenticationManager):
@@ -138,4 +138,3 @@ class SuperuserOnlyAuthenticationManager(AuthenticationManager):
 
     def logout(self, session):
         session.unset("authuser")
-        
