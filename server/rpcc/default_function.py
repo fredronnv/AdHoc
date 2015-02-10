@@ -137,7 +137,6 @@ class FunSessionAuthLogin(SessionedFunction):
         return (args[0], args[1], '****')
 
     def do(self):
-        
 
         ath = self.authentication_manager
         ath.login(self.session, self.username, self.password, self.server.generic_password)

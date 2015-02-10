@@ -384,7 +384,8 @@ class MutexManager(model.Manager):
     manages = Mutex
     model_lookup_error = default_error.ExtNoSuchMutexError
 
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("name", "id", "holder_session", "holder_public")
         dq.select("last_change", "forced")
         dq.table("rpcc_mutex")

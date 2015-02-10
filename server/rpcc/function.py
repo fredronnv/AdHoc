@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 from exttype import *
 import default_type
@@ -73,7 +74,7 @@ class Function(object):
     # List of FunctionCategory subclasses that this function considers
     # itself to belong to. The Categories can also specify which
     # functions they consider belong to them.
-    #categories = []
+    # categories = []
 
     # If True, the Function will likely create at least one Event, and a
     # marker event should be created/destroyed.
@@ -114,7 +115,7 @@ class Function(object):
         pars = funbases[0].get_parameters()
         for par in cls.__dict__.get("params", []):
             if len(par) == 2:
-                pars.append( (par[0], par[1], None) )
+                pars.append( (par[0], par[1], None))
             else:
                 pars.append(par)
 
@@ -326,6 +327,7 @@ class Function(object):
 
         try:
             funname = "%s#%d" % (self._name(), self.api.version)
+            
             if self.server.events_enabled and self.log_call_event:
                 self.event_manager.start("call", function=funname,
                                          params=str(self.log_arguments(args)))
@@ -337,8 +339,6 @@ class Function(object):
             self.parse_args(args)
             self.check_access()
             ret = self.do()
-            #import pprint
-            #pprint.pprint(ret)
             response = ExtType.instance(self.returns).output(self, ret)
             call_success = True
             return response
@@ -377,12 +377,14 @@ class Function(object):
 class SessionedFunction(Function):
     params = [("session", default_type.ExtSession, "Execution context")]
 
-
+    
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_fetch_functions() to create the actual update functions.
-class FetchFunction(SessionedFunction):
+class FetchFunction(Function):
+        
     def do(self):
         # Find the object and template.
+        
         params = self.get_parameters()
         obj = getattr(self, params[-2][0])
         tmpl = getattr(self, params[-1][0])
@@ -390,10 +392,19 @@ class FetchFunction(SessionedFunction):
 
 
 # This class is _dynamically_ (i.e. automatically) subclassed by
+# api.create_fetch_functions() to create the actual update functions.
+class FetchSessionedFunction(FetchFunction):
+    params = [("session", default_type.ExtSession, "Execution context")]
+
+
+# This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
-class UpdateFunction(SessionedFunction):
+class UpdateFunction(Function):
     creates_event = True
+    
     def do(self):
+        if self.server.sessions_enabled:
+            self.params = [("session", default_type.ExtSession, "Execution context")]
         params = self.get_parameters()
         obj = getattr(self, params[-2][0])
         upd = getattr(self, params[-1][0])
@@ -402,9 +413,31 @@ class UpdateFunction(SessionedFunction):
 
 # This class is _dynamically_ (i.e. automatically) subclassed by
 # api.create_update_functions() to create the actual update functions.
-class DigFunction(SessionedFunction):
+class UpdateSessionedFunction(UpdateFunction):
+    params = [("session", default_type.ExtSession, "Execution context")]
+    
+
+# This class is _dynamically_ (i.e. automatically) subclassed by
+# api.create_dig_functions() to create the actual update functions.
+class DigFunction(Function):
     def do(self):
+        if self.server.sessions_enabled:
+            self.params = [("session", default_type.ExtSession, "Execution context")]
         mgr = getattr(self, self.dig_manager)
         resid = mgr.perform_search(self.search)
         objs = mgr.models_by_result_id(resid)
         return [o.apply_template(self.api.version, self.template) for o in objs]
+
+
+# This class is _dynamically_ (i.e. automatically) subclassed by
+# api.create_dig_functions() to create the actual update functions.
+class DigSessionedFunction(DigFunction):
+    params = [("session", default_type.ExtSession, "Execution context")]
+    
+    
+# This class is mostly for demonstration purposes.
+# A SimpleFunction has no parameters by default, neither any database and does not do any logging
+class SimpleFunction(Function):
+    uses_database = False
+    log_call_event = False
+    params = []

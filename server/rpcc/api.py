@@ -468,8 +468,12 @@ class API(object):
                                   ("template", self._template_by_model[name], "Data template")]
             clsattrs["returns"] = (self._data_by_model[name], "Templated data")
             clsattrs["desc"] = "Get data about a particular %s. The template indicates which fields (and optionally sub-fields for linked templates) to return." % (name,)
-
-            fetchcls = type("Fun" + capsname + "Fetch", (function.FetchFunction,), clsattrs)
+            
+            if self.server.sessions_enabled:
+                fetchcls = type("Fun" + capsname + "Fetch", (function.FetchSessionedFunction,), clsattrs)
+            else:
+                fetchcls = type("Fun" + capsname + "Fetch", (function.FetchFunction,), clsattrs)
+            
             self.add_function(fetchcls)
 
     def generate_update_functions(self):
@@ -484,8 +488,10 @@ class API(object):
             clsattrs["params"] = [(name, modelcls.exttype, "The %s to update" % (name,)),
                                   ("updates", self._update_by_model[name], "Fields and updates")]
             clsattrs["desc"] = "Update one or more fields atomically."
-
-            upcls = type("Fun" + capsname + "Update", (function.UpdateFunction,), clsattrs)
+            if self.server.sessions_enabled:
+                upcls = type("Fun" + capsname + "Update", (function.UpdateSessionedFunction,), clsattrs)
+            else:
+                upcls = type("Fun" + capsname + "Update", (function.UpdateFunction,), clsattrs)
             self.add_function(upcls)
 
     def generate_dig_functions(self):
@@ -509,5 +515,8 @@ class API(object):
             clsattrs["dig_manager"] = mgrname
             clsattrs["returns"] = (ExtList(self._data_by_model[modelname]), "Formatted data for matched %ss." % (modelname,))
 
-            digcls = type("Fun" + capsname + "Dig", (function.DigFunction,), clsattrs)
+            if self.server.sessions_enabled:
+                digcls = type("Fun" + capsname + "Dig", (function.DigSessionedFunction,), clsattrs)
+            else:
+                digcls = type("Fun" + capsname + "Dig", (function.DigFunction,), clsattrs)
             self.add_function(digcls)

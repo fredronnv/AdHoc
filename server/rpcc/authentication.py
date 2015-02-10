@@ -37,10 +37,10 @@ class AuthenticationManager(model.Manager):
         # DO NOT IMPLEMENT THIS - it is a model-less manager!
         raise NotImplementedError()
 
-    def login(self, session, username, password):
+    def login(self, _session, _username, _password, _generic_password):
         raise NotImplementedError()
 
-    def logout(self, session):
+    def logout(self, _session):
         raise NotImplementedError()
 
     @classmethod
@@ -50,17 +50,26 @@ class AuthenticationManager(model.Manager):
             return True
         except:
             return False
-
-
+        
+    @classmethod
+    def base_query(cls, dq):  # Dummy method. Do not remove
+        return None
+    
 class NullAuthenticationManager(AuthenticationManager):
-    def login_null(self, session, username, password):
+    
+    def login(self, session, username, password, _generic_password):
         if username == password:
             session.set("authuser", username)
         else:
             raise exterror.ExtAuthenticationFailedError()
         
+    def logout(self, session):
+        session.unset("authuser")
+
+class KerberosAuthenticationManager(AuthenticationManager):
+        
     def login(self, session, username, password, generic_password):
-        krb_realm=os.environ.get('ADHOC_KRB_REALM','CHALMERS.SE')
+        krb_realm=self.server.config('KRB_REALM', default='CHALMERS.SE')
         
         if generic_password and password==generic_password:
             session.set("authuser", username)
@@ -90,7 +99,7 @@ class NullAuthenticationManager(AuthenticationManager):
                 (res, ctx) = kerberos.authGSSServerInit(server_principal)
                 res = kerberos.authGSSServerStep(ctx, token)
                 if res != kerberos.AUTH_GSS_COMPLETE:
-                    raise default_error.ExtAccessDeniedError()
+                    raise exterror.ExtAccessDeniedError()
                 
                 authprinc = kerberos.authGSSServerUserName(ctx)
                 if '@' in authprinc:
@@ -100,7 +109,7 @@ class NullAuthenticationManager(AuthenticationManager):
                     else:
                         primary, instance = priminst, ""
                 else:
-                    primary, instance, realm = principal, "", ""
+                    primary, instance, realm = authprinc, "", ""
     
                 session.set("authuser", primary)
                 session.set("authinst", instance)
@@ -118,8 +127,11 @@ class NullAuthenticationManager(AuthenticationManager):
 
 
 class SuperuserOnlyAuthenticationManager(AuthenticationManager):
-    def login(self, session, username, password):
-        if username == '#root#' and password == self.server.config("SUPERUSER_PASSWORD"):
+    def login(self, session, username, password, _generic_password):
+        su_password = self.server.config("SUPERUSER_PASSWORD", default=None)
+        if not su_password:
+            raise exterror.ExtAuthenticationFailedError()
+        if username == '#root#' and password == su_password:
             session.set("authuser", "#root#")
         else:
             raise exterror.ExtAuthenticationFailedError()

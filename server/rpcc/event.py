@@ -320,7 +320,8 @@ class EventManager(Manager):
 
             setattr(cls, "search_" + attr, new_searcher(attr, tbl, attrid))
 
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("ev.id")
         dq.select("evt.name", "ev.created", "ev.parent")
         dq.table("rpcc_event ev")

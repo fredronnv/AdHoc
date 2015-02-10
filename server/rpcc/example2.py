@@ -210,7 +210,8 @@ class PersonManager(Manager):
     def on_register(cls, srv, db):
         Person.get_lastname = template("lastname", ExtString)(Person.get_lastname)
 
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("p.ucid", "p.fname", "p.lname", "p.pnr", "a.ucid")
         dq.table("person p", "account a")
         dq.where("p.ucid=a.ucid_owner")
@@ -273,7 +274,8 @@ class AccountManager(Manager):
     def init(self):
         self._model_cache = {}
 
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("a.ucid", "a.unix_uid", "a.ucid_owner")
         dq.table("account a")
         return dq
