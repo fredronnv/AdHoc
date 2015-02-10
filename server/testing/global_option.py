@@ -14,15 +14,13 @@ class T0900_GlobalOptionList(UnAuthTests):
             ret = self.proxy.global_option_dig({}, {"global_option": True, "value": True, "name": True})
             
             assert len(ret) > 0, "Too few global_options returned"
-            #for ds in ret:
-                #print ds.value, ds.name
-  
-  
+           
+           
 class T0910_GlobalOptionFetch(UnAuthTests):
     """ Test global_option_fetch """
     
     def do(self):
-        global_options = [x.global_option for x in self.superuser.global_option_dig({}, {"global_option":True})]
+        global_options = [x.global_option for x in self.superuser.global_option_dig({}, {"global_option": True})]
         
         n = 0
         for global_option in global_options:
@@ -62,7 +60,7 @@ class T0930_GlobalOptionDestroy(NetworkAdminTests):
         goid = self.superuser.global_option_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3')
         try:
             with AssertAccessError(self):
-                #print "DESTROYING GO", self.proxy.goid
+                # print "DESTROYING GO", self.proxy.goid
                 self.proxy.global_option_destroy(goid)
                 with AssertRPCCError("LookupError::NoSuchGlobalOption", True):
                     self.superuser.global_option_fetch(goid, {"global_option": True, "name": True})

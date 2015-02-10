@@ -8,6 +8,7 @@ from util import *
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_optionspaces"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchOptionspaceError(ExtLookupError):
     desc = "No such optionspace exists."
 
@@ -78,7 +79,7 @@ class Optionspace(AdHocModel):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        #print "Optionspace.init", a
+        # print "Optionspace.init", a
         self.oid = a.pop(0)
         self.type = a.pop(0)
         self.info = a.pop(0)
@@ -112,23 +113,23 @@ class Optionspace(AdHocModel):
         q = "UPDATE optionspaces SET value=:value WHERE value=:oid LIMIT 1"
         self.db.put(q, oid=self.oid, value=nn)
         
-        #print "Optionspace %s changed name to %s" % (self.oid, nn)
+        # print "Optionspace %s changed name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
-        self.event_manager.add("rename",  optionspace=self.oid, newstr=nn, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", optionspace=self.oid, newstr=nn, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE optionspaces SET info=:info WHERE value=:optionspace"
         self.db.put(q, optionspace=self.oid, info=value)
-        self.event_manager.add("update",  optionspace=self.oid, info=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", optionspace=self.oid, info=value, authuser=self.function.session.authuser)
               
     @update("type", ExtOptionspaceType)
     @entry(g_write)
     def set_type(self, value):
         q = "UPDATE optionspaces SET type=:type WHERE value=:optionspace"
         self.db.put(q, optionspace=self.oid, type=value)
-        self.event_manager.add("update",  optionspace=self.oid, type=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", optionspace=self.oid, type=value, authuser=self.function.session.authuser)
         
 
 class OptionspaceManager(AdHocManager):
@@ -165,8 +166,8 @@ class OptionspaceManager(AdHocManager):
             self.db.put(q, value=optionspace_name, type=optionspace_type, info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtOptionspaceAlreadyExistsError()
-        self.event_manager.add("create", optionspace=optionspace_name,  type=optionspace_type,
-                               info=info, authuser=fun.session.authuser )
+        self.event_manager.add("create", optionspace=optionspace_name, type=optionspace_type,
+                               info=info, authuser=fun.session.authuser)
         
     @entry(g_write)
     def destroy_optionspace(self, fun, optionspace):

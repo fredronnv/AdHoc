@@ -14,15 +14,15 @@ class T0800_BuildingList(UnAuthTests):
             ret = self.proxy.building_dig({}, {"re": True, "info": True, "building": True})
             
             assert len(ret) > 0, "Too few buildings returned"
-            #for ds in ret:
-                #print ds.re, ds.building, ds.info
+            # for ds in ret:
+            #    print ds.re, ds.building, ds.info
   
   
 class T0810_BuildingFetch(UnAuthTests):
     """ Test building_fetch """
     
     def do(self):
-        buildings = [x.building for x in self.superuser.building_dig({}, {"building":True})]
+        buildings = [x.building for x in self.superuser.building_dig({}, {"building": True})]
         
         n = 0
         for building in buildings:
@@ -45,7 +45,7 @@ class T0820_BuildingCreate(ServiceDeskTests):
             pass
         try:
             with AssertAccessError(self): 
-                preevents = self.superuser.event_dig({"type":"create","building":"QZ1243A"},{"building":True,"re":True,"info":True,"type":True,"event":True})
+                preevents = self.superuser.event_dig({"type": "create", "building": "QZ1243A"}, {"building": True, "re": True, "info": True, "type": True, "event": True})
                 self.proxy.building_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3', "TestBuilding")
                 ret = self.superuser.building_fetch('QZ1243A', {"re": True, "info": True, "building": True})
                 assert "re" in ret, "Key re missing in returned struct from building_fetch"
@@ -55,8 +55,8 @@ class T0820_BuildingCreate(ServiceDeskTests):
                 assert ret.re == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3", "Re is " + ret.re + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3'"
                 assert ret.info == "TestBuilding", "Info is " + ret.info + "but should be 'TestBuilding'"
         
-                events = self.superuser.event_dig({"type":"create","building":"QZ1243A"},{"building":True,"re":True,"info":True,"type":True,"event":True})
-                #print events
+                events = self.superuser.event_dig({"type": "create", "building": "QZ1243A"}, {"building": True, "re": True, "info": True, "type": True, "event": True})
+                # print events
                 assert len(events) > len(preevents), "No relevent events generated"
         
         finally:

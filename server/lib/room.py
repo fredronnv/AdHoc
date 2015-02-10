@@ -7,6 +7,7 @@ from util import *
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_rooms"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchRoomError(ExtLookupError):
     desc = "No such room exists."
     
@@ -86,7 +87,7 @@ class Room(AdHocModel):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        #print "Room.init", a
+        # print "Room.init", a
         self.oid = a.pop(0)
         self.printers = a.pop(0)
         self.info = a.pop(0)
@@ -99,7 +100,7 @@ class Room(AdHocModel):
 
     @template("printers", ExtRoomPrinters)
     def get_printers(self):
-        if self.printers == None:
+        if self.printers is None:
             return ""
         return self.printers
 
@@ -122,23 +123,23 @@ class Room(AdHocModel):
         q = "UPDATE rooms SET id=:newid WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newid=nn)
         
-        #print "Room %s changed ID to %s" % (self.oid, nn)
+        # print "Room %s changed ID to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
-        self.event_manager.add("rename",  room=self.oid, newstr=nn, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", room=self.oid, newstr=nn, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE rooms SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=value)
-        self.event_manager.add("update",  room=self.oid, info=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", room=self.oid, info=value, authuser=self.function.session.authuser)
               
     @update("printers", ExtRoomPrinters)
     @entry(g_write)
     def set_printers(self, value):
         q = "UPDATE rooms SET printers=:printers WHERE id=:id"
         self.db.put(q, id=self.oid, printers=value)
-        self.event_manager.add("update",  room=self.oid, printers=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", room=self.oid, printers=value, authuser=self.function.session.authuser)
         
 
 class RoomManager(AdHocManager):
@@ -186,7 +187,7 @@ class RoomManager(AdHocManager):
         except IntegrityError:
             raise ExtRoomAlreadyExistsError()
         self.event_manager.add("create", room=room_name, printers=printers, authuser=fun.session.authuser, info=info)
-        #print "Room created, id=", id
+        # print "Room created, id=", id
                   
     @entry(g_write)
     def destroy_room(self, fun, room):

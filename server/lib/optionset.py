@@ -12,6 +12,7 @@ from util import *
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_optionsets"), AdHocSuperuserGuard)
 
+
 class ExtOptionset(ExtInteger):
     name = "optionset"
     desc = "The ID of an optionset"
@@ -91,7 +92,7 @@ class Optionset(AdHocModel):
 
     @auto_template
     def get_option(self, opt):
-        (typ, optid, _name, _exttyp, _fromv, _tov, _desc) = self.optionset_manager.get_option_details_by_name(opt, self.manager.function.api.version)
+        (typ, _optid, _name, _exttyp, _fromv, _tov, _desc) = self.optionset_manager.get_option_details_by_name(opt, self.manager.function.api.version)
         if "array" in typ:
             str = self.options.get(opt, None)
             if not str: 
@@ -134,7 +135,7 @@ class Optionset(AdHocModel):
             value = "<ul>"
             if type(rawval) is list:
                 for item in rawval:
-                    value += "<li>"+str(item)+"</li>"
+                    value += "<li>" + str(item) + "</li>"
             else:
                 value += "<li>" + rawval + "</li>"
             value += "</ul>"
@@ -185,38 +186,40 @@ class NullableIpAddrMatch(NullMatchMixin, Match):
     def neq(self, fun, q, expr, val):
             q.where(expr + " <> " + val)
             
+            
 class NullableIpAddrArrayMatch(NullMatchMixin, Match):
     @suffix("contains", ExtIPAddress)
     def contains(self, fun, q, expr, val):
-            q.where(expr + "LIKE " + "'%<li>"+ val + "</li>%'")
+            q.where(expr + "LIKE " + "'%<li>" + val + "</li>%'")
             
     @suffix("not_contains", ExtIPAddress)
     def ncontains(self, fun, q, expr, val):
-        q.where(expr + "NOT LIKE " + "'%<li>"+ val + "</li>%'")
+        q.where(expr + "NOT LIKE " + "'%<li>" + val + "</li>%'")
         
     @suffix("empty", ExtBoolean)
     def empty(self, fun, q, expr, val):
         q.where(expr + " = '<ul></ul>' OR " + expr + " = ''")
         
     @suffix("not_empty", ExtBoolean)
-    def nempty(self,fun, q, expr, val):
+    def nempty(self, fun, q, expr, val):
         q.where(expr + " <> '<ul></ul>' AND " + expr + " <> ''")
+        
         
 class NullableIntArrayMatch(NullMatchMixin, Match):
     @suffix("contains", ExtInteger)
     def contains(self, fun, q, expr, val):
-            q.where(expr + "LIKE " + "'%<li>"+ str(val) + "</li>%'")
+            q.where(expr + "LIKE " + "'%<li>" + str(val) + "</li>%'")
             
     @suffix("not_contains", ExtInteger)
     def ncontains(self, fun, q, expr, val):
-        q.where(expr + "NOT LIKE " + "'%<li>"+ str(val) + "</li>%'")
+        q.where(expr + "NOT LIKE " + "'%<li>" + str(val) + "</li>%'")
         
     @suffix("empty", ExtBoolean)
     def empty(self, fun, q, expr, val):
         q.where(expr + " = '<ul></ul>' OR " + expr + " = ''")
         
     @suffix("not_empty", ExtBoolean)
-    def nempty(self,fun, q, expr, val):
+    def nempty(self, fun, q, expr, val):
         q.where(expr + " <> '<ul></ul>' AND " + expr + " <> ''")
         
         
@@ -237,14 +240,13 @@ class OptionsetManager(AdHocManager):
         
     @classmethod    
     def init_class(cls, db):
-        matchers = {
-            "bool": NullableBoolCharMatch,
-            "str": NullableStringMatch,
-            "int": NullableIntegerMatch,
-            "ipaddr": NullableIpAddrMatch,
-            "ipaddrarray": NullableIpAddrArrayMatch,
-            "intarray": NullableIntArrayMatch,
-            }
+        matchers = {"bool": NullableBoolCharMatch,
+                    "str": NullableStringMatch,
+                    "int": NullableIntegerMatch,
+                    "ipaddr": NullableIpAddrMatch,
+                    "ipaddrarray": NullableIpAddrArrayMatch,
+                    "intarray": NullableIntArrayMatch,
+                    }
 
         options = []
 
@@ -257,7 +259,7 @@ class OptionsetManager(AdHocManager):
                           to_version=tov)
 
             exttyp = ExtOrNull(ExtBoolean(**kwargs), **kwargs)
-            options.append( ("bool", oid, name, exttyp, fromv, tov, desc) )
+            options.append(("bool", oid, name, exttyp, fromv, tov, desc))
 
         q = "SELECT so.id, o.name, o.info, o.from_api, o.to_api, "
         q += "      so.regexp_constraint "
@@ -265,12 +267,12 @@ class OptionsetManager(AdHocManager):
         q += "WHERE o.id = so.option_base "
 
         for (oid, name, desc, fromv, tov, rexp) in db.get(q):
-            kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
+            kwargs = dict(name="option_" + name.lower(), desc=desc, from_version=fromv, 
                           to_version=tov)
             if rexp is not None:
                 kwargs["regexp"] = rexp
             exttyp = ExtOrNull(ExtString(**kwargs), **kwargs)
-            options.append( ("str", oid, name, exttyp, fromv, tov, desc) )
+            options.append(("str", oid, name, exttyp, fromv, tov, desc))
 
         q = "SELECT io.id, o.name, o.info, o.from_api, o.to_api, "
         q += "      io.minval, io.maxval "
@@ -278,46 +280,46 @@ class OptionsetManager(AdHocManager):
         q += "WHERE o.id = io.option_base "
 
         for (oid, name, desc, fromv, tov, minval, maxval) in db.get(q):
-            kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
+            kwargs = dict(name="option_" + name.lower(), desc=desc, from_version=fromv,
                           to_version=tov)
             if minval or maxval:
-                kwargs["range"]=(minval, maxval)
+                kwargs["range"] = (minval, maxval)
 
             exttyp = ExtOrNull(ExtInteger(**kwargs), **kwargs)
-            options.append( ("int", oid, name, exttyp, fromv, tov, desc) )
+            options.append(("int", oid, name, exttyp, fromv, tov, desc))
             
         q = "SELECT ipo.id, o.name, o.info, o.from_api, o.to_api "
         q += " FROM option_base o, ipaddr_option ipo "
         q += "WHERE o.id = ipo.option_base "
 
         for (oid, name, desc, fromv, tov) in db.get(q):
-            kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
+            kwargs = dict(name="option_" + name.lower(), desc=desc, from_version=fromv,
                           to_version=tov)
 
             exttyp = ExtOrNull(ExtIPAddress(**kwargs), **kwargs)
-            options.append( ("ipaddr", oid, name, exttyp, fromv, tov, desc) )
+            options.append(("ipaddr", oid, name, exttyp, fromv, tov, desc))
             
         q = "SELECT iparro.id, o.name, o.info, o.from_api, o.to_api "
         q += " FROM option_base o, ipaddrarray_option iparro "
         q += "WHERE o.id = iparro.option_base "
 
         for (oid, name, desc, fromv, tov) in db.get(q):
-            kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
+            kwargs = dict(name="option_" + name.lower(), desc=desc, from_version=fromv,
                           to_version=tov)
 
             exttyp = ExtOrNull(ExtIPAddressList(**kwargs), **kwargs)
-            options.append( ("ipaddrarray", oid, name, exttyp, fromv, tov, desc) )
+            options.append( ("ipaddrarray", oid, name, exttyp, fromv, tov, desc))
         
         q = "SELECT intarro.id, o.name, o.info, o.from_api, o.to_api "
         q += " FROM option_base o, intarray_option intarro "
         q += "WHERE o.id = intarro.option_base "
 
         for (oid, name, desc, fromv, tov) in db.get(q):
-            kwargs = dict(name="option_"+name.lower(), desc=desc, from_version=fromv, 
+            kwargs = dict(name="option_" + name.lower(), desc=desc, from_version=fromv,
                           to_version=tov)
 
             exttyp = ExtOrNull(ExtIntegerList(**kwargs), **kwargs)
-            options.append( ("intarray", oid, name, exttyp, fromv, tov, desc) )
+            options.append(("intarray", oid, name, exttyp, fromv, tov, desc))
 
         cls.options_dict = {}
         
@@ -327,7 +329,7 @@ class OptionsetManager(AdHocManager):
         for (typ, optid, name, exttyp, fromv, tov, desc) in options:
             Optionset.get_option = template(name, exttyp, minv=fromv, maxv=tov, desc=desc, default=True, kwargs=dict(opt=name))(Optionset.get_option)
             Optionset.set_option = update(name, exttyp, minv=fromv, maxv=tov, desc=desc, kwargs=dict(typ=typ, optid=optid))(Optionset.set_option)
-            #print name, matchers[typ], typ, optid
+            # print name, matchers[typ], typ, optid
             cls.search_option = search(name, matchers[typ], minv=fromv, maxv=tov, desc=desc, kwargs=dict(optname=name, opttyp=typ, optid=optid))(cls.search_option)
             for api in range(0, maxapi + 1):
                 if api in range(fromv, tov + 1):
@@ -363,7 +365,7 @@ class OptionsetManager(AdHocManager):
     def create_optionset(self):
         q = """INSERT INTO optionset VALUES()"""
         id = self.db.insert("id", q) 
-        self.event_manager.add("create",optionset=id)
+        self.event_manager.add("create", optionset=id)
         return id
     
     def destroy_optionset(self, optset):
@@ -385,7 +387,7 @@ if __name__ == '__main__':
     
     srv.register_manager(NullAuthenticationManager)
     srv.register_manager(DatabaseBackedSessionManager)
-    #srv.register_manager(EventManager)
+    # srv.register_manager(EventManager)
 
     srv.enable_documentation()
     srv.enable_digs_and_updates()

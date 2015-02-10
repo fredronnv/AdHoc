@@ -121,7 +121,7 @@ class MyTests(object):
     # so that data within that parent may be accesed
 
     def __init__(self, proxy=None, parent=None):
-        #self.set_proxy(proxy)
+        # self.set_proxy(proxy)
         self.parent = parent
 
     def prepare_test(self):
@@ -138,23 +138,24 @@ class MyTests(object):
 
     # Fetch the actual privs if authenticated
         if self.proxy._auth:
+            pass
 #             try:
 #                 self.actual_access = self.proxy.get_from_cache("actual_access")
 #             except KeyError:
 #                 self.actual_access = self.proxy.session_get_access()
 #                 self.proxy.put_into_cache("actual_access", self.actual_access)
-#                 
+                 
             try:
-                 self.actual_privs = self.proxy.get_from_cache("actual_privs")
+                self.actual_privs = self.proxy.get_from_cache("actual_privs")
             except KeyError:
-                 self.actual_privs = self.proxy.session_get_privileges()
-                 self.proxy.put_into_cache("actual_privs", self.actual_privs)
+                self.actual_privs = self.proxy.session_get_privileges()
+                self.proxy.put_into_cache("actual_privs", self.actual_privs)
             if self.proxy == self.superuser:
                 self.actual_access = {"anyauth": True, "unauth": True, "superusers": True}
             else:
                 self.actual_access = {"anyauth": True, "unauth": True, "superusers": False}
             
-            #self.actual_privs = []
+            # self.actual_privs = []
             self.actual_admin = self.proxy._auth.endswith("/admin")
 
     def establish_user(self, userid):
@@ -244,18 +245,18 @@ class MyTests(object):
                                              "write_all_buildings",
                                              "write_all_global_options",
                                              "write_all_pool_ranges")
-            #regular_users = (self.reguser,)
+            # regular_users = (self.reguser,)
             regular_users = (self.reguser, self.servicedesk, self.flooradmin, self.servicedesk, self.networkadmin)
             
-            #for px in regular_users:
-                #px.clear_privileges()
-                #px.clear_access()
+#             for px in regular_users:
+#                 px.clear_privileges()
+#                 px.clear_access()
 
-        except test_rpcc_client.ADHOCNotATestSystem, _e: 
+        except test_rpcc_client.ADHOCNotATestSystem as _e: 
             print "Not a test system"
             sys.exit(2)
         
-        except rpcc_client.RPCCError, e:
+        except rpcc_client.RPCCError as _e:
             print "One or more accounts needed for testing could not be logged in to"
             raise
             sys.exit(2)
@@ -389,7 +390,7 @@ class MyTests(object):
         else:
             assert len(value) >= minval, "%s returns %d items, should be at least %d" % (self.function(), len(value), minval)
         
-        if not "_remove_nulls" in items:
+        if "_remove_nulls" not in items:
             for item in items:
                 if item.startswith('_'):
                     continue
@@ -485,49 +486,49 @@ class MyTests(object):
         if ret:
             return 1
         return -1
-        #return a.__name__ < b.__name__
+        # return a.__name__ < b.__name__
 
     def suffice_privs(self, sufficient_privs=None):
         """ Returns the given expected privileges or, if None the expected privileges of the current test object"""
-        #print "Expected_privs=",sufficient_privs
-        #print "self.Expected_privs=",self.sufficient_privs
-        if sufficient_privs == None:
+        # print "Expected_privs=",sufficient_privs
+        # print "self.Expected_privs=",self.sufficient_privs
+        if sufficient_privs is None:
             return self.sufficient_privs
         return sufficient_privs
 
     def expect_access(self, expected_access=None):
         """ Returns the given expected access or, if None the expected access of the current test object"""
-        if expected_access == None:
+        if expected_access is None:
             return self.expected_access
         return expected_access
         
     def expect_admin(self, expected_admin=None):
         """ Returns whether we expect the proxy to be logged in as /admin or not. The method is used by expect_exception below"""
-        if expected_admin == None:
+        if expected_admin is None:
             return self.expected_admin
         return expected_admin
 
     def expect_loa(self, expected_loa=None):
         """ Returns whether we expect th proxy to have a LoA level >1 """
-        if expected_loa == None:
+        if expected_loa is None:
             return self.expected_loa
         return expected_loa
     
     def expect_authenticated(self, expected_authenticated=None):
         """ Returns whether we expect the proxy to be logged in or not. The method is used by expect_exception below"""
-        if expected_authenticated == None:
+        if expected_authenticated is None:
             return self.expected_authenticated
         return expected_authenticated
     
     def expect_exception_name(self, expected_exception_name=None):
         """ Returns the expected exception name, if any"""
-        if expected_exception_name == None:
+        if expected_exception_name is None:
             return self.expected_exception_name
         return expected_exception_name
     
     def get_possible_exception_name(self, possible_exception_name=None):
         """ Returns the possible exception name, if any"""
-        if possible_exception_name == None:
+        if possible_exception_name is None:
             return self.possible_exception_name
         return possible_exception_name
 
@@ -607,14 +608,14 @@ class MyTests(object):
         for priv in sufficient_privs:
             if priv == "search_with_regexp":
                 errs.add("AccessError")
-            #print "LOOKING FOR ",priv," IN ",self.actual_privs
+            # print "LOOKING FOR ",priv," IN ",self.actual_privs
             if priv in self.actual_privs:
-                #print "PRIVILEGE ",priv, " FOUND"
+                # print "PRIVILEGE ",priv, " FOUND"
                 if not expected_loa or self.actual_loa > "1":
-                    #print "No exception expected"
+                    # print "No exception expected"
                     return(False, None, possible_exception_name)
                 else:
-                    #print "Expect LOA exception"
+                    # print "Expect LOA exception"
                     return (True, ("AccessError::LoA2Required",), possible_exception_name)
         return(True, errs, possible_exception_name)
 
@@ -669,19 +670,19 @@ class AssertAccessError(object):
             self.thetest = thetest
 
             (self.exception_expected, self.exception_names, self.possible_exception) = thetest.expect_exception(expected_access, 
-                                                                                       sufficient_privs, 
-                                                                                       expected_admin, 
-                                                                                       expected_authenticated,
-                                                                                       expected_exception_name,
-                                                                                       possible_exception_name)
-            #pprint.pprint(self.exception_names)
+                                                                                                                sufficient_privs, 
+                                                                                                                expected_admin, 
+                                                                                                                expected_authenticated,
+                                                                                                                expected_exception_name,
+                                                                                                                possible_exception_name)
+            # pprint.pprint(self.exception_names)
             # If we now expect the superuser to fail, we have probably overlooked something
             # unless we explicitly indicated that the test should fail even as superuser
-            #pprint.pprint(thetest.superuser_test_may_fail)
+            # pprint.pprint(thetest.superuser_test_may_fail)
             if self.exception_expected and not self.thetest.superuser_test_may_fail:
                 assert self.thetest.proxy != self.thetest.superuser, "TEST ERROR! Superuser access expected to fail"
             
-            #print "Exceptions expected=",(self.exception_expected, self.exception_names)
+            # print "Exceptions expected=",(self.exception_expected, self.exception_names)
 
         def __enter__(self):
             return True
@@ -733,23 +734,25 @@ class AuthTests(MyTests):
     expected_access = ["anyauth"]
     pass
 
+
 class FloorAdminTests(AuthTests):
     sufficient_privs = ["write_all_hosts", "write_all_rooms"]
+   
     
 class ServiceDeskTests(AuthTests):
-    sufficient_privs = [ 
-                        "write_all_host_classes", 
+    sufficient_privs = ["write_all_host_classes", 
                         "write_all_buildings",
                         "write_all_groups",
                         "write_all_optionspaces"]
     
+    
 class NetworkAdminTests(AuthTests):
-    sufficient_privs = [ 
-                        "write_all_subnetworks",
+    sufficient_privs = ["write_all_subnetworks",
                         "write_all_networks",
                         "write_all_global_options"
                         "write_all_pools",
                         "write_all_pool_ranges"]
+    
     
 class SuperUserTests(AuthTests):
     """ Superclass for tests that are expected to work for anyone who is logged as a superUser"""

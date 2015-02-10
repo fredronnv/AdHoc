@@ -14,6 +14,7 @@ from host_class import ExtHostClassList, ExtHostClass
 g_write = AnyGrants(AllowUserWithPriv("write_all_pools"), AdHocSuperuserGuard)
 g_admin = AnyGrants(g_write, AllowUserWithPriv("admin_all_pools"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchPoolError(ExtLookupError):
     desc = "No such pool exists."
 
@@ -72,10 +73,10 @@ class ExtPoolCreateOptions(ExtStruct):
     name = "pool_create_options"
     desc = "Optional parameters when creating a pool"
     
-    optional = {
-                "optionspace": (ExtOptionspace, "Whether the pool should declare an option space"),
+    optional = {"optionspace": (ExtOptionspace, "Whether the pool should declare an option space"),
                 "max_lease_time": (ExtInteger, "Maximum lease time for the pool. Default 600 seconds")
                 }
+    
     
 class PoolFunBase(SessionedFunction):  
     params = [("pool", ExtPool, "Pool")]
@@ -106,7 +107,7 @@ class PoolDestroy(PoolFunBase):
 class PoolLiteralOptionAdd(PoolFunBase):
     extname = "pool_literal_option_add"
     desc = "Add a literal option to a pool"
-    returns =(ExtInteger, "ID of added literal option")
+    returns = (ExtInteger, "ID of added literal option")
     params = [("option_text", ExtString, "Text of literal option")]
     
     def do(self):
@@ -116,7 +117,7 @@ class PoolLiteralOptionAdd(PoolFunBase):
 class PoolLiteralOptionDestroy(PoolFunBase):
     extname = "pool_literal_option_destroy"
     desc = "Destroy a literal option from a pool"
-    returns =(ExtNull)
+    returns = (ExtNull)
     params = [("option_id", ExtInteger, "ID of literal option to destroy")]
     
     def do(self):
@@ -207,7 +208,7 @@ class Pool(AdHocModel):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        #print "Pool.init", a
+        # print "Pool.init", a
         self.oid = a.pop(0)
         self.network = a.pop(0)
         self.optionspace = a.pop(0)
@@ -258,8 +259,8 @@ class Pool(AdHocModel):
         q = "SELECT value, changed_by, id FROM pool_literal_options WHERE `for`= :pool"
         ret = []
         for (value, changed_by, id) in self.db.get(q, pool=self.oid):
-            d = {"value":value,
-                 "changed_by":changed_by,
+            d = {"value": value,
+                 "changed_by": changed_by,
                  "id": id}
             ret.append(d)
         return ret
@@ -289,39 +290,39 @@ class Pool(AdHocModel):
         q = "UPDATE pools SET poolname=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
         
-        #print "Pool %s changed Name to %s" % (self.oid, nn)
+        # print "Pool %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
-        self.event_manager.add("rename",  pool=self.oid, newstr=nn, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", pool=self.oid, newstr=nn, authuser=self.function.session.authuser)
    
     @update("info", ExtString)
     @entry(g_write)     
     def set_info(self, value):
         q = "UPDATE pools SET info=:value WHERE poolname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  pool=self.oid, info=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", pool=self.oid, info=value, authuser=self.function.session.authuser)
         
-        #print "Pool %s changed Info to %s" % (self.oid, value)
+        # print "Pool %s changed Info to %s" % (self.oid, value)
   
     @update("network", ExtString)
     @entry(g_write)  
     def set_network(self, value):
         q = "UPDATE pools SET network=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  pool=self.oid, network=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", pool=self.oid, network=value, authuser=self.function.session.authuser)
  
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)       
     def set_optionspace(self, value):
         q = "UPDATE pools SET optionspace=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  pool=self.oid, optionspace=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", pool=self.oid, optionspace=value, authuser=self.function.session.authuser)
  
     @update("max_lease_time", ExtInteger)
     @entry(g_write)       
     def set_max_lease_time(self, value):
         q = "UPDATE pools SET max_lease_time=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("rename",  pool=self.oid, max_lease_time=value, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", pool=self.oid, max_lease_time=value, authuser=self.function.session.authuser)
         
 
 class PoolManager(AdHocManager):
@@ -369,7 +370,7 @@ class PoolManager(AdHocManager):
     
     @entry(g_write)
     def create_pool(self, fun, pool_name, network, info, options):
-        if options == None:
+        if options is None:
             options = {}
         optionspace = options.get("optionspace", None)
         if optionspace:
@@ -384,10 +385,10 @@ class PoolManager(AdHocManager):
             self.db.insert("id", q, pool_name=pool_name, network=network.oid, 
                            optionspace=optionspace, max_lease_time=max_lease_time,
                            info=info, changed_by=fun.session.authuser, optionset=optionset)
-            #print "Pool created, name=", pool_name
-            self.event_manager.add("create",pool=pool_name, parent_object=network.oid, 
-                           optionspace=optionspace, max_lease_time=max_lease_time,
-                           info=info, authuser=fun.session.authuser, optionset=optionset)
+            # print "Pool created, name=", pool_name
+            self.event_manager.add("create", pool=pool_name, parent_object=network.oid, 
+                                   optionspace=optionspace, max_lease_time=max_lease_time,
+                                   info=info, authuser=fun.session.authuser, optionset=optionset)
         except IntegrityError, e:
             raise ExtPoolAlreadyExistsError()
     
@@ -409,7 +410,7 @@ class PoolManager(AdHocManager):
         self.db.put("DELETE FROM pool_ranges WHERE pool=:poolname", poolname=pool.oid)
         
         self.event_manager.add("destroy", pool=pool.oid)
-        #print "Pool destroyed, name=", pool.oid
+        # print "Pool destroyed, name=", pool.oid
     
     @entry(g_write)   
     def set_option(self, fun, pool, option, value):
@@ -500,5 +501,4 @@ class PoolManager(AdHocManager):
         optionset = omgr.get_optionset(pool.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
-            self.event_manager.add("update",  pool=pool.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
-            
+            self.event_manager.add("update", pool=pool.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)

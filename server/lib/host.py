@@ -14,6 +14,7 @@ from datetime import date
 g_read = AnyGrants(AllowUserWithPriv("read_all_hosts"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_hosts"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchHostError(ExtLookupError):
 
     desc = "No such host exists."
@@ -71,10 +72,12 @@ class ExtMacAddress(ExtString):
     regexp = r"^([0-9a-fA-F]{1,2}[\.:-]){5}([0-9A-Fa-f]{1,2})$"
     maxlen = 17
 
+
 class ExtHostList(ExtList):
     name = "host-list"
     desc = "List of host names"
     typ = ExtHostName
+
 
 class ExtHost(ExtHostName):
     name = "host"
@@ -86,6 +89,7 @@ class ExtHost(ExtHostName):
     def output(self, fun, obj):
         return obj.oid
     
+    
 class ExtNewHostName(ExtHostName):
     name = "host"
     desc = "A host name not present in the database"
@@ -93,13 +97,13 @@ class ExtNewHostName(ExtHostName):
     def lookup(self, fun, cval):
         if fun.host_manager.get_host(cval):
             raise ExtHostAlreadyExistsError()
+   
     
 class ExtHostCreateOptions(ExtStruct):
     name = "host_create_options"
     desc = "Optional parameters when creating a host"
     
-    optional = {
-                "optionspace": (ExtOptionspace, "Whether the host should declare an option space"),
+    optional = {"optionspace": (ExtOptionspace, "Whether the host should declare an option space"),
                 "dns": (ExtDNSName, "A DNS name to be used as a fixed address"),
                 "group": (ExtGroup, "A Host group to which the host will belong. Default is the group 'plain'"),
                 "room": (ExtRoom, "A room name signifying the location of the host"),
@@ -135,6 +139,7 @@ class HostCreateWithName(SessionedFunction):
 
     def do(self):
         self.host_manager.create_host(self, self.host_name, self.mac, self.options)
+  
         
 class HostCreate(SessionedFunction):
     extname = "host_create"
@@ -155,10 +160,11 @@ class HostDestroy(HostFunBase):
     def do(self):
         self.host_manager.destroy_host(self, self.host)
 
+
 class HostLiteralOptionAdd(HostFunBase):
     extname = "host_literal_option_add"
     desc = "Add a literal option to a host"
-    returns =(ExtInteger, "ID of added literal option")
+    returns = (ExtInteger, "ID of added literal option")
     params = [("option_text", ExtString, "Text of literal option")]
     
     def do(self):
@@ -168,7 +174,7 @@ class HostLiteralOptionAdd(HostFunBase):
 class HostLiteralOptionDestroy(HostFunBase):
     extname = "host_literal_option_destroy"
     desc = "Destroy a literal option from a host"
-    returns =(ExtNull)
+    returns = (ExtNull)
     params = [("option_id", ExtInteger, "ID of literal option to destroy")]
     
     def do(self):
@@ -199,7 +205,7 @@ class Host(AdHocModel):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        #print "Host.init", a
+        # print "Host.init", a
         self.oid = a.pop(0)
         self.dns = a.pop(0)
         self.group = a.pop(0)
@@ -214,7 +220,7 @@ class Host(AdHocModel):
 
     @template("host", ExtHost)
     def get_host(self):
-        #print "GET_GROUP"
+        # print "GET_HOST"
         return self
 
     @template("group", ExtGroup)
@@ -267,8 +273,8 @@ class Host(AdHocModel):
         q = "SELECT value, changed_by, id FROM host_literal_options WHERE `for`= :host"
         ret = []
         for (value, changed_by, id) in self.db.get(q, host=self.oid):
-            d = {"value":value,
-                 "changed_by":changed_by,
+            d = {"value": value,
+                 "changed_by": changed_by,
                  "id": id}
             ret.append(d)
         return ret
@@ -279,17 +285,17 @@ class Host(AdHocModel):
         nn = str(host_name)
         q = "UPDATE hosts SET id=:value WHERE id=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
-        #print "Host %s changed Name to %s" % (self.oid, nn)
+        # print "Host %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
-        self.event_manager.add("rename",  host=self.oid, newstr=nn, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", host=self.oid, newstr=nn, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE hosts SET info=:value WHERE id=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  host=self.oid, info=value, authuser=self.function.session.authuser)
-        #print "Host %s changed Info to %s" % (self.oid, value)
+        self.event_manager.add("update", host=self.oid, info=value, authuser=self.function.session.authuser)
+        # print "Host %s changed Info to %s" % (self.oid, value)
     
     @update("group", ExtGroup)
     @entry(g_write)
@@ -297,23 +303,23 @@ class Host(AdHocModel):
         q = "UPDATE hosts SET `group`=:new_group WHERE id=:name"
         self.db.put(q, name=self.oid, new_group=new_group.oid)
         self.group_manager.adjust_hostcount(self.get_group(), -1)
-        self.group_manager.adjust_hostcount(new_group, +1);
-        self.event_manager.add("disconnect",  host=self.oid, parent_object=self.group, authuser=self.function.session.authuser)
-        self.event_manager.add("connect",  host=self.oid, parent_object=new_group.oid, authuser=self.function.session.authuser)
+        self.group_manager.adjust_hostcount(new_group, +1)
+        self.event_manager.add("disconnect", host=self.oid, parent_object=self.group, authuser=self.function.session.authuser)
+        self.event_manager.add("connect", host=self.oid, parent_object=new_group.oid, authuser=self.function.session.authuser)
         
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)
     def set_optionspace(self, value):
         q = "UPDATE hosts SET optionspace=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  host=self.oid, optionspace=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", host=self.oid, optionspace=value, authuser=self.function.session.authuser)
         
     @update("mac", ExtMacAddress)
     @entry(g_write)
     def set_mac(self, value):
         q = "UPDATE hosts SET mac=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  host=self.oid, mac=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", host=self.oid, mac=value, authuser=self.function.session.authuser)
     
     @update("room", ExtRoomName)
     @entry(g_write)
@@ -324,14 +330,14 @@ class Host(AdHocModel):
         except IntegrityError as e:
             self.room_manager.create_room(self.function, value, None, "Auto-created by host_set_room")
             self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  host=self.oid, room=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", host=self.oid, room=value, authuser=self.function.session.authuser)
             
     @update("dns", ExtDNSName)
     @entry(g_write)
     def set_dns(self, value):
         q = "UPDATE hosts SET dns=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  host=self.oid, dns=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", host=self.oid, dns=value, authuser=self.function.session.authuser)
         
     @update("status", ExtHostStatus)
     @entry(g_write)
@@ -342,7 +348,7 @@ class Host(AdHocModel):
             self.group_manager.adjust_hostcount(self.get_group(), 1)
         q = "UPDATE hosts SET entry_status=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  host=self.oid, entry_status=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", host=self.oid, entry_status=value, authuser=self.function.session.authuser)
             
 
 class HostManager(AdHocManager):
@@ -425,8 +431,8 @@ class HostManager(AdHocManager):
                 new_index = 0
             name = today + "-%03d" % new_index
             
-            if mac=="00:00:00:00:00:00":
-                return name+"A"  # This mac is so special so we do not squeeze these macs togetrer.
+            if mac == "00:00:00:00:00:00":
+                return name + "A"  # This mac is so special so we do not squeeze these macs togetrer.
             
             q = """SELECT id, mac FROM hosts WHERE mac=:mac"""
             res = self.db.get(q, mac=mac)
@@ -445,18 +451,16 @@ class HostManager(AdHocManager):
         while count > 0:
             r = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[count % 26] + r
             count //= 26
-        if r=="":
+        if r == "":
             name += "A"
         else:
             name += r
         
         return name
             
-        
-    
     @entry(g_write)
     def create_host(self, fun, host_name, mac, options):
-        if options == None:
+        if options is None:
             options = {}
         
         optionspace = options.get("optionspace", None)
@@ -487,13 +491,12 @@ class HostManager(AdHocManager):
             raise ExtHostAlreadyExistsError()
         
         self.event_manager.add("create", host=host_name, 
-                        dns=dns, group=group.oid, 
-                        mac=mac, room=room, optionspace=optionspace,
-                        info=info, authuser=fun.session.authuser,
-                        entry_status=status,
-                        optionset=optionset)
-        if status=="Active":
-            gm = self.group_manager
+                               dns=dns, group=group.oid, 
+                               mac=mac, room=room, optionspace=optionspace,
+                               info=info, authuser=fun.session.authuser,
+                               entry_status=status,
+                               optionset=optionset)
+        if status == "Active":
             self.group_manager.adjust_hostcount(group, 1)
         return host_name
         
@@ -513,11 +516,11 @@ class HostManager(AdHocManager):
         
         self.event_manager.add("destroy", host=host.oid, dns=host.dns, mac=host.mac)
         
-        if host.status=="Active":
+        if host.status == "Active":
             gm = self.group_manager
             self.group_manager.adjust_hostcount(gm.get_group(host.group), -1)
         
-        #print "Host destroyed, name=", host.oid
+        # print "Host destroyed, name=", host.oid
        
     @entry(g_write_literal_option)
     def add_literal_option(self, fun, host, option_text):
@@ -525,14 +528,14 @@ class HostManager(AdHocManager):
         id = self.db.insert("id", q, hostname=host.oid, value=option_text, changed_by=fun.session.authuser)
         self.approve_config = True
         self.approve()
-        self.event_manager.add("create",  host=host.oid, literal_option_id=id, literal_option_value=unicode(option_text), authuser=fun.session.authuser)
+        self.event_manager.add("create", host=host.oid, literal_option_id=id, literal_option_value=unicode(option_text), authuser=fun.session.authuser)
         return id
     
     @entry(g_write_literal_option)
     def destroy_literal_option(self, fun, host, id):
         q = "DELETE FROM host_literal_options WHERE `for`=:hostname AND id=:id LIMIT 1"
         self.db.put(q, hostname=host.oid, id=id)
-        self.event_manager.add("destroy",  host=host.oid, literal_option_id=id, authuser=fun.session.authuser)
+        self.event_manager.add("destroy", host=host.oid, literal_option_id=id, authuser=fun.session.authuser)
         
     @entry(g_write)
     def update_options(self, fun, host, updates):
@@ -540,4 +543,4 @@ class HostManager(AdHocManager):
         optionset = omgr.get_optionset(host.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
-            self.event_manager.add("update",  host=host.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
+            self.event_manager.add("update", host=host.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)

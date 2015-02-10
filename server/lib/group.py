@@ -12,6 +12,7 @@ from util import *
 g_read = AnyGrants(AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_groups"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchGroupError(ExtLookupError):
     desc = "No such group exists."
 
@@ -41,23 +42,24 @@ class ExtGroup(ExtGroupName):
     def output(self, fun, obj):
         return obj.oid
 
+
 class ExtGroupList(ExtList):
     name = "group-list"
     desc = "List of group names"
     typ = ExtGroupName
+ 
     
 class ExtHostCount(ExtOrNull):
     name = "hostcount"
     desc = "Count of active hosts in group and its descendants, or NULL if unknown"
     typ = ExtInteger
+
     
 class ExtGroupCreateOptions(ExtStruct):
     name = "group_create_options"
     desc = "Optional parameters when creating a group"
     
-    optional = {
-                "optionspace": (ExtOptionspace, "Whether the group should declare an option space"),
-                }
+    optional = {"optionspace": (ExtOptionspace, "Whether the group should declare an option space")}
 
 
 class GroupFunBase(SessionedFunction):  
@@ -85,10 +87,11 @@ class GroupDestroy(GroupFunBase):
     def do(self):
         self.group_manager.destroy_group(self, self.group)
 
+
 class GroupLiteralOptionAdd(GroupFunBase):
     extname = "group_literal_option_add"
     desc = "Add a literal option to a group"
-    returns =(ExtInteger, "ID of added literal option")
+    returns = (ExtInteger, "ID of added literal option")
     params = [("option_text", ExtString, "Text of literal option")]
     
     def do(self):
@@ -98,7 +101,7 @@ class GroupLiteralOptionAdd(GroupFunBase):
 class GroupLiteralOptionDestroy(GroupFunBase):
     extname = "group_literal_option_destroy"
     desc = "Destroy a literal option from a group"
-    returns =(ExtNull)
+    returns = (ExtNull)
     params = [("option_id", ExtInteger, "ID of literal option to destroy")]
     
     def do(self):
@@ -121,12 +124,14 @@ class GroupOptionsUpdate(GroupFunBase):
     def do(self):
         self.group_manager.update_options(self, self.group, self.updates)
 
+
 class GroupGatherStats(SessionedFunction):
     extname = "group_gather_stats"
     returns = ExtNull
     
     def do(self):
         self.group_manager.gather_stats()
+
 
 class Group(AdHocModel):
     name = "group"
@@ -135,7 +140,7 @@ class Group(AdHocModel):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        #print "Group.init", a
+        # print "Group.init", a
         self.oid = a.pop(0)
         self.parent = a.pop(0)
         self.optionspace = a.pop(0)
@@ -147,7 +152,7 @@ class Group(AdHocModel):
 
     @template("group", ExtGroup)
     def get_group(self):
-        #print "GET_GROUP"
+        # print "GET_GROUP"
         return self
 
     @template("parent", ExtGroup)
@@ -188,8 +193,8 @@ class Group(AdHocModel):
         q = "SELECT value, changed_by, id FROM group_literal_options WHERE `for`= :group"
         ret = []
         for (value, changed_by, id) in self.db.get(q, group=self.oid):
-            d = {"value":value,
-                 "changed_by":changed_by,
+            d = {"value": value,
+                 "changed_by": changed_by,
                  "id": id}
             ret.append(d)
         return ret
@@ -199,18 +204,18 @@ class Group(AdHocModel):
     def set_name(self, group_name):
         nn = str(group_name)
         
-        #print "Group %s changed Name to %s" % (self.oid, nn)
+        # print "Group %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_group(self, nn)
-        self.event_manager.add("rename",  group=self.oid, newstr=nn, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", group=self.oid, newstr=nn, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE groups SET info=:value WHERE groupname=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  group=self.oid, info=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", group=self.oid, info=value, authuser=self.function.session.authuser)
         
-        #print "Group %s changed Info to %s" % (self.oid, value)
+        # print "Group %s changed Info to %s" % (self.oid, value)
     
     @update("parent", ExtGroup)
     @entry(g_write)
@@ -222,7 +227,7 @@ class Group(AdHocModel):
     def set_optionspace(self, value):
         q = "UPDATE groups SET optionspace=:value WHERE groupname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  group=self.oid, optionspace=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", group=self.oid, optionspace=value, authuser=self.function.session.authuser)
         
 
 class GroupManager(AdHocManager):
@@ -260,7 +265,7 @@ class GroupManager(AdHocManager):
     
     @entry(g_write)
     def create_group(self, fun, groupname, parent, info, options):
-        if options == None:
+        if options is None:
             options = {}
         optionspace = options.get("optionspace", None)
         
@@ -270,7 +275,7 @@ class GroupManager(AdHocManager):
                VALUES (:group_name, :parent, :optionspace, :info, :changed_by, :optionset)"""
         try:
             self.db.insert("id", q, group_name=groupname, parent=parent.oid, optionspace=optionspace,
-                       info=info, changed_by=fun.session.authuser, optionset=optionset)
+                           info=info, changed_by=fun.session.authuser, optionset=optionset)
             print "Group created, name=", groupname
             
         except IntegrityError, e:
@@ -279,29 +284,28 @@ class GroupManager(AdHocManager):
         self.event_manager.add("create", group=groupname, parent_object=parent.oid, info=info, optionspace=optionspace,
                                authuser=fun.session.authuser, optionset=optionset)
         
-      # Build the group_groups_flat table
+        # Build the group_groups_flat table
         self.add_group_to_group_groups_flat(groupname, parent)
-        self.event_manager.add("connect", group=groupname, parent_object=parent.oid,  authuser=fun.session.authuser)
+        self.event_manager.add("connect", group=groupname, parent_object=parent.oid, authuser=fun.session.authuser)
   
     def add_group_to_group_groups_flat(self, group_name, parent):
         qif = "INSERT INTO group_groups_flat (groupname, descendant) VALUES (:groupname, :descendant)"
         try:
-            self.db.put(qif, groupname=group_name, descendant=group_name) # The group itself
+            self.db.put(qif, groupname=group_name, descendant=group_name)  # The group itself
         except IntegrityError, e:
             raise ExtGroupAlreadyExistsError()
             
-        g2 = group_name # Traverse the tree upward and fill in the group for every node traversed
+        g2 = group_name  # Traverse the tree upward and fill in the group for every node traversed
         while True:
             parent = self.db.get("SELECT parent_group FROM groups WHERE groupname=:groupname", groupname=g2)[0][0] 
             if not parent or parent == g2:
                 break
             self.db.put(qif, groupname=parent, descendant=group_name)
             g2 = parent
-
-         
+ 
     @entry(g_write)
     def destroy_group(self, fun, group):
-        optionset =  group.get_optionset()
+        optionset = group.get_optionset()
         
         try:
             q = "DELETE FROM groups WHERE groupname=:groupname LIMIT 1"
@@ -309,14 +313,12 @@ class GroupManager(AdHocManager):
         except IntegrityError:
             raise ExtGroupInUseError()
         
-   
         q = "DELETE FROM group_groups_flat WHERE descendant=:groupname"
         self.db.put(q, groupname=group.oid)
         
         q = "DELETE FROM group_literal_options WHERE `for`=:groupname"
         self.db.put(q, groupname=group.oid)
-        
-        
+              
         self.event_manager.add("destroy", group=group.oid)
         optionset.destroy()
    
@@ -339,14 +341,14 @@ class GroupManager(AdHocManager):
         id = self.db.insert("id", q, groupname=group.oid, value=option_text, changed_by=fun.session.authuser)
         self.approve_config = True
         self.approve()
-        self.event_manager.add("create",  group=group.oid, literal_option_id=id, literal_option_value=unicode(option_text), authuser=fun.session.authuser)
+        self.event_manager.add("create", group=group.oid, literal_option_id=id, literal_option_value=unicode(option_text), authuser=fun.session.authuser)
         return id
     
     @entry(g_write_literal_option)
     def destroy_literal_option(self, fun, group, id):
         q = "DELETE FROM group_literal_options WHERE `for`=:groupname AND id=:id LIMIT 1"
         self.db.put(q, groupname=group.oid, id=id)
-        self.event_manager.add("destroy",  group=group.oid, literal_option_id=id, authuser=fun.session.authuser)
+        self.event_manager.add("destroy", group=group.oid, literal_option_id=id, authuser=fun.session.authuser)
     
     @entry(g_write)
     def update_options(self, fun, group, updates):
@@ -370,14 +372,14 @@ class GroupManager(AdHocManager):
         for (groupname, parent) in rows:
             if not groupname:
                 continue
-            #print "Gather stats for group ", groupname
+            # print "Gather stats for group ", groupname
             hostcount = self.db.get("SELECT COUNT(*) from hosts WHERE `group`= :groupname AND entry_status='Active'", groupname=groupname)[0][0]
-            #print "Direct host count for %s is %d"%(groupname, hostcount)
+            # print "Direct host count for %s is %d"%(groupname, hostcount)
             indirect = self.gather_stats(parent=groupname)
-            #print "Indirect host count for %s is %d"%(groupname, indirect)
+            # print "Indirect host count for %s is %d"%(groupname, indirect)
             hostcount += indirect
             self.db.put("UPDATE groups SET hostcount=:hostcount WHERE groupname=:groupname", groupname=groupname, hostcount=hostcount)
-            #print "Group %s has %d active hosts"%(groupname, hostcount)
+            # print "Group %s has %d active hosts"%(groupname, hostcount)
         return hostcount
     
     @entry(g_write)
@@ -390,13 +392,11 @@ class GroupManager(AdHocManager):
             old_parent = self.get_group(group.parent)
             self.adjust_hostcount(old_parent, -group.hostcount)
             self.adjust_hostcount(new_parent, group.hostcount)
-        
-        
-        self.event_manager.add("disconnect",  group=group.oid, parent_object=group.parent, authuser=fun.session.authuser)
+               
+        self.event_manager.add("disconnect", group=group.oid, parent_object=group.parent, authuser=fun.session.authuser)
         q = "UPDATE groups SET parent_group=:value WHERE groupname=:name"
         self.db.put(q, name=group.oid, value=new_parent.oid)
-        self.event_manager.add("connect",  group=group.oid, parent_object=new_parent.oid, authuser=fun.session.authuser)
-        
+        self.event_manager.add("connect", group=group.oid, parent_object=new_parent.oid, authuser=fun.session.authuser)
         
     @entry(g_write)
     def adjust_hostcount(self, group, adjust):
@@ -409,4 +409,3 @@ class GroupManager(AdHocManager):
         if not group.parent or group.parent == groupname:
             return  # No parents to adjust
         self.adjust_hostcount(self.get_group(group.parent), adjust)  # Walk the tree upwards and do the same adjustment
-        

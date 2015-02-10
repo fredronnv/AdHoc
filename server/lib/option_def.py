@@ -10,6 +10,7 @@ import optionset
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_option_defs"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchOptionDefError(ExtLookupError):
     desc = "No such option_def exists."
     
@@ -59,10 +60,9 @@ class ExtOptionValue(ExtStruct):
     name = "option_value"
     desc = "An option name-value pair"
     
-    mandatory = {
-                 "name": (ExtString, "Option name"),
+    mandatory = {"name": (ExtString, "Option name"),
                  "value": (ExtString, "Option value")
-                }
+                 }
  
     
 class ExtOptionValueList(ExtList):
@@ -127,8 +127,7 @@ class ExtOptionDefCreateOptions(ExtStruct):
     name = "option_create_options"
     desc = "Optional parameters when defining an option"
     
-    optional = {
-                "qualifier": (ExtOptionDefQualifier, "Defines what kind of data the option holds"),
+    optional = {"qualifier": (ExtOptionDefQualifier, "Defines what kind of data the option holds"),
                 "optionspace": (ExtOptionspace, "Whether the option belongs to a defined option space"),
                 "encapsulate": (ExtOptionspace, "Whether this option encapsulates the defined option space"),
                 "struct": (ExtList(ExtOptionType), "Defines a record type, or structure, that the values of this option should adhere to")
@@ -171,7 +170,7 @@ class OptionDef(AdHocModel):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        #print "OptionDef.init", a
+        # print "OptionDef.init", a
         self.oid = a.pop(0)
         self.code = a.pop(0)
         self.qualifier = a.pop(0)
@@ -244,53 +243,53 @@ class OptionDef(AdHocModel):
         q = "UPDATE option_base SET name=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=nn)
         
-        #print "OptionDef %s changed Name to %s" % (self.oid, nn)
+        # print "OptionDef %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
-        self.event_manager.add("rename",  option=self.oid, newstr=value, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", option=self.oid, newstr=value, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE option_base SET info=:value WHERE name=:name LIMIT 1"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  option=self.oid, info=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", option=self.oid, info=value, authuser=self.function.session.authuser)
         
-        #print "OptionDef %s changed Info to %s" % (self.oid, value)
+        # print "OptionDef %s changed Info to %s" % (self.oid, value)
     
     @update("code", ExtString)
     @entry(g_write)
     def set_code(self, value):
         q = "UPDATE option_base SET code=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  option=self.oid, code=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", option=self.oid, code=value, authuser=self.function.session.authuser)
              
     @update("qualifier", ExtOptionDefQualifier)
     @entry(g_write)
     def set_qualifier(self, value):
         q = "UPDATE option_base SET qualifier=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  option=self.oid, qualifier=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", option=self.oid, qualifier=value, authuser=self.function.session.authuser)
              
     @update("type", ExtOptionType)
     @entry(g_write)
     def set_type(self, value):
         q = "UPDATE option_base SET type=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  option=self.oid, type=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", option=self.oid, type=value, authuser=self.function.session.authuser)
              
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)
     def set_optionspace(self, value):
         q = "UPDATE option_base SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  option=self.oid, optionspace=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", option=self.oid, optionspace=value, authuser=self.function.session.authuser)
         
     @update("encapsulate", ExtOrNullOptionspace)
     @entry(g_write)
     def set_encapsulate(self, value):
         q = "UPDATE option_base SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update",  option=self.oid, encapsulate=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", option=self.oid, encapsulate=value, authuser=self.function.session.authuser)
            
     @update("struct", ExtList(ExtOptionType))
     @entry(g_write)
@@ -303,7 +302,7 @@ class OptionDef(AdHocModel):
             struct = "{ " + ",".join([x.value for x in value.value]) + " }"
             
         self.db.put(q, name=self.oid, value=struct)
-        self.event_manager.add("update",  option=self.oid, struct=struct, authuser=self.function.session.authuser)
+        self.event_manager.add("update", option=self.oid, struct=struct, authuser=self.function.session.authuser)
         
 
 class OptionDefManager(AdHocManager):
@@ -336,7 +335,7 @@ class OptionDefManager(AdHocManager):
     
     @entry(g_write)
     def create_option_def(self, fun, option_def_name, code, type, info, options):
-        if options == None:
+        if options is None:
             options = {}
         qualifier = options.get("qualifier", None)
         optionspace = options.get("optionspace", None)
@@ -355,7 +354,7 @@ class OptionDefManager(AdHocManager):
     def define_option(self, info, changed_by, mtime, name, my_type, code, qualifier, optionspace, struct=None, encapsulate=None):
         qp1 = "INSERT INTO option_base (name, code, qualifier, type, optionspace, info, changed_by"
         qp2 = "VALUES(:name, :code, :qualifier, :type, :optionspace, :info, :changed_by"
-        param_dict= {"name":name, "code":code, "qualifier":qualifier, "type":my_type, "optionspace":optionspace, "changed_by":changed_by, "info":info}
+        param_dict = {"name": name, "code": code, "qualifier": qualifier, "type": my_type, "optionspace": optionspace, "changed_by": changed_by, "info": info}
         if mtime:
             qp1 += ", mtime"
             qp2 += ", :mtime"
@@ -396,9 +395,9 @@ class OptionDefManager(AdHocManager):
                 minval = i_minval
                 maxval = i_maxval
                 
-            table="int_option"    
+            table = "int_option"    
             if qualifier and "array" in qualifier:
-                table="intarray_option" 
+                table = "intarray_option" 
                    
             qp3 = """INSERT INTO %s (option_base, minval, maxval) 
                  VALUES (:option_base, :minval, :maxval)""" % (table)
@@ -409,7 +408,7 @@ class OptionDefManager(AdHocManager):
             del(param_dict["changed_by"])
             del(param_dict["name"])
             param_dict["maxval"] = maxval
-            param_dict["minval"]=minval
+            param_dict["minval"] = minval
             self.event_manager.add("create", **param_dict)
             
         if my_type == 'string' or my_type == 'text':
@@ -432,11 +431,10 @@ class OptionDefManager(AdHocManager):
             self.event_manager.add("create", **param_dict)
             self.db.put(qp3, option_base=id)
             
-        
         if my_type == 'ip-address':
-            table="ipaddr_option"
+            table = "ipaddr_option"
             if qualifier and "array" in qualifier:
-                table="ipaddrarray_option"
+                table = "ipaddrarray_option"
                 
             qp3 = """INSERT INTO %s (option_base) 
                  VALUES (:option_base)""" % (table)
@@ -445,7 +443,7 @@ class OptionDefManager(AdHocManager):
             del(param_dict["changed_by"])
             del(param_dict["name"])
             if qualifier:
-                param_dict["qualifier"]=qualifier
+                param_dict["qualifier"] = qualifier
             self.event_manager.add("create", **param_dict)
             self.db.put(qp3, option_base=id)
         return id

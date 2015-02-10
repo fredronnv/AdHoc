@@ -5,15 +5,14 @@
 from framework import *
 from util import *
 
-data_template = {
-                 "optionspace": True,
+data_template = {"optionspace": True,
                  "vendor_class_id": True,
                  "info": True,
                  "host_class": True,
                  "changed_by": True,
                  "mtime": True,
                  "optionset_data": {'_': True, "_remove_nulls": True},
-                 "literal_options": True
+                 "literal_options": True,
                  }
 
 
@@ -25,10 +24,8 @@ class T0100_HostClassList(UnAuthTests):
             ret = self.proxy.host_class_dig({}, data_template)
             
             assert len(ret) > 0, "Too few host_classs returned"
-            #for ds in ret:
-                #print ds.re, ds.host_class, ds.info
-  
-  
+            
+            
 class T0110_HostClassFetch(UnAuthTests):
     """ Test host_class_fetch """
     
@@ -112,8 +109,7 @@ class T0140_HostClassSetName(ServiceDeskTests):
                     self.superuser.host_class_destroy('QZ1243A')
                 except:
                     pass
-        
-                
+    
                 
 class T0150_HostClassSetInfo(ServiceDeskTests):
     """ Test setting info on a host_class"""
@@ -166,8 +162,8 @@ class T0160_HostClassSetOption(ServiceDeskTests):
         
         with AssertAccessError(self):
             try:
-                #optset = self.proxy.host_class_fetch("QZ1243A", {"optionset": True}).optionset
-                #self.proxy.optionset_update(optset, {"subnet-mask": "255.255.255.0"})
+                # optset = self.proxy.host_class_fetch("QZ1243A", {"optionset": True}).optionset
+                # self.proxy.optionset_update(optset, {"subnet-mask": "255.255.255.0"})
                 self.proxy.host_class_options_update('QZ1243A', {"subnet-mask": "255.255.255.0"})
                 
                 nd = self.superuser.host_class_fetch('QZ1243A', data_template)
@@ -218,7 +214,7 @@ class T1180_HostClassAddLiteralOption(SuperUserTests):
                     id = self.proxy.host_class_literal_option_add('QZ1243A', literal_value)
                     print "Literal option ID=%d" % id
                     opts = self.proxy.host_class_fetch('QZ1243A', data_template).literal_options
-                    #print opts
+                    # print opts
                     assert id in [x.id for x in opts], "The returned id is not returned in when fetching the host_class"
                     assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the host_class"
                     
@@ -248,9 +244,9 @@ class T1180_HostClassDestroyLiteralOption(SuperUserTests):
                     pass
                     literal_value = "#This is a literal option"
                     id = self.superuser.host_class_literal_option_add('QZ1243A', literal_value)
-                    #print "Literal option ID=%d" % id
+                    # print "Literal option ID=%d" % id
                     opts = self.superuser.host_class_fetch('QZ1243A', data_template).literal_options
-                    #print opts
+                    # print opts
                     assert id in [x.id for x in opts], "The returned id is not returned in when fetching the host_class"
                     assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the host_class"
                     

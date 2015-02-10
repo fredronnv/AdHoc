@@ -10,6 +10,7 @@ g_read = AnyGrants(AllowUserWithPriv("read_all_privileges"), AdHocSuperuserGuard
 g_write = AnyGrants(AllowUserWithPriv("write_all_privileges"), AdHocSuperuserGuard)
 g_grant = AnyGrants(AllowUserWithPriv("grant_all_privileges"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchPrivilegeError(ExtLookupError):
     desc = "No such privilege exists."
     
@@ -45,7 +46,8 @@ class ExtPrivilege(ExtPrivilegeName):
 
     def output(self, fun, obj):
         return obj.oid
-    
+
+
 class ExtPrivilegeList(ExtList):
     name = "privilege-list"
     desc = "List of privileges"
@@ -59,7 +61,7 @@ class PrivilegeFunBase(SessionedFunction):
 class PrivilegeCreate(SessionedFunction):
     extname = "privilege_create"
     params = [("privilege_name", ExtPrivilegeName, "Privilege to create"),
-              ("info", ExtString, "Privilege description"),]
+              ("info", ExtString, "Privilege description")]
     desc = "Registers a privilege"
     returns = (ExtNull)
 
@@ -75,8 +77,7 @@ class PrivilegeDestroy(PrivilegeFunBase):
     def do(self):
         self.privilege_manager.destroy_privilege(self, self.privilege)
         
-        
-        
+              
 class PrivilegeGrant(PrivilegeFunBase):
     extname = "privilege_grant"
     desc = "Grants a privilege to an account"
@@ -95,7 +96,6 @@ class PrivilegeRevoke(PrivilegeFunBase):
     
     def do(self):
         self.privilege_manager.revoke_privilege(self.privilege, self.account)
-
 
 
 class Privilege(AdHocModel):
@@ -127,7 +127,7 @@ class Privilege(AdHocModel):
 
     @update("info", ExtString)
     @entry(g_write)
-    def set_info(self, fname):
+    def set_info(self, info):
         q = "UPDATE privileges SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=info)
         
@@ -162,8 +162,7 @@ class PrivilegeManager(AdHocManager):
     
     @entry(g_write)
     def create_privilege(self, fun, privilege_name, info):
-        
-        optionset = self.optionset_manager.create_optionset()
+        self.optionset_manager.create_optionset()
         
         q = """INSERT INTO privileges (privilege, info) 
                VALUES (:privilege, :info)"""
@@ -172,7 +171,7 @@ class PrivilegeManager(AdHocManager):
         except IntegrityError:
             raise ExtPrivilegeAlreadyExistsError()
         
-        #print "Privilege created, privilege_name=", privilege_name
+        # print "Privilege created, privilege_name=", privilege_name
         
     @entry(g_write)
     def destroy_privilege(self, fun, privilege):

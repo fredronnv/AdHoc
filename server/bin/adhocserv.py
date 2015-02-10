@@ -1,23 +1,21 @@
 #!/usr/bin/env python2.6
 import inspect
-import os
-import sys
+
+from rpcc import *
+from util import *
+from protocol import *
 
 env_prefix = "ADHOC_"
 
 # Automagic way to find out the home of adhoc.
 adhoc_home = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/.."
-#print "ADHOC_HOME=", adhoc_home
+
 os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home  # Export as env variable ADHOC_RUNTIME_HOME if needed outside server
 
 sys.path.append(adhoc_home)
 sys.path.append(os.path.join(adhoc_home, 'server'))
 sys.path.append(os.path.join(adhoc_home, 'lib'))
-sys.path.append(os.path.join(adhoc_home, 'lib','python2.6'))
-
-from rpcc import *
-from util import *
-from protocol import *
+sys.path.append(os.path.join(adhoc_home, 'lib', 'python2.6'))
 
 
 class AdHocServer(Server):
@@ -27,7 +25,6 @@ class AdHocServer(Server):
     minor_version = 1
     
     superuser_guard = AdHocSuperuserGuard
-    
     
     
 class StartMe(object):
@@ -46,7 +43,7 @@ class StartMe(object):
         srv.enable_database(MySQLDatabase)
 
         scriptdir = os.path.dirname(os.path.realpath(__file__))
-        (scriptparent, tail) = os.path.split(scriptdir)
+        (scriptparent, _tail) = os.path.split(scriptdir)
         serverdir = os.path.join(scriptparent, "lib")
 
         srv.register_manager(session.DatabaseBackedSessionManager)
@@ -63,12 +60,9 @@ class StartMe(object):
         
         srv.add_protocol_handler("dhcpd", DhcpdConfProtocol)
         
-        self.srv=srv
+        self.srv = srv
         
-
-
 if __name__ == "__main__":
-    import sys, os
     
     if len(sys.argv) > 1:
         if ':' in sys.argv[1]:
@@ -100,4 +94,3 @@ if __name__ == "__main__":
         print "WARNING: DHCPD Checks disabled. Remove ADHOC_SKIP_DHCPD_CHECKS from the environment and define ADHOC_DHCPD_PATH"
         
     starter.srv.serve_forever()
-    

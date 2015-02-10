@@ -5,8 +5,7 @@
 from framework import *
 from util import *
 
-data_template = {
-                 "optionspace": True,
+data_template = {"optionspace": True,
                  "parent": True,
                  "info": True, 
                  "group": True,
@@ -14,7 +13,7 @@ data_template = {
                  "mtime": True,
                  "optionset_data": {"_": True, "_remove_nulls": True},
                  "optionset": True,
-                 "literal_options": True
+                 "literal_options": True,
                  }
 
 
@@ -26,8 +25,6 @@ class T1100_GroupList(UnAuthTests):
             ret = self.proxy.group_dig({}, data_template)
             
             assert len(ret) > 0, "Too few groups returned"
-            #for ds in ret:
-                #print ds.re, ds.group, ds.info
   
   
 class T1110_GroupFetch(UnAuthTests):
@@ -155,32 +152,31 @@ class T1150_GroupSetParent(ServiceDeskTests):
         except:
             pass
                 
-        
         with AssertAccessError(self):
             try:
                 self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
-                self.superuser.host_create_with_name('20111111-007', '00:01:02:03:04:05', {'group':'QZ1243A'})
-                self.superuser.host_create_with_name('20111111-008', '00:01:02:03:04:06', {'group':'QZ1243A'})
-                self.superuser.host_create_with_name('20111111-009', '00:01:02:03:04:07', {'group':'QZ1243A'})
+                self.superuser.host_create_with_name('20111111-007', '00:01:02:03:04:05', {'group': 'QZ1243A'})
+                self.superuser.host_create_with_name('20111111-008', '00:01:02:03:04:06', {'group': 'QZ1243A'})
+                self.superuser.host_create_with_name('20111111-009', '00:01:02:03:04:07', {'group': 'QZ1243A'})
                 
-                pre_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
-                pre_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount':True}).hostcount
-                pre_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount':True}).hostcount
+                pre_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount': True}).hostcount
+                pre_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount': True}).hostcount
+                pre_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount': True}).hostcount
                 
                 self.proxy.group_update('QZ1243A', {"parent": "plain"})
                 
-                post_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
-                post_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount':True}).hostcount
-                post_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount':True}).hostcount
+                post_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount': True}).hostcount
+                post_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount': True}).hostcount
+                post_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount': True}).hostcount
                 
                 nd = self.superuser.group_fetch('QZ1243A', data_template)
                 assert nd.group == "QZ1243A", "Bad group group"
                 assert nd.info == "TestGroup", "Bad info"
                 assert nd.parent == "plain", "Bad parent %s, should be 'plain'" % nd.parent
                 
-                assert pre_hostcount_plain == post_hostcount_plain, "Host count of group plain inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount_plain, post_hostcount_plain, post_hostcount_plain)
-                assert pre_hostcount_altiris - 3 == post_hostcount_altiris, "Host count of group altiris inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount_altiris, post_hostcount_altiris, pre_hostcount_altiris-3)
-                assert pre_hostcount_QZ1243A == post_hostcount_QZ1243A, "Host count of group QZ1243A inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount_QZ1243A, post_hostcount_QZ1243A, pre_hostcount_QZ1243A)
+                assert pre_hostcount_plain == post_hostcount_plain, "Host count of group plain inaccurate. Was %d, id %d, but should be %d" % (pre_hostcount_plain, post_hostcount_plain, post_hostcount_plain)
+                assert pre_hostcount_altiris - 3 == post_hostcount_altiris, "Host count of group altiris inaccurate. Was %d, id %d, but should be %d" % (pre_hostcount_altiris, post_hostcount_altiris, pre_hostcount_altiris - 3)
+                assert pre_hostcount_QZ1243A == post_hostcount_QZ1243A, "Host count of group QZ1243A inaccurate. Was %d, id %d, but should be %d" % (pre_hostcount_QZ1243A, post_hostcount_QZ1243A, pre_hostcount_QZ1243A)
             
             finally:
                 try:
@@ -206,7 +202,7 @@ class T1160_GroupSetOption(ServiceDeskTests):
         with AssertAccessError(self):
             try:
                 self.proxy.group_options_update("QZ1243A", {"subnet-mask": "255.255.255.0"})
-                #self.proxy.network_option_set("network_test", "subnet-mask", "255.255.255.0")
+                # self.proxy.network_option_set("network_test", "subnet-mask", "255.255.255.0")
                 nd = self.superuser.group_fetch('QZ1243A', data_template)
             
                 assert nd.group == "QZ1243A", "Bad group id"
@@ -254,9 +250,9 @@ class T1180_GroupAddLiteralOption(SuperUserTests):
                     pass
                     literal_value = "#This is a literal option"
                     id = self.proxy.group_literal_option_add('QZ1243A', literal_value)
-                    #print "Literal option ID=%d" % id
+                    # print "Literal option ID=%d" % id
                     opts = self.proxy.group_fetch('QZ1243A', data_template).literal_options
-                    #print opts
+                    # print opts
                     assert id in [x.id for x in opts], "The returned id is not returned in when fetching the group"
                     assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the group"
                     
@@ -287,9 +283,9 @@ class T1180_GroupDestroyLiteralOption(SuperUserTests):
                     pass
                     literal_value = "#This is a literal option"
                     id = self.superuser.group_literal_option_add('QZ1243A', literal_value)
-                    #print "Literal option ID=%d" % id
+                    # print "Literal option ID=%d" % id
                     opts = self.superuser.group_fetch('QZ1243A', data_template).literal_options
-                    #print opts
+                    # print opts
                     assert id in [x.id for x in opts], "The returned id is not returned in when fetching the group"
                     assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the group"
                     
@@ -313,6 +309,7 @@ class T1180_GroupDestroyLiteralOption(SuperUserTests):
                 except:
                     pass
                 
+                
 class T1190_GroupGatherStats(SuperUserTests):
     """ Test group_gather_stats"""
     
@@ -320,7 +317,7 @@ class T1190_GroupGatherStats(SuperUserTests):
         with AssertAccessError(self):
             self.proxy.group_gather_stats()
             
-            gd = self.superuser.group_fetch('plain',{'hostcount':True})
+            gd = self.superuser.group_fetch('plain', {'hostcount': True})
             
             assert gd.hostcount and gd.hostcount > 10, "Too few members of group plain"
             

@@ -23,15 +23,13 @@ class T1000_OptionDefList(UnAuthTests):
                                                  "mtime": True})
             
             assert len(ret) > 0, "Too few option_defs returned"
-            #for ds in ret:
-                #print ds.re, ds.option_def, ds.info
   
   
 class T1010_OptionDefFetch(UnAuthTests):
     """ Test option_def_fetch """
     
     def do(self):
-        option_defs = [x.option_def for x in self.superuser.option_def_dig({}, {"option_def":True})]
+        option_defs = [x.option_def for x in self.superuser.option_def_dig({}, {"option_def": True})]
         
         n = 0
         for option_def in option_defs:
@@ -55,8 +53,7 @@ class T1020_OptionDefCreate(SuperUserTests):
             with AssertAccessError(self):
                 try:
                     self.proxy.option_def_create('QZ1243A', 253, 'text', "TestOptionDef", {})
-                    template = {
-                                "option_def": True, 
+                    template = {"option_def": True, 
                                 "code": True,
                                 "qualifier": True,
                                 "type": True,
@@ -65,8 +62,8 @@ class T1020_OptionDefCreate(SuperUserTests):
                                 "struct": True,
                                 "info": True,
                                 "changed_by": True,
-                                "mtime": True
-                              }
+                                "mtime": True,
+                                }
                     ret = self.superuser.option_def_fetch('QZ1243A', template)
                     
                     self.assertindict(ret, template.keys(), exact=True)

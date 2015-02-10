@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.3
+#!/usr/bin/env python
 """HTTPS XMLRPC Server.
 
 (c)2007 Viktor Fougstedt <viktor@chalmers.se>.

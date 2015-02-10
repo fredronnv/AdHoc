@@ -3,7 +3,6 @@
 from framework import *
 from util import *
 import urllib2
-import os
 
 from xml.sax._exceptions import SAXParseException
 
@@ -74,10 +73,10 @@ class T0050_SessionGetPrivileges(AuthTests):
     skip = True
     
     def do(self):
-    # Run session_get_privileges
+        # Run session_get_privileges
         with AssertAccessError(self):
             res = self.proxy.session_get_privileges()
-            assert res != None
+            assert res is not None
 
 
 class T0092_ServerLastSourceEdit(UnAuthTests):
@@ -147,7 +146,7 @@ class T0096_WSDL_list(UnAuthTests):
 
         apiver = self.superuser.api_version
         expected_wsdls = 2 * (apiver + 1)
-        #print html
+        # print html
 
         assert found_wsdls == expected_wsdls, "Found %d WSDLs, expected %d" % (found_wsdls, expected_wsdls)
 
@@ -155,7 +154,7 @@ class T0096_WSDL_list(UnAuthTests):
 class T0097_WSDL(UnAuthTests):
     """ Test fetching the WSDL."""
     functions = 0
-    skip=True
+    skip = True
 
     def countFunctions(self, node):
         if "soapAction" in node.attrib:
@@ -179,7 +178,7 @@ class T0097_WSDL(UnAuthTests):
 
         # print "Found %d functions"%(self.functions)
         res = self.superuser.server_list_functions()
-        assert  len(res) == self.functions, "Found %d functions in WSDL, expected %d" % (self.functions, len(res))
+        assert len(res) == self.functions, "Found %d functions in WSDL, expected %d" % (self.functions, len(res))
 
 if __name__ == "__main__":
     sys.exit(main())

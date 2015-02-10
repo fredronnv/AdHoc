@@ -22,7 +22,6 @@ export ADHOC_TEST_MODE=1
 export VERSIONER_PYTHON_PREFER_32_BIT=yes export 
 
 export PYTHONPATH=/Users/bernerus/Applications/eclipse/plugins/org.python.pydev_2.7.5.2013052819/pysrc/pydev_sitecustomize
-export PYTHONPATH=${PYTHONPATH}:/Users/bernerus/work/proj/workspace/AdHoc
-export PYTHONPATH=${PYTHONPATH}:/Users/bernerus/work/proj/workspace/AdHoc/rpcc
-export PYTHONPATH=${PYTHONPATH}:/Users/bernerus/work/proj/workspace/AdHoc/rpcc/server
+export PYTHONPATH=${PYTHONPATH}:/Users/bernerus/work/proj/workspace/AdHoc/server
+export PYTHONPATH=${PYTHONPATH}:/Users/bernerus/work/proj/workspace/AdHoc/server/lib
 #export PYTHONPATH=${PYTHONPATH}:/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages

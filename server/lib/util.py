@@ -4,6 +4,7 @@
 
 from rpcc import *
 
+
 class AdHocManager(Manager):
     """ Intermediate class to harbour methods common to all AdHoc Managers """
     approve_config = False
@@ -20,12 +21,14 @@ class AdHocManager(Manager):
             self.dhcp_manager.check_config()
         pass
     
+    
 class AdHocModel(Model):
     """ Intermediate class to harbour methods common to all AdHoc Models """
     
     def check_model(self):
         self.manager.approve()
         pass
+
 
 class AdHocSuperuserGuard(Guard):
     """This guard says yes if session.authuser is someone in the given list"""
@@ -52,12 +55,11 @@ class AllowUserWithPriv(access.Guard):
             function.privs_checked.add(self.priv)
             return DecisionReferred(CacheInFunction)
 
-g_write_literal_option = AnyGrants(
-                                   AllowUserWithPriv("write_literal_options"), 
+g_write_literal_option = AnyGrants(AllowUserWithPriv("write_literal_options"), 
                                    AdHocSuperuserGuard)
-g_rename = AnyGrants(
-                     AllowUserWithPriv("rename_all_objects"), 
+g_rename = AnyGrants(AllowUserWithPriv("rename_all_objects"), 
                      AdHocSuperuserGuard)
+
 
 class ExtNoSuchDNSNameError(ExtLookupError):
     desc = "The DNS name is not defined"
@@ -128,6 +130,7 @@ class ExtIPAddress(ExtString):
         except socket.gaierror:
             raise ExtNoSuchDNSNameError()
         return cval
+
     
 class ExtIPAddressList(ExtList):
     name = "ip-address-array"
@@ -139,17 +142,18 @@ class ExtIntegerList(ExtList):
     name = "integer-array"
     desc = "List of integers"
     typ = ExtInteger
+
     
 class ExtLiteralOption(ExtStruct):
     name = "literal-option-data"
     desc = "Data for a literal option"
     
-    mandatory = {
-                 'value': (ExtString, "Literal text of the option"),
+    mandatory = {'value': (ExtString, "Literal text of the option"),
                  'changed_by': (ExtString, "CID of creator"),
                  'id': (ExtInteger)
                  }
-    
+
+
 class ExtLiteralOptionList(ExtList):
     name = "literal-option-list"
     desc = "List of literal options"
@@ -172,6 +176,7 @@ class ExtOptionList(ExtList):
 
         if self.typ is not None:
             self.name = "option" + '-list'
+ 
             
 class ExtNoSuchAccountError(ExtLookupError):
     desc = "No such account exists."
@@ -183,6 +188,7 @@ class ExtAccountAlreadyExistsError(ExtLookupError):
     
 class ExtAccountInUseError(ExtValueError):
     desc = "The account is referred to by other objects. It must not destroyed"    
+   
             
 class ExtAccountName(ExtString):
     name = "account-name"
@@ -200,9 +206,8 @@ class ExtAccount(ExtAccountName):
     def output(self, fun, obj):
         return obj.oid
 
+
 class ExtAccountList(ExtList):
     name = "account-list"
     desc = "List of account names"
     typ = ExtAccountName
-    
-    

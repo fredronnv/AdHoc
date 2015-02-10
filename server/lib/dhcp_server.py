@@ -32,7 +32,7 @@ class ExtDHCPServer(ExtDHCPServerID):
         return fun.dhcp_server_manager.get_dhcp_server(cval)
 
     def output(self, fun, obj):
-        #print "DHCP-server output", obj, obj.__dict__
+        # print "DHCP-server output", obj, obj.__dict__
         return obj.oid
     
     
@@ -65,7 +65,7 @@ class DHCPServer(AdHocModel):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        #print "DHCPServer.init", a
+        # print "DHCPServer.init", a
         self.oid = a.pop(0)
         self.dns = a.pop(0)
         self.info = a.pop(0)
@@ -102,14 +102,14 @@ class DHCPServer(AdHocModel):
     def set_dns(self, dns):
         q = "UPDATE dhcp_servers SET name=:name WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, name=dns)
-        self.event_manager.add("update",  dhcp_server=self.oid, dns=dns, authuser=self.function.session.authuser)
+        self.event_manager.add("update", dhcp_server=self.oid, dns=dns, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(AdHocSuperuserGuard)
     def set_info(self, info):
         q = "UPDATE dhcp_servers SET info=:info WHERE id=:dhcp_id"
         self.db.put(q, dhcp_id=self.oid, info=info)
-        self.event_manager.add("update",  dhcp_server=self.oid, info=info, authuser=self.function.session.authuser)
+        self.event_manager.add("update", dhcp_server=self.oid, info=info, authuser=self.function.session.authuser)
         
         
 class DHCPServerManager(AdHocManager):
@@ -152,7 +152,7 @@ class DHCPServerManager(AdHocManager):
         except IntegrityError:
             raise ExtDHCPServerAlreadyExistsError()
         self.event_manager.add("create", dhcp_server=dhcp_server_id, dns=dns, info=info)
-        #print "DHCPServer created, id=", dhcp_server_id
+        # print "DHCPServer created, id=", dhcp_server_id
         
     @entry(AdHocSuperuserGuard)
     def destroy_dhcp_server(self, fun, dhcp_server):

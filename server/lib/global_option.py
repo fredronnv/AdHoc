@@ -8,6 +8,7 @@ from util import *
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_global_options"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchGlobalOptionError(ExtLookupError):
     desc = "No such global-option exists."
     
@@ -77,7 +78,7 @@ class GlobalOption(AdHocModel):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        #print "GlobalOption.init", a
+        # print "GlobalOption.init", a
         self.oid = a.pop(0)
         self.name = a.pop(0)
         self.value = a.pop(0)
@@ -94,7 +95,7 @@ class GlobalOption(AdHocModel):
 
     @template("value", ExtGlobalOptionValue)
     def get_value(self):
-        if self.value == None:
+        if self.value is None:
             return ""
         return self.value
     
@@ -119,11 +120,11 @@ class GlobalOption(AdHocModel):
         nn = str(newname)
         q = "UPDATE global_options SET name=:newname WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newname=nn)
-        self.event_manager.add("rename",  global_option=self.oid, newstr=newname, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", global_option=self.oid, newstr=newname, authuser=self.function.session.authuser)
         # Do not call self.manager.rename_object(self, nn) here. Global options are identified with a separate ID
         # which is not touched by the setting of a new name.
         
-        #print "GlobalOption %s changed Name to %s" % (self.oid, nn)
+        # print "GlobalOption %s changed Name to %s" % (self.oid, nn)
         
     @update("value", ExtGlobalOptionValue)
     @entry(g_write)
@@ -131,9 +132,10 @@ class GlobalOption(AdHocModel):
         q = "UPDATE global_options SET value=:value WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, value=newvalue)
         if type(newvalue) is int:
-            self.event_manager.add("update",  global_option=self.oid, newint=newvalue, authuser=self.function.session.authuser)
+            self.event_manager.add("update", global_option=self.oid, newint=newvalue, authuser=self.function.session.authuser)
         else:
-            self.event_manager.add("update",  global_option=self.oid, newstr=newvalue, authuser=self.function.session.authuser)
+            self.event_manager.add("update", global_option=self.oid, newstr=newvalue, authuser=self.function.session.authuser)
+
 
 class GlobalOptionManager(AdHocManager):
     name = "global_option_manager"

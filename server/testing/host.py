@@ -7,8 +7,7 @@ from util import *
 
 from datetime import date
 
-data_template = {
-                 "optionspace": True,
+data_template = {"optionspace": True,
                  "host": True,
                  "mac": True,
                  "dns": True,
@@ -31,8 +30,8 @@ class T1300_HostList(UnAuthTests):
             ret = self.proxy.host_dig({}, data_template)
             
             assert len(ret) > 0, "Too few hosts returned"
-            #for ds in ret:
-                #print ds.re, ds.host, ds.info
+            # for ds in ret:
+            #     print ds.re, ds.host, ds.info
   
   
 class T1310_HostFetch(UnAuthTests):
@@ -52,12 +51,12 @@ class T1310_HostFetch(UnAuthTests):
             
 class T1315_HostCreate(FloorAdminTests):
     """ Test host_create """
-    wip=True
+
     def do(self):
         
         today = date.today().strftime("%Y%m%d")
         try:
-            for h in self.superuser.host_dig({"host_pattern": today+"-*"},{"host":True}):
+            for h in self.superuser.host_dig({"host_pattern": today + "-*"}, {"host": True}):
                 self.superuser.host_destroy(h.host)
         except Exception as e:
             pass
@@ -65,20 +64,19 @@ class T1315_HostCreate(FloorAdminTests):
         with AssertAccessError(self):
             try:
                 hostid = self.proxy.host_create("00:00:00:00:00:01", {})
-                assert hostid==today+"-000A", "Returned hostid="+hostid
+                assert hostid == today + "-000A", "Returned hostid=" + hostid
                 hostid = self.proxy.host_create("00:00:00:00:00:01", {})
-                assert hostid==today+"-000B", "Returned hostid="+hostid
+                assert hostid == today + "-000B", "Returned hostid=" + hostid
                 hostid = self.proxy.host_create("00:00:00:00:00:02", {})
-                assert hostid==today+"-001A", "Returned hostid="+hostid
+                assert hostid == today + "-001A", "Returned hostid=" + hostid
                 hostid = self.proxy.host_create("00:00:00:00:00:01", {})
-                assert hostid==today+"-000C", "Returned hostid="+hostid
-                hostid = self.proxy.host_create("00:00:00:00:00:19", {"same_as": today+"-001A"})
-                assert hostid==today+"-001B", "Returned hostid="+hostid
+                assert hostid == today + "-000C", "Returned hostid=" + hostid
+                hostid = self.proxy.host_create("00:00:00:00:00:19", {"same_as": today + "-001A"})
+                assert hostid == today + "-001B", "Returned hostid=" + hostid
             finally:
                 pass
         
-            
-            
+                
 class T1320_HostCreateWithName(FloorAdminTests):
     """ Test host_create_with_name """
 
@@ -89,16 +87,16 @@ class T1320_HostCreateWithName(FloorAdminTests):
             pass
         with AssertAccessError(self):
             try:
-                pre_hostcount = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
+                pre_hostcount = self.proxy.group_fetch('plain', {'hostcount': True}).hostcount
                 self.proxy.host_create_with_name('20111111-007', '00:01:02:03:04:05', {})
                 ret = self.superuser.host_fetch('20111111-007', data_template)
                 self.assertindict(ret, data_template.keys(), exact=True)
-                post_hostcount = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
+                post_hostcount = self.proxy.group_fetch('plain', {'hostcount': True}).hostcount
                 
                 assert ret.host == "20111111-007", "Bad host, is % should be %s" % (ret.host, "20111111-007")
                 assert ret.group == "plain", "Bad group %s, should be 'plain'" % ret.group
-                assert ret.mac == '00:01:02:03:04:05', "Bad mac %s, should be '00:01:02:03:04:05'"%(ret.mac)
-                assert pre_hostcount + 1 == post_hostcount, "Host count of group plain inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount, post_hostcount, pre_hostcount+1)
+                assert ret.mac == '00:01:02:03:04:05', "Bad mac %s, should be '00:01:02:03:04:05'" % (ret.mac)
+                assert pre_hostcount + 1 == post_hostcount, "Host count of group plain inaccurate. Was %d, id %d, but should be %d" % (pre_hostcount, post_hostcount, pre_hostcount + 1)
             finally:
                 try:
                     self.superuser.host_destroy('20111111-007')
@@ -110,18 +108,18 @@ class T1320_HostCreateWithName(FloorAdminTests):
                 pass
             try:
                 self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
-                pre_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
-                pre_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount':True}).hostcount
-                pre_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount':True}).hostcount
-                self.proxy.host_create_with_name('20111111-007', '00:01:02:03:04:05', {'group':'QZ1243A'})
+                pre_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount': True}).hostcount
+                pre_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount': True}).hostcount
+                pre_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount': True}).hostcount
+                self.proxy.host_create_with_name('20111111-007', '00:01:02:03:04:05', {'group': 'QZ1243A'})
                 
-                post_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
-                post_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount':True}).hostcount
-                post_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount':True}).hostcount
+                post_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount': True}).hostcount
+                post_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount': True}).hostcount
+                post_hostcount_QZ1243A = self.proxy.group_fetch('QZ1243A', {'hostcount': True}).hostcount
                 
-                assert pre_hostcount_plain + 1 == post_hostcount_plain, "Host count of group plain inaccurate. Was %d, id %d, but should be %d"%(pre_hostcount_plain, post_hostcount_plain, post_hostcount_plain+1)
-                assert pre_hostcount_altiris + 1 == post_hostcount_altiris, "Host count of group altiris inaccurate. Was %d, id %d, but shoucd be %d"%(pre_hostcount_altiris, post_hostcount_altiris, pre_hostcount_altiris+1)
-                assert pre_hostcount_QZ1243A + 1 == post_hostcount_QZ1243A, "Host count of group QZ1243A inaccurate. Was %d, id %d, but shoucd be %d"%(pre_hostcount_QZ1243A, post_hostcount_QZ1243A, pre_hostcount_QZ1243A+1)
+                assert pre_hostcount_plain + 1 == post_hostcount_plain, "Host count of group plain inaccurate. Was %d, id %d, but should be %d" % (pre_hostcount_plain, post_hostcount_plain, post_hostcount_plain + 1)
+                assert pre_hostcount_altiris + 1 == post_hostcount_altiris, "Host count of group altiris inaccurate. Was %d, id %d, but shoucd be %d" % (pre_hostcount_altiris, post_hostcount_altiris, pre_hostcount_altiris + 1)
+                assert pre_hostcount_QZ1243A + 1 == post_hostcount_QZ1243A, "Host count of group QZ1243A inaccurate. Was %d, id %d, but shoucd be %d" % (pre_hostcount_QZ1243A, post_hostcount_QZ1243A, pre_hostcount_QZ1243A + 1)
             
             finally:
                 try:
@@ -304,9 +302,9 @@ class T1393_HostSetStatus(FloorAdminTests):
     """ Test setting status on a host"""
 
     def do(self):
-        pre_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
+        pre_hostcount = self.superuser.group_fetch('plain', {'hostcount': True}).hostcount
         self.superuser.host_create_with_name('20111111-007', '00:01:02:03:04:05', {})
-        post_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
+        post_hostcount = self.superuser.group_fetch('plain', {'hostcount': True}).hostcount
         assert post_hostcount == pre_hostcount + 1, "Host count did not increment"
         pre_hostcount = post_hostcount
         with AssertAccessError(self):
@@ -318,7 +316,7 @@ class T1393_HostSetStatus(FloorAdminTests):
                 assert nd.mac == "00:01:02:03:04:05", "Bad mac"
                 assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
                 assert nd.status == toset, "Bad status %s, should be '%s'" % (nd.status, toset)
-                post_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
+                post_hostcount = self.superuser.group_fetch('plain', {'hostcount': True}).hostcount
                 assert post_hostcount == pre_hostcount - 1, "Host count did not decrement"
                 pre_hostcount = post_hostcount
                 
@@ -329,7 +327,7 @@ class T1393_HostSetStatus(FloorAdminTests):
                 assert nd.mac == "00:01:02:03:04:05", "Bad mac"
                 assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
                 assert nd.status == toset, "Bad status %s, should be '%s'" % (nd.status, toset)
-                post_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
+                post_hostcount = self.superuser.group_fetch('plain', {'hostcount': True}).hostcount
                 assert post_hostcount == pre_hostcount + 1, "Host count did not increment"
                 pre_hostcount = post_hostcount
                 
@@ -340,7 +338,7 @@ class T1393_HostSetStatus(FloorAdminTests):
                 assert nd.mac == "00:01:02:03:04:05", "Bad mac"
                 assert nd.group == "plain", "Bad group %s, should be 'plain'" % nd.group
                 assert nd.status == toset, "Bad status %s, should be '%s'" % (nd.status, toset)
-                post_hostcount = self.superuser.group_fetch('plain', {'hostcount':True}).hostcount
+                post_hostcount = self.superuser.group_fetch('plain', {'hostcount': True}).hostcount
                 assert post_hostcount == pre_hostcount - 1, "Host count did not decrement"
                 pre_hostcount = post_hostcount
             finally:
@@ -399,6 +397,7 @@ class T1395_HostUnsetOption(FloorAdminTests):
                 except:
                     pass
               
+              
 class T1396_HostAddLiteralOption(SuperUserTests):
     """ Test adding a literal option to a host"""
 
@@ -413,7 +412,7 @@ class T1396_HostAddLiteralOption(SuperUserTests):
                     id = self.proxy.host_literal_option_add('20111111-007', literal_value)
                     print "Literal option ID=%d" % id
                     opts = self.proxy.host_fetch('20111111-007', data_template).literal_options
-                    #print opts
+                    # print opts
                     assert id in [x.id for x in opts], "The returned id is not returned in when fetching the host"
                     assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the host"
                     
@@ -431,6 +430,7 @@ class T1396_HostAddLiteralOption(SuperUserTests):
                 except:
                     pass
                 
+                
 class T1397_HostDestroyLiteralOption(SuperUserTests):
     """ Test destroying a literal option from a host"""
     def do(self):
@@ -442,9 +442,9 @@ class T1397_HostDestroyLiteralOption(SuperUserTests):
                     pass
                     literal_value = "#This is a literal option"
                     id = self.superuser.host_literal_option_add('20111111-007', literal_value)
-                    #print "Literal option ID=%d" % id
+                    # print "Literal option ID=%d" % id
                     opts = self.superuser.host_fetch('20111111-007', data_template).literal_options
-                    #print opts
+                    # print opts
                     assert id in [x.id for x in opts], "The returned id is not returned in when fetching the host"
                     assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the host"
                     

@@ -73,7 +73,7 @@ class MutexTests(AuthTests):
     def assume_superusership(self, g=None):
         if not hasattr(self, "sumships"):
             self.sumships = []
-        if g == None:
+        if g is None:
             g = self.admingroup
         if g:
             try:
@@ -139,7 +139,7 @@ class MutexAdminTests(MutexTests):  # GroupTests):
         """ Method to be called to prepare a test as an admin user."""
         super(MutexAdminTests, self).prepare_test()
         # print "   Preparing phase",self.testphase," for mutex", self.testmutex
-        username = self.proxy.username()
+        # username = self.proxy.username()
         self.admingroup = None
 
 #         if self.testphase > 0:
@@ -192,7 +192,6 @@ class MutexAdminTests(MutexTests):  # GroupTests):
                 self.teardownGroup(self.admingroup)
 
         super(MutexAdminTests, self).cleanup_test()
-
 
     def setupCollection(self):
         """ Sets up a test collection."""
@@ -285,7 +284,6 @@ class MutexAdminTests(MutexTests):  # GroupTests):
         self.relinguish_superusership()
 
 
-
 class T11000_MutexList(MutexTests, SuperUserTests):
     """ Test mutex_list."""
 
@@ -335,8 +333,7 @@ class T11020_MutexAcquireRelease(MutexAdminTests):
                     acquired = rd["acquired"]
                     # print "acq=",acquired
 
-                    expected_data = {
-                                     "acquired": not self.held_before,
+                    expected_data = {"acquired": not self.held_before,
                                      "stolen": False}
 
                     if acquired:
@@ -352,9 +349,7 @@ class T11020_MutexAcquireRelease(MutexAdminTests):
                     md = self.superuser.mutex_get_status(self.testmutex)
                     self.assert_mutex_keys(md)
 
-                    expected_data = {
-                                     "held": True
-                                    }
+                    expected_data = {"held": True}
                     if acquired:
                         expected_data["current_owner"] = pubname
                         self.assert_within_time(md)
@@ -374,9 +369,7 @@ class T11020_MutexAcquireRelease(MutexAdminTests):
                     md = self.superuser.mutex_get_status(self.testmutex)
                     self.assert_mutex_keys(md)
 
-                    expected_data = {
-                                     "held": self.held_before,
-                                    }
+                    expected_data = {"held": self.held_before}
                     self.assert_expected_data(md, expected_data)
                     if acquired:
                         self.assert_within_time(md)
@@ -769,10 +762,9 @@ class T11140_MutexWatchdogSet(MutexAdminTests):
                 assert rd["acquired"], "Failed to acquire test mutex"
                 wdd = self.proxy.mutex_watchdog_get(m, self.testwatchdog)
                 self.assert_watchdog_keys(wdd)
-                expected_data = {
-                                 "err_minutes": 2,
+                expected_data = {"err_minutes": 2,
                                  "running": True,
-                                 "warn_minutes": 1
+                                 "warn_minutes": 1,
                                  }
                 self.assert_expected_data(wdd, expected_data)
                 self.proxy.mutex_release(m)
@@ -794,11 +786,9 @@ class T11150_MutexWatchdogGet(MutexAdminTests):
                 assert rd["acquired"], "Failed to acquire test mutex"
                 wdd = self.proxy.mutex_watchdog_get(m, self.testwatchdog)
                 self.assert_watchdog_keys(wdd)
-                expected_data = {
-                                 "err_minutes": 2,
+                expected_data = {"err_minutes": 2,
                                  "running": True,
-                                 "warn_minutes": 1
-                                 }
+                                 "warn_minutes": 1}
                 self.assert_expected_data(wdd, expected_data)
                 self.proxy.mutex_release(m)
         finally:
@@ -820,9 +810,7 @@ class T11150_MutexWatchdogClear(MutexAdminTests):
                     self.proxy.mutex_watchdog_clear(m, self.testwatchdog)
                     wdd = self.proxy.mutex_watchdog_get(m, self.testwatchdog)
                     self.assert_watchdog_keys(wdd)
-                    expected_data = {
-                                     "running": False
-                                     }
+                    expected_data = {"running": False}
                     self.assert_expected_data(wdd, expected_data)
                     self.proxy.mutex_release(m)
         finally:
@@ -830,7 +818,7 @@ class T11150_MutexWatchdogClear(MutexAdminTests):
             self.release_mutex()
 
 
-class T11160_MutexSetUnsetAccessGroup(MutexAdminTests, GroupTests):
+class T11160_MutexSetUnsetAccessGroup(MutexAdminTests):
     """ Test mutex_set_access_group and mutex_unset_access_group."""
 
     def do(self):
@@ -853,12 +841,11 @@ class T11160_MutexSetUnsetAccessGroup(MutexAdminTests, GroupTests):
                     self.proxy.mutex_set_access_group(m, self.testgroup)
                     md = self.superuser.mutex_get_status(m)
                     self.assert_mutex_keys(md)
-                    expected_data = {
-                                 "held": True,
-                                 "access_group": self.testgroup,
-                                 "current_owner": "PDBAPI tester",
-                                 "stolen": False
-                                 }
+                    expected_data = {"held": True,
+                                     "access_group": self.testgroup,
+                                     "current_owner": "PDBAPI tester",
+                                     "stolen": False,
+                                     }
                     self.assert_expected_data(md, expected_data)
                     self.assert_within_time(md)
 
@@ -866,12 +853,11 @@ class T11160_MutexSetUnsetAccessGroup(MutexAdminTests, GroupTests):
 
                     md = self.superuser.mutex_get_status(m)
                     self.assert_mutex_keys(md)
-                    expected_data = {
-                                 "held": True,
-                                 "access_group": None,
-                                 "current_owner": "PDBAPI tester",
-                                 "stolen": False
-                                 }
+                    expected_data = {"held": True,
+                                     "access_group": None,
+                                     "current_owner": "PDBAPI tester",
+                                     "stolen": False,
+                                     }
                     self.assert_expected_data(md, expected_data)
                     self.assert_within_time(md)
 

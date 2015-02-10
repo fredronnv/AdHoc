@@ -4,14 +4,12 @@
 
 from rpcc.model import *
 from rpcc.exttype import *
-from rpcc.function import SessionedFunction
-from option_def import ExtOptionDef, ExtOptionNotSetError, ExtOptions
 from rpcc.access import *
-from rpcc.database import IntegrityError
 from optionset import *
 from option_def import *
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_networks"), AdHocSuperuserGuard)
+
 
 class ExtNoSuchNetworkError(ExtLookupError):
     desc = "No such network exists."
@@ -132,21 +130,21 @@ class Network(AdHocModel):
         q = "UPDATE networks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
         self.manager.rename_object(self, value)
-        self.event_manager.add("rename",  network=self.oid, newstr=value, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", network=self.oid, newstr=value, authuser=self.function.session.authuser)
 
     @update("authoritative", ExtBoolean)
     @entry(g_write)
     def set_authoritative(self, value):
         q = "UPDATE networks SET authoritative=:authoritative WHERE id=:id"
         self.db.put(q, id=self.oid, authoritative=value)
-        self.event_manager.add("update",  network=self.oid, authoritative=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", network=self.oid, authoritative=value, authuser=self.function.session.authuser)
         
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE networks SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=value)
-        self.event_manager.add("update",  network=self.oid, info=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", network=self.oid, info=value, authuser=self.function.session.authuser)
         
 
 class NetworkManager(AdHocManager):
@@ -189,8 +187,8 @@ class NetworkManager(AdHocManager):
         except IntegrityError:
             raise ExtNetworkAlreadyExistsError()
         self.event_manager.add("create", network=network_name, authoritative=authoritative, 
-                        info=info, authuser=fun.session.authuser, optionset=optionset )
-        #print "Network created, network_name=", network_name
+                               info=info, authuser=fun.session.authuser, optionset=optionset)
+        # print "Network created, network_name=", network_name
         
     @entry(g_write)
     def destroy_network(self, fun, network):
@@ -204,11 +202,10 @@ class NetworkManager(AdHocManager):
             raise ExtNetworkInUseError()
         self.event_manager.add("destroy", network=network.oid)
         
-    
     @entry(g_write)
     def update_options(self, fun, network, updates):
         omgr = fun.optionset_manager
         optionset = omgr.get_optionset(network.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
-            self.event_manager.add("update",  network=network.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
+            self.event_manager.add("update", network=network.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)

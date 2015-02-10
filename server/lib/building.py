@@ -9,6 +9,7 @@ from util import *
 g_read = AnyGrants(AllowUserWithPriv("read_all_buildings"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_buildings"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchBuildingError(ExtLookupError):
     desc = "No such building exists."
 
@@ -75,7 +76,7 @@ class Building(AdHocModel):
 
     def init(self, *args, **kwargs):
         a = list(args)
-        #print "Building.init", a
+        # print "Building.init", a
         self.oid = a.pop(0)
         self.re = a.pop(0)
         self.info = a.pop(0)
@@ -88,7 +89,7 @@ class Building(AdHocModel):
 
     @template("re", ExtBuildingRe)
     def get_re(self):
-        if self.re == None:
+        if self.re is None:
             return ""
         return self.re
 
@@ -107,11 +108,11 @@ class Building(AdHocModel):
     @update("building", ExtString)
     @entry(g_write)
     def set_building(self, value):
-        nn = str(value)
+        # nn = str(value)
         q = "UPDATE buildings SET id=:value WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, value=str(value))
         
-        #print "Building %s changed ID to %s" % (self.oid, nn)
+        # print "Building %s changed ID to %s" % (self.oid, nn)
         self.manager.rename_object(self, str(value))
         self.event_manager.add("rename", building=self.oid, newstr=str(value), authuser=self.function.session.authuser)
         
@@ -120,14 +121,14 @@ class Building(AdHocModel):
     def set_info(self, newinfo):
         q = "UPDATE buildings SET info=:info WHERE id=:id"
         self.db.put(q, id=self.oid, info=newinfo)
-        self.event_manager.add("update",  building=self.oid, info=newinfo, authuser=self.function.session.authuser)
+        self.event_manager.add("update", building=self.oid, info=newinfo, authuser=self.function.session.authuser)
         
     @update("re", ExtBuildingRe)
     @entry(g_write)
     def set_re(self, newre):
         q = "UPDATE buildings SET re=:re WHERE id=:id"
         self.db.put(q, id=self.oid, re=newre)
-        self.event_manager.add("update",  building=self.oid, re=newre, authuser=self.function.session.authuser)
+        self.event_manager.add("update", building=self.oid, re=newre, authuser=self.function.session.authuser)
         
 
 class BuildingManager(AdHocManager):
@@ -175,5 +176,4 @@ class BuildingManager(AdHocManager):
             raise ExtBuildingInUseError()
         
         self.event_manager.add("destroy", building=building.oid)
-        #print "Building destroyed, id=", building.oid
-        
+        # print "Building destroyed, id=", building.oid

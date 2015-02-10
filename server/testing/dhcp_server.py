@@ -11,18 +11,19 @@ class T0500_DHCPServerList(UnAuthTests):
 
     def do(self):
         with AssertAccessError(self):
-            ret = self.proxy.dhcp_server_dig({}, {"dhcp_server": True, "info": True, "dns": True})
+            # ret = \
+            self.proxy.dhcp_server_dig({}, {"dhcp_server": True, "info": True, "dns": True})
             
-            #assert len(ret) > 0, "Too few dhcp_servers returned"
-            #for ds in ret:
-                #print ds.dhcp_server, ds.dns, ds.info
+#             assert len(ret) > 0, "Too few dhcp_servers returned"
+#             for ds in ret:
+#                 print ds.dhcp_server, ds.dns, ds.info
   
   
 class T0510_DHCPServerFetch(UnAuthTests):
     """ Test dhcp_server_fetch """
     
     def do(self):
-        dhcp_servers = [x.dhcp_server for x in self.superuser.dhcp_server_dig({}, {"dhcp_server":True})]
+        dhcp_servers = [x.dhcp_server for x in self.superuser.dhcp_server_dig({}, {"dhcp_server": True})]
         
         for dhcp_server in dhcp_servers:
             ret = self.proxy.dhcp_server_fetch(dhcp_server, {"dhcp_server": True, "info": True, "dns": True})

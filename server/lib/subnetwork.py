@@ -11,6 +11,7 @@ from option_def import *
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_subnetworks"), AdHocSuperuserGuard)
 
+
 class ExtNoSuchSubnetworkError(ExtLookupError):
     desc = "No such subnetwork exists."
 
@@ -176,21 +177,21 @@ class Subnetwork(AdHocModel):
         q = "UPDATE subnetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
         self.manager.rename_object(self, value)
-        self.event_manager.add("rename",  subnetwork=self.oid, newstr=value, authuser=self.function.session.authuser)
+        self.event_manager.add("rename", subnetwork=self.oid, newstr=value, authuser=self.function.session.authuser)
         
     @update("network", ExtNetworkName)
     @entry(g_write)
     def set_network(self, value):
         q = "UPDATE subnetworks SET network=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
-        self.event_manager.add("update",  subnetwork=self.oid, network=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", subnetwork=self.oid, network=value, authuser=self.function.session.authuser)
               
     @update("info", ExtString)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE subnetworks SET info=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)
-        self.event_manager.add("update",  subnetwork=self.oid, info=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", subnetwork=self.oid, info=value, authuser=self.function.session.authuser)
 
 
 class IPV4Match(Match):
@@ -261,7 +262,7 @@ class SubnetworkManager(AdHocManager):
         except IntegrityError:
             raise ExtSubnetworkAlreadyExistsError()
         self.event_manager.add("create", subnetwork=id, parent_object=network, info=info, 
-                        authuser=fun.session.authuser, optionset=optionset)
+                               authuser=fun.session.authuser, optionset=optionset)
         
     @entry(g_write)
     def destroy_subnetwork(self, fun, subnetwork):
@@ -279,16 +280,16 @@ class SubnetworkManager(AdHocManager):
         
         self.event_manager.add("destroy", subnetwork=subnetwork.oid)
         
-        #print "Subnetwork destroyed, id=", id
+        # print "Subnetwork destroyed, id=", id
      
     def checkoverlap(self, cidr, from_cidr=None):
         """ Check if the given CIDR overlaps any of the existing subnetworks"""
         n1 = ipaddr.IPNetwork(cidr)
-        #print "n1=",cidr
+        # print "n1=",cidr
         
         for row in self.db.get("SELECT id FROM subnetworks"):
-            #print "n2=", row[0]
-            if from_cidr and from_cidr==row[0]:  # This allows an existing suvnetwork to be changed
+            # print "n2=", row[0]
+            if from_cidr and from_cidr == row[0]:  # This allows an existing suvnetwork to be changed
                 continue
             n2 = ipaddr.IPNetwork(row[0])
             if n1.overlaps(n2) or n2.overlaps(n1):
@@ -312,14 +313,13 @@ class SubnetworkManager(AdHocManager):
                 
         return servers
                      
-
     @entry(g_write)
     def update_options(self, fun, subnetwork, updates):
         
-        #print "Subnetwork update, subnetwork==",subnetwork, "updates=", updates
+        # print "Subnetwork update, subnetwork==",subnetwork, "updates=", updates
         omgr = fun.optionset_manager
         optionset = omgr.get_optionset(subnetwork.optionset)
             
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
-            self.event_manager.add("update",  subnetwork=subnetwork.oid, option=key, option_value=unicode(value), authuser=fun.session.authuser)
+            self.event_manager.add("update", subnetwork=subnetwork.oid, option=key, option_value=unicode(value), authuser=fun.session.authuser)

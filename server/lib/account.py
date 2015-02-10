@@ -45,6 +45,7 @@ class AccountDestroy(AccountFunBase):
     def do(self):
         self.account_manager.destroy_account(self, self.account)
 
+
 class Account(AdHocModel):
     name = "account"
     exttype = ExtAccount
@@ -89,8 +90,7 @@ class Account(AdHocModel):
     def set_authoritative(self, lname):
         q = "UPDATE accounts SET lname=:lname WHERE id=:id"
         self.db.put(q, id=self.oid, lname=lname)
-        
-        
+
 
 class AccountManager(AdHocManager):
     name = "account_manager"
@@ -123,7 +123,7 @@ class AccountManager(AdHocManager):
     @entry(g_write)
     def create_account(self, fun, account_name, fname, lname):
         
-        optionset = self.optionset_manager.create_optionset()
+        self.optionset_manager.create_optionset()
         
         q = """INSERT INTO accounts (account, fname, lname) 
                VALUES (:account, :fname, :lname)"""
@@ -149,10 +149,7 @@ class AccountManager(AdHocManager):
     @entry(AlwaysAllowGuard)
     def get_authuser_account_privileges(self, fun):
         try:
-            authacc =  self.get_account(fun.session.authuser)
+            authacc = self.get_account(fun.session.authuser)
         except ExtNoSuchAccountError:
             return []
         return authacc.get_privileges()
-    
-        
-
