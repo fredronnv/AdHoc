@@ -234,7 +234,8 @@ class GroupManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("g.groupname", "g.parent_group", "g.optionspace",
                   "g.info", "g.mtime", "g.changed_by", "g.optionset", "g.hostcount")
         dq.table("groups g")

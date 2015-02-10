@@ -31,8 +31,8 @@ class ExtHostName(ExtString):
     name = "host-name"
     desc = "Name of a host"
     regexp = r"^[-a-zA-Z0-9_]+$"
-    regexp = r"^[012][0-9]{3}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])-[0-9]{3}$"
-    maxlen = 12
+    regexp = r"^[012][0-9]{3}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])-[0-9]{3}[A-Z]{1,2}$"
+    maxlen = 14
     minlen = 12
     
     
@@ -105,6 +105,7 @@ class ExtHostCreateOptions(ExtStruct):
                 "room": (ExtRoom, "A room name signifying the location of the host"),
                 "info": (ExtString, "Information about the host"),
                 "status": (ExtHostStatus, "Initial status of the host, default=Active"),
+                "same_as": (ExtHost, "Create host entry as an instance of this host")
                 }
     
     
@@ -353,7 +354,8 @@ class HostManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("h.id", "h.dns", "h.`group`", "h.mac", "h.room", 
                   "h.optionspace", "h.info", "h.entry_status", 
                   "h.mtime", "h.changed_by", "h.optionset")
@@ -402,24 +404,53 @@ class HostManager(AdHocManager):
         dq.table("hosts h")
         return "h.`dns`"
     
-    def generate_host_name(self):
+    def generate_host_name(self, mac, today=None, same_as=None):
         """ Generates a free host name according to standard naming devised by the networking group"""
         
-        today = date.today().strftime("%Y%m%d")
-        
-        q = """SELECT id FROM hosts WHERE id LIKE '%s-%%%%' ORDER BY id""" % today
-        
-        res = self.db.get(q)
-        
-        found_id = None
-        for row in res:
-            found_id = row[0]
-        if found_id:
-            index = int(found_id[9:])
-            new_index = index + 1
+        if not today:
+            today = date.today().strftime("%Y%m%d")
+            
+        if not same_as:
+            q = """SELECT DISTINCT SUBSTR(id,1,12) FROM hosts WHERE id LIKE '%s-%%%%' ORDER BY id""" % today
+            
+            res = self.db.get(q)
+            
+            found_id = None
+            for row in res:
+                found_id = row[0]
+            if found_id:
+                index = int(found_id[9:12])
+                new_index = index + 1
+            else:
+                new_index = 0
+            name = today + "-%03d" % new_index
+            
+            if mac=="00:00:00:00:00:00":
+                return name+"A"  # This mac is so special so we do not squeeze these macs togetrer.
+            
+            q = """SELECT id, mac FROM hosts WHERE mac=:mac"""
+            res = self.db.get(q, mac=mac)
         else:
-            new_index = 0
-        return today + "-%03d" % new_index
+            name = same_as.oid[0:12]
+            q = """SELECT id, mac from hosts WHERE substr(id, 1, 12) = :name"""
+            res = self.db.get(q, name=name)
+            if len(res) < 1:
+                raise ExtInternalError("skrivbordslampa")
+            
+        count = len(res)
+        if count > 0:
+            name = res[0][0][0:12]  # Pick old ID prefix if mac or name already found
+            
+        r = ""
+        while count > 0:
+            r = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[count % 26] + r
+            count //= 26
+        if r=="":
+            name += "A"
+        else:
+            name += r
+        
+        return name
             
         
     
@@ -427,8 +458,7 @@ class HostManager(AdHocManager):
     def create_host(self, fun, host_name, mac, options):
         if options == None:
             options = {}
-        if not host_name:
-            host_name = self.generate_host_name()
+        
         optionspace = options.get("optionspace", None)
         dns = options.get("dns", None)
         group = options.get("group", self.group_manager.get_group(u"plain"))
@@ -437,6 +467,9 @@ class HostManager(AdHocManager):
             room = room.oid
         info = options.get("info", None)
         status = options.get("status", "Active")
+        same_as = options.get("same_as", None)
+        if not host_name:
+            host_name = self.generate_host_name(mac, same_as=same_as)
         
         optionset = self.optionset_manager.create_optionset()
             

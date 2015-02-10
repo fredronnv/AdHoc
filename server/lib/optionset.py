@@ -340,7 +340,8 @@ class OptionsetManager(AdHocManager):
         except KeyError:
             raise ExtNoSuchOptionError("The option %s is not defined for API %d" % (name, api))
 
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("id")
         dq.table("optionset")
 

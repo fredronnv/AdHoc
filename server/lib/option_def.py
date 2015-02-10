@@ -315,7 +315,8 @@ class OptionDefManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("r.name", "r.code", "r.qualifier", "r.type", "r.optionspace",
                   "r.encapsulate", "r.struct", "r.info", "r.mtime", "r.changed_by", "r.id")
         dq.table("option_base r")

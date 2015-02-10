@@ -173,7 +173,8 @@ class PoolRangeManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.table("pool_ranges pr")
         dq.select("pr.start_ip", "pr.end_ip", "pr.pool", "pr.served_by", "pr.mtime", "pr.changed_by", "pr.id")
         return dq

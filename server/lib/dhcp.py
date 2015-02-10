@@ -12,7 +12,10 @@ from util import *
 from compiler.ast import Break
 
 class ExtDhcpdRejectsConfigurationError(ExtValueError):
-    desc = "The resulting configuration is rejected bu dhcpd."
+    desc = "The resulting configuration is rejected by dhcpd."
+    
+class ExtDhcpdCheckConfigurationError(ExtValueError):
+    desc = "The AdHoc server is not configured to run dhcpd configuration checks."
     
 class DhcpdConf(Function):
     extname = "dhcpd_config"
@@ -46,6 +49,10 @@ class DHCPManager(AdHocManager):
     def init(self):
         self.serverID = None
         self.generated_allocation_group_classes = set()
+        
+    @classmethod
+    def base_query(self, dq):
+        return None  # Dummy method
         
     def m2cidr(self, ip, netmask):
         
@@ -374,11 +381,8 @@ class DHCPManager(AdHocManager):
             dns = my_id
             
             mdate = mtime.strftime("%Y%m%d")
-            if mdate in datecounts:
-                datecounts[mdate] += 1
-            else:
-                datecounts[mdate] = 0
-            my_id = mdate + "-%03d" % datecounts[mdate]
+            
+            my_id = self.host_manager.generate_host_name(mac, today=mdate)
                 
             # Handle room value quirks such as zero length rooms or rooms being just blanks
             if not room or not bool(room.strip()):
@@ -1057,17 +1061,19 @@ class DHCPManager(AdHocManager):
         #self.dhcpd_conf.append("\n")
         
     def check_config(self):
-        try:
-                if os.environ["ADHOC_DHCPD_PATH"]:
-                    s = self.make_dhcpd_conf(None)
-                    of = tempfile.NamedTemporaryFile(bufsize=0)
-                    of.write(s.encode('utf-8'))
-                    filename = of.name
-                    rv = subprocess.call([os.environ["ADHOC_DHCPD_PATH"], "-t", "-cf", filename] )
-                    if rv:
-                        #print s.encode('utf-8')
-                        raise ExtDhcpdRejectsConfigurationError()
-                else:
+
+        if  self.server.config("SKIP_DHCPD_CHECKS", default=None):
+            print "WARNING! DHCPD Check skipped"
+        else:
+            if self.server.config("DHCPD_PATH", default=None):
+                s = self.make_dhcpd_conf(None)
+                of = tempfile.NamedTemporaryFile(bufsize=0)
+                of.write(s.encode('utf-8'))
+                filename = of.name
+                rv = subprocess.call([self.server.config("DHCPD_PATH", default=None), "-t", "-cf", filename] )
+                if rv:
+                    #print s.encode('utf-8')
                     raise ExtDhcpdRejectsConfigurationError()
-        except KeyError:
-             raise ExtDhcpdRejectsConfigurationError()
+            else:
+                raise ExtDhcpdCheckConfigurationError()
+

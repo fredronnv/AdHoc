@@ -333,7 +333,8 @@ class PoolManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("g.poolname", "g.network", "g.optionspace", "g.max_lease_time",
                   "g.info", "g.mtime", "g.changed_by", "g.optionset")
         dq.table("pools g")

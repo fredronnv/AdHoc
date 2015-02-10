@@ -155,12 +155,13 @@ class T1150_GroupSetParent(ServiceDeskTests):
         except:
             pass
                 
-        self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
-        self.superuser.host_create_with_name('20111111-007', '00:01:02:03:04:05', {'group':'QZ1243A'})
-        self.superuser.host_create_with_name('20111111-008', '00:01:02:03:04:06', {'group':'QZ1243A'})
-        self.superuser.host_create_with_name('20111111-009', '00:01:02:03:04:07', {'group':'QZ1243A'})
+        
         with AssertAccessError(self):
             try:
+                self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
+                self.superuser.host_create_with_name('20111111-007', '00:01:02:03:04:05', {'group':'QZ1243A'})
+                self.superuser.host_create_with_name('20111111-008', '00:01:02:03:04:06', {'group':'QZ1243A'})
+                self.superuser.host_create_with_name('20111111-009', '00:01:02:03:04:07', {'group':'QZ1243A'})
                 
                 pre_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount':True}).hostcount
                 pre_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount':True}).hostcount

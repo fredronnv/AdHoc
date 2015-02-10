@@ -150,7 +150,8 @@ class RoomManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("r.id", "r.printers", "r.info", "r.mtime", "r.changed_by")
         dq.table("rooms r")
         return dq

@@ -158,7 +158,8 @@ class NetworkManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.table("networks nw")
         dq.select("nw.id", "nw.authoritative", "nw.info", "nw.mtime", "nw.changed_by", "nw.optionset")
         return dq

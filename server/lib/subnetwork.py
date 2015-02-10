@@ -213,7 +213,8 @@ class SubnetworkManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.table("subnetworks nw")
         dq.select("nw.id", "nw.network", "nw.info", "nw.mtime", "nw.changed_by", "nw.optionset")
         return dq
@@ -315,7 +316,7 @@ class SubnetworkManager(AdHocManager):
     @entry(g_write)
     def update_options(self, fun, subnetwork, updates):
         
-        print "Subnetwork update, subnetwork==",subnetwork, "updates=", updates
+        #print "Subnetwork update, subnetwork==",subnetwork, "updates=", updates
         omgr = fun.optionset_manager
         optionset = omgr.get_optionset(subnetwork.optionset)
             

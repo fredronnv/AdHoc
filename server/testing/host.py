@@ -5,6 +5,8 @@
 from framework import *
 from util import *
 
+from datetime import date
+
 data_template = {
                  "optionspace": True,
                  "host": True,
@@ -48,7 +50,36 @@ class T1310_HostFetch(UnAuthTests):
                 break
             
             
-class T1320_HostCreate(FloorAdminTests):
+class T1315_HostCreate(FloorAdminTests):
+    """ Test host_create """
+    wip=True
+    def do(self):
+        
+        today = date.today().strftime("%Y%m%d")
+        try:
+            for h in self.superuser.host_dig({"host_pattern": today+"-*"},{"host":True}):
+                self.superuser.host_destroy(h.host)
+        except Exception as e:
+            pass
+        
+        with AssertAccessError(self):
+            try:
+                hostid = self.proxy.host_create("00:00:00:00:00:01", {})
+                assert hostid==today+"-000A", "Returned hostid="+hostid
+                hostid = self.proxy.host_create("00:00:00:00:00:01", {})
+                assert hostid==today+"-000B", "Returned hostid="+hostid
+                hostid = self.proxy.host_create("00:00:00:00:00:02", {})
+                assert hostid==today+"-001A", "Returned hostid="+hostid
+                hostid = self.proxy.host_create("00:00:00:00:00:01", {})
+                assert hostid==today+"-000C", "Returned hostid="+hostid
+                hostid = self.proxy.host_create("00:00:00:00:00:19", {"same_as": today+"-001A"})
+                assert hostid==today+"-001B", "Returned hostid="+hostid
+            finally:
+                pass
+        
+            
+            
+class T1320_HostCreateWithName(FloorAdminTests):
     """ Test host_create_with_name """
 
     def do(self):

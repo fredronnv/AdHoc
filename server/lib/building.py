@@ -139,6 +139,7 @@ class BuildingManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
+    @classmethod
     def base_query(self, dq):
         dq.select("r.id", "r.re", "r.info", "r.mtime", "r.changed_by")
         dq.table("buildings r")

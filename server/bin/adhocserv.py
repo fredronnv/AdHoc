@@ -31,7 +31,7 @@ class AdHocServer(Server):
     
     
 class StartMe(object):
-    def __init__(self, host, port, generic_password=None, enable_ssl=False):
+    def __init__(self, host, port, enable_ssl=False):
 
         ssl_config = None
         if enable_ssl:
@@ -44,7 +44,6 @@ class StartMe(object):
         srv = AdHocServer(host, port, ssl_config)
 
         srv.enable_database(MySQLDatabase)
-        srv.database.check_rpcc_tables()
 
         scriptdir = os.path.dirname(os.path.realpath(__file__))
         (scriptparent, tail) = os.path.split(scriptdir)
@@ -52,18 +51,19 @@ class StartMe(object):
 
         srv.register_manager(session.DatabaseBackedSessionManager)
         
-        srv.register_manager(event.EventManager)
-        srv.generic_password=generic_password
-        
+        srv.register_manager(event.EventManager) 
         srv.register_from_directory(serverdir)
-        
-        srv.register_manager(authentication.NullAuthenticationManager)
+        srv.register_manager(authentication.KerberosAuthenticationManager)
         srv.enable_global_functions()
         srv.enable_documentation()
         srv.enable_static_documents(os.path.join(adhoc_home, 'docroot'))
         srv.enable_digs_and_updates()
+        
+        srv.check_tables(tables_spec=None, dynamic=False, fix=False)
+        
         srv.add_protocol_handler("dhcpd", DhcpdConfProtocol)
-        srv.serve_forever()
+        
+        self.srv=srv
         
 
 
@@ -73,14 +73,19 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if ':' in sys.argv[1]:
             host, port = sys.argv[1].split(':')
-            port = int(port)
+            if port:
+                try:
+                    port = int(port)
+                except:
+                    print "Invalid port number:", port
+                    raise
+            else:
+                port = 4433
         else:
             host = 'localhost'
             port = int(sys.argv[1])
     else:
         host, port = 'localhost', 4433
-
-    generic_password = os.environ.get("ADHOC_GENERIC_PASSWORD", None)
 
     enable_ssl = os.environ.get("ADHOC_SSL_ENABLE", False)
     
@@ -89,6 +94,10 @@ if __name__ == "__main__":
     else:
         print "Serving HTTP on '%s' port %d." % (host, port)
         
-    starter = StartMe(host, port, generic_password=generic_password, enable_ssl=enable_ssl)
-    starter.serve_forever()
+    starter = StartMe(host, port, enable_ssl=enable_ssl)
+    
+    if starter.srv.config("SKIP_DHCPD_CHECKS", default=None):
+        print "WARNING: DHCPD Checks disabled. Remove ADHOC_SKIP_DHCPD_CHECKS from the environment and define ADHOC_DHCPD_PATH"
+        
+    starter.srv.serve_forever()
     

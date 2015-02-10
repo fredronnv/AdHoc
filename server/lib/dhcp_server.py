@@ -121,7 +121,8 @@ class DHCPServerManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod
+    def base_query(cls, dq):
         dq.select("ds.id", "ds.name", "ds.info", "ds.mtime", "ds.changed_by", "ds.latest_fetch")
         dq.table("dhcp_servers ds")
         return dq

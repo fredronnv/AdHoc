@@ -141,7 +141,8 @@ class PrivilegeManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
-    def base_query(self, dq):
+    @classmethod   
+    def base_query(cls, dq):
         dq.table("privileges p")
         dq.select("p.privilege", "p.info")
         return dq

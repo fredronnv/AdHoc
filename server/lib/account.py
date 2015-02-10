@@ -101,6 +101,7 @@ class AccountManager(AdHocManager):
     def init(self):
         self._model_cache = {}
         
+    @classmethod    
     def base_query(self, dq):
         dq.table("accounts a")
         dq.select("a.account", "a.fname", "a.lname")
