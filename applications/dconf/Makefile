@@ -1,6 +1,6 @@
 TOP=../..
 SUBDIRS=
-DISTDIR=${TOP}/dist/dhcp2
+DISTDIR=${TOP}/dist/dconf
 RELEASEDIR=${TOP}/releases
 
 subdirs:
@@ -22,16 +22,16 @@ install: clean
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p ${DISTDIR};\
-	cp INSTALL.txt dhcp2proxy.py ${TOP}/client/rpcc_client.py ${DISTDIR};\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < dhcp2 | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/dhcp2 ;\
-	(cd ${DISTDIR}; chmod +x dhcp2; ./dhcp2 Release; mv ./dhcp2-* ./dhcp2 ) ;\
+	cp INSTALL.txt dconfproxy.py ${TOP}/client/rpcc_client.py ${DISTDIR};\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < dconf | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/dconf ;\
+	(cd ${DISTDIR}; chmod +x dconf; ./dconf Release; mv ./dconf-* ./dconf ) ;\
 	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;)
 
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_dhcp2.txt ;\
-	(cd ${DISTDIR}/..; mv dhcp2 dhcp2-$${revno};tar cf ${RELEASEDIR}/dhcp2-$${revno}.tar dhcp2-$${revno};)
+	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_dconf.txt ;\
+	(cd ${DISTDIR}/..; mv dconf dconf-$${revno};tar cf ${RELEASEDIR}/dconf-$${revno}.tar dconf-$${revno};)
 	
 patch: svnstatus patchbump install
 
@@ -68,7 +68,7 @@ svnstatus:
 	    	    if [ `svnversion rel_major` -ge $${svn_version} ]; then \
 	    		true; \
 	    	    else \
-	    	    	echo "Release number for dhcp2 needs to be bumped"; \
+	    	    	echo "Release number for dconf needs to be bumped"; \
 	    		false; \
 	    	    fi \
 	    	fi \

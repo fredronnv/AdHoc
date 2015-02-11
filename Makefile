@@ -1,5 +1,5 @@
 TOP=`pwd`
-SUBDIRS=applications/dhcp2 adhoc-connect server
+SUBDIRS=applications/dconf adhoc-connect server
 DISTDIR=${TOP}/dist
 
 subdirs:
