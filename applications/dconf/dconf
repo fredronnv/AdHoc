@@ -2217,6 +2217,7 @@ db_hostadd()
     hstat=$4
     hroom=$5
     hinfo=$6
+    hsame=$7
 
     trace "New host will become member of the group '$hgrp'" >&2
 
@@ -2239,6 +2240,10 @@ db_hostadd()
     if [ -n "$hgrp" ]; then
         proxy_call "options['group']='$hgrp'"
     fi
+    
+    if [ -n "$hsame" ]; then
+    	proxy_call "options['same_as']='$hsame'"
+	fi
     server_call "host_create('$hmac', options)"
     
 }
@@ -2362,6 +2367,12 @@ db_macindb()
         return 0
     fi
     return 1
+}
+
+db_dns2host()
+{
+    proxy_start
+    server_call "host_dig({'dns':'$1'}, {'host':true})"
 }
 
 db_hostindb()
@@ -2503,9 +2514,9 @@ dhcp_format()
 #M
 #M Each host has an identifier that is used in order to identify a host within dconf. (hostid)
 #M
-#M These identifiers are on the form yyyymmdd-nnn, where yymmdd is the date the host was first entered into dconf
-#M and nnn is a three digit serial number beginning at 000.
-#M In the case of hosts transferred from the prevoous version of dconf, yyyymmdd signifies the date of latest change 
+#M These identifiers are on the form yyyymmdd-nnnX, where yymmdd is the date the host was first entered into dconf.
+#M nnn is a three digit serial number beginning at 000 and the X suffix denotes different entries for teh same device.
+#M In the case of hosts transferred from the previous version, known as dhcp2, yyyymmdd signifies the date of latest change 
 #M in the old system.
 #M 
 
@@ -2582,8 +2593,8 @@ check_date()
 #M
 #M =head1 DHCP INTERACTION SUBCOMMANDS
 #M
-#M These are the subcommands thet interact with the database. You may have to have a password for the database
-#M to get anything useful dune.
+#M These are the subcommands that interact with the database. You must have a kerberos ticket to get anything
+#M useful done.
 #M
 
 #S addhost;;Add a host;1;1;mac-address;Add a host to the DHCP database;21
@@ -2593,11 +2604,21 @@ check_date()
 #O addhost;s;entry_status;Specify entry status[Active|Inactive]
 #O addhost;g;group;Specify group
 #O addhost;i;info;Specify information about the host
+#O addhost;like;hostid_or_dns;Specify that this host is the same as another host, either as a host ID or DNS address
+#M
 #M =head2 I<Description>
 #M
 #M The addhost subcommand adds a host to the dhcp database.
-#M Host names are preferably written as FQDN names, but if not,
+#M DNS addresses names are preferably written as FQDN names, but if not,
 #M they will be looked up using the I<getent(1)> command.
+#M Host ID's are generated automatially using the pattern YYYYMMDD-NNNX where YYMMDD is a date, NNN is a seral number and
+#M X is an uppercase letter ABCD etc. Host names with X > B, C, D etc are to be regarded as variants of the same device, either
+#M by having the same mac address or having more than one interface.
+#M YYMMDD is set today's date if registering a device the first time. This date will be re-used if registering the same device
+#M again.
+#M If creating a new host with the same mac address as an already registered host, the host-ID up to, but not including X will be
+#M reused, so if 20150101-007A has the mac address 00:11:22:33:44:66 the second time this host is registered, its ID will become
+#M 20150101-007B
 
 #M
 addhost()
@@ -2628,6 +2649,10 @@ addhost()
                 addhost_r_flag=$i; shift
                 addhost_r_arg=$1; shift
                 ;;
+            --like)
+            	addhost_like_flag$i; shift
+            	addhost_like_arg=$1;shift
+            	;;
             --)
                 shift;break
                 ;;
@@ -2763,12 +2788,13 @@ addhost()
     fi
 #M
 #M If the given MAC address is already present in the database, the command is aborted with an
-#M error message unless the -f flag is given. 
+#M error message unless the -f flag is given. If so, the host will be given an ID that associates it
+#M with the already present host(s) having this address.
 #M
 
     if db_macindb ${addhost_macaddr}; then
-        if [ -z "$addhost_f_flag" ]; then 
-            echo "ERROR: The given MAC address is already present in the database, use -f to override"
+        if [ -z "$addhost_f_flag$addhost_like_flag" ]; then 
+            echo "ERROR: The given MAC address is already present in the database, use -f or --like <host> to override"
             exit 1
         fi
     fi
@@ -2783,7 +2809,33 @@ addhost()
             exit 1
         fi
     fi
-    db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_r_arg}" "${addhost_i_arg}"
+    
+#M
+#M If the B<--like> I<hostid_or_dns> is given, that argument is used to lookup an already existing host and if found
+#M the new host will be given an ID that assosiates it with the already existing host, regardless of the given mac address.
+#M
+    if [ -n "$addhost_like_flag" ]; then
+    	addhost_dnslike=$addhost_like_arg
+        addhost_dnslike1=`_validate_fqdn ${addhost_dnslike} nowarn`
+        
+        addhost_likes=`dns2host $addhost_dnslike`
+        if [ -z "$addhost_likes" ]; then
+        	addhost_likes=`dns2host $addhost_dnslike1`
+		fi
+		
+		if [ -n "$addhost_likes" ]; then
+			if [ `echo $addhost_likes | tr ' ' '\n' | cut -c1-12 | sort -u | wc -l` -ne 1 ]; then
+				echo "Too many matches for the DNS name, use a host ID instead"
+				exit 1
+	        fi
+	        $addhost_sameas_arg=`echo "$addhost_likes" | tr ' ' '\n' | cut -c1-12 | sort -u`
+    	else
+    		$addhost_sameas_arg=$addhost_like_arg
+		fi
+	fi
+        
+    	
+    db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_sameas_arg}"
 }
 
 #S addoption;ao;Add an option;2;2;key value;Add an option to a class, group, host, network, subnetwork, pool or a global option.;85
@@ -5832,7 +5884,7 @@ main "$@"
 #M =head2 Adding a host
 #M
 #M Suppose you get in a new laptop, running BeOS, and you want the DHCP server to give it the IP address of dhcp168-16.math.chalmers.se
-#M You also want to note the room number MC1234 and the username 'bill' so that we know where it is and who is responsible.
+#M You also want to note the room number MC1234 so that we know where it is.
 #M The laptop has the mac address 01:12:34:c0:ff:fe and runs BeOS.
 #M
 #M I<Solution:>
@@ -5844,9 +5896,9 @@ main "$@"
 #M
 #M Execute the command:
 #M
-#M dconf addhost -r MC1234 -u bill -d dhcp168-16.math.chalmers.se  01:12:34:c0:ff:fe 
+#M dconf addhost -r MC1234 -d dhcp168-16.math.chalmers.se  01:12:34:c0:ff:fe 
 #M
-#M 20140923-001
+#M 20140923-001A
 #M 
 #M =head2 Invalidating an entry while keeping it
 #M
@@ -5860,25 +5912,25 @@ main "$@"
 #M
 #M dconf lsh starwars.tekno.chalmers.se
 #M
-#M 19880719-007
+#M 19880719-007A
 #M
 #M Deactivate the entry using:
 #M
-#M dconf chhost -s Inactive 19880719-007
+#M dconf chhost -s Inactive 19880719-007A
 #M
 #M Should he come back, you can activate the entry using
 #M
-#M dconf chhost -s Active 19880719-007
+#M dconf chhost -s Active 19880719-007A
 #M
 #M =head2 Getting entry status
 #M
-#M You want to know the entry status of the machine with the ID 19880719-009
+#M You want to know the entry status of the machine with the ID 19880719-009A
 #M
 #M  I<Solution:>
 #M
 #M Use the command:
 #M
-#M dchp2 lshosts -l 19880719-009
+#M dchp2 lshosts -l 19880719-009A
 #M
 #M
 #M =head2 Creating a group
@@ -5887,7 +5939,7 @@ main "$@"
 #M old, they need to be reinstalled
 #M quite frequently from the machine omaha.medic.chalmers.se, IP 129.16.223.74. 
 #M The machine ID's in the group
-#M are 19880719-{019,029,039,049,059} 
+#M are 19880719-{019A,029A,039A,049A,059A} 
 #M
 #M  I<Solution:>
 #M
@@ -5948,18 +6000,27 @@ main "$@"
 #M
 #M Now, the group is ready to accept the machines:
 #M
-#M B<dconf addhost -u liz -g ibmvm 19880719-019 00:00:01:01:19:74>
+#M B<dconf addhost -g ibmvm 00:00:01:01:19:74>
 #M
-#M B<dconf addhost -u mike -g ibmvm 19880719-029 00:00:01:01:19:75>
+#M 20150211-003A
 #M
-#M B<dconf addhost -u john -g ibmvm 19880719-039 00:00:01:01:19:76>
+#M B<dconf addhost -g ibmvm 00:00:01:01:19:75>
 #M
-#M B<dconf addhost -u steve -g ibmvm 19880719-049 00:00:01:01:19:77>
+#M 20150211-004A
 #M
-#M B<dconf addhost -u susie -g ibmvm 19880719-059 00:00:01:01:19:78>
+#M B<dconf addhost -g ibmvm 00:00:01:01:19:76>
 #M
-#M Now, the group is ready, all he has to do is to call in his IT executive general and order him
-#M to install the machines. 
+#M 20150211-005A
+#M
+#M B<dconf addhost -g ibmvm 00:00:01:01:19:77>
+#M
+#M 20150211-006A
+#M
+#M B<dconf addhost -g ibmvm 00:00:01:01:19:78>
+#M
+#M 20150211-007A
+#M
+#M Now, the group is ready and all machines are registered.
 #M
 #M =head1 AUTHOR
 #M
