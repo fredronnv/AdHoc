@@ -11,19 +11,19 @@ class T0600_OptionspaceList(UnAuthTests):
 
     def do(self):
         with AssertAccessError(self):
-            #ret = 
+            # ret = 
             self.proxy.optionspace_dig({}, {"type": True, "info": True, "optionspace": True})
             
-            #assert len(ret) > 0, "Too few optionspaces returned"
-            #for ds in ret:
-                #print ds.type, ds.optionspace, ds.info
+#             assert len(ret) > 0, "Too few optionspaces returned"
+#             for ds in ret:
+#                 print ds.type, ds.optionspace, ds.info
   
-  
+   
 class T0610_OptionspaceFetch(UnAuthTests):
     """ Test optionspace_fetch """
     
     def do(self):
-        optionspaces = [x.optionspace for x in self.superuser.optionspace_dig({}, {"optionspace":True})]
+        optionspaces = [x.optionspace for x in self.superuser.optionspace_dig({}, {"optionspace": True})]
         
         for optionspace in optionspaces:
             ret = self.proxy.optionspace_fetch(optionspace, {"type": True, "info": True, "optionspace": True})

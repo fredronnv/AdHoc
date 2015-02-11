@@ -11,12 +11,12 @@ class T0400_networkList(UnAuthTests):
 
     def do(self):
         with AssertAccessError(self):
-            ret = self.proxy.network_dig({}, {"network": True, "info": True, "authoritative": True, "mtime": True, "changed_by":True})
+            ret = self.proxy.network_dig({}, {"network": True, "info": True, "authoritative": True, "mtime": True, "changed_by": True})
             
             assert len(ret) > 90, "Too few networks returned"
-            #for n in ret:
-                #print n
-                #print n.authoritative, n.network, n.info, n.mtime, n.changed_by
+#             for n in ret:
+#                 print n
+#                 print n.authoritative, n.network, n.info, n.mtime, n.changed_by
   
   
 class T0410_networkFetch(UnAuthTests):

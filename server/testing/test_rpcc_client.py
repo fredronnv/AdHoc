@@ -79,7 +79,7 @@ class RPCC(rpcc_client.RPCC):
             url = os.environ.get("ADHOC_SERVER_URL", "http://localhost:4433")
 
         # print "Connecting to server at ",url
-        if user == None:
+        if user is None:
             user = os.environ.get('ADHOC_USER', None)
             if not user:
                 print "ADHOC user not defined, please define ADHOC_USER"
@@ -94,9 +94,9 @@ class RPCC(rpcc_client.RPCC):
                     password = getpass.getpass()
 
         rpcc_client.RPCC.__init__(self, url,
-                             api_version=api_version,
-                             attrdicts=return_attrdicts,
-                             pyexceptions=basic_exceptions)
+                                  api_version=api_version,
+                                  attrdicts=return_attrdicts,
+                                  pyexceptions=basic_exceptions)
 
         try:
             if(user != ""):
@@ -162,8 +162,8 @@ class RPCC(rpcc_client.RPCC):
         if self.username() == self.superuser.username():
             raise ADHOCSuperUserError("Removing the privileges of the superuser is a very bad idea")
 
-        #for m in self.superuser.membership_dig({"group_pattern": "_rpcc_priv_*", "account": self.username(), "valid_now": True}, {"group": True, "membership": True}):
-            #self.superuser.membership_expire(m.membership)
+#         for m in self.superuser.membership_dig({"group_pattern": "_rpcc_priv_*", "account": self.username(), "valid_now": True}, {"group": True, "membership": True}):
+#             self.superuser.membership_expire(m.membership)
         try:   
             privs = self.superuser.account_fetch(self.username(), {"granted_privileges": True})["granted_privileges"]
             for p in privs:

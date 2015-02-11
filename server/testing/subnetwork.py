@@ -16,13 +16,13 @@ class T0200_SubnetworkList(UnAuthTests):
             assert len(ret) > 0, "Too few subnetworks returned"
             #for ds in ret:
                 #print ds.id, ds.network, ds.info, ds.changed_by, ds.mtime
-  
+   
   
 class T0210_SubnetworkFetch(UnAuthTests):
     """ Test subnetwork_fetch """
     
     def do(self):
-        subnetworks = [x.subnetwork for x in self.superuser.subnetwork_dig({}, {"subnetwork":True})]
+        subnetworks = [x.subnetwork for x in self.superuser.subnetwork_dig({}, {"subnetwork": True})]
         
         n = 0
         for subnetwork in subnetworks:
@@ -60,7 +60,7 @@ class T0220_SubnetworkCreate(NetworkAdminTests):
                             "info": True,
                             "changed_by": True,
                             "mtime": True
-                          }
+                            }
                 ret = self.superuser.subnetwork_fetch('192.5.55.0/24', template)
                 
                 self.assertindict(ret, template.keys(), exact=True)

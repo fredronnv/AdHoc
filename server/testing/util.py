@@ -168,7 +168,7 @@ class DigTests(AuthTests):
 
         if untested:
             print "Untested search keys for %s: %s" % (rpcname, ", ".join(untested))
-        if dataopt != None:
+        if dataopt is not None:
             dummy = getattr(self.proxy, rpcname)(searchopt, dataopt)
         else:
             dummy = getattr(self.proxy, rpcname)(searchopt)

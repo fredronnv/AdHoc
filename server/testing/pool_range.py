@@ -5,8 +5,7 @@
 from framework import *
 from util import *
 
-data_template = {
-                 "start_ip": True,
+data_template = {"start_ip": True,
                  "end_ip": True,
                  "pool": True, 
                  "served_by": True,
@@ -37,7 +36,7 @@ class PoolRangeTests():
         
     def setup_pool(self, poolname="testpool"):  
         self.setup_network()
-        #print "NETWORK READY"
+        # print "NETWORK READY"
         try:
             self.superuser.pool_create(poolname, self.testnetwork, "TestPool", {})
         except:
@@ -68,14 +67,14 @@ class PoolRangeTests():
             start_ip = self.testrange
         if end_ip is None:
             end_ip = self.testrange_end
-        #print "SETTING UP POOL RANGE ", start_ip, end_ip
+        # print "SETTING UP POOL RANGE ", start_ip, end_ip
         self.setup_dhcp_server()
-        #print "DHCP SERVER READY"
+        # print "DHCP SERVER READY"
         
         self.setup_pool()
-        #print "POOL READY"
+        # print "POOL READY"
         self.superuser.pool_range_create(start_ip, end_ip, self.testpool, "Q")
-        #print "POOL RANGE READY"
+        # print "POOL RANGE READY"
 
     def teardown_pool_range(self):
         
@@ -118,8 +117,8 @@ class T1400_PoolRangeList(UnAuthTests, PoolRangeTests):
             ret = self.proxy.pool_range_dig({}, data_template)
             
             assert len(ret) > 0, "Too few pool_ranges returned"
-            #for ds in ret:
-                #print ds.re, ds.pool_range, ds.info
+#             for ds in ret:
+#                 print ds.re, ds.pool_range, ds.info
   
   
 class T1410_PoolRangeFetch(UnAuthTests, PoolRangeTests):
@@ -196,7 +195,7 @@ class T1440_PoolRangeSetRange(NetworkAdminTests, PoolRangeTests):
             
 class T1441_PoolRangeSetReversedRange(NetworkAdminTests, PoolRangeTests):
     """ Test reversing the range of a pool_range"""
-    #wip=True
+
     def do(self):
         self.setup_pool_range()
         try:

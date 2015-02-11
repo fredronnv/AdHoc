@@ -5,8 +5,7 @@
 from framework import *
 from util import *
 
-data_template = {
-                 "optionspace": True,
+data_template = {"optionspace": True,
                  "network": True,
                  "info": True, 
                  "pool": True,
@@ -28,8 +27,8 @@ class T1200_PoolList(UnAuthTests):
             ret = self.proxy.pool_dig({}, data_template)
             
             assert len(ret) > 0, "Too few pools returned"
-            #for ds in ret:
-                #print ds.re, ds.pool, ds.info
+#             for ds in ret:
+#                 print ds.re, ds.pool, ds.info
   
   
 class T1210_PoolFetch(UnAuthTests):
@@ -412,7 +411,7 @@ class T1290_PoolAddLiteralOption(SuperUserTests):
                     opt_id = self.proxy.pool_literal_option_add('QZ1243A', literal_value)
                     print "Literal option ID=%d" % opt_id
                     opts = self.proxy.pool_fetch('QZ1243A', data_template).literal_options
-                    #print opts
+#                   print opts
                     assert opt_id in [x.id for x in opts], "The returned id is not returned in when fetching the pool"
                     assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the pool"
                     
@@ -449,9 +448,9 @@ class T1291_PoolDestroyLiteralOption(SuperUserTests):
                     pass
                     literal_value = "#This is a literal option"
                     opt_id = self.superuser.pool_literal_option_add('QZ1243A', literal_value)
-                    #print "Literal option ID=%d" % opt_id
+                    # print "Literal option ID=%d" % opt_id
                     opts = self.superuser.pool_fetch('QZ1243A', data_template).literal_options
-                    #print opts
+                    # print opts
                     assert opt_id in [x.id for x in opts], "The returned opt_id is not returned in when fetching the pool"
                     assert "#This is a literal option" in [x.value for x in opts], "The literal value is not returned in when fetching the pool"
                     

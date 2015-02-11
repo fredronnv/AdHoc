@@ -15,16 +15,16 @@ class T0700_RoomList(UnAuthTests):
             # ret = 
             self.proxy.room_dig({}, {"printers": True, "info": True, "room": True})
             
-            #assert len(ret) > 0, "Too few rooms returned"
-            #for ds in ret:
-                #print ds.printers, ds.room, ds.info
+#             assert len(ret) > 0, "Too few rooms returned"
+#             for ds in ret:
+#                 print ds.printers, ds.room, ds.info
   
   
 class T0710_RoomFetch(UnAuthTests):
     """ Test room_fetch """
     
     def do(self):
-        rooms = [x.room for x in self.superuser.room_dig({}, {"room":True})]
+        rooms = [x.room for x in self.superuser.room_dig({}, {"room": True})]
         
         n = 0
         for room in rooms:
