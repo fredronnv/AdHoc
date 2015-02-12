@@ -1,4 +1,4 @@
-export PYTHONPATH=${INSTALL_HOME}/lib/python2.6
+export PYTHONPATH=${INSTALL_HOME}/lib:${INSTALL_HOME}/lib/python2.6:${INSTALL_HOME}/rpcc:${INSTALL_HOME}
 export ADHOC_RUNTIME_HOME=${INSTALL_HOME}
 export KRB5_KTNAME=$HOME/etc/server.keytab
 

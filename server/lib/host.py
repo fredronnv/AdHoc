@@ -434,16 +434,28 @@ class HostManager(AdHocManager):
             if mac == "00:00:00:00:00:00":
                 return name + "A"  # This mac is so special so we do not squeeze these macs togetrer.
             
-            q = """SELECT id, mac FROM hosts WHERE mac=:mac"""
+            q = """SELECT DISTINCT substr(id, 1, 12)  mac FROM hosts WHERE mac=:mac"""
             res = self.db.get(q, mac=mac)
+            if len(res) == 0:
+                return name + "A"  # No contenders
+            if len(res) > 1:
+                raise ExtInternalError("piano")
+            name = res[0][0]
+
+            q = """SELECT id, mac from hosts WHERE substr(id, 1, 12) = :name"""
+            res = self.db.get(q, name=name)
+            if len(res) < 1:
+                raise ExtInternalError("taklampa")
+            count = len(res)
+                  
         else:
             name = same_as.oid[0:12]
             q = """SELECT id, mac from hosts WHERE substr(id, 1, 12) = :name"""
             res = self.db.get(q, name=name)
             if len(res) < 1:
                 raise ExtInternalError("skrivbordslampa")
-            
-        count = len(res)
+            count = len(res)
+
         if count > 0:
             name = res[0][0][0:12]  # Pick old ID prefix if mac or name already found
             

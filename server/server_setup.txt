@@ -49,21 +49,33 @@ C. MySQL Connector for Python.
 
    wget http://dev.mysql.com/get/Downloads/Connector-Python/\
    mysql-connector-python-1.2.3-1.el6.noarch.rpm
+   
+D. Enum module for Python
+   URL: https://pypi.python.org/packages/source/e/enum34/enum34-1.0.4.tar.gz#md5=ac80f432ac9373e7d162834b264034b6
+   
+   Currently (2015-02-11) we use the following commands
+   
+   su
+   wget https://pypi.python.org/packages/source/e/enum34/\
+   enum34-1.0.4.tar.gz#md5=ac80f432ac9373e7d162834b264034b6
+   tar -zxvf enum34-1.0.4.tar.gz
+   cd tar -zxvf enum34-1.0.4
+   python setup.py install
 
-D. The passwords to be used for the MySQL root and srvadhoc accounts.
+E. The passwords to be used for the MySQL root and srvadhoc accounts.
 
-E. SSL server certificate and key files for the server hostname. 
+F. SSL server certificate and key files for the server hostname. 
    If you are installing the system as part of a disaster recovery, 
    retrieve the certificate and key files from the old system's backup.
    Otherwise, use ITS' standard routines to order a new SSL certificate.
    
-F. A Kerberos keytab for the principal HTTP/$HOSTNAME@CHALMERS.SE where 
+G. A Kerberos keytab for the principal HTTP/$HOSTNAME@CHALMERS.SE where 
    $HOSTNAME is the server hostname. In the case of a disaster recovery, 
    try to retrieve the Kerberos keytab file from the old system's backup. 
    If this is not possible, or if you are installing a new system, contact 
    the Kerberos operations staff (teamunix@ita.chalmers.se) for help.
    
-G. Make sure that $HOSTNAME and the hostname command returns the fully 
+H. Make sure that $HOSTNAME and the hostname command returns the fully 
    qualified host name, i.e. one ending with .chalmers.se. If not, adjust 
    the network configuration.
 

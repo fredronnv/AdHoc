@@ -1681,7 +1681,9 @@ _validate_fqdn()
 ##
     _validate_fqdn_ip=`dig +short "${_validate_fqdn_arg}"`
     if [ -z "$_validate_fqdn_ip" ]; then
-        echo "The host name $_validate_fqdn_arg does not exist" >&2
+        if [ -z "$_validate_fqdn_nowarn" ]; then
+            echo "The host name $_validate_fqdn_arg does not exist" >&2
+        fi
         return 1
     fi
 
@@ -2242,8 +2244,8 @@ db_hostadd()
     fi
     
     if [ -n "$hsame" ]; then
-    	proxy_call "options['same_as']='$hsame'"
-	fi
+        proxy_call "options['same_as']='$hsame'"
+    fi
     server_call "host_create('$hmac', options)"
     
 }
@@ -2604,7 +2606,7 @@ check_date()
 #O addhost;s;entry_status;Specify entry status[Active|Inactive]
 #O addhost;g;group;Specify group
 #O addhost;i;info;Specify information about the host
-#O addhost;like;hostid_or_dns;Specify that this host is the same as another host, either as a host ID or DNS address
+#O addhost;like;hostid_or_dns;Host to be like;Specifies that this host is the same as another host, either as a host ID or DNS address;
 #M
 #M =head2 I<Description>
 #M
@@ -2650,9 +2652,9 @@ addhost()
                 addhost_r_arg=$1; shift
                 ;;
             --like)
-            	addhost_like_flag$i; shift
-            	addhost_like_arg=$1;shift
-            	;;
+                addhost_like_flag=$i; shift
+                addhost_like_arg=$1;shift
+                ;;
             --)
                 shift;break
                 ;;
@@ -2815,26 +2817,28 @@ addhost()
 #M the new host will be given an ID that assosiates it with the already existing host, regardless of the given mac address.
 #M
     if [ -n "$addhost_like_flag" ]; then
-    	addhost_dnslike=$addhost_like_arg
+        addhost_dnslike=$addhost_like_arg
         addhost_dnslike1=`_validate_fqdn ${addhost_dnslike} nowarn`
-        
-        addhost_likes=`dns2host $addhost_dnslike`
-        if [ -z "$addhost_likes" ]; then
-        	addhost_likes=`dns2host $addhost_dnslike1`
-		fi
-		
-		if [ -n "$addhost_likes" ]; then
-			if [ `echo $addhost_likes | tr ' ' '\n' | cut -c1-12 | sort -u | wc -l` -ne 1 ]; then
-				echo "Too many matches for the DNS name, use a host ID instead"
-				exit 1
-	        fi
-	        $addhost_sameas_arg=`echo "$addhost_likes" | tr ' ' '\n' | cut -c1-12 | sort -u`
-    	else
-    		$addhost_sameas_arg=$addhost_like_arg
-		fi
-	fi
-        
-    	
+
+        addhost_likes=`db_dns2host $addhost_dnslike`
+        if [ -n "$addhost_likes" ]; then
+            addhost_likes=`db_dns2host $addhost_dnslike1`
+
+            if [ -n "$addhost_likes" ]; then
+                if [ `echo $addhost_likes | tr ' ' '\n' | cut -c1-12 | sort -u | wc -l` -ne 1 ]; then
+                    echo "Too many matches for the DNS name, use a host ID instead"
+                    exit 1
+                fi
+                addhost_sameas_arg=`echo "$addhost_likes" | tr ' ' '\n' | cut -c1-12 | sort -u`
+            else
+                echo "The DNS name you specified is not registered"
+                exit 1
+            fi
+        else
+            addhost_sameas_arg=$addhost_like_arg
+        fi
+    fi
+    
     db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_sameas_arg}"
 }
 
