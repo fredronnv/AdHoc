@@ -5508,10 +5508,7 @@ chpool()
 #M --dhcp_server option, the range may be reassigned to another DHCP server. If you do that, the units 
 #M that have used the range might get new IP addresses as the new server does not get any information
 #M as to which units have had which IP assignments. Be sure to know whether this possibility will cause
-#M any trouble or not. I<server_code> is an uppercase character, A, B or C.
-#M
-#M It may feel good to know that SunRay clients do never care about their IP assignments.
-#M These devices will find the right sessiom based on the MAC address or the insetret smartcard number.
+#M any trouble or not. I<server_code> is an uppercase character.
 #M
 chrange()
 {
