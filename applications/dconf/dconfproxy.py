@@ -178,7 +178,7 @@ def process(command, output):
     
 
 import StringIO
-srv_url = "http://nile.its.chalmers.se:8877"
+srv_url = None
 srv = None
 import rpcc_client
 
