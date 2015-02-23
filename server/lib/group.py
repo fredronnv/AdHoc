@@ -109,7 +109,7 @@ class GroupLiteralOptionDestroy(GroupFunBase):
         
     
 class GroupOptionsUpdate(GroupFunBase):
-    extname = "group_options_update"
+    extname = "group_option_update"
     desc = "Update option value(s) on a group"
     returns = (ExtNull)
     

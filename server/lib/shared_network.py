@@ -66,7 +66,7 @@ class NetworkDestroy(NetworkFunBase):
 
 
 class NetworkOptionsUpdate(NetworkFunBase):
-    extname = "network_options_update"
+    extname = "network_option_update"
     desc = "Update option value(s) on a shared network"
     returns = (ExtNull)
     

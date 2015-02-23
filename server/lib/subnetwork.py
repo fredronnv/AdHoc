@@ -86,7 +86,7 @@ class SubnetworkDestroy(SubnetworkFunBase):
         
         
 class SubnetworkOptionsUpdate(SubnetworkFunBase):
-    extname = "subnetwork_options_update"
+    extname = "subnetwork_option_update"
     desc = "Update option value(s) on a subnetwork"
     returns = (ExtNull)
     

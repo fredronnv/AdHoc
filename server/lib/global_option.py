@@ -85,7 +85,7 @@ class GlobalOption(AdHocModel):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
-    @template("global_option", ExtGlobalOption)
+    @template("global_options", ExtGlobalOption)
     def get_global_option(self):
         return self
     

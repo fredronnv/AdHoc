@@ -185,7 +185,7 @@ class PoolRevokeHostClass(PoolFunBase):
 
 
 class PoolOptionsUpdate(PoolFunBase):
-    extname = "pool_options_update"
+    extname = "pool_option_update"
     desc = "Update option value(s) on a pool"
     returns = (ExtNull)
     

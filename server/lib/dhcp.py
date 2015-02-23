@@ -174,6 +174,9 @@ class DHCPManager(AdHocManager):
         qp = "INSERT INTO dhcp_servers (id, name, info, changed_by, mtime) VALUES (:id, :name, :info, :changedby, :mtime)"
         for(my_id, name, info, changed_by, mtime) in self.odb.get(qf):
             # print my_id, name, info, changed_by, mtime
+            # UGLY HACK, but required by jol@chalmers.se
+            if name.startswith("dhcp"):
+                name = "dhcp-ng" + name[4:]
             self.db.insert("id", qp, id=my_id, name=name, info=info, changedby=changed_by, mtime=mtime)
         
         # networks

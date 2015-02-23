@@ -107,7 +107,7 @@ class HostClassLiteralOptionDestroy(HostClassFunBase):
     
 
 class HostClassOptionsUpdate(HostClassFunBase):
-    extname = "host_class_options_update"
+    extname = "host_class_option_update"
     desc = "Update option value(s) on a host_class"
     returns = (ExtNull)
     
