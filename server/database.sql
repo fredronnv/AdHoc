@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS `account_privilege_map` (
 
 INSERT INTO `account_privilege_map` (`account`, `privilege`) VALUES
 ('srvadhoc', 'read_all_privileges'),
-('srvadhoc', 'grant_all_privileges');
+('srvadhoc', 'grant_all_privileges'),
+('srvadhoc', 'write_all_accounts');
 
 -- --------------------------------------------------------
 
