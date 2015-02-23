@@ -2133,6 +2133,7 @@ proxy_call()
     local result
     #echo "proxyin=" $proxyin >&2
     trace "proxy_call: ""$@"
+    /bin/true # This seems to keep the named pipes from hanging on Linux. Don't know why!
     echo "$@" > "$proxyin"
     cat $proxyout >/dev/null
     #result=`cat $proxyout`
@@ -2145,6 +2146,7 @@ server_call()
     local result
     
     trace "server_call: res = srv.$@"
+    /bin/true # This seems to keep the named pipes from hanging on Linux. Don't know why!
     echo "res = srv.""$@" > "$proxyin"
     cat $proxyout
     trace "server_call done"
@@ -2849,7 +2851,7 @@ addhost()
 #O addoption;H;host;Add option to this host
 #O addoption;N;network;Add option to this network
 #O addoption;S;subnetwork;Add option to this subnetwork
-#O addoption;G;global;Add an option globally
+#O addoption;G;;Add an option globally
 #M
 #M =head2 I<Description>
 #M
@@ -2969,16 +2971,32 @@ _addoption()
     fi
 
     if _hasoptions_group $_addoption_group $_addoption_gtype | grep "$_addoption_key" >/dev/null 2>&1 ; then
-        echo The option $_addoption_key is already defined for the $_addoption_gtype $_addoption_group, use the choption command to change
+        if [ "${_addoption_gtype}" = "global" ]; then
+            echo The global option $_addoption_key is already defined. Use the choption command to change its value
+        else
+            echo The option $_addoption_key is already defined for the $_addoption_gtype $_addoption_group, use the choption command to change
+        fi
         return
     fi
     proxy_start
     otype=`server_call "option_def_fetch('$_addoption_key',{'type':true})"`
-    if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
-        server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':${_addoption_value}})"
+
+
+
+    if [ "${_addoption_gtype}" = "global" ]; then
+        global_option_id=`server_call "global_option_dig({'name':'$_addoption_key'},{'global_option':true})"`
+        if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
+            server_call "global_option_create('$_addoption_key',${_addoption_value})"
+        else
+            server_call "global_option_create('$_addoption_key','${_addoption_value}')"
+        fi
     else
-        server_call "${_addoption_gtype}_options_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
-    fi    
+        if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
+            server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':${_addoption_value}})"
+        else
+            server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
+        fi
+    fi 
 }
 
 #S addroom;ar;Add a room;1;2;roomcode [info];Add a room to the DHCP database;101
@@ -3329,9 +3347,9 @@ _choption()
         fi
     else
         if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
-            server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':${_choption_value}})"
+            server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':${_choption_value}})"
         else
-            server_call "${_choption_gtype}_options_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
+            server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
         fi
     fi
 }
@@ -5075,7 +5093,7 @@ _rmoption()
         return
     fi
     
-    server_call "${_rmoption_gtype}_options_update('$_rmoption_group',{'$_rmoption_key':None})"
+    server_call "${_rmoption_gtype}_option_update('$_rmoption_group',{'$_rmoption_key':None})"
 }
 
 #T Host management;20
