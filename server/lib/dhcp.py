@@ -159,6 +159,8 @@ class DHCPManager(AdHocManager):
             # print name, value, mtime, my_id
             if name == 'ddns-update-style' and value == 'ad-hoc':
                 continue  # This mode is not supported in later versions of the dhcpd server
+            if name == 'dhcp2_timestamp':
+                name = 'dconf_timestamp'  # Reflect dhcp2 to dconf name change
             self.db.insert("id", qp, name=name, value=value, changedby="DCONF-ng", mtime=mtime, id=my_id)
         
         qf = "SELECT name, value, changed_by, mtime, id FROM optionlist WHERE gtype='global'"
