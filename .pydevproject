@@ -13,5 +13,6 @@
 <path>/${PROJECT_DIR_NAME}/lib/python2.6</path>
 <path>/${PROJECT_DIR_NAME}/applications/dconf</path>
 <path>/${PROJECT_DIR_NAME}</path>
+<path>/${PROJECT_DIR_NAME}/server/lib</path>
 </pydev_pathproperty>
 </pydev_project>

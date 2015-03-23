@@ -276,7 +276,7 @@ class T0260_SubnetworkSetOption(NetworkAdminTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.subnetwork_options_update('192.5.55.0/24', {"subnet-mask": "255.255.255.0"})
+                self.proxy.subnetwork_option_update('192.5.55.0/24', {"subnet-mask": "255.255.255.0"})
                 nd = self.superuser.subnetwork_fetch('192.5.55.0/24', {"network": True, "info": True, 
                                                                        "subnetwork": True, 
                                                                        "optionset_data": {"_": True, "_remove_nulls": True}})
@@ -302,8 +302,8 @@ class T0270_SubnetworkUnsetOption(NetworkAdminTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.subnetwork_options_update('192.5.55.0/24', {"subnet-mask": "255.255.255.0"})
-                self.proxy.subnetwork_options_update('192.5.55.0/24', {"subnet-mask": None})
+                self.proxy.subnetwork_option_update('192.5.55.0/24', {"subnet-mask": "255.255.255.0"})
+                self.proxy.subnetwork_option_update('192.5.55.0/24', {"subnet-mask": None})
                 nd = self.superuser.subnetwork_fetch('192.5.55.0/24', {"network": True, "info": True, 
                                                                        "subnetwork": True, 
                                                                        "optionset_data": {"_": True, "_remove_nulls": True}})

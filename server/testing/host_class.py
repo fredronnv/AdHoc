@@ -164,7 +164,7 @@ class T0160_HostClassSetOption(ServiceDeskTests):
             try:
                 # optset = self.proxy.host_class_fetch("QZ1243A", {"optionset": True}).optionset
                 # self.proxy.optionset_update(optset, {"subnet-mask": "255.255.255.0"})
-                self.proxy.host_class_options_update('QZ1243A', {"subnet-mask": "255.255.255.0"})
+                self.proxy.host_class_option_update('QZ1243A', {"subnet-mask": "255.255.255.0"})
                 
                 nd = self.superuser.host_class_fetch('QZ1243A', data_template)
                 assert nd.host_class == "QZ1243A", "Bad host_class id"
@@ -186,8 +186,8 @@ class T0170_HostClassUnsetOption(ServiceDeskTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.host_class_options_update('QZ1243A', {"subnet-mask": "255.255.255.0"})
-                self.proxy.host_class_options_update('QZ1243A', {"subnet-mask": None})
+                self.proxy.host_class_option_update('QZ1243A', {"subnet-mask": "255.255.255.0"})
+                self.proxy.host_class_option_update('QZ1243A', {"subnet-mask": None})
                 nd = self.superuser.host_class_fetch("QZ1243A", data_template)
                 assert nd.host_class == "QZ1243A", "Bad host_class id"
                 assert nd.info == "TestHostClass", "Bad info"

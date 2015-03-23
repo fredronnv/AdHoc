@@ -52,12 +52,13 @@ CREATE TABLE IF NOT EXISTS `accounts` (
   `account` varchar(8) COLLATE ascii_bin NOT NULL COMMENT 'PDB account',
   `fname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci NOT NULL COMMENT 'First name of owner',
   `lname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci NOT NULL COMMENT 'Last name of owner',
+  `status` varchar(12) COLLATE ascii_bin NULL COMMENT 'PDB status'
   PRIMARY KEY (`account`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='User accounts';
 
 INSERT INTO `accounts` (`account`, `fname`, `lname`) VALUES
-('srvadhoc', 'AdHoc','Server'),
-('int_0002', 'PDB Integration','Agent');
+('srvadhoc', 'AdHoc', 'Server'),
+('int_0002', 'PDB Integration', 'Agent');
 
 -- --------------------------------------------------------
 
@@ -244,6 +245,7 @@ CREATE TABLE IF NOT EXISTS `hosts` (
   `dns` varchar(255) CHARACTER SET ascii COLLATE ascii_bin DEFAULT 'localhost' COMMENT 'DNS name',
   `group` varchar(64) DEFAULT 'plain' COMMENT 'Group where the host belongs',
   `mac` varchar(17) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '00:00:00:00:00:00' COMMENT 'Mac address',
+  `cid` varchar(8) COLLATE ascii_bin NOT NULL COMMENT 'Chalmers ID for owner or responsible person',
   `room` varchar(10) DEFAULT NULL COMMENT 'Room code',
   `optionspace` varchar(16) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL COMMENT 'Option space to define',
   `changed_by` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Cid of last changer',
@@ -256,6 +258,7 @@ CREATE TABLE IF NOT EXISTS `hosts` (
   KEY `group` (`group`),
   KEY `mac` (`mac`),
   KEY `entry_status` (`entry_status`),
+  KEY `cid` (`cid`),
   KEY `room` (`room`),
   KEY `optionspace` (`optionspace`),
   KEY `optionset` (`optionset`)
@@ -605,13 +608,13 @@ CREATE TABLE IF NOT EXISTS `privileges` (
 INSERT INTO `privileges` (`privilege`, `info`) VALUES
 ('admin_all_pools', 'Privilege group for the AdHoc DHCP management system'),
 ('grant_all_privileges', 'Privilege group for the AdHoc DHCP management system'),
-('read_all_accounts', ''),
+('read_all_accounts', 'Privilege group for the AdHoc DHCP management system'),
 ('read_all_buildings', 'Privilege group for the AdHoc DHCP management system'),
 ('read_all_groups', 'Privilege group for the AdHoc DHCP management system'),
 ('read_all_hosts', 'Privilege group for the AdHoc DHCP management system'),
-('read_all_privileges', ''),
+('read_all_privileges', 'Privilege group for the AdHoc DHCP management system'),
 ('rename_all_objects', 'Privilege group for the AdHoc DHCP management system'),
-('write_all_accounts', ''),
+('write_all_accounts', 'Privilege group for the AdHoc DHCP management system'),
 ('write_all_buildings', 'Privilege group for the AdHoc DHCP management system'),
 ('write_all_global_options', 'Privilege group for the AdHoc DHCP management system'),
 ('write_all_groups', 'Privilege group for the AdHoc DHCP management system'),
@@ -623,7 +626,7 @@ INSERT INTO `privileges` (`privilege`, `info`) VALUES
 ('write_all_optionspaces', 'Privilege group for the AdHoc DHCP management system'),
 ('write_all_pool_ranges', 'Privilege group for the AdHoc DHCP management system'),
 ('write_all_pools', 'Privilege group for the AdHoc DHCP management system'),
-('write_all_privileges', ''),
+('write_all_privileges', 'Privilege group for the AdHoc DHCP management system'),
 ('write_all_rooms', 'Privilege group for the AdHoc DHCP management system'),
 ('write_all_subnetworks', 'Privilege group for the AdHoc DHCP management system'),
 ('write_literal_options', 'Privilege group for the AdHoc DHCP management system');
@@ -796,7 +799,8 @@ INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES
 (41, 'served_by'),
 (42, 'vendor_class_id'),
 (43, 'id'),
-(44, 'value');
+(44, 'value'),
+(45, 'cid');
 
 -- --------------------------------------------------------
 
@@ -1041,7 +1045,8 @@ ALTER TABLE `hosts`
   ADD CONSTRAINT `hosts_ibfk_15` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `hosts_ibfk_20` FOREIGN KEY (`group`) REFERENCES `groups` (`groupname`) ON UPDATE CASCADE,
   ADD CONSTRAINT `hosts_ibfk_21` FOREIGN KEY (`room`) REFERENCES `rooms` (`id`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `hosts_ibfk_22` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `hosts_ibfk_22` FOREIGN KEY (`optionspace`) REFERENCES `optionspaces` (`value`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `hosts_ibfk_23` FOREIGN KEY (`cid`) REFERENCES `accounts` (`account`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `int_option`

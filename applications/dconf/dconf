@@ -1987,19 +1987,11 @@ _validate_pool_name()
 _validate_username()
 {
     _validate_username_arg=$1
+    
+    aid=`server_call "account_dig({'account':'$_validate_username_arg'}, {'account':true})"`
 
-    if [ `uname` = 'SunOS' ]; then
-            rv=`/usr/bin/ldapsearch -B -h ldap.chalmers.se -b ou=users,dc=chalmers,dc=se uid="${_validate_username_arg}" uidNumber | grep uidNumber | cut -f2 -d'='`
-    else
-            rv=`/usr/bin/ldapsearch -u -x -LLL -h ldap.chalmers.se -b ou=users,dc=chalmers,dc=se uid="${_validate_username_arg}" uidNumber | grep uidNumber | cut -f2 -d' '`
-    fi
-    if [ -z "$rv" ]; then
-        echo "You must specify a known username" >&2
-        return
-    fi
-#M or if its numeric uid is less than 200, the command is aborted with an error message.
-    if [ "$rv" -lt 200 ]; then
-        echo "You must specify a known uname of a real user. System accounts may not be used." >&2
+    if [ x"$_validate_username_arg" != x"$aid" ]; then
+        echo "You must specify a known username. You cannot use service accounts." >&2
         return
     fi
 
@@ -2219,14 +2211,19 @@ db_hostadd()
     hgrp=$2
     hdns=$3
     hstat=$4
-    hroom=$5
-    hinfo=$6
-    hsame=$7
+    huname=$5
+    hroom=$6
+    hinfo=$7
+    hsame=$8
 
     trace "New host will become member of the group '$hgrp'" >&2
 
     if [ -n "$hstat" ]; then
         proxy_call "options['status']='$hstat'"
+    fi
+    
+    if [ -n "$huname" ]; then
+    	proxy_call "options['account']='$huname'"
     fi
 
     if [ -n "$hroom" ]; then
@@ -2608,6 +2605,7 @@ check_date()
 #O addhost;s;entry_status;Specify entry status[Active|Inactive]
 #O addhost;g;group;Specify group
 #O addhost;i;info;Specify information about the host
+#O addhost;u;cid;Specify owner or responsible for the host
 #O addhost;like;hostid_or_dns;Host to be like;Specifies that this host is the same as another host, either as a host ID or DNS address;
 #M
 #M =head2 I<Description>
@@ -2653,6 +2651,10 @@ addhost()
                 addhost_r_flag=$i; shift
                 addhost_r_arg=$1; shift
                 ;;
+            -u)
+            	addhost_u_flag=$i; shift
+            	addhost_u_arg=$1; shift
+            	;;
             --like)
                 addhost_like_flag=$i; shift
                 addhost_like_arg=$1;shift
@@ -2816,7 +2818,7 @@ addhost()
     
 #M
 #M If the B<--like> I<hostid_or_dns> is given, that argument is used to lookup an already existing host and if found
-#M the new host will be given an ID that assosiates it with the already existing host, regardless of the given mac address.
+#M the new host will be given an ID that associates it with the already existing host, regardless of the given mac address.
 #M
     if [ -n "$addhost_like_flag" ]; then
         addhost_dnslike=$addhost_like_arg
@@ -2841,7 +2843,14 @@ addhost()
         fi
     fi
     
-    db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_sameas_arg}"
+#M If the B<-u> I<username> argument is given, I<username> is checked against the server's Account list.
+    if [ -n "$addhost_u_flag" -a -n "${addhost_u_arg}" ]; then
+        if [ -z "`_validate_username ${addhost_u_arg}`" ]; then
+            exit 1
+        fi
+    fi
+    
+    db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_u_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_sameas_arg}"
 }
 
 #S addoption;ao;Add an option;2;2;key value;Add an option to a class, group, host, network, subnetwork, pool or a global option.;85
@@ -3153,6 +3162,7 @@ _chgroup_foundaflag()
 #S chhost;;Change data for a host;1;1;host_id;Change the different data associated with a host;23
 #O chhost;d;dns;Change the DNS name
 #O chhost;r;room;Change the owner room number
+#O chhost;u;uname;Change the owner uname
 #O chhost;g;group;Change the group
 #O chhost;m;mac-address;Change the mac address;;mac_address
 #O chhost;s;entry_status;Change the entry's status
@@ -3180,6 +3190,11 @@ chhost()
                 chhost_g_flag=$i; shift
                 chhost_g_arg=$1; shift
                 ;;
+            -u)
+                chhost_u_flag=$i; shift
+                chhost_u_arg=$1; shift
+                ;;
+                
             -r)
                 chhost_r_flag=$i; shift
                 chhost_r_arg=$1; shift
@@ -3251,6 +3266,18 @@ chhost()
             exit 1
         fi
     fi
+    
+    
+    if [ -n "$chhost_u_flag" ]; then
+        _chhost_foundaflag
+        if [ -n "${chhost_u_arg}" ]; then
+            if [ -z "`_validate_username ${chhost_u_arg}`" ]; then
+                exit 1
+            fi
+        fi
+        proxy_call "update_template['account']='$chhost_u_arg'"
+    fi
+    
 
     if [ -n "$chhost_s_flag"  ]; then
         _chhost_foundaflag
@@ -3991,7 +4018,7 @@ lshosts()
     
     if [ -n "$lshosts_l_flag" ]; then
         data_template='"host":true,"dns":true,"mac":true,"group":true,"status":true,"room":true,"info":true'
-        echo "Host ID	DNS	Mac	Group	 Status	 Room	 Info" | _lshosts_l_fmt
+        echo "Host ID	DNS	Mac	Group	 Status	 Uname	Room	 Info" | _lshosts_l_fmt
     fi
     
     if [ -z "$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
@@ -4077,7 +4104,7 @@ lshosts()
 
 _lshosts_l_fmt()
 {
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-12s %42s %18s %32s %-9s %-8s %-8s %7s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8);}" |  sed 's/ *$//'
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-12s %42s %18s %32s %-9s %-8s %-8s %-8s %7s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8, \$9);}" |  sed 's/ *$//'
 }
 
 #S lsnetworks;ln;List networks;0;0;;List shared networks defined in the DHCP database;64
@@ -4892,6 +4919,7 @@ _progbar_zap()
 #O mkhost;n;;Do not add any host, just display a free DNS name
 #O mkhost;A;;Do not stop looking for free DNS entries when one is found - implies -n
 #O mkhost;s;entry_status;Specify entry status[Active|Inactive]
+#O mkhost;u;uname;Assign user name
 #O mkhost;r;room;Assign room number
 #O mkhost;g;group;Specify group
 #O mkhost;i;info;Specify information about the host
@@ -5035,7 +5063,7 @@ mkhost()
                 _progbar_zap
                 echo $mkhost_fqdn $mkhost_freeip is free
                 if [ -z "$mkhost_n_flag" ]; then
-                    addhost $mkhost_f_flag $mkhost_r_flag $mkhost_r_arg $mkhost_s_flag $mkhost_s_arg $mkhost_g_flag $mkhost_g_arg  -d $mkhost_fqdn -i "$mkhost_i_arg" `echo $mkhost_fqdn | tr '.' '_'` $mkhost_mac
+                    addhost $mkhost_f_flag $mkhost_r_flag $mkhost_r_arg $mkhost_u_flag $mkhost_u_arg $mkhost_s_flag $mkhost_s_arg $mkhost_g_flag $mkhost_g_arg  -d $mkhost_fqdn -i "$mkhost_i_arg" `echo $mkhost_fqdn | tr '.' '_'` $mkhost_mac
                     exit $?
                 fi
                 if [ -z "$mkhost_A_flag" ]; then

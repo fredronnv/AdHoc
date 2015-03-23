@@ -4,7 +4,7 @@
 
 from rpcc import *
 from optionspace import *
-from group import ExtGroup
+from group import *
 from room import *
 from optionset import *
 from util import *
@@ -123,6 +123,19 @@ class ExtHostRoom(ExtOrNull):
     name = "host_room"
     desc = "Location of a host"
     typ = ExtString
+    
+    
+class ExtHostAccount(ExtOrNull):
+    name = "host_account"
+    desc = "Host owner or responsible"
+    typ = ExtString
+    
+    def lookup(self, fun, cval):
+        if cval is None:
+            return None
+        
+        fun.account_manager.get_account(str(cval))  # We don't look up the account here, just checking that it exists
+        return cval
 
 
 class HostFunBase(SessionedFunction):  
@@ -210,6 +223,7 @@ class Host(AdHocModel):
         self.dns = a.pop(0)
         self.group = a.pop(0)
         self.mac = a.pop(0)
+        self.cid = a.pop(0)
         self.room = a.pop(0)
         self.optionspace = a.pop(0)
         self.info = a.pop(0)
@@ -223,7 +237,7 @@ class Host(AdHocModel):
         # print "GET_HOST"
         return self
 
-    @template("group", ExtGroup)
+    @template("group", ExtGroup, desc="Group which the host belongs to")
     def get_group(self):
         p = self.group_manager.get_group(self.group)
         return p
@@ -232,23 +246,30 @@ class Host(AdHocModel):
     def get_optionspace(self):
         return self.optionspace
     
-    @template("dns", ExtHostDns)
+    @template("dns", ExtHostDns, desc="The Domain Name System address of the host")
     def get_dns(self):
         return self.dns
     
-    @template("mac", ExtMacAddress)
+    @template("cid", ExtHostAccount, desc="Account of the owner or responsible person")
+    def get_cid(self):
+        if self.cid:
+            a = self.account_manager.get_account(self.cid)
+            return a.oid
+        return None
+    
+    @template("mac", ExtMacAddress, desc="The Media Access Control address of the host")
     def get_mac(self):
         return self.mac
     
-    @template("room", ExtHostRoom)
+    @template("room", ExtHostRoom, desc="Expected location of the host")
     def get_room(self):
         return self.room
     
-    @template("status", ExtHostStatus)
+    @template("status", ExtHostStatus, desc="Status of the host")
     def get_status(self):
         return self.status
     
-    @template("info", ExtHostInfo)
+    @template("info", ExtHostInfo, desc="Notes about the host")
     def get_info(self):
         return self.info
     
@@ -266,6 +287,7 @@ class Host(AdHocModel):
     
     @template("optionset", ExtOptionset, model=Optionset)
     def get_optionset(self):
+        #print self, self.optionset
         return self.optionset_manager.get_optionset(self.optionset)
     
     @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this host")
@@ -284,7 +306,11 @@ class Host(AdHocModel):
     def set_name(self, host_name):
         nn = str(host_name)
         q = "UPDATE hosts SET id=:value WHERE id=:name LIMIT 1"
-        self.db.put(q, name=self.oid, value=nn)
+        try:
+            self.db.put(q, name=self.oid, value=nn)
+        except IntegrityError as e:
+            print e
+            raise ExtHostAlreadyExistsError()
         # print "Host %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
         self.event_manager.add("rename", host=self.oid, newstr=nn, authuser=self.function.session.authuser)
@@ -339,6 +365,13 @@ class Host(AdHocModel):
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", host=self.oid, dns=value, authuser=self.function.session.authuser)
         
+    @update("cid", ExtHostAccount)
+    @entry(g_write)
+    def set_cid(self, account):
+        q = "UPDATE hosts SET cid=:value WHERE id=:name"
+        self.db.put(q, name=self.oid, value=account)
+        self.event_manager.add("update", host=self.oid, cid=account, authuser=self.function.session.authuser)
+        
     @update("status", ExtHostStatus)
     @entry(g_write)
     def set_status(self, value):
@@ -362,7 +395,7 @@ class HostManager(AdHocManager):
         
     @classmethod
     def base_query(cls, dq):
-        dq.select("h.id", "h.dns", "h.`group`", "h.mac", "h.room", 
+        dq.select("h.id", "h.dns", "h.`group`", "h.mac", "h.cid", "h.room", 
                   "h.optionspace", "h.info", "h.entry_status", 
                   "h.mtime", "h.changed_by", "h.optionset")
         dq.table("hosts h")
@@ -394,6 +427,11 @@ class HostManager(AdHocManager):
     def s_info(self, dq):
         dq.table("hosts h")
         return "h.`info`"
+    
+    @search("cid", StringMatch)
+    def s_cid(self, dq):
+        dq.table("hosts h")
+        return "h.`cid`"
     
     @search("room", StringMatch)
     def s_room(self, dq):
@@ -530,7 +568,11 @@ class HostManager(AdHocManager):
         
         if host.status == "Active":
             gm = self.group_manager
-            self.group_manager.adjust_hostcount(gm.get_group(host.group), -1)
+            try:
+                grp = gm.get_group(host.group)
+                self.group_manager.adjust_hostcount(grp, -1)
+            except ExtNoSuchGroupError:
+                pass
         
         # print "Host destroyed, name=", host.oid
        

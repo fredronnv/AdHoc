@@ -124,7 +124,7 @@ class T0460_NetworkSetOption(NetworkAdminTests):
         
         try:
             with AssertAccessError(self):
-                self.proxy.network_options_update("network_test", {"subnet-mask": "255.255.255.0"})
+                self.proxy.network_option_update("network_test", {"subnet-mask": "255.255.255.0"})
                 nd = self.superuser.network_fetch('network_test', {"info": True, "network": True, "optionset": True, "optionset_data": {"subnet-mask": True}})
                 assert nd.network == "network_test", "Bad network id"
                 assert nd.info == u"Testnätverk 2", "Bad info"
@@ -147,8 +147,8 @@ class T0470_NetworkUnsetOption(NetworkAdminTests):
         try:
             with AssertAccessError(self):
 
-                self.proxy.network_options_update("network_test", {"subnet-mask": "255.255.255.0"})
-                self.proxy.network_options_update("network_test", {"subnet-mask": None})
+                self.proxy.network_option_update("network_test", {"subnet-mask": "255.255.255.0"})
+                self.proxy.network_option_update("network_test", {"subnet-mask": None})
                 
                 nd = self.superuser.network_fetch("network_test", {"info": True, "network": True, "optionset_data": {"subnet-mask": True, "_remove_nulls": True}})
                 assert nd.network == "network_test", "Bad network id"

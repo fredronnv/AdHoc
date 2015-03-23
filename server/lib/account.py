@@ -35,7 +35,13 @@ class AccountCreate(SessionedFunction):
 
     def do(self):
         self.account_manager.create_account(self, self.account_name, self.fname, self.lname)
-        
+
+
+class ExtAccountStatus(ExtOrNull):
+    name = "account_status"
+    desc = "Account status. To be synchronized with PDB"
+    typ = ExtString
+
 
 class AccountDestroy(AccountFunBase):
     extname = "account_destroy"
@@ -56,40 +62,52 @@ class Account(AdHocModel):
         self.oid = a.pop(0)
         self.fname = a.pop(0)
         self.lname = a.pop(0)
+        self.status = a.pop(0)
 
-    @template("account", ExtAccount)
+    @template("account", ExtAccount, desc="Account id (cid)")
     @entry(g_read)
     def get_account(self):
         return self
 
-    @template("fname", ExtString)
+    @template("fname", ExtString, desc="First name of the account owner")
     @entry(g_read)
     def get_fname(self):
         return self.fname
     
-    @template("lname", ExtDateTime)
+    @template("lname", ExtString, desc="Last name of the account owner")
     @entry(g_read)
     def get_lname(self):
         return self.lname
+
+    @template("status", ExtAccountStatus, desc="PDB status")
+    @entry(g_read)
+    def get_status(self):
+        return self.status
     
-    @template("granted_privileges", ExtPrivilegeList)
+    @template("granted_privileges", ExtPrivilegeList, desc="AdHoc privileges granted for the account")
     @entry(g_read)
     def get_privileges(self):
         q = "SELECT privilege FROM account_privilege_map WHERE account=:account"
-        privileges= self.db.get(q, account=self.oid)
+        privileges = self.db.get(q, account=self.oid)
         return [x[0] for x in privileges]
 
     @update("fname", ExtString)
     @entry(g_write)
-    def set_authoritative(self, fname):
+    def set_fname(self, fname):
         q = "UPDATE accounts SET fname=:fname WHERE id=:id"
         self.db.put(q, id=self.oid, fname=fname)
         
     @update("lname", ExtString)
     @entry(g_write)
-    def set_authoritative(self, lname):
+    def set_lname(self, lname):
         q = "UPDATE accounts SET lname=:lname WHERE id=:id"
         self.db.put(q, id=self.oid, lname=lname)
+        
+    @update("status", ExtAccountStatus)
+    @entry(g_write)
+    def set_status(self, status):
+        q = "UPDATE accounts SET status=:status WHERE id=:id"
+        self.db.put(q, id=self.oid, status=status)
 
 
 class AccountManager(AdHocManager):
@@ -104,7 +122,7 @@ class AccountManager(AdHocManager):
     @classmethod    
     def base_query(self, dq):
         dq.table("accounts a")
-        dq.select("a.account", "a.fname", "a.lname")
+        dq.select("a.account", "a.fname", "a.lname", "a.status")
         return dq
 
     def get_account(self, account_name):
@@ -133,7 +151,7 @@ class AccountManager(AdHocManager):
         except IntegrityError:
             raise ExtAccountAlreadyExistsError()
         
-        #print "Account created, account_name=", account_name
+        # print "Account created, account_name=", account_name
         
     @entry(g_write)
     def destroy_account(self, fun, account):

@@ -644,7 +644,26 @@ class AssertRPCCError(object):
                 if not ex_type:
                     return True
                 return False
-            
+
+           
+class AllowRPCCError(object):
+        """ This class implements a simple context manager in which the tests wraps operations using the python 'with' statement.
+        Given a RPCCError exception name the method 
+        will silently swallow exception of the staring with the given name. 
+        """
+        def __init__(self, name):
+            self.exception_name = name
+
+        def __enter__(self):
+            return True
+        
+        def __exit__(self, ex_type, value, traceback):
+            if not ex_type:
+                return True
+            if ex_type == rpcc_client.RPCCError and value[0]["name"].startswith(self.exception_name):
+                return True
+            return False
+          
             
 class AssertAccessError(object):
         """ This class implements an elaboration of AssertRPCCError above. 

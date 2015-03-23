@@ -9,6 +9,7 @@ import tempfile
 import subprocess
 from adhoc_version import *
 from util import *
+from pickle import NONE
 
 
 class ExtDhcpdRejectsConfigurationError(ExtValueError):
@@ -103,26 +104,54 @@ class DHCPManager(AdHocManager):
         #            group_literal_options, pool_literal_options, class_literal_options,
         #            bool_option, str_option, int_option and hosts
         # Stratum 4: host_literal_options, optionset_boolval, optionset:strval and optionset_intval
-        
         # Truncate all tables first, in reverse stratum order
         
-        for table in ["host_literal_options", "optionset_boolval", "optionset_strval", "optionset_intval", "optionset_ipaddrval", "optionset_ipaddrarrayval", "optionset_intarrayval"]:
+        # Stratum 4
+        for table in ["host_literal_options", 
+                      "optionset_boolval", 
+                      "optionset_strval", 
+                      "optionset_intval", 
+                      "optionset_ipaddrval", 
+                      "optionset_ipaddrarrayval", 
+                      "optionset_intarrayval"]:
             self.db.put("TRUNCATE TABLE %s;" % table)
-            
+         
+        # Stratum 3   
         for table in ["pool_ranges", 
-                      "group_literal_options", "pool_literal_options", "class_literal_options", "hosts",
-                      "bool_option", "str_option", "int_option", "ipaddr_option", "ipaddrarray_option", "intarray_option"]:
+                      "group_literal_options", 
+                      "pool_literal_options", 
+                      "class_literal_options", 
+                      "hosts",
+                      "bool_option", 
+                      "str_option", 
+                      "int_option", 
+                      "ipaddr_option", 
+                      "ipaddrarray_option", 
+                      "intarray_option"]:
             self.db.put("TRUNCATE TABLE %s;" % table)
         
+        # Stratum 2. The groups table references itself, so we have to turn off foreign key checks
         self.db.put("SET foreign_key_checks=0")
         self.db.put("TRUNCATE TABLE groups")
         self.db.put("TRUNCATE TABLE group_groups_flat")
         self.db.put("SET foreign_key_checks=1")
         
-        for table in ["option_base", "pools", "classes", "subnetworks"]:
+        for table in ["option_base", 
+                      "pools", 
+                      "classes", 
+                      "subnetworks"]:
             self.db.put("TRUNCATE TABLE %s" % table)
+        
+        self.db.put("DELETE FROM accounts WHERE account != 'srvadhoc' AND account != 'int_0002'")
             
-        for table in ["optionspaces", "networks", "dhcp_servers", "global_options", "buildings", "rooms", "optionset"]:
+        # Stratum 1
+        for table in ["optionspaces", 
+                      "networks", 
+                      "dhcp_servers", 
+                      "global_options", 
+                      "buildings", 
+                      "rooms", 
+                      "optionset"]:
             self.db.put("TRUNCATE TABLE %s" % table)
             
         #
@@ -375,13 +404,14 @@ class DHCPManager(AdHocManager):
                     self.db.put(qp, address=address, value=value, changed_by=changed_by, mtime=mtime)
         
         # hosts
-        qf = "SELECT id, `group`, mac, room, optionspace, changed_by, mtime, info, entry_status FROM hostlist"
-        qp = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, changed_by, mtime, info, entry_status, optionset)
-        VALUES (:id, :dns, :group, :mac, :room, :optionspace, :changed_by, :mtime, :info, :entry_status, :optset)"""
+        qf = "SELECT id, `group`, mac, room, optionspace, changed_by, mtime, info, entry_status, owner_CID FROM hostlist"
+        qp = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, changed_by, mtime, info, entry_status, optionset, cid)
+        VALUES (:id, :dns, :group, :mac, :room, :optionspace, :changed_by, :mtime, :info, :entry_status, :optset, :cid)"""
         # print
         # print "HOSTS"
         # datecounts = {}
-        for(my_id, group, mac, room, optionspace, changed_by, mtime, info, entry_status) in self.odb.get(qf):
+        cids = set()
+        for(my_id, group, mac, room, optionspace, changed_by, mtime, info, entry_status, cid) in self.odb.get(qf):
             dns = my_id
             
             mdate = mtime.strftime("%Y%m%d")
@@ -393,18 +423,41 @@ class DHCPManager(AdHocManager):
                 room = None
             else:
                 room = room.upper()
+               
             # Add yet unseen rooms into the rooms table    
             if room and room not in rooms:
                 self.db.insert(id, "INSERT INTO rooms (id, info, changed_by) VALUES (:id, :info, :changed_by)",
-                               id=room, info="Auto inserted on hosts migration", changed_by="dconf-ng")
+                               id=room, info="Auto inserted on hosts migration", changed_by="AdHoc_server")
                 rooms.add(room)
+                
+            # Handle cid quirks
+            if cid == 'root' or cid == 'nobody':
+                cid = None
+            else:
+                cid = cid.lower()
+                
+            if cid and cid not in cids:
+                self.db.insert(id, "INSERT INTO accounts (account, status) VALUES (:cid, NULL)",
+                               cid=cid)
+                cids.add(cid)
             
             optset = self.optionsetManager.create_optionset()
             
-            # print "'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s'" % (my_id, dns, group, mac, room, optionspace, changed_by, mtime, info, entry_status)
-            # print my_id, dns, group, mac, room, optionspace, changed_by, mtime, info, entry_status
-            self.db.insert(id, qp, id=my_id, dns=dns, group=group, mac=mac, room=room, 
-                           optionspace=optionspace, changed_by=changed_by, mtime=mtime, info=info, entry_status=entry_status, optset=optset)
+            # print "'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s'" % (my_id, dns, group, mac, room, optionspace, changed_by, mtime, info, entry_status, cid)
+            # print my_id, dns, group, mac, room, optionspace, changed_by, mtime, info, entry_status, cid
+            self.db.insert(id, qp, 
+                           id=my_id, 
+                           dns=dns, 
+                           group=group,
+                           mac=mac, 
+                           room=room, 
+                           optionspace=optionspace, 
+                           changed_by=changed_by, 
+                           mtime=mtime, 
+                           info=info, 
+                           entry_status=entry_status, 
+                           optset=optset, 
+                           cid=cid)
         self.group_manager.gather_stats()
         # Stratum 4: host_literal_options and host_options
         qf = """SELECT `owner`, value, changed_by, mtime  FROM literal_options WHERE owner_type='host'"""

@@ -981,7 +981,7 @@ class Manager(object):
 
         if oid not in self._model_cache:
             if not isinstance(oid, self.manages.id_type):
-                #print "AAAA", self.manages, self.manages.id_type, type(oid)
+                # print "AAAA", self.manages, self.manages.id_type, type(oid), oid
                 raise ValueError("%s id is of type %s, but must be of type %s - supplied value %s isn't" % (self.manages.__name__, type(oid), self.manages.id_type, oid))
             args = self.args_for_model(oid)
             kwargs = self.kwargs_for_model(oid) or {}

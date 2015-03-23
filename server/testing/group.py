@@ -132,32 +132,24 @@ class T1150_GroupSetInfo(ServiceDeskTests):
                 
 class T1150_GroupSetParent(ServiceDeskTests):
     """ Test setting parent on a group"""
-
+        
     def do(self):
         
-        try:
-            self.superuser.host_destroy('QZ1243A')
-        except:
-            pass
-        try:
-            self.superuser.host_destroy('QZ1243B')
-        except:
-            pass
-        try:
-            self.superuser.host_destroy('QZ1243c')
-        except:
-            pass
-        try:
+        with AllowRPCCError("LookupError"): 
+            self.superuser.host_destroy('20111113-009A')
+        with AllowRPCCError("LookupError"): 
+            self.superuser.host_destroy('20111113-008A')
+        with AllowRPCCError("LookupError"): 
+            self.superuser.host_destroy('20111113-007A')
+        with AllowRPCCError("LookupError"): 
             self.superuser.group_destroy('QZ1243A')
-        except:
-            pass
                 
         with AssertAccessError(self):
             try:
                 self.superuser.group_create('QZ1243A', 'altiris', "TestGroup", {})
-                self.superuser.host_create_with_name('20111111-007', '00:01:02:03:04:05', {'group': 'QZ1243A'})
-                self.superuser.host_create_with_name('20111111-008', '00:01:02:03:04:06', {'group': 'QZ1243A'})
-                self.superuser.host_create_with_name('20111111-009', '00:01:02:03:04:07', {'group': 'QZ1243A'})
+                self.superuser.host_create_with_name('20111113-007A', '00:01:02:03:04:05', {'group': 'QZ1243A'})
+                self.superuser.host_create_with_name('20111113-008A', '00:01:02:03:04:06', {'group': 'QZ1243A'})
+                self.superuser.host_create_with_name('20111113-009A', '00:01:02:03:04:07', {'group': 'QZ1243A'})
                 
                 pre_hostcount_plain = self.proxy.group_fetch('plain', {'hostcount': True}).hostcount
                 pre_hostcount_altiris = self.proxy.group_fetch('altiris', {'hostcount': True}).hostcount
@@ -180,9 +172,9 @@ class T1150_GroupSetParent(ServiceDeskTests):
             
             finally:
                 try:
-                    self.superuser.host_destroy('20111111-007')
-                    self.superuser.host_destroy('20111111-008')
-                    self.superuser.host_destroy('20111111-009')
+                    self.superuser.host_destroy('20111113-007A')
+                    self.superuser.host_destroy('20111113-008A')
+                    self.superuser.host_destroy('20111113-009A')
                     self.superuser.group_destroy('QZ1243A')
                 except:
                     pass
@@ -201,7 +193,7 @@ class T1160_GroupSetOption(ServiceDeskTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.group_options_update("QZ1243A", {"subnet-mask": "255.255.255.0"})
+                self.proxy.group_option_update("QZ1243A", {"subnet-mask": "255.255.255.0"})
                 # self.proxy.network_option_set("network_test", "subnet-mask", "255.255.255.0")
                 nd = self.superuser.group_fetch('QZ1243A', data_template)
             
@@ -224,8 +216,8 @@ class T1170_GroupUnsetOption(ServiceDeskTests):
         
         with AssertAccessError(self):
             try:
-                self.proxy.group_options_update("QZ1243A", {"subnet-mask": "255.255.255.0"})
-                self.proxy.group_options_update("QZ1243A", {"subnet-mask": None})
+                self.proxy.group_option_update("QZ1243A", {"subnet-mask": "255.255.255.0"})
+                self.proxy.group_option_update("QZ1243A", {"subnet-mask": None})
                 nd = self.superuser.group_fetch("QZ1243A", data_template)
                 assert nd.group == "QZ1243A", "Bad group id"
                 assert nd.info == "TestGroup", "Bad info"

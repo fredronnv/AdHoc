@@ -5,6 +5,7 @@ Created on 28 jan 2014
 @author: bernerus
 '''
 import sys
+import os
 import kerberos
 
 true = True
@@ -179,6 +180,10 @@ def process(command, output):
 
 import StringIO
 srv_url = None
+if "DCONF_SRV_URL" in os.environ:
+    srv_url = os.environ["DCONF_SRV_URL"]
+    print >>sys.stderr, "NOTE: SERVER URL=", srv_url
+    
 srv = None
 import rpcc_client
 
