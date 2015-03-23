@@ -863,7 +863,7 @@ class DHCPManager(AdHocManager):
                     self.emit("# Not generated as there are no defined IP ranges", 4 * (indent + 1))
                 return
             
-            if not self.has_grants() and not pool.open:
+            if not self.has_grants(poolname) and not pool.open:
                 if info:
                     self.emit("# Not generated as there are no defined grants to a closed pool", 4 * (indent + 1))
                 return
@@ -879,8 +879,8 @@ class DHCPManager(AdHocManager):
             self.emit_allow_classes(poolname, 4 * (indent + 2))
             self.emit("}", 4 * (indent + 1))
             
-    def has_grants(self, poolname, indent):
-        q = "SELECT SELECT groupname FROM pool_group_map WHERE poolname=:poolname"
+    def has_grants(self, poolname):
+        q = "SELECT groupname FROM pool_group_map WHERE poolname=:poolname"
         grants = self.db.get_all(q, poolname=poolname)
         if grants:
             return True
