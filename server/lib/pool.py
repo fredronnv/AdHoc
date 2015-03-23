@@ -51,6 +51,14 @@ class ExtHostClassNotGrantedInPoolError(ExtValueError):
     desc = "The host class is not currently granted into the pool"
 
 
+class ExtPoolIsOpenError(ExtValueError):
+    desc = "The pool is open to all hosts. Grants do not apply"
+    
+    
+class ExtPoolHasGrants(ExtValueError):
+    desc = "The pool has grants. It may not be opened implicitly"
+
+
 class ExtPoolName(ExtString):
     name = "pool-name"
     desc = "Name of a pool"
@@ -74,7 +82,8 @@ class ExtPoolCreateOptions(ExtStruct):
     desc = "Optional parameters when creating a pool"
     
     optional = {"optionspace": (ExtOptionspace, "Whether the pool should declare an option space"),
-                "max_lease_time": (ExtInteger, "Maximum lease time for the pool. Default 600 seconds")
+                "max_lease_time": (ExtInteger, "Maximum lease time for the pool. Default 600 seconds"),
+                "allow_all_hosts": (ExtBoolean, "Create an open pool, all hosts are allowed to join")
                 }
     
     
@@ -141,6 +150,8 @@ class PoolGrantGroup(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
+        if self.pool.open:
+            raise ExtPoolIsOpenError()
         self.pool_manager.grant_group(self, self.pool, self.group)
 
 
@@ -151,6 +162,8 @@ class PoolGrantHostClass(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
+        if self.pool.open:
+            raise ExtPoolIsOpenError()
         self.pool_manager.grant_host_class(self, self.pool, self.host_class)
         
         
@@ -161,6 +174,8 @@ class PoolRevokeHost(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
+        if self.pool.open:
+            raise ExtPoolIsOpenError()
         self.pool_manager.revoke_host(self, self.pool, self.host)
 
         
@@ -171,6 +186,8 @@ class PoolRevokeGroup(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
+        if self.pool.open:
+            raise ExtPoolIsOpenError()
         self.pool_manager.revoke_group(self, self.pool, self.group)
 
 
@@ -181,6 +198,8 @@ class PoolRevokeHostClass(PoolFunBase):
     returns = (ExtNull)
     
     def do(self):
+        if self.pool.open:
+            raise ExtPoolIsOpenError()
         self.pool_manager.revoke_host_class(self, self.pool, self.host_class)
 
 
@@ -217,6 +236,7 @@ class Pool(AdHocModel):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
         self.optionset = a.pop(0)
+        self.open = a.pop(0)
 
     @template("pool", ExtPool)
     def get_pool(self):
@@ -283,6 +303,10 @@ class Pool(AdHocModel):
         classes = self.db.get(q, pool=self.oid)
         return [x[0] for x in classes]
     
+    @template("open", ExtBoolean)
+    def get_open(self):
+        return self.open
+    
     @update("pool", ExtString)
     @entry(g_rename)  
     def set_pool(self, pool_name):
@@ -324,7 +348,18 @@ class Pool(AdHocModel):
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("rename", pool=self.oid, max_lease_time=value, authuser=self.function.session.authuser)
         
-
+    @update("open", ExtBoolean)
+    @entry(g_write)       
+    def set_open(self, value):
+        if self.open == value:
+            return  # No change
+        if not self.open and self.get_granted_hosts() or self.get_granted_groups() or self.get_granted_host_classes():
+                raise ExtPoolHasGrants()
+        q = "UPDATE pools SET open=:value WHERE poolname=:name"
+        self.db.put(q, name=self.oid, value=value)
+        self.event_manager.add("update", pool=self.oid, max_lease_time=value, authuser=self.function.session.authuser)
+                
+                
 class PoolManager(AdHocManager):
     name = "pool_manager"
     manages = Pool
@@ -337,7 +372,7 @@ class PoolManager(AdHocManager):
     @classmethod
     def base_query(cls, dq):
         dq.select("g.poolname", "g.network", "g.optionspace", "g.max_lease_time",
-                  "g.info", "g.mtime", "g.changed_by", "g.optionset")
+                  "g.info", "g.mtime", "g.changed_by", "g.optionset", "g.open")
         dq.table("pools g")
         return dq
 
@@ -372,23 +407,27 @@ class PoolManager(AdHocManager):
     def create_pool(self, fun, pool_name, network, info, options):
         if options is None:
             options = {}
+            
         optionspace = options.get("optionspace", None)
         if optionspace:
             optionspace = optionspace.oid
         max_lease_time = options.get("max_lease_time", 600)
         
+        open = options.get("allow_all_hosts", False)
+        
         optionset = self.optionset_manager.create_optionset()
         
-        q = """INSERT INTO pools (poolname, network, optionspace, max_lease_time, info, changed_by, optionset) 
-               VALUES (:pool_name, :network, :optionspace, :max_lease_time, :info, :changed_by, :optionset)"""
+        q = """INSERT INTO pools (poolname, network, optionspace, max_lease_time, info, changed_by, optionset, open) 
+               VALUES (:pool_name, :network, :optionspace, :max_lease_time, :info, :changed_by, :optionset. :open)"""
         try:
             self.db.insert("id", q, pool_name=pool_name, network=network.oid, 
                            optionspace=optionspace, max_lease_time=max_lease_time,
-                           info=info, changed_by=fun.session.authuser, optionset=optionset)
+                           info=info, changed_by=fun.session.authuser, optionset=optionset,
+                           open=open)
             # print "Pool created, name=", pool_name
             self.event_manager.add("create", pool=pool_name, parent_object=network.oid, 
                                    optionspace=optionspace, max_lease_time=max_lease_time,
-                                   info=info, authuser=fun.session.authuser, optionset=optionset)
+                                   info=info, authuser=fun.session.authuser, optionset=optionset, open=int(open))
         except IntegrityError, e:
             raise ExtPoolAlreadyExistsError()
     

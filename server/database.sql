@@ -723,7 +723,8 @@ INSERT INTO `rpcc_event_int_attr` (`id`, `name`) VALUES
 (3, 'newint'),
 (2, 'oldint'),
 (4, 'optionset'),
-(9, 'literal_option_id');
+(9, 'literal_option_id'),
+(10, 'open');
 
 -- --------------------------------------------------------
 
