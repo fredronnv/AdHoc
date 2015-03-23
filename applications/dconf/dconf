@@ -2125,7 +2125,7 @@ proxy_call()
     local result
     #echo "proxyin=" $proxyin >&2
     trace "proxy_call: ""$@"
-    /bin/true # This seems to keep the named pipes from hanging on Linux. Don't know why!
+    /bin/true 2>/dev/null # This seems to keep the named pipes from hanging on Linux. Don't know why!
     echo "$@" > "$proxyin"
     cat $proxyout >/dev/null
     #result=`cat $proxyout`
@@ -2138,7 +2138,7 @@ server_call()
     local result
     
     trace "server_call: res = srv.$@"
-    /bin/true # This seems to keep the named pipes from hanging on Linux. Don't know why!
+    /bin/true 2>/dev/null # This seems to keep the named pipes from hanging on Linux. Don't know why!
     echo "res = srv.""$@" > "$proxyin"
     cat $proxyout
     trace "server_call done"
@@ -2853,7 +2853,7 @@ addhost()
     db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_u_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_sameas_arg}"
 }
 
-#S addoption;ao;Add an option;2;2;key value;Add an option to a class, group, host, network, subnetwork, pool or a global option.;85
+#S addoption;ao;Add an option;2;2;key value;Add an option to a class, group, host, network, subnetwork, pool or a global option.;95
 #O addoption;c;class;Add option to this class
 #O addoption;g;group;Add option to this group
 #O addoption;p;pool;Add option to this pool
@@ -3275,7 +3275,7 @@ chhost()
                 exit 1
             fi
         fi
-        proxy_call "update_template['account']='$chhost_u_arg'"
+        proxy_call "update_template['cid']='$chhost_u_arg'"
     fi
     
 
@@ -3318,7 +3318,7 @@ _chhost_foundaflag()
     chhost_anyflag=1
 }
 
-#S choption;co;Change an option;2;2;key value;Modify an option of a group, class, host, network, subnetwork, pool or a global option;86
+#S choption;co;Change an option;2;2;key value;Modify an option of a group, class, host, network, subnetwork, pool or a global option;96
 #O choption;c;class;Change option for this class
 #O choption;g;group;Change option for this group
 #O choption;p;pool;Change option for this pool
@@ -3438,7 +3438,7 @@ chroom()
     server_call "room_update('$_chroom_id', options)"
 }
 
-#S defoption;;Define an option;2;3;name type [info];Define a new option;83
+#S defoption;;Define an option;2;3;name type [info];Define a new option;93
 #O defoption;s;namespace;Assign the option to a namespace
 #O defoption;c;code;Assign a DHCP code to the option
 #O defoption;q;qualifier;Type qualifier
@@ -3612,7 +3612,7 @@ defoption()
     server_call "option_def_create('$_defoption_name', $_defoption_code_py, '$_defoption_type', '$_defoption_info', {$_defoption_optstring})"
     
 }
-#S defspace;;Define namespace;1;2;name [info];Define an option namespace;81
+#S defspace;;Define namespace;1;2;name [info];Define an option namespace;91
 #O defspace;s;;Create a site namespace. Default is a vendor namespace
 #O defspace;;
 #M
@@ -3650,7 +3650,7 @@ defspace()
     
     server_call "optionspace_create('$_defspace_name', '$_defspace_type', '$_defspace_info')"
 }
-#S deleteoption;;Delete an option;1;1;name;Delete an option definition;84
+#S deleteoption;;Delete an option;1;1;name;Delete an option definition;94
 #M
 #M =head2 I<Description>
 #M
@@ -3688,7 +3688,7 @@ deleteroom()
     proxy_start
     server_call "room_destroy('$_deleteroom_name')"
 }
-#S deletespace;;Delete namespace;1;1;name;Delete an option namespace;82
+#S deletespace;;Delete namespace;1;1;name;Delete an option namespace;92
 #M
 #M =head2 I<Description>
 #M
@@ -4017,8 +4017,8 @@ lshosts()
     fi
     
     if [ -n "$lshosts_l_flag" ]; then
-        data_template='"host":true,"dns":true,"mac":true,"group":true,"status":true,"room":true,"info":true'
-        echo "Host ID	DNS	Mac	Group	 Status	 Uname	Room	 Info" | _lshosts_l_fmt
+        data_template='"host":true,"dns":true,"mac":true,"group":true,"status":true,"cid":true,"room":true,"info":true'
+        echo "Host ID	DNS	Mac	Group	Status	Uname	Room	Info" | _lshosts_l_fmt
     fi
     
     if [ -z "$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
@@ -4104,7 +4104,8 @@ lshosts()
 
 _lshosts_l_fmt()
 {
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-12s %42s %18s %32s %-9s %-8s %-8s %-8s %7s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8, \$9);}" |  sed 's/ *$//'
+	
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-13s %42s %18s %32s %-9s %-8s %-8s %-8s %7s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9);}" |  sed 's/ *$//'
 }
 
 #S lsnetworks;ln;List networks;0;0;;List shared networks defined in the DHCP database;64
@@ -4159,7 +4160,7 @@ _lsnetworks_fmt()
 {
     sed 's/NULL//' | awk -F'	' '{ printf("%-18s %4s %s\n",$1,$2,$3);}' |  sed 's/ *$//'
 }
-#S lsoptions;;List options;0;0;;List DHCP options defined in the database;88
+#S lsoptions;;List options;0;0;;List DHCP options defined in the database;98
 #O lsoptions;c;class;List the options for a I<class>
 #O lsoptions;g;group;List the options for a I<group>
 #O lsoptions;H;host;List the options for a I<host>
@@ -4663,14 +4664,14 @@ _lsoptions_all_fmt()
 #M
 lspools()
 {
-    echo "Pool name	Members	Network	Max. lease	Info" | _lspools_fmt
+    echo "Pool name	Network	Max. lease	Access	Info" | _lspools_fmt
     echo "Range served by	Range Start	Range End" | _lspoolrange_fmt
     
     proxy_start
     pools=`server_call 'pool_dig({},{"pool":true})'`
     
     for p in $pools; do
-        server_call "pool_fetch('$p',{'pool':true,'network':true,'max_lease_time':true,'info':true})" | _lspools_fmt
+        server_call "pool_fetch('$p',{'pool':true,'network':true,'max_lease_time':true, 'open':true, 'info':true})" | _lspools_fmt
         server_call "pool_range_dig({'pool':'$p'},{'served_by_data':{'dns':true},'start_ip':true,'end_ip':true})" | _lspoolrange_fmt
         echo
     done
@@ -4678,7 +4679,7 @@ lspools()
 
 _lspools_fmt()
 {
-    sed 's/NULL//' | awk -F'	' '{ printf("%-23s %-15s %-15s %-10s %-40s\n",$1,$2,$3,$4,$5);}' |  sed 's/ *$//'
+    awk -F'	' '{ open=$4; if($4==1) {open="Open"}; if($4=="NULL") {open="Closed"}; printf("%-23s %-28s %-15s %-10s %6s %-40s\n",$1,$2,$3,open,$5,$6);}' |  sed 's/ *$//'
 }
 
 _lspoolrange_fmt()
@@ -5088,7 +5089,7 @@ mkhost()
     exit 2
 }
 
-#S rmoption;;Remove an option;1;1;key;Remove an option from a group, class, host, network, subnetwork, pool or a global option;87
+#S rmoption;;Remove an option;1;1;key;Remove an option from a group, class, host, network, subnetwork, pool or a global option;97
 #O rmoption;c;class;Remove option for this class
 #O rmoption;g;group;Remove option for this group
 #O rmoption;p;pool;Remove option for this pool
@@ -5130,9 +5131,8 @@ _rmoption()
 #T DHCP Networks;60
 #T DHCP Sub-networks;65
 #T DHCP Pools;70
-#T DHCP Options handling;80
+#T DHCP Options handling;90
 #T Rooms;100
-#T Buildings;110
 
 #S addnetwork;;Create a network;1;1;network_name;Create a new shared network definition;61
 #O addnetwork;i;desc;Network description;M;
@@ -5299,6 +5299,7 @@ deletenetwork()
 #O mkpool;max_lease;seconds;Specify maximum lease time;;leasetime
 #O mkpool;i;info;Pool description;M;description
 #O mkpool;network;network;Network where pool is active;M;
+#O mkpool;open;;Make a pool open to all hosts
 #O mkpool;optionspace;optionspace;Option space to activate;;
 #M =head2 I<Description>
 #M
@@ -5327,6 +5328,9 @@ mkpool()
                 mkpool_max_lease_flag=$i; shift
                 mkpool_max_lease_arg=$1; shift
                 ;;
+            --open)
+            	mkpool_open_flag=$i; shift
+            	;;
             --)
                 shift;break
                 ;;
@@ -5374,6 +5378,10 @@ mkpool()
     else
         echo "You must describe the pool using -i"
         exit
+    fi
+    
+    if [ -n "$mkpool_open_flag" ]; then
+    	proxy_call "options['allow_all_hosts']=True"
     fi
 
     server_call "pool_create('$mkpool_poolname', '$mkpool_network_arg', '$mkpool_i_arg', options)"
@@ -5466,11 +5474,30 @@ rmrange()
 
     server_call "pool_range_destroy('$rmrange_start')"
 }
+#S rmpool;;Remove a pool;1;1;pool_name;Remove a pool completely from the database;80
+#M =head2 I<Description>
+#M
+#M The rmpool subcommand lets you remove a pool
+#M
+rmpool()
+{
+	if db_exists pool $1; then
+        :
+    else
+        echo "The pool named $1 is not defined"
+        exit 1
+    fi
+    
+    rmpool_poolname=$1
+     
+    server_call "pool_destroy('$rmpool_poolname')"
+}
 #S chpool;;Change pool configuration;1;1;pool_name;Change the configuration of a pool;76
 #O chpool;max_lease;seconds;Specify maximum lease time;;leasetime
 #O chpool;i;info;Pool description;;description
 #O chpool;network;network;Network where pool is active;;
 #O chpool;optionspace;optionspace;Option space to activate;;
+#O chpool;access;open/closed;Access status, open or closed
 #M =head2 I<Description>
 #M
 #M The chpool subcommand lets you change the parameters of a DHCP pool.
@@ -5483,6 +5510,10 @@ chpool()
                 chpool_optionspace_flag=$i; shift
                 chpool_optionspace_arg=$1; shift
                 ;;
+            --access)
+            	chpool_access_flag=$i; shift
+            	chpool_access_arg=$1; shift
+            	;;
             --network)
                 chpool_network_flag=$i; shift
                 chpool_network_arg=$1; shift
@@ -5509,10 +5540,24 @@ chpool()
         echo "The pool named $1 is not defined"
         exit 1
     fi
-
+    
+    
     chpool_poolname=$1
     
     proxy_call "options={}"
+    
+    if [ -n "$chpool_access_flag" ]; then
+    	if [ -n "$chpool_access_arg" ]; then
+    		if  [ "$chpool_access_arg" = "open" ]; then
+    			proxy_call "options['open']=True"
+    	    elif [ "$chpool_access_arg" = "closed" ]; then
+    	        proxy_call "options['open']=False"
+    		else 
+    			echo "Only 'open' or 'closed' as argument to --access please"
+    			exit 1
+    		fi
+    	fi
+	fi
 
     if [ -n "$chpool_optionspace_flag" ]; then
         if db_exists optionspace $chpool_optionspace_arg; then

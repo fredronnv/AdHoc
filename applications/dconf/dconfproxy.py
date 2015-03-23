@@ -34,11 +34,15 @@ def template2keys(template, indent=1):
         if key.endswith('"') or key.endswith("'"):
             key = key[:-1]
         kvtuples.append((key, val))
-    # print >>sys.stderr, "    " * indent + "Template2keys: kvtuples=", kvtuples
+    # print >>sys.stderr, "    " * indent + 
+    
+    "Template2keys: kvtuples=", kvtuples
     return kvtuples
 
 
 def print_struct_in_order(x, kvtuples, template, output, indent=1):
+    """ Given an array of key/value tuples and a simple data template, print the values in the order specified by the data template to output"""
+    
     # print >>sys.stderr, "    " * indent + "print_struct_in_order: x=", x, "kvtuples=", kvtuples, "template=", template, "indent=", indent
     values = []
     for kvtuple in kvtuples:
@@ -58,16 +62,17 @@ def print_struct_in_order(x, kvtuples, template, output, indent=1):
                 values.append("NULL")
         else:
             print_object_in_template_order(x[key], keyval, output, indent=indent + 1)
-            output.write(" \t")
+            output.write("\t")
     # print >>sys.stderr, "VALUES=", values
     if len(values) == 1 and type(values[0]) is list:
         # print >>sys.stderr ,"LIST=", values[0]
         output.write("\n".join(values[0]))
     else:  
-        output.write(" \t".join(values))
+        output.write("\t".join(values))
     
     
 def print_object_in_template_order(obj, template, output, indent=1):
+    """ Given an array of key/value tuples or a list of such, and data template, print the values in the order specified by the data template to output"""
     # print >>sys.stderr, "    " * (indent - 1) + "  " + "print_object_in_template_order: obj=", obj, "template=", template, "indent=", indent
     if type(obj) is list:
         for o in obj:
