@@ -418,12 +418,12 @@ class PoolManager(AdHocManager):
         optionset = self.optionset_manager.create_optionset()
         
         q = """INSERT INTO pools (poolname, network, optionspace, max_lease_time, info, changed_by, optionset, open) 
-               VALUES (:pool_name, :network, :optionspace, :max_lease_time, :info, :changed_by, :optionset. :open)"""
+               VALUES (:pool_name, :network, :optionspace, :max_lease_time, :info, :changed_by, :optionset, :open)"""
         try:
             self.db.insert("id", q, pool_name=pool_name, network=network.oid, 
                            optionspace=optionspace, max_lease_time=max_lease_time,
                            info=info, changed_by=fun.session.authuser, optionset=optionset,
-                           open=open)
+                           open=int(open))
             # print "Pool created, name=", pool_name
             self.event_manager.add("create", pool=pool_name, parent_object=network.oid, 
                                    optionspace=optionspace, max_lease_time=max_lease_time,
