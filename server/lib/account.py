@@ -138,6 +138,24 @@ class AccountManager(AdHocManager):
         dq.table("accounts a")
         return "a.account"
     
+    @search("fname", StringMatch)
+    @entry(g_read)
+    def s_fname(self, dq):
+        dq.table("accounts a")
+        return "a.fname"
+    
+    @search("lname", StringMatch)
+    @entry(g_read)
+    def s_lname(self, dq):
+        dq.table("accounts a")
+        return "a.lname"
+    
+    @search("status", StringMatch)
+    @entry(g_read)
+    def s_status(self, dq):
+        dq.table("accounts a")
+        return "a.status"
+    
     @entry(g_write)
     def create_account(self, fun, account_name, fname, lname):
         
