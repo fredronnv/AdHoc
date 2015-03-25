@@ -94,19 +94,19 @@ class Account(AdHocModel):
     @update("fname", ExtString)
     @entry(g_write)
     def set_fname(self, fname):
-        q = "UPDATE accounts SET fname=:fname WHERE id=:id"
+        q = "UPDATE accounts SET fname=:fname WHERE account=:id"
         self.db.put(q, id=self.oid, fname=fname)
         
     @update("lname", ExtString)
     @entry(g_write)
     def set_lname(self, lname):
-        q = "UPDATE accounts SET lname=:lname WHERE id=:id"
+        q = "UPDATE accounts SET lname=:lname WHERE account=:id"
         self.db.put(q, id=self.oid, lname=lname)
         
     @update("status", ExtAccountStatus)
     @entry(g_write)
     def set_status(self, status):
-        q = "UPDATE accounts SET status=:status WHERE id=:id"
+        q = "UPDATE accounts SET status=:status WHERE account=:id"
         self.db.put(q, id=self.oid, status=status)
 
 
