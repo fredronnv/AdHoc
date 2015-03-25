@@ -7,7 +7,7 @@ from shared_network import ExtNetwork, ExtNetworkName
 from optionset import *
 from option_def import *
 from host import ExtHostList, ExtHost
-from group import ExtGroupList, ExtGroup
+from group import *
 from host_class import ExtHostClassList, ExtHostClass
 
 
@@ -418,9 +418,8 @@ class PoolManager(AdHocManager):
         open = options.get("allow_all_hosts", False)
         
         optionset_id = self.optionset_manager.create_optionset()
-    optionset = self.optionset_manager.get_optionset(optionset_id)
-    
-    optionset.set_option_by_name("max-lease-time", max_lease_time)
+        optionset = self.optionset_manager.get_optionset(optionset_id)
+        optionset.set_option_by_name("max-lease-time", max_lease_time)
         
         q = """INSERT INTO pools (poolname, network, optionspace, max_lease_time, info, changed_by, optionset, open) 
                VALUES (:pool_name, :network, :optionspace, :max_lease_time, :info, :changed_by, :optionset, :open)"""
