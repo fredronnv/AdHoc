@@ -6,7 +6,7 @@ from rpcc import *
 from util import *
 
 
-g_read = AnyGrants(AllowUserWithPriv("read_all_buildings"), AdHocSuperuserGuard)
+g_read = AnyGrants(AllowUserWithPriv("write_all_buildings"), AllowUserWithPriv("read_all_buildings"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_buildings"), AdHocSuperuserGuard)
 
 

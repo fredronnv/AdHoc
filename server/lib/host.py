@@ -11,7 +11,7 @@ from util import *
 from option_def import *
 from datetime import date
 
-g_read = AnyGrants(AllowUserWithPriv("read_all_hosts"), AdHocSuperuserGuard)
+g_read = AnyGrants(AllowUserWithPriv("write_all_hosts"), AllowUserWithPriv("read_all_hosts"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_hosts"), AdHocSuperuserGuard)
 
 

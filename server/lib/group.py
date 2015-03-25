@@ -9,7 +9,7 @@ from option_def import *
 from util import *
 
 
-g_read = AnyGrants(AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
+g_read = AnyGrants(AllowUserWithPriv("write_all_groups"), AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_groups"), AdHocSuperuserGuard)
 
 

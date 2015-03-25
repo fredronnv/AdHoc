@@ -181,21 +181,22 @@ class DHCPManager(AdHocManager):
     
         # global_options takes input also from the table basic
         # print 
-        # print "GLOBAL OPTIONS"
+        # print "BASIC  OPTIONS"
         qf = "SELECT command, arg, mtime, id FROM basic "
         qp = "INSERT INTO global_options (name, value, changed_by, mtime, id) VALUES (:name, :value, :changedby, :mtime, :id)"
         for(name, value, mtime, my_id) in self.odb.get(qf):
             # print name, value, mtime, my_id
             if name == 'ddns-update-style' and value == 'ad-hoc':
                 continue  # This mode is not supported in later versions of the dhcpd server
-            if name == 'dhcp2_timestamp':
-                name = 'dconf_timestamp'  # Reflect dhcp2 to dconf name change
             self.db.insert("id", qp, name=name, value=value, changedby="DCONF-ng", mtime=mtime, id=my_id)
         
+        # Global options
         qf = "SELECT name, value, changed_by, mtime, id FROM optionlist WHERE gtype='global'"
         qp = "INSERT INTO global_options (name, value, changed_by, mtime, id) VALUES (:name, :value, :changedby, :mtime, :id)"
         for(name, value, changedby, mtime, my_id) in self.odb.get(qf):
             # print name, value, changedby, mtime, my_id
+            if name == 'dhcp2_timestamp':
+                name = 'dconf_timestamp'  # Reflect dhcp2 to dconf name change
             self.db.insert("id", qp, name=name, value=value, changedby=changedby, mtime=mtime, id=my_id)
         
         # dhcp_servers
@@ -247,10 +248,14 @@ class DHCPManager(AdHocManager):
         # option_base is built from the dhcp_option_defs table
         # print "OPTION DEFINITIONS"
         qf = """SELECT id, name, code, qualifier, type, optionspace, info, changed_by, mtime 
-                FROM dhcp_option_defs WHERE scope='dhcp'"""
+                FROM dhcp_option_defs WHERE scope='dhcp' OR name='dhcp2_timestamp'"""
                                     
         for (my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime) in self.odb.get(qf):
             # print my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime
+            # dhcp2_timestamp is a special option for internal use by AdHoc
+            if name == 'dhcp2_timestamp':
+                name = 'dconf_timestamp'
+                qualifier = 'parameter'
             self.option_def_manager.define_option(info, changed_by, mtime, name, my_type, code, qualifier, optionspace)
             
             # Save option info for later usage when adding options
