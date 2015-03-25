@@ -9,7 +9,6 @@ import tempfile
 import subprocess
 from adhoc_version import *
 from util import *
-from pickle import NONE
 
 
 class ExtDhcpdRejectsConfigurationError(ExtValueError):

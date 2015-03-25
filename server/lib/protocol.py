@@ -3,8 +3,6 @@
 # $Id$
 
 from rpcc import *
-import datetime
-import socket
 
 
 class DhcpdConfProtocol(Protocol):
@@ -62,7 +60,7 @@ class DhcpdConfProtocol(Protocol):
                 return HTTPResponse("500 Internal server error.", ctype="text/plain", code=500)
         
             if auto and maxid <= latest_fetch:
-                return HTTPResponse(("Nothing new since last fetch at event id %d."%(latest_fetch)).encode("utf-8"), ctype="text/html", encoding="utf-8")
+                return HTTPResponse(("Nothing new since last fetch at event id %d." % (latest_fetch)).encode("utf-8"), ctype="text/html", encoding="utf-8")
                 
             db = self.server.database.get_link()
             q = "UPDATE dhcp_servers SET latest_fetch=:maxid WHERE id=:id"

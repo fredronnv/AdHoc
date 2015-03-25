@@ -287,7 +287,7 @@ class Host(AdHocModel):
     
     @template("optionset", ExtOptionset, model=Optionset)
     def get_optionset(self):
-        #print self, self.optionset
+        # print self, self.optionset
         return self.optionset_manager.get_optionset(self.optionset)
     
     @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this host")
