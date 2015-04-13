@@ -163,7 +163,7 @@ class PoolRange(AdHocModel):
         val = self.db.get_value(q, start_ip=self.start_ip, end_ip=self.end_ip)
         if val:
             raise ExtPoolRangeReversedError()
-        self.approve_model = True
+        self.approve_config = True
         self.manager.checkoverlaps(self.start_ip, self.end_ip)
         self.manager.approve()
 
@@ -218,7 +218,8 @@ class PoolRangeManager(AdHocManager):
         except IntegrityError:
             raise ExtPoolRangeAlreadyExistsError()
         self.event_manager.add("create", pool_range=start_ip, parent_object=pool.oid, authuser=fun.session.authuser, end_ip=end_ip)
-        self.approve_model = True
+        self.approve_config = True
+        self.approve()
             
     @entry(g_write)
     def destroy_pool_range(self, fun, pool_range):
@@ -228,7 +229,8 @@ class PoolRangeManager(AdHocManager):
         except IntegrityError:
             raise ExtPoolRangeInUseError()
         self.event_manager.add("destroy", pool_range=pool_range.oid)
-        self.approve_model = True
+        self.approve_config = True
+        self.approve()
         
     def getoverlaps(self, start_ip, end_ip):
         q = """SELECT start_ip, end_ip FROM pool_ranges WHERE

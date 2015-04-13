@@ -872,8 +872,15 @@ class DHCPManager(AdHocManager):
             if info:
                 self.emit("%s" % info, 4 * (indent + 1))
             
-            q = "SELECT start_ip FROM pool_ranges WHERE pool=:poolname AND (served_by=:served_by OR served_by IS NULL ) ORDER BY start_ip asc"
-            if not self.db.get_all(q, poolname=poolname, served_by=self.serverID):
+            q = "SELECT start_ip FROM pool_ranges WHERE pool=:poolname"
+            if self.serverID:
+                q += " AND (served_by=:served_by OR served_by IS NULL ) "
+            q += " ORDER BY start_ip asc"
+            if self.serverID:
+                ret = self.db.get_all(q, poolname=poolname, served_by=self.serverID)
+            else:
+                ret = self.db.get_all(q, poolname=poolname)
+            if not ret:
                 if info:
                     self.emit("# Not generated as there are no defined IP ranges", 4 * (indent + 1))
                 return

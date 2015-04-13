@@ -48,6 +48,7 @@ if [ x"$CHALMERS_DEPLOY_LEVEL" = x"prod" ]; then
     export RPCC_SERVER_SSL_CERTFILE=$HOME/etc/$ADHOC_SERVER_HOST.cert
 
     export KRB5_TRACE=$ADHOC_RUNTIME_HOME/var/log/krb5.log
+    export ADHOC_DHCPD_PATH=/usr/sbin/dhcpd
 fi
 
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"install" ]; then

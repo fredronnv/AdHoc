@@ -78,6 +78,9 @@ G. A Kerberos keytab for the principal HTTP/$HOSTNAME@CHALMERS.SE where
 H. Make sure that $HOSTNAME and the hostname command returns the fully 
    qualified host name, i.e. one ending with .chalmers.se. If not, adjust 
    the network configuration.
+   
+I. The dhcpd server binary on the adhoc server and that its version is
+   the same as on the production DHCP servers.
 
 
 ---------------------------------------------------------------------------
@@ -194,6 +197,9 @@ EOF
    chmod 600 bashrc.private
    sed s/YYY/$DBPW/ <../adhoc-server/etc/bashrc.private.prototype | sed s/ZZZ/$RDBPW/ >bashrc.private
    chown srvadhoc:srvadhoc bashrc.private
+   
+   Check that the setting of the ADHOC_DHCPD_PATH environment in bashrc.public points to
+   the installed dhcpd binary
 
 ---------------------------------------------------------------------------
 
