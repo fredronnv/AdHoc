@@ -7,7 +7,7 @@ from shared_network import ExtNetwork, ExtNetworkName
 from optionset import *
 from option_def import *
 from host import ExtHostList, ExtHost
-from group import *
+from group import ExtGroupList, ExtGroup
 from host_class import ExtHostClassList, ExtHostClass
 
 

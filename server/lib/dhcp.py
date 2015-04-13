@@ -10,6 +10,8 @@ import subprocess
 from adhoc_version import *
 from util import *
 
+g_reload = AnyGrants(AllowUserWithPriv("trigger_reload"), AdHocSuperuserGuard)
+
 
 class ExtDhcpdRejectsConfigurationError(ExtValueError):
     desc = "The resulting configuration is rejected by dhcpd."
@@ -28,6 +30,16 @@ class DhcpdConf(Function):
     def do(self):
         s = self.dhcp_manager.make_dhcpd_conf(self.server_id)
         return s
+
+
+class DhcpdReload(Function):
+    extname = "dhcpd_reload"
+    params = []
+    returns = ExtNull
+    desc = "Forcibly trigger a reload of the dhcpd configuration on all servers"
+    
+    def do(self):
+        self.dhcp_manager.trigger_reload()
 
 
 class DhcpXfer(SessionedFunction):
@@ -195,7 +207,7 @@ class DHCPManager(AdHocManager):
         for(name, value, changedby, mtime, my_id) in self.odb.get(qf):
             # print name, value, changedby, mtime, my_id
             if name == 'dhcp2_timestamp':
-                name = 'dconf_timestamp'  # Reflect dhcp2 to dconf name change
+                continue  # Not needed
             self.db.insert("id", qp, name=name, value=value, changedby=changedby, mtime=mtime, id=my_id)
         
         # dhcp_servers
@@ -253,8 +265,7 @@ class DHCPManager(AdHocManager):
             # print my_id, name, code, qualifier, my_type, optionspace, info, changed_by, mtime
             # dhcp2_timestamp is a special option for internal use by AdHoc
             if name == 'dhcp2_timestamp':
-                name = 'dconf_timestamp'
-                qualifier = 'parameter'
+                continue  # Not needed
             self.option_def_manager.define_option(info, changed_by, mtime, name, my_type, code, qualifier, optionspace)
             
             # Save option info for later usage when adding options
@@ -1155,3 +1166,7 @@ class DHCPManager(AdHocManager):
                     raise ExtDhcpdRejectsConfigurationError()
             else:
                 raise ExtDhcpdCheckConfigurationError()
+            
+    @entry(g_reload)        
+    def trigger_reload(self):
+        self.event_manager.add("reload", authuser=self.function.session.authuser)

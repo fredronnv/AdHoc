@@ -5672,11 +5672,11 @@ chrange()
 #S reload;;Reload DHCP servers;0;0;;Trigger a reload of the DHCP server configurations;002
 #M =head2 I<Description>
 #M
-#M The reload subcommand initates a reload of the DHCP server configurations by updating the global dconf_timestamp option
+#M The reload subcommand initates a reload of the DHCP server configurations
 #M
 reload()
 {
-    choption -G dconf_timestamp `date +%FT%T`
+	server_call "dhcpd_reload()"
 }
 #S chnetwork;;Change network;1;1;network-name;Change name and parameters of an already defined network;62
 #O chnetwork;A;;Turn on authoritativity for the network (excludes the use of --noA);;

@@ -629,9 +629,10 @@ INSERT INTO `privileges` (`privilege`, `info`) VALUES
 ('write_all_privileges', 'Privilege group for the AdHoc DHCP management system'),
 ('write_all_rooms', 'Privilege group for the AdHoc DHCP management system'),
 ('write_all_subnetworks', 'Privilege group for the AdHoc DHCP management system'),
-('write_literal_options', 'Privilege group for the AdHoc DHCP management system');
+('write_literal_options', 'Privilege group for the AdHoc DHCP management system'),
+('trigger_reload','Privilege group for the AdHoc DHCP management system');
 
--- --------------------------------------------------------
+-- -------------------------------------------------------
 
 --
 -- Table structure for table `rooms`
@@ -830,7 +831,8 @@ INSERT INTO `rpcc_event_type` (`id`, `name`) VALUES
 (1, 'marker'),
 (8, 'rename'),
 (10, 'revoke_access'),
-(4, 'update');
+(4, 'update'),
+(11, 'reload');
 
 -- --------------------------------------------------------
 
