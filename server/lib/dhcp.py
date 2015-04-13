@@ -32,11 +32,11 @@ class DhcpdConf(Function):
         return s
 
 
-class DhcpdReload(Function):
+class DhcpdReload(SessionedFunction):
     extname = "dhcpd_reload"
-    params = []
     returns = ExtNull
     desc = "Forcibly trigger a reload of the dhcpd configuration on all servers"
+    creates_event = True
     
     def do(self):
         self.dhcp_manager.trigger_reload()

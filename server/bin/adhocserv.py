@@ -48,7 +48,9 @@ class StartMe(object):
 
         srv.register_manager(session.DatabaseBackedSessionManager)
         
-        srv.register_manager(event.EventManager) 
+        srv.register_manager(event.EventManager)
+        event.EventManager.clean_all_markers(srv)
+        
         srv.register_from_directory(serverdir)
         srv.register_manager(authentication.KerberosAuthenticationManager)
         srv.enable_global_functions()

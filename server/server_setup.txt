@@ -25,10 +25,10 @@ A. adhoc-server-x.y.z.tar, the adhoc server package.
 
    URL: https://utveckling.ita.chalmers.se/project/2
    
-   Currently (2014-11-17) we use the following command
+   Currently (2015-04-13) we use the following command
    
    wget https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/\
-   files/adhoc-server-1.4.6.tar
+files/adhoc-server-1.6.3.tar
    
 B. The latest version of the daemon utility. This utility does a lot 
    more than the daemon function supplied by RedHat. 
@@ -285,11 +285,11 @@ Assuming logged in as root:
 2. Expand the adhoc-server distribution
 
    cd /cdg/adhoc
-   tar -xof adhoc-server.x.y.z.tar
+   tar -xof adhoc-server-x.y.z.tar
 
 3. Configure and activate the new adhoc-server installation
 
-   cd adhoc-server.x.y.z
+   cd adhoc-server-x.y.z
    ./fix-files-adhoc-server.sh
                 
 4. Restart the server

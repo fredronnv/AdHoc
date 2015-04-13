@@ -44,6 +44,7 @@ class _TEST_ViktorGuard(access.Guard):
         if fun.session.authuser == 'viktor':
             return access.AccessGranted(access.CacheInFunction)
         return access.DecisionReferred(access.CacheInFunction)
+
     
 class EventGetMaxId(SessionedFunction):
     
@@ -54,6 +55,7 @@ class EventGetMaxId(SessionedFunction):
             
     def do(self):
         return self.event_manager.get_max_id()
+ 
     
 class EventGetMaxAppId(SessionedFunction):
     
@@ -65,6 +67,7 @@ class EventGetMaxAppId(SessionedFunction):
             
     def do(self):
         return self.event_manager.get_max_id(app=True)
+
 
 class Event(Model):
     name = "event"
@@ -196,7 +199,7 @@ class EventManager(Manager):
             self.update(attrs)
 
         def append(self, child):
-            if self.always_commit == False and child.always_commit == True:
+            if not self.always_commit and child.always_commit:
                 raise ValueError("Events that should always be committed cannot be children of events that should not, since that creates a conflict if the parent is not to be written")
             self.children.append(child)
 
@@ -300,7 +303,7 @@ class EventManager(Manager):
         def new_searcher(attr, tbl, attrid):
             def _search(self, dq):
                 alias = "ss_" + attr
-                dq.outer("%(t)s %(a)s" % {'t':tbl, 'a':alias}, "(e.id=%(a)s.event AND %(a)s.attr=%(i)d)" % {'a': alias, 'i': attrid})
+                dq.outer("%(t)s %(a)s" % {'t': tbl, 'a': alias}, "(e.id=%(a)s.event AND %(a)s.attr=%(i)d)" % {'a': alias, 'i': attrid})
                 return alias + ".value"
             _search.__name__ = "search_" + attr
             _search.__doc__ = "auto-generated searcher for %s" % (attr,)
@@ -405,7 +408,19 @@ class EventManager(Manager):
         self.marker_id = self.db.insert("id", q, 
                                         tid=self.event_types["marker"], 
                                         now=self.function.started_at())
-
+ 
+    @classmethod
+    def clean_all_markers(cls, srv):
+        # NOTE: This class method is only meant to be called when
+        # there are no instances of the server running and the first
+        # (or only) instance of the server starts.
+        
+        q = "DELETE FROM rpcc_event WHERE typ=:tid"
+        db = srv.database.get_link()
+        db.put(q, tid=cls.event_types["marker"])
+        db.commit()
+        srv.database.return_link(db)
+        
     def add(self, typ, **attrs):
         attrs = attrs.copy()
         parent = attrs.pop("parent", None)
@@ -483,6 +498,6 @@ class EventManager(Manager):
             q1 += """ AND et.name NOT IN ('marker', 'call')"""
        
         rv = self.db.get(q1)[0][0]
-	if not rv:
-	    return 0
+        if not rv:
+            return 0
         return rv
