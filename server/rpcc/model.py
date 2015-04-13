@@ -717,6 +717,45 @@ class IntegerMatch(EqualityMatchMixin, Match):
         q.where(expr + ">=" + q.var(val))
 
 
+class DateTimeMatch(Match):
+    
+    @suffix("at", ExtDateTime)
+    @suffix("", ExtDateTime)
+    def eq(self, fun, q, expr, val):
+        q.where(expr + "=" + q.var(val))
+
+    @suffix("not_at", ExtDateTime)
+    def neq(self, fun, q, expr, val):
+        q.where(expr + "<>" + q.var(val))
+    
+    @suffix("before", ExtDateTime)
+    def before(self, fun, q, expr, val):
+        q.where(expr + "<=" + q.var(val))
+        
+    @suffix("after", ExtDateTime)
+    def after(self, fun, q, expr, val):
+        q.where(expr + ">=" + q.var(val))
+        
+        
+class DateMatch(Match):
+    @suffix("on", ExtDate)
+    @suffix("", ExtDate)
+    def eq(self, fun, q, expr, val):
+        q.where(expr + "=" + q.var(val))
+
+    @suffix("not_on", ExtDate)
+    def neq(self, fun, q, expr, val):
+        q.where(expr + "<>" + q.var(val))
+    
+    @suffix("before", ExtDate)
+    def before(self, fun, q, expr, val):
+        q.where(expr + "<=" + q.var(val))
+        
+    @suffix("after", ExtDate)
+    def after(self, fun, q, expr, val):
+        q.where(expr + ">=" + q.var(val))
+    
+
 class NullableIntegerMatch(NullMatchMixin, IntegerMatch):
     pass
 

@@ -460,6 +460,19 @@ class ExtDateTime(ExtString):
         return val.isoformat()[:19]
 
 
+class ExtDate(ExtString):
+    name = "date"
+    desc = 'A date in YYYY-MM-DD format, e.g. 2007-04-14'
+
+    def lookup(self, fun, cval):
+        ymd = cval
+        y, mo, d = [int(p) for p in ymd.split("-")]
+        return datetime.date(y, mo, d)
+
+    def output(self, fun, val):
+        return val.isoformat()[:19]
+
+
 ###
 # Integer
 #

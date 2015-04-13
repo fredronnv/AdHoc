@@ -33,7 +33,7 @@ import datetime
 import default_type
 import access
 
-from model import Model, Manager, template, search, IntegerMatch, StringMatch
+from model import Model, Manager, template, search, IntegerMatch, StringMatch, DateTimeMatch, DateMatch
 from access import entry
 from exttype import ExtOrNull, ExtString, ExtInteger, ExtDateTime, ExtEnum
 from function import SessionedFunction
@@ -480,6 +480,14 @@ class EventManager(Manager):
         dq.outer("rpcc_event_str es1", "(e.id=es1.event AND es1.attr=%d)" % (attrid,))
         return "es1.value"
     
+    @search("created_time", DateTimeMatch)
+    def s_create_time(self, dq):
+        return "e.created"
+    
+    @search("created_date", DateMatch)
+    def s_created_date(self, dq):
+        return "e.created"
+        
     def get_max_id(self, app=False):
         q0 = """SELECT MIN(e.id)
                    FROM rpcc_event e, 
