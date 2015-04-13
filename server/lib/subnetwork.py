@@ -266,6 +266,7 @@ class SubnetworkManager(AdHocManager):
         
     @entry(g_write)
     def destroy_subnetwork(self, fun, subnetwork):
+        self.approve_config = True
         
         if self.dhcp_servers(subnetwork.oid):
             raise ExtSubnetworkInUseByDHCPServerError()
@@ -312,6 +313,13 @@ class SubnetworkManager(AdHocManager):
                 servers.add(dhcp_server_name)
                 
         return servers
+    
+    def rename_object(self, obj, new_name):
+        self.approve_config = True
+        oid = obj.oid
+        obj.oid = new_name
+        del(self._model_cache[oid])
+        self._model_cache[new_name] = obj
                      
     @entry(g_write)
     def update_options(self, fun, subnetwork, updates):

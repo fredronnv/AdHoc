@@ -529,6 +529,7 @@ class PoolManager(AdHocManager):
     
     @entry(g_write_literal_option)
     def add_literal_option(self, fun, pool, option_text):
+        self.approve_config=True
         q = "INSERT INTO pool_literal_options (`for`, value, changed_by) VALUES (:poolname, :value, :changed_by)"
         id = self.db.insert("id", q, poolname=pool.oid, value=option_text, changed_by=fun.session.authuser)
         return id

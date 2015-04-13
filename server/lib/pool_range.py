@@ -133,6 +133,7 @@ class PoolRange(AdHocModel):
         self.db.put(q, id=self.id, value=value)
         self.manager.rename_object(self, value)
         self.event_manager.add("rename", pool_range=self.oid, newstr=value, authuser=self.function.session.authuser)
+        self.check_model()
         
     @update("end_ip", ExtIpV4Address)
     @entry(g_write)
@@ -140,6 +141,7 @@ class PoolRange(AdHocModel):
         q = "UPDATE pool_ranges SET end_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
         self.event_manager.add("update", pool_range=self.oid, end_ip=value, authuser=self.function.session.authuser)
+        self.check_model()
 
     @update("pool", ExtPool)
     @entry(g_write)
@@ -147,6 +149,7 @@ class PoolRange(AdHocModel):
         q = "UPDATE pool_ranges SET pool=:pool WHERE start_ip=:id"
         self.db.put(q, id=self.oid, pool=pool.oid)
         self.event_manager.add("update", pool_range=self.oid, pool=pool.oid, authuser=self.function.session.authuser)
+        self.check_model()
              
     @update("served_by", ExtDHCPServer)
     @entry(g_write)
@@ -160,6 +163,7 @@ class PoolRange(AdHocModel):
         val = self.db.get_value(q, start_ip=self.start_ip, end_ip=self.end_ip)
         if val:
             raise ExtPoolRangeReversedError()
+        self.approve_model = True
         self.manager.checkoverlaps(self.start_ip, self.end_ip)
         self.manager.approve()
 
@@ -214,6 +218,7 @@ class PoolRangeManager(AdHocManager):
         except IntegrityError:
             raise ExtPoolRangeAlreadyExistsError()
         self.event_manager.add("create", pool_range=start_ip, parent_object=pool.oid, authuser=fun.session.authuser, end_ip=end_ip)
+        self.approve_model = True
             
     @entry(g_write)
     def destroy_pool_range(self, fun, pool_range):
@@ -223,6 +228,7 @@ class PoolRangeManager(AdHocManager):
         except IntegrityError:
             raise ExtPoolRangeInUseError()
         self.event_manager.add("destroy", pool_range=pool_range.oid)
+        self.approve_model = True
         
     def getoverlaps(self, start_ip, end_ip):
         q = """SELECT start_ip, end_ip FROM pool_ranges WHERE
