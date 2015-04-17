@@ -873,13 +873,14 @@ class DHCPManager(AdHocManager):
                 self.emit("%s" % info, 4 * (indent + 1))
             
             q = "SELECT start_ip FROM pool_ranges WHERE pool=:poolname"
+            sqlparams = {"poolname": poolname}
             if self.serverID:
                 q += " AND (served_by=:served_by OR served_by IS NULL ) "
+                sqlparams["served_by"] = self.serverID
             q += " ORDER BY start_ip asc"
-            if self.serverID:
-                ret = self.db.get_all(q, poolname=poolname, served_by=self.serverID)
-            else:
-                ret = self.db.get_all(q, poolname=poolname)
+            
+            ret = self.db.get_all(q, **sqlparams)
+            
             if not ret:
                 if info:
                     self.emit("# Not generated as there are no defined IP ranges", 4 * (indent + 1))
@@ -1004,9 +1005,9 @@ class DHCPManager(AdHocManager):
             q += " AND (served_by=:server_id OR served_by IS NULL ) "
             argdict["server_id"] = self.serverID
         q += " ORDER BY start_ip ASC"
-        if self.serverID:
-            for(start, end) in self.db.get_all(q, **argdict):
-                self.emit("range %s %s;" % (start, end), indent)
+
+        for(start, end) in self.db.get_all(q, **argdict):
+            self.emit("range %s %s;" % (start, end), indent)
 
     def emit_subnetwork(self, subnet_id, network, info, hasopts, indent): 
             # print "em:",network,subnet_id,info  
