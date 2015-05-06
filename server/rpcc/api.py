@@ -469,6 +469,9 @@ class API(object):
             clsattrs["returns"] = (self._data_by_model[name], "Templated data")
             clsattrs["desc"] = "Get data about a particular %s. The template indicates which fields (and optionally sub-fields for linked templates) to return." % (name,)
             
+            if hasattr(modelcls, "log_fetch_calls"):
+                clsattrs["log_call_event"] = modelcls.log_fetch_calls
+            
             if self.server.sessions_enabled:
                 fetchcls = type("Fun" + capsname + "Fetch", (function.FetchSessionedFunction,), clsattrs)
             else:
@@ -488,6 +491,8 @@ class API(object):
             clsattrs["params"] = [(name, modelcls.exttype, "The %s to update" % (name,)),
                                   ("updates", self._update_by_model[name], "Fields and updates")]
             clsattrs["desc"] = "Update one or more fields atomically."
+            if hasattr(modelcls, "log_update_calls"):
+                clsattrs["log_call_event"] = modelcls.log_update_calls
             if self.server.sessions_enabled:
                 upcls = type("Fun" + capsname + "Update", (function.UpdateSessionedFunction,), clsattrs)
             else:
@@ -514,6 +519,8 @@ class API(object):
             clsattrs["desc"] = "Search and return %ss." % (modelname,)
             clsattrs["dig_manager"] = mgrname
             clsattrs["returns"] = (ExtList(self._data_by_model[modelname]), "Formatted data for matched %ss." % (modelname,))
+            if hasattr(mgrcls, "log_dig_calls"):
+                clsattrs["log_call_event"] = mgrcls.log_dig_calls
 
             if self.server.sessions_enabled:
                 digcls = type("Fun" + capsname + "Dig", (function.DigSessionedFunction,), clsattrs)
