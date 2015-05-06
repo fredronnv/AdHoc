@@ -5959,8 +5959,7 @@ revoke()
     
     
 }
-#T Misc;110
-#S history;;Show history;0;10000;;Show the history of selected changes. Switches combine such that -p and -g limits to events that both affect a pool AND a group;112
+#S history;;Show history;0;10000;;Show the history of selected changes. Switches combine such that -p and -g limits to events that both affect a pool AND a group;003
 #O history;n;;Show changes made to networks;;
 #O history;s;;Show changes made to subnetworks;;
 #O history;p;;Show changes made to pools;;
