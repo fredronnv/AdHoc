@@ -52,6 +52,7 @@ class EventGetMaxId(SessionedFunction):
     extname = "event_get_max_id"
     returns = ExtInteger
     uses_database = True
+    log_call_event = False
             
     def do(self):
         return self.event_manager.get_max_id()
@@ -64,6 +65,7 @@ class EventGetMaxAppId(SessionedFunction):
     extname = "event_get_max_app_id"
     returns = ExtInteger
     uses_database = True
+    log_call_event = False
             
     def do(self):
         return self.event_manager.get_max_id(app=True)
