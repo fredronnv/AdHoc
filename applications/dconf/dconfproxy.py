@@ -7,6 +7,7 @@ Created on 28 jan 2014
 import sys
 import os
 import kerberos
+import re
 
 true = True
 false = False
@@ -23,7 +24,7 @@ def template2keys(template, indent=1):
             k = k[1:]
         if k.endswith('}'):
             k = k[:-1]
-        # print >>sys.stderr, "    " * indent + "splitting:", k
+        #print >>sys.stderr, "    " * indent + "splitting:", k
         try:
             (key, val) = k.split(":", 1)
         except ValueError:
@@ -52,14 +53,20 @@ def print_struct_in_order(x, kvtuples, template, output, indent=1):
         keyval = kvtuple[1].strip()
         if keyval == "False" or keyval == "false":  # Hmm, this is probably not supported
             raise ValueError("Never use False as a value to _dig or _fetch functions")
-        if keyval == "True" or keyval == "true":
+        if keyval == "True" or keyval == "true" or keyval == "key":
+            if keyval == 'key' and x[key]:
+                prefix = key + "="
+            else:
+                prefix = ""
             if x[key]:
                 if type(x[key]) is list:
-                    values.append(x[key])
+                    values.append(prefix + x[key])
                 else:
-                    values.append(unicode(x[key]))
+                    values.append(prefix + unicode(x[key]))
+    
             else:
-                values.append("NULL")
+                if keyval != 'key':
+                    values.append("NULL")
         else:
             print_object_in_template_order(x[key], keyval, output, indent=indent + 1)
             output.write("\t")
@@ -88,7 +95,7 @@ def process(command, output):
     
     res = None
     (cmd, sep, arg) = command.partition("(")
-    # print >>sys.stderr, "CMD=",cmd, "sep=", sep, "arg=",arg
+    #print >>sys.stderr, "CMD=",cmd, "sep=", sep, "arg=",arg
     arg = arg.strip()
     if sep:
         arg = arg.rstrip(")")
@@ -100,10 +107,12 @@ def process(command, output):
                 srv_url = "https://adhoc.ita.chalmers.se:8877"
             srv = rpcc_client.RPCC(srv_url)
         
-        s = cmd + "(" + arg + ")"
+        p = re.compile('":key')
+        carg =  p.sub('":true', arg)
+        s = cmd + "(" + carg + ")"
         
-        # print >> sys.stderr, "CMD=%s" % cmd
-        # print >> sys.stderr, "EXEC: %s" % s
+        #print >> sys.stderr, "CMD=%s" % cmd
+        #print >> sys.stderr, "EXEC: %s" % s
         try:
             exec s
             # print >>sys.stderr, "EXEC DONE"

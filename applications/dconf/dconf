@@ -5959,6 +5959,100 @@ revoke()
     
     
 }
+#T Misc;110
+#S history;;Show history;0;10000;;Show the history of selected changes. Switches combine such that -p and -g limits to events that both affect a pool AND a group;112
+#O history;n;;Show changes made to networks;;
+#O history;s;;Show changes made to subnetworks;;
+#O history;p;;Show changes made to pools;;
+#O history;g;;Show changes made to hosts;;
+#O history;H;;Show changes made to hosts;;
+#O history;by;cid;Limit history changes made by a specific account;;
+#O history;from;from_date;Limit history to time after a certain date;;
+#M =head2 I<Description>
+#M
+#M The history subcommand does something that is yet undefined and needs to be documented
+#M
+history()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            --from)
+                history_from_flag=$i; shift
+                history_from_arg=$1; shift
+                ;;
+            --by)
+                history_by_flag=$i; shift
+                history_by_arg=$1; shift
+                ;;
+            -H)
+                history_h_flag=$i; shift
+                ;;
+            -g)
+                history_g_flag=$i; shift
+                ;;
+            -p)
+                history_p_flag=$i; shift
+                ;;
+            -s)
+                history_s_flag=$i; shift
+                ;;
+            -n)
+                history_n_flag=$i; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+: # Enter the code for history here
+	search_exp="'type_not_equal':'call'"
+	if [ -n "$history_from_flag" ]; then
+		search_exp="$search_exp, 'created_date_after':'$history_from_arg'"
+    fi
+    
+    if [ -n "$history_h_flag" ]; then
+    	search_exp="$search_exp, 'host_pattern':'*'"
+    fi
+    
+    if [ -n "$history_g_flag" ]; then
+    	search_exp="$search_exp, 'group_pattern':'*'"
+    fi
+    
+    if [ -n "$history_g_flag" ]; then
+    	search_exp="$search_exp, 'group_pattern':'*'"
+    fi
+    if [ -n "$history_p_flag" ]; then
+    	search_exp="$search_exp, 'pool_pattern':'*'"
+    fi
+    if [ -n "$history_s_flag" ]; then
+    	search_exp="$search_exp, 'subnetwork_pattern':'*'"
+    fi
+    if [ -n "$history_n_flag" ]; then
+    	search_exp="$search_exp, 'network_pattern':'*'"
+    fi
+    
+    data_template='"event":true,"authuser":true, "created":true, "type":true, "parent_object":key, "pool":key, "host":key, '
+    data_template=$data_template'"authoritative":key, "cid":key, "code":key, "dhcp_server":key, "elapsed_ms":key, "pool_range":key, "start_ip":key, "end_ip":key, "errid":key, "errline":key, '
+    data_template=$data_template'"error":key, "errval":key, "function":key, '
+    data_template=$data_template'"group":key, "subnetwork":key, "network":key, "building":key, "dns":key, "entry_status":key, '
+    data_template=$data_template'"global_option":key, "host_class":key, "info":key, "literal_option_id":key, "literal_option_value":key, '
+    data_template=$data_template'"mac":key, "max_lease_time":key, "optionset":key, "params":key,  '
+    data_template=$data_template'"printers":key, "qualifier":key, "re":key, "room":key, "served_by":key, "value":key, '
+    data_template=$data_template'"vendor_class_id":key,"where":key'
+
+	proxy_start
+    if [ -n "$history_l_flag" ]; then
+        server_call "event_dig({$search_exp},{$data_template})"   | _history_l_fmt
+	else
+		server_call "event_dig({$search_exp},{$data_template})" | _history_fmt
+    fi
+}
+
+_history_fmt()
+{
+    sed 's/NULL//g' |  awk -F"	" '{ printf("%-11d %8s %20s %-14s %s %s %s %s %s %s %s %s %s %s %s\n",$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15);}' |  sed 's/ *$//' | sort -n -t. -k 1,1 -k 2,2 -k 3,3 -k 4,4
+}
 ##SGIP Subcommand generation insertion point, do not delete!!
 
 ##SSCB2 Suite specific code begin 2
