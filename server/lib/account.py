@@ -32,6 +32,7 @@ class AccountCreate(SessionedFunction):
               ("lname", ExtString, "Last name of account owner")]
     desc = "Registers an account"
     returns = (ExtNull)
+    log_call_event = False
 
     def do(self):
         self.account_manager.create_account(self, self.account_name, self.fname, self.lname)
@@ -56,6 +57,8 @@ class Account(AdHocModel):
     name = "account"
     exttype = ExtAccount
     id_type = str
+    log_fetch_calls = False
+    log_update_calls = False
 
     def init(self, *args, **kwargs):
         a = list(args)
@@ -113,6 +116,7 @@ class Account(AdHocModel):
 class AccountManager(AdHocManager):
     name = "account_manager"
     manages = Account
+    log_dig_calls = False
 
     model_lookup_error = ExtNoSuchAccountError
     
@@ -159,7 +163,7 @@ class AccountManager(AdHocManager):
     @entry(g_write)
     def create_account(self, fun, account_name, fname, lname):
         
-        self.optionset_manager.create_optionset()
+        #self.optionset_manager.create_optionset()
         
         q = """INSERT INTO accounts (account, fname, lname) 
                VALUES (:account, :fname, :lname)"""
@@ -174,7 +178,7 @@ class AccountManager(AdHocManager):
     @entry(g_write)
     def destroy_account(self, fun, account):
         
-        account.get_optionset().destroy()
+        #account.get_optionset().destroy()
         
         try:
             q = "DELETE FROM accounts WHERE account=:account LIMIT 1"

@@ -115,6 +115,7 @@ class DHCPServer(AdHocModel):
 class DHCPServerManager(AdHocManager):
     name = "dhcp_server_manager"
     manages = DHCPServer
+    log_dig_calls = False
 
     model_lookup_error = ExtNoSuchDHCPServerError
 

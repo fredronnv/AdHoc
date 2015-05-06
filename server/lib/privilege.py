@@ -101,6 +101,8 @@ class Privilege(AdHocModel):
     name = "privilege"
     exttype = ExtPrivilege
     id_type = str
+    log_fetch_calls = False
+    log_update_calls = False
 
     def init(self, *args, **kwargs):
         a = list(args)
@@ -134,6 +136,7 @@ class Privilege(AdHocModel):
 class PrivilegeManager(AdHocManager):
     name = "privilege_manager"
     manages = Privilege
+    log_dig_calls = False
 
     model_lookup_error = ExtNoSuchPrivilegeError
     
