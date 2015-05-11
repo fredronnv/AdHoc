@@ -466,7 +466,7 @@ class HostManager(AdHocManager):
                 index = int(found_id[9:12])
                 new_index = index + 1
             else:
-                new_index = 0
+                new_index = 1
             name = today + "-%03d" % new_index
             
             if mac == "00:00:00:00:00:00":

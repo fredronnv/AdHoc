@@ -313,8 +313,8 @@ class DHCPManager(AdHocManager):
         # print 
         # print "POOLS"
         qf = "SELECT poolname, optionspace, network, info, changed_by, mtime FROM pools"
-        qp = """INSERT INTO pools (poolname, optionspace, network, info, changed_by, mtime, optionset)
-                       VALUES(:poolname, :optionspace, :network, :info, :changedby, :mtime, :optset)"""
+        qp = """INSERT INTO pools (poolname, optionspace, network, info, changed_by, mtime, optionset, open)
+                       VALUES(:poolname, :optionspace, :network, :info, :changedby, :mtime, :optset, 1)"""
         for(poolname, optionspace, network, info, changed_by, mtime) in self.odb.get(qf):
             optset = self.optionsetManager.create_optionset()
             # print poolname, optionspace, network, info, changed_by, mtime
