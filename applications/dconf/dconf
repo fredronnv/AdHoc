@@ -5676,6 +5676,7 @@ chrange()
 #M
 reload()
 {
+	proxy_start
 	server_call "dhcpd_reload()"
 }
 #S chnetwork;;Change network;1;1;network-name;Change name and parameters of an already defined network;62
@@ -5876,7 +5877,7 @@ grant()
         echo "The pool named $1 is not defined"
         exit 1
     fi
-
+	
     grant_poolname=$1
     proxy_start
     
@@ -5889,7 +5890,7 @@ grant()
         fi
     fi
     
-    if [ -n "$grant_h_flag" ]; then
+    if [ -n "$grant_g_flag" ]; then
         if db_exists group $grant_g_arg; then
             server_call "pool_grant_group('${grant_poolname}','${grant_g_arg}')"
         else
@@ -5948,7 +5949,7 @@ revoke()
         fi
     fi
     
-    if [ -n "$revoke_h_flag" ]; then
+    if [ -n "$revoke_g_flag" ]; then
         if db_exists group $revoke_g_arg; then
             server_call "pool_revoke_group('${revoke_poolname}','${revoke_g_arg}')"
         else
