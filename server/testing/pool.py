@@ -394,7 +394,39 @@ class T1285_PoolRevokeHostClass(NetworkAdminTests):
                 except:
                     pass
                 self.superuser.network_destroy('network_test')
-     
+            
+                
+class T1286_HostGrantCreate(NetworkAdminTests):
+    """ Test creating a host grant using the host_grant model"""
+    skip = True
+    
+    def do(self):
+        self.sufficient_privs = ["admin_all_pools", "write_all_pools"]
+        self.superuser.network_create('network_test', False, "Testnätverk 2")
+        self.superuser.pool_create('QZ1243A', 'network_test', "TestPool", {})
+        self.superuser.host_create_with_name('20111113-007A', '00:01:02:03:04:05', {})
+        self.superuser.host_create_with_name('20111113-008A', '00:01:02:03:04:08', {})
+        
+        with AssertAccessError(self):
+            try:
+                pass
+                self.proxy.host_grant_create('QZ1243A', '20111113-007A')
+                self.proxy.host_grant_create('QZ1243A', '20111113-008A')
+                
+                ret = self.proxy.pool_fetch('QZ1243A', data_template)
+                assert len(ret.granted_hosts) == 2, "Wrong number of granted hosts"
+                assert "20111113-007A" in ret.granted_hosts, "No 20111113-007A in granted hosts"
+                assert "20111113-008A" in ret.granted_hosts, "No 20111113-008A in granted hosts"
+                
+            finally:
+                try:
+                    self.superuser.pool_destroy('QZ1243A')
+                except:
+                    pass
+                self.superuser.host_destroy('20111113-007A')
+                self.superuser.host_destroy('20111113-008A')
+                self.superuser.network_destroy('network_test')
+                
                 
 class T1290_PoolAddLiteralOption(SuperUserTests):
     """ Test adding a literal option to a pool"""
