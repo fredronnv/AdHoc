@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `accounts` (
   `account` varchar(8) COLLATE ascii_bin NOT NULL COMMENT 'PDB account',
   `fname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci NOT NULL COMMENT 'First name of owner',
   `lname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci NOT NULL COMMENT 'Last name of owner',
-  `status` varchar(12) COLLATE ascii_bin NULL COMMENT 'PDB status'
+  `status` varchar(12) COLLATE ascii_bin NULL COMMENT 'PDB status',
   PRIMARY KEY (`account`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='User accounts';
 
@@ -934,7 +934,7 @@ CREATE TABLE IF NOT EXISTS `rpcc_result_string` (
 
 CREATE TABLE IF NOT EXISTS `rpcc_session` (
   `id` varchar(40) COLLATE ascii_bin NOT NULL COMMENT 'Session key',
-  `expires` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'Time whensession expires',
+  `expires` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'Time when session expires',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='RPCC session management';
 
