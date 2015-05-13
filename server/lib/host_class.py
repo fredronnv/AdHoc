@@ -250,6 +250,13 @@ class HostClassManager(AdHocManager):
         dq.table("classes g")
         return "g.vendor_class_id"
     
+    # Note: This seems to do the trick I want, but I don't understand why...
+    @search("granted_for", StringMatch)
+    def s_granted_for(self, q):
+        q.table("pool_class_map pcm")
+        q.where("g.classname = pcm.classname")
+        return "pcm.poolname"
+    
     @entry(g_write)
     def create_host_class(self, fun, host_class_name, vendor_class_id, info, options):
         if options is None:

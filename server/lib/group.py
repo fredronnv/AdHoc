@@ -263,6 +263,13 @@ class GroupManager(AdHocManager):
         dq.table("groups g")
         return "g.parent_group"
     
+    # Note: This seems to do the trick I want, but I don't understand why...
+    @search("granted_for", StringMatch)
+    def s_granted_for(self, q):
+        q.table("pool_group_map pgm")
+        q.where("g.groupname = pgm.groupname")
+        return "pgm.poolname"
+    
     @entry(g_write)
     def create_group(self, fun, groupname, parent, info, options):
         if options is None:

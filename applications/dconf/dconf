@@ -2026,6 +2026,23 @@ _validate_group_in_db()
         echo "The group name $_validate_group_in_db_arg is unknown in the database" >&2
     fi
 }
+#C
+#C Validator for class_in_db
+#C
+_validate_class_in_db()
+{
+    _validate_class_in_db_arg=$1
+    
+    if db_exists class $_validate_class_in_db_arg ; then
+        echo "$_validate_class_in_db_arg"
+    else
+        echo "The class name $_validate_class_in_db_arg is unknown in the database" >&2
+    fi
+    
+
+# Enter the code for validating class_name here
+    echo "$_validate_class_name_arg"
+}
 ##VGIP Validator generation insertion point, do not delete!!
 
 fetch_proxy_pid()
@@ -3766,6 +3783,7 @@ deletehost()
 }
 
 #S lsclasses;lc;List classes;0;1;[pattern];List class definitions;51
+#O lsclasses;p;pool_name;List classes granted for a pool;;pool_name
 #O lsclasses;l;;Use long listing format
 #M =head2 I<Description>
 #M
@@ -3815,6 +3833,10 @@ lsclasses()
             -l)
                 lsclasses_l_flag=$i; shift
                 ;;
+            -p)
+                lsclasses_p_flag=$i; shift
+                lsclasses_p_arg=$1; shift
+                ;;
             --)
                 shift;break
                 ;;
@@ -3827,9 +3849,20 @@ lsclasses()
         format="'host_class':true, 'vendor_class_id':true, 'optionspace':true"
         echo "Class name	Vendor class id	Option space" | _lsclasses_fmt
     fi
+    
+     
+    if [ -n "$lsclasses_p_flag" ]; then
+    	pool_name=$lsclasses_p_arg
+	fi
+	
+    search_exp=""
+    if [ -n "$pool_name" ]; then
+    	search_exp="$search_exp'granted_for':'$pool_name',"
+	fi
+    
 
     proxy_start
-    server_call "host_class_dig({}, {$format})" | egrep "$pattern" | _lsclasses_fmt
+    server_call "host_class_dig({$search_exp}, {$format})" | egrep "$pattern" | _lsclasses_fmt
     exit 0
 }
 _lsclasses_fmt()
@@ -3839,6 +3872,7 @@ _lsclasses_fmt()
 
 
 #S lsgroups;lg;List groups;0;1;[pattern];List host groups;44
+#O lsgroups;p;pool_name;List groups granted for a pool;;pool_name
 #O lsgroups;L;;Use the very long listing format
 #O lsgroups;l;;Use long listing format
 #O lsgroups;R;;Recurse through parent groups on the groups matching pattern
@@ -3861,6 +3895,10 @@ lsgroups()
             -l)
                 lsgroups_l_flag=$i; shift
                 ;;
+            -p)
+                lsgroups_p_flag=$i; shift
+                lsgroups_p_arg=$1; shift
+                ;;
             --)
                 shift;break
                 ;;
@@ -3870,6 +3908,13 @@ lsgroups()
     format=\`groupname\`
     data_template="'group':true"
     pattern="^[^	]*${1-.*}"
+    
+    search_exp=""
+    
+    if [ -n "$lsgroups_p_flag" ]; then
+    	pool_name=$lsgroups_p_arg
+	fi
+	
     if [ -n "$lsgroups_l_flag" ]; then
         format=\`groupname\`,\`parent_group\`,mountclass,\`info\`
         data_template="'group':true, 'parent':true, 'info':true"
@@ -3880,16 +3925,21 @@ lsgroups()
         data_template="'group':true, 'parent':true, 'optionspace':true, 'info':true"
         echo "Group name	Parent group	Option space	Info" | _lsgroups_fmt
     fi
+    
+	if [ -n "$pool_name" ]; then
+    	search_exp="$search_exp'granted_for':'$pool_name',"
+	fi
+	
     if [ -n "$lsgroups_R_flag" ]; then
         proxy_start
-        matching_groups=`server_call 'group_dig({}, {"group":true})' | egrep "$pattern"`
+        matching_groups=`server_call 'group_dig({'$search_exp'}, {"group":true})' | egrep "$pattern"`
         #echo MG $matching_groups
         for g in "$matching_groups"; do
             _lsgroup $g
         done
     else
         proxy_start
-        server_call "group_dig({}, {$data_template} )" | egrep "$pattern" | _lsgroups_fmt
+        server_call "group_dig({$search_exp}, {$data_template} )" | egrep "$pattern" | _lsgroups_fmt
     fi
     exit 0
 }
@@ -3913,6 +3963,7 @@ _lsgroups_fmt()
 }
 
 #S lshosts;lh;List hosts;0;1;[dns_pattern];List configured hosts;25
+#O lshosts;p;pool_name;List hosts granted to pool;;pool_name
 #O lshosts;l;;Use long format
 #O lshosts;g;group;List hosts belonging groups matching a group name pattern
 #O lshosts;A;;Include active entries
@@ -3987,6 +4038,10 @@ lshosts()
             	lshosts_d_flag=$i; shift
                 lshosts_d_arg=$1; shift
                 ;;
+            -p)
+                lshosts_p_flag=$i; shift
+                lshosts_p_arg=$1; shift
+                ;;
             --)
                 shift;break
                 ;;
@@ -3999,6 +4054,10 @@ lshosts()
     
     data_template='"host":true'
     search_exp=""
+    
+    if [ -n "$lshosts_p_flag" ]; then
+    	pool_name=$lshosts_p_arg
+	fi
     
     if [ -n "$lshosts_m_flag" ]; then
         mac_pattern="$lshosts_m_arg"
@@ -4088,6 +4147,10 @@ lshosts()
     
     if [ -n "$status_regexp" ]; then
     	search_exp="$search_exp'status_regexp':$status_regexp,"
+	fi
+	
+	if [ -n "$pool_name" ]; then
+    	search_exp="$search_exp'granted_for':'$pool_name',"
 	fi
     
     #echo G "{$search_exp}" >&2
@@ -5845,11 +5908,12 @@ _chsubnetwork_foundaflag()
     chsubnetwork_anyflag=1
 }
 #S grant;;Grant access to pool;1;1;pool;Grant access to hosts or groups into a pool;78
+#O grant;c;class;Grant a host class;;class_in_db
 #O grant;g;group;Group to be granted;;group_in_db
 #O grant;H;host;Host to be granted;;host_in_db
 #M =head2 I<Description>
 #M
-#M The grant subcommand places a host or a group onto the list of hosts or group of
+#M The grant subcommand places a host, group or class onto the list of classes, hosts or group of
 #M hosts that should be granted an IP address within the pool.
 #M
 grant()
@@ -5864,6 +5928,10 @@ grant()
             -g)
                 grant_g_flag=$i; shift
                 grant_g_arg=$1; shift
+                ;;
+            -c)
+                grant_c_flag=$i; shift
+                grant_c_arg=$1; shift
                 ;;
             --)
                 shift;break
@@ -5881,28 +5949,27 @@ grant()
     grant_poolname=$1
     proxy_start
     
+    
+    if [ -n "$grant_c_flag" ]; then
+           server_call "pool_grant_host_class('${grant_poolname}','${grant_c_arg}')"
+           exit $?
+    fi
+    
     if [ -n "$grant_H_flag" ]; then
-        if db_exists host $grant_H_arg; then
-            server_call "pool_grant_host('${grant_poolname}','${grant_H_arg}')"
-        else
-            echo "The host '${grant_H_arg}' is unknown";
-            exit 1
-        fi
+           server_call "pool_grant_host('${grant_poolname}','${grant_H_arg}')"
+           exit $?
     fi
     
     if [ -n "$grant_g_flag" ]; then
-        if db_exists group $grant_g_arg; then
-            server_call "pool_grant_group('${grant_poolname}','${grant_g_arg}')"
-        else
-            echo "The group '${grant_g_arg}' is unknown";
-            exit 1
-        fi
+           server_call "pool_grant_group('${grant_poolname}','${grant_g_arg}')"
+           exit $?
     fi
     
     
 }
 
 #S revoke;;Revoke access from pool;1;1;pool;Revoke access for hosts or groups from a pool;79
+#O revoke;c;class;Class to be revoked;;class_in_db
 #O revoke;g;group;Group to be revoked;;group_in_db
 #O revoke;H;host;Host to be revoked;;host_in_db
 #M =head2 I<Description>
@@ -5924,6 +5991,10 @@ revoke()
                 revoke_g_flag=$i; shift
                 revoke_g_arg=$1; shift
                 ;;
+            -c)
+                revoke_c_flag=$i; shift
+                revoke_c_arg=$1; shift
+                ;;
             --)
                 shift;break
                 ;;
@@ -5936,26 +6007,29 @@ revoke()
         echo "The pool named $1 is not defined"
         exit 1
     fi
+    
+    if [ `echo "$revoke_H_flag$revoke_g_flag$revoke_c_flag" | wc -c` -gt 3 ]; then
+    	echo "Please revoke only one thing at a time"
+    	exit 1
+	fi
 
     revoke_poolname=$1
+    
     proxy_start
     
     if [ -n "$revoke_H_flag" ]; then
-        if db_exists host $revoke_H_arg; then
-            server_call "pool_revoke_host('${revoke_poolname}','${revoke_H_arg}')"
-        else
-            echo "The host '${revoke_H_arg}' is unknown";
-            exit 1
-        fi
+        server_call "pool_revoke_host('${revoke_poolname}','${revoke_H_arg}')"
+        exit $?
     fi
     
     if [ -n "$revoke_g_flag" ]; then
-        if db_exists group $revoke_g_arg; then
-            server_call "pool_revoke_group('${revoke_poolname}','${revoke_g_arg}')"
-        else
-            echo "The group '${revoke_g_arg}' is unknown";
-            exit 1
-        fi
+        server_call "pool_revoke_group('${revoke_poolname}','${revoke_g_arg}')"
+        exit $?
+    fi
+    
+     if [ -n "$revoke_c_flag" ]; then
+        server_call "pool_revoke_host_class('${revoke_poolname}','${revoke_c_arg}')"
+        exit $?
     fi
     
     

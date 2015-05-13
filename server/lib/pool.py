@@ -472,20 +472,22 @@ class PoolManager(AdHocManager):
         q = """INSERT INTO pool_host_map (poolname, hostname, changed_by) 
             VALUES (:poolname, :hostname, :changed_by)"""
         try:
-            self.db.put(q, poolname=pool.oid, hostname=host.oid, changed_by=fun.session.authuser)
+            id = self.db.insert("id", q, poolname=pool.oid, hostname=host.oid, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtHostAlreadyGrantedError()
         self.event_manager.add("grant_access", pool=pool.oid, host=host.oid, authuser=fun.session.authuser)
+        return id
     
     @entry(g_admin)
     def grant_group(self, fun, pool, group):
         q = """INSERT INTO pool_group_map (poolname, groupname, changed_by) 
             VALUES (:poolname, :groupname, :changed_by)"""
         try:
-            self.db.put(q, poolname=pool.oid, groupname=group.oid, changed_by=fun.session.authuser)
+            id = self.db.insert("id", q, poolname=pool.oid, groupname=group.oid, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtGroupAlreadyGrantedError()
         self.event_manager.add("grant_access", pool=pool.oid, group=group.oid, authuser=fun.session.authuser)
+        return id
         
     @entry(g_admin)
     def grant_host_class(self, fun, pool, host_class):

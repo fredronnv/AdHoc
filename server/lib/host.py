@@ -448,6 +448,13 @@ class HostManager(AdHocManager):
         dq.table("hosts h")
         return "h.`dns`"
     
+    # Note: This seems to do the trick I want, but I don't understand why...
+    @search("granted_for", StringMatch)
+    def s_granted_for(self, q):
+        q.table("pool_host_map phm")
+        q.where("h.id = phm.hostname")
+        return "phm.poolname"
+    
     def generate_host_name(self, mac, today=None, same_as=None):
         """ Generates a free host name according to standard naming devised by the networking group"""
         
