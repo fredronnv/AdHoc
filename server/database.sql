@@ -509,10 +509,12 @@ CREATE TABLE IF NOT EXISTS `pool_group_map` (
   `groupname` varchar(64) NOT NULL COMMENT 'Group name',
   `changed_by` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Time of last change',
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`),
   UNIQUE KEY `poolname_2` (`poolname`,`groupname`),
   KEY `groupname` (`groupname`),
   KEY `poolname` (`poolname`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Defines which groups that may live in which pools';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Defines which host groups that may have access to which pools' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -522,13 +524,15 @@ CREATE TABLE IF NOT EXISTS `pool_group_map` (
 
 CREATE TABLE IF NOT EXISTS `pool_host_map` (
   `poolname` varchar(64) NOT NULL COMMENT 'Pool where the host may live',
-  `hostname` varchar(64) NOT NULL COMMENT 'Class name',
+  `hostname` varchar(64) NOT NULL COMMENT 'Host name',
   `changed_by` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Time of last change',
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`),
   UNIQUE KEY `poolname_2` (`poolname`,`hostname`),
   KEY `classname` (`hostname`),
   KEY `poolname` (`poolname`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Defines which classes may live in which pools';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Defines which hosts may have access to which pools' AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
