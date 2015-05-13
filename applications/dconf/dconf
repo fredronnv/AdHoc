@@ -3184,6 +3184,7 @@ _chgroup_foundaflag()
 #O chhost;m;mac-address;Change the mac address;;mac_address
 #O chhost;s;entry_status;Change the entry's status
 #O chhost;i;info;Change the information about the host
+#O chhost;a;;Change all instances of a host
 #M
 #M =head2 I<Description>
 #M
@@ -3195,6 +3196,9 @@ chhost()
 
     for i in "$@"; do
         case "$i" in
+        	-a)
+                chhost_a_flag=$i; shift
+                ;;
             -d)
                 chhost_d_flag=$i; shift
                 chhost_d_arg=$1; shift
@@ -3229,6 +3233,13 @@ chhost()
                 ;;
         esac
     done
+    
+    if [ -n "$chhost_a_flag" ]; then
+    	if [ -n "$chhost_d_flag$chhost_g_flag$chhost_m_flag" ]; then
+    		echo "The -a flag may not be used together with the -m, -g or -d flags"
+    		exit 1
+    	fi
+	fi
 
     chhost_anyflag=
 
@@ -3321,7 +3332,16 @@ chhost()
         echo "No flags specified, so there is nothing to change"
         exit 0
     fi
-   
+    if [ -n "$chhost_a_flag" ]; then
+    	proxy_start
+	    host_pattern=`echo ${chhost_host_id} | cut -c 1-12 `'?'
+        matching_hosts=`server_call 'host_dig({"host_pattern":"'$host_pattern'"}, {"host":true})'`
+        echo MH $matching_hosts
+        for h in $matching_hosts; do
+        	server_call "host_update('${h}', update_template)"
+        done
+        exit 0
+    fi
     server_call "host_update('${chhost_host_id}', update_template)"
 }
 
