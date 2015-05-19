@@ -446,7 +446,7 @@ class DHCPManager(AdHocManager):
                 rooms.add(room)
                 
             # Handle cid quirks
-            if cid == 'root' or cid == 'nobody':
+            if not cid or cid == 'root' or cid == 'nobody':
                 cid = None
             else:
                 cid = cid.lower()
