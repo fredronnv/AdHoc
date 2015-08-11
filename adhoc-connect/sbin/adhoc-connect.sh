@@ -97,6 +97,10 @@ main()
     fi
 }
 
+delay=`/sbin/ifconfig | grep inet | grep 129.16 | awk '{print $2}' | sed 's/addr://' | sed 's/\./+/g' | bc`
+let "delay %= 7"
+sleep $delay
+
 main "$@"
 #
 ##[END of File]##
