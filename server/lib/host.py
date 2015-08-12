@@ -315,7 +315,7 @@ class Host(AdHocModel):
         self.manager.rename_object(self, nn)
         self.event_manager.add("rename", host=self.oid, newstr=nn, authuser=self.function.session.authuser)
         
-    @update("info", ExtString)
+    @update("info", ExtHostInfo)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE hosts SET info=:value WHERE id=:name LIMIT 1"

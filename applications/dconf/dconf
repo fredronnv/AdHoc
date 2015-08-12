@@ -3209,7 +3209,8 @@ _chgroup_foundaflag()
 {
     chgroup_anyflag=1
 }
-#S chhost;;Change data for a host;1;1;host_id;Change the different data associated with a host;23
+#S chhost;;Change data for a host;1;1;host_id;Change the different data associated with a host. A ? last in host_id equates the -a flag.;23
+#O chhost;a;;Change all instances of a host
 #O chhost;d;dns;Change the DNS name
 #O chhost;r;room;Change the owner room number
 #O chhost;u;uname;Change the owner uname
@@ -3217,7 +3218,7 @@ _chgroup_foundaflag()
 #O chhost;m;mac-address;Change the mac address;;mac_address
 #O chhost;s;entry_status;Change the entry's status
 #O chhost;i;info;Change the information about the host
-#O chhost;a;;Change all instances of a host
+#O chhost;q;;Quiet - do not ask questions when using the -a flag
 #M
 #M =head2 I<Description>
 #M
@@ -3231,8 +3232,11 @@ chhost()
 
     for i in "$@"; do
         case "$i" in
-        	-a)
+            -a)
                 chhost_a_flag=$i; shift
+                ;;
+            -q)
+                chhost_q_flag=$i; shift
                 ;;
             -d)
                 chhost_d_flag=$i; shift
@@ -3276,8 +3280,12 @@ chhost()
     chhost_host_id=$1; shift
     
     if [[ "$chhost_host_id" == *"?" ]]; then
-    	if ask "Do you really want to change all instances of the host?"; then
-    	    chhost_a_flag='-a'
+        if [[ -z "$chhost_q_flag" ]]; then
+    	   if ask "Do you really want to change all instances of the host?"; then
+    	           chhost_a_flag='-a'
+           fi
+        else
+           chhost_a_flag='-a'
         fi
     fi
     
@@ -3370,7 +3378,7 @@ chhost()
             proxy_call "update_template['info']='$chhost_i_arg'"
         else  
             proxy_call "update_template['info']=None"
-            echo "You just erased the information on the host ${chhost_host_id}, hope that is OK"
+            echo "You just erased the information about the host ${chhost_host_id}, hope that is OK"
         fi
     fi
 
@@ -3380,7 +3388,7 @@ chhost()
     fi
     if [ -n "$chhost_a_flag" ]; then
     	proxy_start
-	    host_pattern=`echo ${chhost_h ost_id} | cut -c 1-12 `'?'
+	    host_pattern=`echo ${chhost_host_id} | cut -c 1-12 `'?'
         matching_hosts=`server_call 'host_dig({"host_pattern":"'$host_pattern'"}, {"host":true})'`
         #echo MH $matching_hosts
         for h in $matching_hosts; do
