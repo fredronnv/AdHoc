@@ -2187,8 +2187,8 @@ server_call()
 {
     local result
     
-    trace "server_call: res = srv.$@"
-    /bin/true 2>/dev/null # This seems to keep the named pipes from hanging on Linux. Don't know why!
+    trace "server_call A: res = srv.$@"
+    /bin/true 2>/dev/null  # This seems to keep the named pipes from hanging on Linux. Don't know why!
     echo "res = srv.""$@" > "$proxyin"
     cat $proxyout
     trace "server_call done"
@@ -3280,13 +3280,7 @@ chhost()
     chhost_host_id=$1; shift
     
     if [[ "$chhost_host_id" == *"?" ]]; then
-        if [[ -z "$chhost_q_flag" ]]; then
-    	   if ask "Do you really want to change all instances of the host?"; then
-    	           chhost_a_flag='-a'
-           fi
-        else
            chhost_a_flag='-a'
-        fi
     fi
     
     if [ -n "$chhost_a_flag" ]; then
@@ -3294,6 +3288,15 @@ chhost()
     		echo "The DNS name may not be changed on all instances of a host."
     		exit 1
     	fi
+    	
+    	if [[ -z "$chhost_q_flag" ]]; then
+           if ask "Do you really want to change all instances of the host?"; then
+              :
+           else
+               echo "Change aborted."
+               exit 1
+           fi
+        fi
     	host_pattern=`echo ${chhost_host_id} | cut -c 1-12 `'?'
         matching_hosts=`server_call 'host_dig({"host_pattern":"'$host_pattern'"}, {"host":true})'`
         if [ -z "$matching_hosts" ]; then
@@ -3378,7 +3381,6 @@ chhost()
             proxy_call "update_template['info']='$chhost_i_arg'"
         else  
             proxy_call "update_template['info']=None"
-            echo "You just erased the information about the host ${chhost_host_id}, hope that is OK"
         fi
     fi
 
@@ -3392,11 +3394,14 @@ chhost()
         matching_hosts=`server_call 'host_dig({"host_pattern":"'$host_pattern'"}, {"host":true})'`
         #echo MH $matching_hosts
         for h in $matching_hosts; do
-        	server_call "host_update('${h}', update_template)"
+        	proxy_call "srv.host_update('${h}', update_template)"
+        	if [[ -z "$chhost_q_flag" ]]; then
+        	    echo "Host ${h} updated"
+        	fi 
         done
         exit 0
     fi
-    server_call "host_update('${chhost_host_id}', update_template)"
+    proxy_call "srv.host_update('${chhost_host_id}', update_template)"
 }
 
 _categorylist_fmt()
