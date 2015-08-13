@@ -780,7 +780,12 @@ class MySQLLink(DatabaseLink):
         return self.re.sub("%(\\1)s", query), values
 
     def execute(self, curs, query, values):
-        curs.execute(query, values)
+        try:
+            curs.execute(query, values)
+        except Exception as e:
+            print "DBEXCEPTION:", e, type(e)
+            print "QUERY=", query
+            raise
 
     def insert(self, dummy, query, **kwargs):
         if not self.open:

@@ -193,7 +193,7 @@ class ExtAccountInUseError(ExtValueError):
 class ExtAccountName(ExtString):
     name = "account-name"
     desc = "Name of an account"
-    regexp = "^[a-z][-a-z0-9_]{0,7}$"
+    regexp = "^[a-z][-a-z0-9_]{0,8}$"
 
 
 class ExtAccount(ExtAccountName):

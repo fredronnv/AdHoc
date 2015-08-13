@@ -347,7 +347,7 @@ class Host(AdHocModel):
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", host=self.oid, mac=value, authuser=self.function.session.authuser)
     
-    @update("room", ExtRoomName)
+    @update("room", ExtHostRoom)
     @entry(g_write)
     def set_room(self, value):
         try:
@@ -358,7 +358,7 @@ class Host(AdHocModel):
             self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", host=self.oid, room=value, authuser=self.function.session.authuser)
             
-    @update("dns", ExtDNSName)
+    @update("dns", ExtHostDns)
     @entry(g_write)
     def set_dns(self, value):
         q = "UPDATE hosts SET dns=:value WHERE id=:name"
