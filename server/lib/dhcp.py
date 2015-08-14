@@ -845,18 +845,25 @@ class DHCPManager(AdHocManager):
                 self.emit("host %s %s" % (hostid, comment), 4 * indent)
                 self.emit("{", 4 * indent)
                 self.emit("hardware ethernet %s;" % mac, 4 * (indent + 1))
-                self.emit("fixed-address %s;" % dns, 4 * (indent + 1))
+                if dns:
+                    self.emit("fixed-address %s;" % dns, 4 * (indent + 1))
                 self.emit_option_space(optionspace, (4 * (indent + 1)))
                 host = self.host_manager.get_host(hostid)
                 self.emit_optlist(host, indent + 1)
                 # self.emit_option_list(hostid, optionspace, indent + 1, 'host')
                 self.emit("}", 4 * indent)
             else:
-                self.emit("host %s { hardware ethernet %s; fixed-address %s;} %s" % (hostid, mac, dns, comment), 4 * indent)
+                if dns:
+                    self.emit("host %s { hardware ethernet %s; fixed-address %s;} %s" % (hostid, mac, dns, comment), 4 * indent)
+                else:
+                    self.emit("host %s { hardware ethernet %s;} %s" % (hostid, mac, comment), 4 * indent)
             return
     
         if entry_status == "Inactive":
-            self.emit("#host %s { hardware ethernet %s; fixed-address %s;} # %s,  %s" % (hostid, mac, dns, entry_status, comment), 4 * indent - 1)
+            if dns:
+                self.emit("#host %s { hardware ethernet %s; fixed-address %s;} # %s,  %s" % (hostid, mac, dns, entry_status, comment), 4 * indent - 1)
+            else:
+                self.emit("#host %s { hardware ethernet %s;} # %s,  %s" % (hostid, mac, entry_status, comment), 4 * indent - 1)
             return
    
     def emit_pool(self, poolname, optionspace, poolinfo, indent):
