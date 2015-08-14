@@ -2187,8 +2187,8 @@ server_call()
 {
     local result
     
-    trace "server_call A: res = srv.$@"
-    /bin/true 2>/dev/null  # This seems to keep the named pipes from hanging on Linux. Don't know why!
+    trace "server_call: res = srv.$@"
+    /bin/true 2>/dev/null # This seems to keep the named pipes from hanging on Linux. Don't know why!
     echo "res = srv.""$@" > "$proxyin"
     cat $proxyout
     trace "server_call done"
@@ -3218,7 +3218,7 @@ _chgroup_foundaflag()
 #O chhost;m;mac-address;Change the mac address;;mac_address
 #O chhost;s;entry_status;Change the entry's status
 #O chhost;i;info;Change the information about the host
-#O chhost;q;;Quiet - do not ask questions when using the -a flag
+#O chhost;q;;Quiet - do not ask questions or warn.
 #M
 #M =head2 I<Description>
 #M
@@ -3316,11 +3316,17 @@ chhost()
     proxy_start
     proxy_call "update_template={}"
     
-    if [ -n "$chhost_d_flag" ];then
+    if [ -n "$chhost_d_flag" ]; then
         _chhost_foundaflag
-        validated_dns_arg=`_validate_fqdn $chhost_d_arg`
-        if [ -z "$validated_dns_arg" ]; then
-            echo "WARNING: The DNS name specified is invalid"
+        if [[ -n "$chhost_d_arg" ]]; then
+                validated_dns_arg=`_validate_fqdn $chhost_d_arg`
+                if [ -z "$validated_dns_arg" ]; then
+                    echo "WARNING: The DNS name specified is invalid"
+                fi
+        else
+            if [[ -z "$chhost_q_flag" ]]; then
+                echo "WARNING: You are removing the DNS entry. The host can only be used within a pool"
+            fi
         fi
         proxy_call "update_template['dns']='$chhost_d_arg'"
     fi
