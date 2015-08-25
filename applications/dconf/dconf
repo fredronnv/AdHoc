@@ -911,7 +911,7 @@ man()
                 shift
                 ;;
             -M)
-                man_formatter="| pod2man --section=1 --release=$version --center='Chalmers ITS Sysadmin Documentation' --name=DCONF"
+                man_formatter="| pod2man --section=1 --release=$version --center='Chalmers ITA Sysadmin Documentation' --name=DCONF"
                 shift
                 ;;
             -n)
@@ -930,6 +930,8 @@ man()
         esac
     done
 
+    cd /tmp
+    
     if [ "$eflag" = "-e" ]; then
         trace "Extracting from $myself"
         _extract '#M' '#S' < $myself | _syntaxexpand
@@ -942,6 +944,8 @@ man()
         trace "Sending output to file"
         _extract '#M' '#S' < $myself | eval "_syntaxexpand ${man_formatter}" > ${man_o_arg} 
     fi
+    
+    rm -f pod2html.tmp
 }
 
 _syn_read()
@@ -4019,8 +4023,9 @@ lsgroups()
         proxy_start
         matching_groups=`server_call 'group_dig({'$search_exp'}, {"group":true})' | egrep "$pattern"`
         #echo MG $matching_groups
-        for g in "$matching_groups"; do
+        for g in $matching_groups; do
             _lsgroup $g
+            echo
         done
     else
         proxy_start
@@ -4065,7 +4070,7 @@ _lsgroups_fmt()
 #M I<dns_pattern> may be specified to limit the output to hosts whose DNS name matches the given pattern.
 #M 
 #M Other flags allow you to further limit the output to hosts matching patterns for MAC-address, group name,
-#M room or description. Patterns can have the wildcards * a,d ? meaning any text or a single character.
+#M room or description. Patterns can have the wildcards '*' and '?' meaning any text or a single character.
 #M
 #M =head3 I<Format control>
 #M
