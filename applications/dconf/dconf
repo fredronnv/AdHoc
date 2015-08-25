@@ -6192,13 +6192,13 @@ history()
     fi
     
     data_template='"event":true,"authuser":true, "created":true, "type":true, "parent_object":key, "pool":key, "host":key, '
-    data_template=$data_template'"authoritative":key, "cid":key, "code":key, "dhcp_server":key, "elapsed_ms":key, "pool_range":key, "start_ip":key, "end_ip":key, "errid":key, "errline":key, '
-    data_template=$data_template'"error":key, "errval":key, "function":key, '
+    data_template=$data_template'"authoritative":key, "cid":key, "code":key, "dhcp_server":key, "pool_range":key, "start_ip":key, "end_ip":key, "errline":key, '
+    data_template=$data_template'"function":key, '
     data_template=$data_template'"group":key, "subnetwork":key, "network":key, "building":key, "dns":key, "entry_status":key, '
     data_template=$data_template'"global_option":key, "host_class":key, "info":key, "literal_option_id":key, "literal_option_value":key, '
-    data_template=$data_template'"mac":key, "max_lease_time":key, "optionset":key, "params":key,  '
+    data_template=$data_template'"mac":key, "max_lease_time":key, "optionset":key, '
     data_template=$data_template'"printers":key, "qualifier":key, "re":key, "room":key, "served_by":key, "value":key, '
-    data_template=$data_template'"vendor_class_id":key,"where":key'
+    data_template=$data_template'"vendor_class_id":key'
 
 	proxy_start
     if [ -n "$history_l_flag" ]; then
