@@ -97,23 +97,7 @@ class ExtNewHostName(ExtHostName):
     def lookup(self, fun, cval):
         if fun.host_manager.get_host(cval):
             raise ExtHostAlreadyExistsError()
-   
-    
-class ExtHostCreateOptions(ExtStruct):
-    name = "host_create_options"
-    desc = "Optional parameters when creating a host"
-    
-    optional = {"optionspace": (ExtOptionspace, "Whether the host should declare an option space"),
-                "dns": (ExtDNSName, "A DNS name to be used as a fixed address"),
-                "group": (ExtGroup, "A Host group to which the host will belong. Default is the group 'plain'"),
-                "room": (ExtRoom, "A room name signifying the location of the host"),
-                "info": (ExtString, "Information about the host"),
-                "status": (ExtHostStatus, "Initial status of the host, default=Active"),
-                "same_as": (ExtHost, "Create host entry as an instance of this host"),
-                "cid": (ExtHostAccount, "Account of the owner or responsible person")
-                }
-    
-    
+ 
 class ExtHostInfo(ExtOrNull):
     name = "host_info"
     desc = "Information about a host"
@@ -137,7 +121,21 @@ class ExtHostAccount(ExtOrNull):
         
         fun.account_manager.get_account(str(cval))  # We don't look up the account here, just checking that it exists
         return cval
-
+    
+class ExtHostCreateOptions(ExtStruct):
+    name = "host_create_options"
+    desc = "Optional parameters when creating a host"
+    
+    optional = {"optionspace": (ExtOptionspace, "Whether the host should declare an option space"),
+                "dns": (ExtDNSName, "A DNS name to be used as a fixed address"),
+                "group": (ExtGroup, "A Host group to which the host will belong. Default is the group 'plain'"),
+                "room": (ExtRoom, "A room name signifying the location of the host"),
+                "info": (ExtString, "Information about the host"),
+                "status": (ExtHostStatus, "Initial status of the host, default=Active"),
+                "same_as": (ExtHost, "Create host entry as an instance of this host"),
+                "cid": (ExtHostAccount, "Account of the owner or responsible person")
+                }
+    
 
 class HostFunBase(SessionedFunction):  
     params = [("host", ExtHost, "Host name")]

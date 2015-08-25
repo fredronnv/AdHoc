@@ -2273,7 +2273,7 @@ db_hostadd()
     fi
     
     if [ -n "$huname" ]; then
-    	proxy_call "options['account']='$huname'"
+    	proxy_call "options['cid']='$huname'"
     fi
 
     if [ -n "$hroom" ]; then
