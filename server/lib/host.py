@@ -109,7 +109,8 @@ class ExtHostCreateOptions(ExtStruct):
                 "room": (ExtRoom, "A room name signifying the location of the host"),
                 "info": (ExtString, "Information about the host"),
                 "status": (ExtHostStatus, "Initial status of the host, default=Active"),
-                "same_as": (ExtHost, "Create host entry as an instance of this host")
+                "same_as": (ExtHost, "Create host entry as an instance of this host"),
+                "cid": (ExtHostAccount, "Account of the owner or responsible person")
                 }
     
     
@@ -529,19 +530,21 @@ class HostManager(AdHocManager):
         info = options.get("info", None)
         status = options.get("status", "Active")
         same_as = options.get("same_as", None)
+        cid = options.get("cid", None)
+        
         if not host_name:
             host_name = self.generate_host_name(mac, same_as=same_as)
         
         optionset = self.optionset_manager.create_optionset()
             
-        q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, entry_status, changed_by, optionset) 
-               VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :entry_status, :changed_by, :optionset)"""
+        q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, entry_status, cid, changed_by, optionset) 
+               VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :entry_status, :cid, :changed_by, :optionset)"""
         try:
             self.db.put(q, host_name=host_name, dns=dns, group=group.oid, 
                         mac=mac, room=room, optionspace=optionspace,
                         info=info, changed_by=fun.session.authuser,
                         entry_status=status,
-                        optionset=optionset)
+                        cid=cid, optionset=optionset)
             
         except IntegrityError, e:
             print e
@@ -551,7 +554,7 @@ class HostManager(AdHocManager):
                                dns=dns, group=group.oid, 
                                mac=mac, room=room, optionspace=optionspace,
                                info=info, authuser=fun.session.authuser,
-                               entry_status=status,
+                               entry_status=status, cid=cid,
                                optionset=optionset)
         if status == "Active":
             self.group_manager.adjust_hostcount(group, 1)
