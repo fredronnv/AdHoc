@@ -895,32 +895,42 @@ help()
 man()
 {
 #   echo dconf man "$@" >&2
-    man_pager="| less"
-    man_formatter="| pod2man --center=DCONF\(1\) --release=$version --section='Embedded\ Manual' | nroff -man"
+    man_pager="less"
+    man_formatter="pod2man --center=Chalmers/ITA --release=$version --section=1"
+    post_formatter="nroff -man"
     man_o_arg=
 
     for i in "$@"; do
         case "$i" in
             -e)
-                eflag=$i
-                man_formatter=""
+                _manoptions_mutexcheck
+                _manoptions_eflag=$i
+                man_formatter=cat
+                post_formatter=cat
                 shift
                 ;;
             -m)
-                man_formatter="| pod2html"  
+                _manoptions_mutexcheck
+                _manoptions_mflag=$i
+                man_formatter="pod2html"
+                post_formatter=cat
                 shift
                 ;;
             -M)
-                man_formatter="| pod2man --section=1 --release=$version --center='Chalmers ITA Sysadmin Documentation' --name=DCONF"
+                _manoptions_mutexcheck
+                _manoptions_Mflag=$i
+                man_pager=cat
+                post_formatter=cat
                 shift
                 ;;
             -n)
-                man_pager= 
+                man_pager=cat 
                 shift
                 ;;
             -o) 
                 shift
                 man_o_arg=$1 
+                man_pager=cat
                 shift
                 ;;
             --)
@@ -930,22 +940,29 @@ man()
         esac
     done
 
-    cd /tmp
+   
     
-    if [ "$eflag" = "-e" ]; then
-        trace "Extracting from $myself"
-        _extract '#M' '#S' < $myself | _syntaxexpand
-        return
-    fi
+    TMPDIR=`mktemp -d /tmp/dconf_man.XXXXXX`|| exit 1
+    (cd $TMPDIR; _extract '#M' '#S' < $myself | _syntaxexpand > $TMPDIR/dconf)
 
     if [ -z "$man_o_arg" ]; then
-        _extract '#M' '#S' < $myself | eval "_syntaxexpand ${man_formatter} ${man_pager}" 
+         (cd $TMPDIR; ${man_formatter} $TMPDIR/dconf | ${post_formatter} | ${man_pager} )
     else
-        trace "Sending output to file"
-        _extract '#M' '#S' < $myself | eval "_syntaxexpand ${man_formatter}" > ${man_o_arg} 
+        trace "Sending output to file ${man_o_arg}"
+        (cd $TMPDIR; ${man_formatter} $TMPDIR/dconf | ${post_formatter} ) > ${man_o_arg} 
     fi
+   
+    #echo $TMPDIR >&2
+    rm -rf $TMPDIR/dconf
     
-    rm -f pod2html.tmp
+}
+
+_manoptions_mutexcheck()
+{
+    if [ -n "${_manoptions_eflag}${_manoptions_mflag}${_manoptions_Mflag}" ]; then
+        echo "The -e, -m and -M flags are mutually exclusive"
+        exit 1
+    fi
 }
 
 _syn_read()
