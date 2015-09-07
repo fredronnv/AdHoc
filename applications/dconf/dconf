@@ -2603,9 +2603,7 @@ check_entry_status()
     if [ "$1" = "Inactive" ]; then
         return 0 
     fi
-    if [ "$1" = "Dead" ]; then
-        return 0 
-    fi
+   
     return 1
 }
 
@@ -3398,7 +3396,7 @@ chhost()
             proxy_call "update_template['status']='$chhost_s_arg'"
         else
             echo "The entry status value given is not valid"
-            echo "valid values are: Active, Inactive or Dead"
+            echo "valid values are: Active or Inactive"
             exit 1
         fi
     fi
@@ -4074,9 +4072,8 @@ _lsgroups_fmt()
 #O lshosts;p;pool_name;List hosts granted to pool;;pool_name
 #O lshosts;l;;Use long format
 #O lshosts;g;group;List hosts belonging groups matching a group name pattern
-#O lshosts;A;;Include active entries
-#O lshosts;I;;Include entries that are inactive
-#O lshosts;D;;Include dead entries
+#O lshosts;A;;Include only active entries
+#O lshosts;I;;Include only entries that are inactive
 #O lshosts;m;mac-pattern;List hosts matching a MAC pattern
 #O lshosts;r;room-pattern;List hosts registeren in a room matching a pattern
 #O lshosts;d;description_pattern;List hosts whose description (info) matches a pattern
@@ -4104,10 +4101,8 @@ _lsgroups_fmt()
 #M
 #M The -I flag selects the inactive entries.
 #M
-#M The -D flag selects entries marked to be dead.
-#M
 #M The default (no flags) is the equivalent of the -A, -I flags which will give
-#M you all entries except those marked to be dead.
+#M you all entries.
 #M 
 #M
 lshosts()
@@ -4119,9 +4114,6 @@ lshosts()
                 ;;
             -I)
                 lshosts_I_flag=$i; shift
-                ;;
-            -D)
-                lshosts_D_flag=$i; shift
                 ;;
             -g)
                 lshosts_g_flag=$i; shift
@@ -4220,15 +4212,6 @@ lshosts()
                 status_regexp="'("
             fi
             status_regexp="${status_regexp}Inactive"
-        fi
-    
-        if [ -n "$lshosts_D_flag" ]; then
-            if [ -n "$status_regexp" ]; then
-                status_regexp="$status_regexp|"
-            else
-                status_regexp="'("
-            fi
-            status_regexp="${status_regexp}Dead"
         fi
         status_regexp="$status_regexp)'"
     fi
