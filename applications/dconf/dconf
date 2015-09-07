@@ -6145,7 +6145,7 @@ revoke()
 #O history;n;;Show changes made to networks;;
 #O history;s;;Show changes made to subnetworks;;
 #O history;p;;Show changes made to pools;;
-#O history;g;;Show changes made to hosts;;
+#O history;g;;Show changes made to groups;;
 #O history;H;;Show changes made to hosts;;
 #O history;by;cid;Limit history changes made by a specific account;;
 #O history;from;from_date;Limit history to time after a certain date;;
