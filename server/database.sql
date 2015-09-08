@@ -144,8 +144,17 @@ CREATE TABLE IF NOT EXISTS `dhcp_servers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='List of dhcp servers';
 
 
+--
+-- Table structure for table `dnsmac`
+--
 
--- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dnsmac` (
+  `dns` varchar(255) COLLATE ascii_bin NOT NULL,
+  `mac` varchar(17) COLLATE ascii_bin NOT NULL,
+  PRIMARY KEY (`dns`),
+  KEY `Mac` (`mac`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='dns to mac table. Helps ensure that there is no more than one mac address per DNS name';
+
 
 --
 -- Table structure for table `global_options`

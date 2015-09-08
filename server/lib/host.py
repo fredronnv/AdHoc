@@ -16,14 +16,17 @@ g_write = AnyGrants(AllowUserWithPriv("write_all_hosts"), AdHocSuperuserGuard)
 
 
 class ExtNoSuchHostError(ExtLookupError):
-
     desc = "No such host exists."
 
 
 class ExtHostAlreadyExistsError(ExtLookupError):
     desc = "The host name already exists"
 
-    
+
+class ExtDNSUsedByOtherMacError(ExtValueError):
+    desc = "The DNS address is already in use by a host with another MAC address"
+
+
 class ExtHostInUseError(ExtValueError):
     desc = "The host is referred to by other objects. It cannot be destroyed"    
 
@@ -342,6 +345,15 @@ class Host(AdHocModel):
     @update("mac", ExtMacAddress)
     @entry(g_write)
     def set_mac(self, value):
+        
+        if self.dns:
+            if not self.db.get("SELECT dns FROM hosts WHERE dns=:value AND id != :name", value=self.dns, name=self.oid):
+                self.db.put("DELETE FROM dnsmac WHERE dns=:dns", dns=self.dns)
+            try:
+                self.db.put("INSERT INTO dnsmac (dns, mac) VALUES (:dns, :mac)", dns=self.dns, mac=value)
+            except IntegrityError, e:
+                raise ExtDNSUsedByOtherMacError()
+        
         q = "UPDATE hosts SET mac=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", host=self.oid, mac=value, authuser=self.function.session.authuser)
@@ -360,6 +372,15 @@ class Host(AdHocModel):
     @update("dns", ExtHostDns)
     @entry(g_write)
     def set_dns(self, value):
+        if self.dns:
+            if not self.db.get("SELECT dns FROM hosts WHERE dns=:value AND id != :name", value=self.dns, name=self.oid):
+                self.db.put("DELETE FROM dnsmac WHERE dns=:dns", dns=self.dns)
+        if value:
+            if not self.db.get("SELECT dns, mac FROM dnsmac WHERE dns=:dns and mac=:mac", dns=value, mac=self.mac):
+                try:    
+                    self.db.put("INSERT INTO dnsmac (dns, mac) VALUES (:dns, :mac)", dns=value, mac=self.mac)
+                except IntegrityError as e:
+                    raise ExtDNSUsedByOtherMacError()
         q = "UPDATE hosts SET dns=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", host=self.oid, dns=value, authuser=self.function.session.authuser)
@@ -534,6 +555,15 @@ class HostManager(AdHocManager):
             host_name = self.generate_host_name(mac, same_as=same_as)
         
         optionset = self.optionset_manager.create_optionset()
+        
+        if dns:
+            res = self.db.get("SELECT dns FROM dnsmac WHERE dns=:dns", dns=dns)
+            print "RES=", res
+            if not res:
+                try:    
+                    self.db.put("INSERT INTO dnsmac (dns, mac) VALUES (:dns, :mac)", dns=dns, mac=mac)
+                except IntegrityError as e:
+                    raise ExtDNSUsedByOtherMacError()              
             
         q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, entry_status, cid, changed_by, optionset) 
                VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :entry_status, :cid, :changed_by, :optionset)"""
@@ -563,6 +593,15 @@ class HostManager(AdHocManager):
         
         host.get_optionset().destroy()
         
+        # First check if we shoudl remove the mac-dns entry
+        
+        if host.dns:
+            q = """SELECT dns, mac FROM hosts WHERE id != :hostname AND dns=:dns"""
+            res = self.db.get(q, hostname=host.oid, dns=host.dns)
+        
+            if not res:
+                self.db.put("DELETE FROM dnsmac WHERE dns=:dns", dns=host.dns)
+            
         try:
             q = "DELETE FROM hosts WHERE id=:hostname LIMIT 1"
             self.db.put(q, hostname=host.oid)
