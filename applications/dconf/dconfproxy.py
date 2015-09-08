@@ -8,6 +8,8 @@ import sys
 import os
 import kerberos
 import re
+import StringIO
+import rpcc_client
 
 true = True
 false = False
@@ -108,7 +110,7 @@ def process(command, output):
             srv = rpcc_client.RPCC(srv_url)
         
         p = re.compile('":key')
-        carg =  p.sub('":true', arg)
+        carg = p.sub('":true', arg)
         s = cmd + "(" + carg + ")"
         
         #print >> sys.stderr, "CMD=%s" % cmd
@@ -190,16 +192,14 @@ def process(command, output):
         except:
             print >> sys.stderr, "ERROR:", e
         return 1
-    
 
-import StringIO
+
 srv_url = None
 if "DCONF_SRV_URL" in os.environ:
     srv_url = os.environ["DCONF_SRV_URL"]
     print >>sys.stderr, "NOTE: SERVER URL=", srv_url
     
 srv = None
-import rpcc_client
 
 fifo_in = sys.argv[1]
 fifo_out = sys.argv[2]
