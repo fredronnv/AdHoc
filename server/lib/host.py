@@ -90,7 +90,10 @@ class ExtHost(ExtHostName):
 
     def output(self, fun, obj):
         return obj.oid
-        
+
+# This is a bit ugly, but solves an import loop. Do not move this import to the top
+from group import *
+       
 class ExtNewHostName(ExtHostName):
     name = "host"
     desc = "A host name not present in the database"
