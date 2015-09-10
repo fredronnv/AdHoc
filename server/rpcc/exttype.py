@@ -1024,7 +1024,7 @@ class ExtList(ExtType):
         out = []
         typ = ExtType.instance(self.typ)
         if not isinstance(value, tuple) and not isinstance(value, list):
-            raise ExtOutputError("Expected sequence, got %s" % (value,))
+            raise ExtOutputError(self, "Expected sequence, got %s" % (value,))
         for subval, subidx in zip(value, range(len(value))):
             try:
                 out.append(typ.output(function, subval))
@@ -1190,7 +1190,7 @@ if __name__ == '__main__':
 
         def output(self, function, value):
             if not isinstance(value, Person):
-                raise ExtOutputError("ExtPerson.output() takes a Person instance.", value)
+                raise ExtOutputError(self, "ExtPerson.output() takes a Person instance.", value)
             return ExtString.output(self, function, u"person-" + value.id)
 
     class ExtPersonData(ExtStruct):

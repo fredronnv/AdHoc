@@ -4,7 +4,6 @@
 
 from rpcc import *
 from optionspace import *
-from group import *
 from room import *
 from optionset import *
 from util import *
@@ -91,8 +90,7 @@ class ExtHost(ExtHostName):
 
     def output(self, fun, obj):
         return obj.oid
-    
-    
+        
 class ExtNewHostName(ExtHostName):
     name = "host"
     desc = "A host name not present in the database"
@@ -645,3 +643,4 @@ class HostManager(AdHocManager):
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
             self.event_manager.add("update", host=host.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
+

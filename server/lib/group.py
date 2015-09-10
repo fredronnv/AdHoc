@@ -7,6 +7,7 @@ from optionspace import *
 from optionset import *
 from option_def import *
 from util import *
+from host import *
 
 
 g_read = AnyGrants(AllowUserWithPriv("write_all_groups"), AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
@@ -188,6 +189,10 @@ class Group(AdHocModel):
     def get_hostcount(self):
         return self.hostcount
     
+    @template("current_members", ExtHostList, desc="List of current host IDs")
+    def get_current_members(self):
+        return self.manager.get_current_members(self.oid)
+    
     @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this group")
     def get_literal_options(self):
         q = "SELECT value, changed_by, id FROM group_literal_options WHERE `for`= :group"
@@ -269,6 +274,16 @@ class GroupManager(AdHocManager):
         q.table("pool_group_map pgm")
         q.where("g.groupname = pgm.groupname")
         return "pgm.poolname"
+    
+    def get_current_members(self, groupname):
+        hosts = set()
+        g0 = "SELECT descendant FROM group_groups_flat WHERE groupname=:groupname"
+        groups = [x[0] for x in self.db.get_all(g0, groupname=groupname)]
+
+        for g in groups:
+            q = "SELECT id FROM hosts WHERE `group`= :groupname"
+            hosts.update([x[0] for x in self.db.get_all(q, groupname=g)])
+        return list(hosts)
     
     @entry(g_write)
     def create_group(self, fun, groupname, parent, info, options):
@@ -416,3 +431,4 @@ class GroupManager(AdHocManager):
         if not group.parent or group.parent == groupname:
             return  # No parents to adjust
         self.adjust_hostcount(self.get_group(group.parent), adjust)  # Walk the tree upwards and do the same adjustment
+
