@@ -559,7 +559,6 @@ class HostManager(AdHocManager):
         
         if dns:
             res = self.db.get("SELECT dns, mac FROM dnsmac WHERE dns=:dns", dns=dns)
-            print "RES=", res
             if not res:
                 try:    
                     self.db.put("INSERT INTO dnsmac (dns, mac) VALUES (:dns, :mac)", dns=dns, mac=mac)
