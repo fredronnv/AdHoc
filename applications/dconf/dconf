@@ -4238,11 +4238,11 @@ lshosts()
     
     if [ -n "$status_regexp" ]; then
     	search_exp="$search_exp'status_regexp':$status_regexp,"
-	fi
+    fi
 	
-	if [ -n "$pool_name" ]; then
+    if [ -n "$pool_name" ]; then
     	search_exp="$search_exp'granted_for':'$pool_name',"
-	fi
+    fi
     
     #echo G "{$search_exp}" >&2
 
