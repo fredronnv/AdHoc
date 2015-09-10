@@ -558,13 +558,17 @@ class HostManager(AdHocManager):
         optionset = self.optionset_manager.create_optionset()
         
         if dns:
-            res = self.db.get("SELECT dns FROM dnsmac WHERE dns=:dns", dns=dns)
+            res = self.db.get("SELECT dns, mac FROM dnsmac WHERE dns=:dns", dns=dns)
             print "RES=", res
             if not res:
                 try:    
                     self.db.put("INSERT INTO dnsmac (dns, mac) VALUES (:dns, :mac)", dns=dns, mac=mac)
                 except IntegrityError as e:
-                    raise ExtDNSUsedByOtherMacError()              
+                    raise ExtDNSUsedByOtherMacError()
+            else:
+                dns, stored_mac = res[0]
+                if mac != stored_mac:
+                    raise ExtDNSUsedByOtherMacError()        
             
         q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, entry_status, cid, changed_by, optionset) 
                VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :entry_status, :cid, :changed_by, :optionset)"""
