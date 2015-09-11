@@ -146,7 +146,7 @@ def process(command, output):
         except Exception, e:
             print >>sys.stderr, "Exception on command:", e
             raise
-        # print >> sys.stderr, "RES=%s" % res
+        #print >> sys.stderr, "RES=%s" % res
         s = ""
         if cmd.endswith("_dig") or cmd.endswith("_fetch"):
             # Extract the last argument as the template

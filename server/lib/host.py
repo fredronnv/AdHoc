@@ -439,6 +439,13 @@ class HostManager(AdHocManager):
         dq.table("hosts h")
         return "h.`group`"
     
+    @search("current_member_of", StringMatch)
+    def s_current_member_of(self, dq):
+        dq.table("hosts h")
+        dq.table("group_groups_flat ggf")
+        dq.where("h.`group` = ggf.descendant")
+        return ("ggf.groupname")
+    
     @search("status", StringMatch)
     def s_status(self, dq):
         dq.table("hosts h")
