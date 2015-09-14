@@ -34,6 +34,9 @@ class ExtSubnetworkInvalidError(ExtValueError):
     
 class ExtSubnetworkInUseByDHCPServerError(ExtSubnetworkInUseError):
     desc = "The operation would leave a DHCP server without a defined subnetwork. This is not allowed"
+    
+class ExtSubnetInUseByPoolRanges(ExtSubnetworkInUseError):
+    desc = "The operation would leave one or more pool ranges without a defined subnetwork. This is not allowed"
 
 
 class ExtSubnetworkID(ExtString):
@@ -173,6 +176,20 @@ class Subnetwork(AdHocModel):
         self.manager.checkoverlap(value, self.oid)
         if self.manager.dhcp_servers(self.oid) != self.manager.dhcp_servers(value):
                     raise ExtSubnetworkInUseByDHCPServerError()
+        
+        # Check which pool ranges we are hosting
+        n1 = ipaddr.IPv4Network(self.oid)
+        current_pool_ranges = self.pool_range_manager.getoverlaps(str(n1.network), str(n1.broadcast))
+        
+        n2 = ipaddr.IPv4Network(value)
+        future_pool_ranges = self.pool_range_manager.getoverlaps(str(n2.network), str(n2.broadcast))
+        
+        if cmp(current_pool_ranges, future_pool_ranges) != 0:
+            raise ExtSubnetInUseByPoolRanges()
+        
+        for range in current_pool_ranges:
+            if ipaddr.IPv4Address(range[0]) not in n2 or ipaddr.IPAddress(range[1]) not in n2:
+                raise ExtSubnetInUseByPoolRanges("The pool range (%s, %s) will not fit within the redefined subnetwork" % range)
                 
         q = "UPDATE subnetworks SET id=:value WHERE id=:id"
         self.db.put(q, id=self.oid, value=value)

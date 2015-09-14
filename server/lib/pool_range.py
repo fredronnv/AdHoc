@@ -238,6 +238,7 @@ class PoolRangeManager(AdHocManager):
                 (INET_ATON(:end_ip) BETWEEN INET_ATON(start_ip) AND INET_ATON(end_ip)) OR
                 (INET_ATON(start_ip) BETWEEN INET_ATON(:start_ip) AND INET_ATON(:end_ip)) OR
                 (INET_ATON(end_ip) BETWEEN INET_ATON(:start_ip) AND INET_ATON(:end_ip))
+                ORDER BY start_ip
                 """
         overlaps = self.db.get_all(q, start_ip=start_ip, end_ip=end_ip)
         return overlaps
