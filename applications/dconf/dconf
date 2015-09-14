@@ -1762,7 +1762,7 @@ _validate_fqdn()
 #C
 #C Validator for host names
 #C 
-#C This validator validates a fqdn and that its IP address is within a configured subnetwork
+#C This validator validates an FQDN and that its IP address is within a configured subnetwork
 _validate_host_in_subnet()
 {
     _validate_host_in_subnet_arg=$1
@@ -4896,11 +4896,7 @@ _lsrooms_fmt()
 #M
 #M =item Id
 #M
-#M A numeric IP address that defines the lowest possible IB address of the subnetwork.
-#M
-#M =item Netmask
-#M
-#M A numeric IP that defines how many bits of the subnetwork's IP address that belongs to the network.
+#M An ID in Classless Inter-Domain Routing (CIDR) notation that defines the IP address range of the subnetwork.
 #M 
 #M =item Network
 #M 
@@ -4913,9 +4909,12 @@ _lsrooms_fmt()
 #M
 #M =back
 #M
+#M If I<pattern> is given, only lines contatining that pattern are listed.
+#M
 lssubnetworks()
 {
-    echo "Id	Netmask	Network	Info" | _lssubnetworks_fmt
+    pattern=$1
+    echo "Id	Network	Info" | _lssubnetworks_fmt
     proxy_start
     server_call "subnetwork_dig({}, {'subnetwork':true,'network':true,'info':true})" | egrep "$pattern" | _lssubnetworks_fmt
 }
@@ -5379,12 +5378,11 @@ addnetwork()
     server_call "network_create('$addnetwork_network', ${_addnetwork_authoritative}, '$addnetwork_i_arg')"
     
 }
-#S addsubnetwork;;Add a subnetwork;2;2;IP-address network;Add a new subnetwork to a network;66
+#S addsubnetwork;;Add a subnetwork;2;2;subnetwork_cidr network;Add a new subnetwork to a shared network;66
 #O addsubnetwork;i;info;Subnetwork description;M;
 #M =head2 I<Description>
 #M
-#M The addsubnetwork subcommand adds a subnetwork to an already defined shared network. The subnetwork identifier is the lowest IP
-#M address of the subnetwork combined with tne number of bits in the network part of the address separated by a slash(/), a notation commonly known as CIDR-notation.
+#M The addsubnetwork subcommand adds a subnetwork to an already defined shared network. The subnetwork identifier is in CIDR notation.
 #M You must also specify which shared network the subnetwork should be attached to.
 #M
 addsubnetwork()
@@ -5425,7 +5423,7 @@ addsubnetwork()
     server_call "subnetwork_create('$addsubnetwork_id', '$addsubnet_network', '$addsubnetwork_i_arg')"
 
 }
-#S deletesubnetwork;;Delete a subnetwork;1;1;IP-address;Delete a subnetwork;68
+#S deletesubnetwork;;Delete a subnetwork;1;1;subnetwork_cidr;Delete a subnetwork;68
 #M =head2 I<Description>
 #M
 #M The deletesubnetwork deletes a subnetwork specification from the database. Deleting a subnetwork will disable all hosts having
@@ -5436,7 +5434,7 @@ deletesubnetwork()
     deletesubnetwork_subnetwork=`_validate_cidr $1`;
  
     if [ -z "$deletesubnetwork_subnetwork" ]; then
-        echo "You must specify a subnetwork CODR"
+        echo "You must specify a valid subnetwork CIDR"
         exit 1
     fi
 
