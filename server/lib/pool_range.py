@@ -129,27 +129,29 @@ class PoolRange(AdHocModel):
     @update("start_ip", ExtPoolRangeName)
     @entry(g_write)
     def set_start_ip(self, value):
+        self.manager.checkoverlaps(value, self.end_ip, from_range=(self.start_ip, self.end_ip))
         q = "UPDATE pool_ranges SET start_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
         self.manager.rename_object(self, value)
+        self.manager.approve_config = True
         self.event_manager.add("rename", pool_range=self.oid, newstr=value, authuser=self.function.session.authuser)
-        self.check_model()
         
     @update("end_ip", ExtIpV4Address)
     @entry(g_write)
     def set_end_ip(self, value):
+        self.manager.checkoverlaps(self.start_ip, value, from_range=(self.start_ip, self.end_ip))
         q = "UPDATE pool_ranges SET end_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
+        self.manager.approve_config = True
         self.event_manager.add("update", pool_range=self.oid, end_ip=value, authuser=self.function.session.authuser)
-        self.check_model()
 
     @update("pool", ExtPool)
     @entry(g_write)
     def set_pool(self, pool):
         q = "UPDATE pool_ranges SET pool=:pool WHERE start_ip=:id"
         self.db.put(q, id=self.oid, pool=pool.oid)
+        self.manager.approve_config = True
         self.event_manager.add("update", pool_range=self.oid, pool=pool.oid, authuser=self.function.session.authuser)
-        self.check_model()
              
     @update("served_by", ExtDHCPServer)
     @entry(g_write)
@@ -163,8 +165,7 @@ class PoolRange(AdHocModel):
         val = self.db.get_value(q, start_ip=self.start_ip, end_ip=self.end_ip)
         if val:
             raise ExtPoolRangeReversedError()
-        self.approve_config = True
-        self.manager.checkoverlaps(self.start_ip, self.end_ip)
+        # self.manager.checkoverlaps(self.start_ip, self.end_ip)
         self.manager.approve()
 
 
@@ -243,12 +244,19 @@ class PoolRangeManager(AdHocManager):
         overlaps = self.db.get_all(q, start_ip=start_ip, end_ip=end_ip)
         return overlaps
     
-    def checkoverlaps(self, start_ip, end_ip):
+    def checkoverlaps(self, start_ip, end_ip, from_range=None):
+        
+        q = "SELECT INET_ATON(:start_ip) > INET_ATON(:end_ip)"
+        val = self.db.get_value(q, start_ip=start_ip, end_ip=end_ip)
+        if val:
+            raise ExtPoolRangeReversedError()
+        
         overlaps = self.getoverlaps(start_ip, end_ip)
         
         true_overlaps = []
         for overlap in overlaps:
-            if overlap[0] != start_ip or overlap[1] != end_ip:
+            if from_range and overlap[0] == from_range[0] and overlap[1] == from_range[1]:
+                continue  # Don't count former range as an overlap. It will disappear.
                 true_overlaps.append(overlap)
         if true_overlaps:
                 raise ExtPoolRangeOverlapError("The range would overlap the ranges: %s" % ",".join(elem[0] for elem in true_overlaps))

@@ -35,6 +35,7 @@ class ExtSubnetworkInvalidError(ExtValueError):
 class ExtSubnetworkInUseByDHCPServerError(ExtSubnetworkInUseError):
     desc = "The operation would leave a DHCP server without a defined subnetwork. This is not allowed"
     
+    
 class ExtSubnetInUseByPoolRanges(ExtSubnetworkInUseError):
     desc = "The operation would leave one or more pool ranges without a defined subnetwork. This is not allowed"
 

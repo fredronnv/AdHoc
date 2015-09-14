@@ -636,6 +636,7 @@ class DHCPManager(AdHocManager):
         
         self.serverID = serverID
         self.dhcpd_conf = []  # Array where we collect the config output strings
+        self.generated_allocation_group_classes = set()
         
         eventid = self.event_manager.get_max_id()
    
@@ -942,7 +943,6 @@ class DHCPManager(AdHocManager):
             self.emit("allow members of \"%s\";" % hostclass, indent)
               
     def emit_allowed_classes(self, poolname, indent):
-        self.generated_allocation_group_classes
     
 # TODO: write the code to dig out the mac adderesses
 # Typically:
