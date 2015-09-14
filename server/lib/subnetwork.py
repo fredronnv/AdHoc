@@ -21,7 +21,7 @@ class ExtSubnetworkAlreadyExistsError(ExtLookupError):
 
     
 class ExtSubnetworkOverlapsExisting(ExtValueError):
-    desc = "The given subnetwor overlaps an already existing subnetwork"
+    desc = "The given subnetwork overlaps an already existing subnetwork"
 
     
 class ExtSubnetworkInUseError(ExtValueError):
@@ -285,12 +285,15 @@ class SubnetworkManager(AdHocManager):
      
     def checkoverlap(self, cidr, from_cidr=None):
         """ Check if the given CIDR overlaps any of the existing subnetworks"""
-        n1 = ipaddr.IPNetwork(cidr)
-        # print "n1=",cidr
+        try:
+            n1 = ipaddr.IPNetwork(cidr, strict=True)
+        except ValueError, e:
+            raise ExtSubnetworkInvalidError("The subnetwork CIDR is invalid: %s " % str(e))
+        #print "n1=",cidr
         
         for row in self.db.get("SELECT id FROM subnetworks"):
-            # print "n2=", row[0]
-            if from_cidr and from_cidr == row[0]:  # This allows an existing suvnetwork to be changed
+            #print "n2=", row[0]
+            if from_cidr and from_cidr == row[0]:  # This allows an existing subnetwork to be changed
                 continue
             n2 = ipaddr.IPNetwork(row[0])
             if n1.overlaps(n2) or n2.overlaps(n1):
