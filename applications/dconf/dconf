@@ -3750,7 +3750,7 @@ defoption()
     
     if [ -n "$defoption_s_flag" ]; then
         if db_spaceexists $defoption_s_arg; then
-            $_defoption_optstring="optionspace='$defoption_s_arg', $_defoption_optstring"
+            _defoption_optstring="'optionspace':'$defoption_s_arg', $_defoption_optstring"
         else
             echo "The namespace '$defoption_s_arg' is not defined. Define it using the defspace subcommand"
             return

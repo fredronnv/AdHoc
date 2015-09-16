@@ -354,7 +354,7 @@ class OptionDefManager(AdHocManager):
     def define_option(self, info, changed_by, mtime, name, my_type, code, qualifier, optionspace, struct=None, encapsulate=None):
         qp1 = "INSERT INTO option_base (name, code, qualifier, type, optionspace, info, changed_by"
         qp2 = "VALUES(:name, :code, :qualifier, :type, :optionspace, :info, :changed_by"
-        param_dict = {"name": name, "code": code, "qualifier": qualifier, "type": my_type, "optionspace": optionspace, "changed_by": changed_by, "info": info}
+        param_dict = {"name": name, "code": code, "qualifier": qualifier, "type": my_type, "optionspace": optionspace.oid, "changed_by": changed_by, "info": info}
         if mtime:
             qp1 += ", mtime"
             qp2 += ", :mtime"
@@ -366,7 +366,7 @@ class OptionDefManager(AdHocManager):
         if encapsulate:
             qp1 += ", encapsulate"
             qp2 += ", :encapsulate"
-            param_dict["encapsulate"] = encapsulate
+            param_dict["encapsulate"] = encapsulate.oid
         qp1 += ") "
         qp2 += ") "
         
