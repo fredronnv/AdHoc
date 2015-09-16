@@ -61,8 +61,9 @@ def print_struct_in_order(x, kvtuples, template, output, indent=1):
             else:
                 prefix = ""
             if x[key]:
+                #print >>sys.stderr, "x[key]=",x[key], "type=", type(x[key]), "prefix=",prefix
                 if type(x[key]) is list:
-                    values.append(prefix + x[key])
+                    values.append([prefix + y if type(y) is str or type(y) is unicode else y for y in x[key]])
                 else:
                     values.append(prefix + unicode(x[key]))
     
@@ -75,7 +76,7 @@ def print_struct_in_order(x, kvtuples, template, output, indent=1):
     # print >>sys.stderr, "VALUES=", values
     if len(values) == 1 and type(values[0]) is list:
         # print >>sys.stderr ,"LIST=", values[0]
-        output.write("\n".join(values[0]))
+        output.write("\n".join([ str(x) for x in values[0]]))
     else:  
         output.write("\t".join(values))
     
@@ -146,7 +147,7 @@ def process(command, output):
         except Exception, e:
             print >>sys.stderr, "Exception on command:", e
             raise
-        #print >> sys.stderr, "RES=%s" % res
+        # print >> sys.stderr, "RES=%s" % res
         s = ""
         if cmd.endswith("_dig") or cmd.endswith("_fetch"):
             # Extract the last argument as the template

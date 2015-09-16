@@ -2124,7 +2124,9 @@ store_proxy_pid()
 
 child_died()
 {   
+    #echo "child_died $1" >&2
     if kill -0 $1 >/dev/null 2>&1; then
+        #error "Got a child_died signal, but the child, $1, seems to be alive anyway. Ignoring"
         return
     elif wait $1; then
        error "Proxy process died, Exit status 0"
@@ -2133,7 +2135,7 @@ child_died()
        error "Proxy process terminated due to an error"
        exitvalue=1
     fi
-    trap - INT TERM EXIT # Dont try to stop the proxy, it is already dead.
+    trap - INT TERM EXIT CHLD # Dont try to stop the proxy, it is already dead.
     # Do the cleanup that proxy_stop would have done here will also prevent that 
     proxy_cleanup
         
@@ -2173,7 +2175,7 @@ proxy_start()
 
 proxy_stop()
 {
-    #echo "proxy_stop: Subshell=${BASH_SUBSHELL},BASHPID=${BASHPID}"
+    # echo "proxy_stop: Subshell=${BASH_SUBSHELL},BASHPID=${BASHPID}" >&2
     if  [ $BASH_SUBSHELL -eq 0 ]; then
         
         proxy_pid=`fetch_proxy_pid`
@@ -2198,6 +2200,23 @@ proxy_call()
     #echo "proxyin=" $proxyin >&2
     trace "proxy_call: ""$@"
     /bin/true 2>/dev/null # This seems to keep the named pipes from hanging on Linux. Don't know why!
+    
+    proxy_pid=`fetch_proxy_pid`
+
+    if [ -z "$proxy_pid" ]; then
+        error "Proxy not started"
+        return
+    fi
+    
+    if kill -0 $1 >/dev/null 2>&1; then
+        #error "Got a child_died signal, but the child, $1, seems to be alive anyway. Ignoring"
+        :
+    else
+        #error "Proxy has died"
+        :
+    fi
+    
+    
     echo "$@" > "$proxyin"
     cat $proxyout >/dev/null
     #result=`cat $proxyout`
@@ -2269,10 +2288,19 @@ db_hostmac()
     proxy_start
     if [ -z "$2" ]; then
         server_call "host_fetch('$1', {'mac':true})"
-        #sqql "select \`mac\` from hostlist where id='$1' limit 1"
     else
         server_call "host_update('$1', {'mac':'$2'})"
-        #sqql "update hostlist set \`mac\` = '$2', \`changed_by\` = '$USER' where \`id\` = '$1' limit 1"
+        echo $2
+    fi
+}
+
+db_hostdns()
+{
+    proxy_start
+    if [ -z "$2" ]; then
+        server_call "host_fetch('$1', {'dns':true})"
+    else
+        server_call "host_update('$1', {'dns':'$2'})"
         echo $2
     fi
 }
@@ -4394,36 +4422,42 @@ lsoptions()
             -g)
                 lsoptions_mutexcheck
                 lsoptions_g_flag=$i; shift
+                if [ -z "$1" ]; then echo "-g flag needs an argument"; exit 1; fi;
                 lsoptions_g_arg=$1; shift
                 lsoptions_gtype='group';
                 ;;
             -c)
                 lsoptions_mutexcheck
                 lsoptions_c_flag=$i; shift
+                if [ -z "$1" ]; then echo "-c flag needs an argument"; exit 1; fi;
                 lsoptions_c_arg=$1; shift
                 lsoptions_gtype='class';
                 ;;
             -H)
                 lsoptions_mutexcheck
                 lsoptions_H_flag=$i; shift
+                if [ -z "$1" ]; then echo "-H flag needs an argument"; exit 1; fi;
                 lsoptions_H_arg=$1; shift
                 lsoptions_gtype='host';
                 ;;
             -p)
                 lsoptions_mutexcheck
                 lsoptions_p_flag=$i; shift
+                if [ -z "$1" ]; then echo "-p flag needs an argument"; exit 1; fi;
                 lsoptions_p_arg=$1; shift
                 lsoptions_gtype='pool';
                 ;;
             -n)
                 lsoptions_mutexcheck
                 lsoptions_n_flag=$i; shift
+                if [ -z "$1" ]; then echo "-n flag needs an argument"; exit 1; fi;
                 lsoptions_n_arg=$1; shift
                 lsoptions_gtype='network';
                 ;;
             -s)
                 lsoptions_mutexcheck
                 lsoptions_s_flag=$i; shift
+                if [ -z "$1" ]; then echo "-s flag needs an argument"; exit 1; fi;
                 lsoptions_s_arg=$1; shift
                 lsoptions_gtype='subnetwork';
                 ;;
@@ -4518,7 +4552,7 @@ _lsoptions_do()
             :
         else
             if [ -n "$_lsoptions_print" ];then
-                echo "No uch $lsoptions_gtype: $lsoptions_s_arg"
+                echo "No such $lsoptions_gtype: $lsoptions_s_arg"
             fi
             return;
         fi
@@ -4634,11 +4668,18 @@ _lsoptions_do()
             fi
             return;
         fi
+        
+        
+        
         seen_options=
         found_options=`_hasoptions_group $lsoptions_H_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
             if [ -n "$_lsoptions_print" ];then
-                echo "Options for host $lsoptions_H_arg:"
+                if [ "`db_hostdns $lsoptions_H_arg`" = "NULL" ]; then
+                    echo "NOTE: The host $lsoptions_H_arg has no DNS address. NO options listed below will apply until a DNS address is given"
+                else
+                        echo "Options for host $lsoptions_H_arg:"
+                fi
             fi
             _lsoptions_group $lsoptions_H_arg $lsoptions_gtype "$found_options" "$seen_options"
         fi
@@ -4690,10 +4731,13 @@ find_subnet()
         return 1
     fi
     proxy_start
-    if echo $1 | grep . >/dev/null 2>&1; then
+    if echo $1 | grep '\.' >/dev/null 2>&1; then
         hdns=$1
     else
         hdns=`server_call "host_fetch('$1', {'dns':true})"`
+    fi
+    if [ -z "$hdns" -o "$hdns" = "NULL" ]; then
+        return 0
     fi
     fs_ip=`dig +short $hdns` 
     sn=`server_call "subnetwork_dig({'subnetwork_covers':'$fs_ip'},{'subnetwork':true})"`
