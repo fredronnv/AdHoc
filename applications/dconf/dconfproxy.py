@@ -114,12 +114,13 @@ def process(command, output):
         carg = p.sub('":true', arg)
         s = cmd + "(" + carg + ")"
         
-        #print >> sys.stderr, "CMD=%s" % cmd
-        #print >> sys.stderr, "EXEC: %s" % s
+        # print >> sys.stderr, "CMD=%s" % cmd
+        # print >> sys.stderr, "EXEC: %s" % s
         try:
             exec s
             # print >>sys.stderr, "EXEC DONE"
         except rpcc_client.RPCCRuntimeError, e:
+            # print >>sys.stderr, "RPCCRuntimeError"
             e = e[0]
             try:
                 if e.name == 'RuntimeError::AccessDenied':
@@ -131,12 +132,18 @@ def process(command, output):
             raise
             
         except (rpcc_client.RPCCValueError, rpcc_client.RPCCLookupError, rpcc_client.RPCCTypeError) as e:
+            
+            # print >>sys.stderr, "RPCCCaughtError"
             e = e[0]
+            # print >>sys.stderr, e
+            desc = e.desc
+            if not e.desc:
+                desc = e.name
             try:
                 if e["value"]:
-                    print >>sys.stderr, "%s: %s" % (e.desc, e.value)
+                    print >>sys.stderr, "%s: %s" % (desc, e.value)
                 else:
-                    print >>sys.stderr, "%s" % e.desc
+                    print >>sys.stderr, "%s" % desc
             except:
                 print >>sys.stderr, "Unexpected error from server:", e
             raise
