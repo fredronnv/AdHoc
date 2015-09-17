@@ -3518,7 +3518,7 @@ _choption()
     if [ "${_choption_gtype}" = "global" ]; then
         global_option_id=`server_call "global_option_dig({'name':'$_choption_key'},{'global_option':true})"`
         if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
-            server_call "global_option_update($global_option_id,{'value':${_choption_value}})"
+            server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
         else
             server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
         fi
