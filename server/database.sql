@@ -18,8 +18,8 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 --
 -- Database: `AdHoc`
 --
-CREATE DATABASE `AdHoc` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
-USE AdHoc;
+CREATE DATABASE `AdHoc-devel` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+USE AdHoc-devel;
 
 -- --------------------------------------------------------
 
@@ -163,12 +163,13 @@ CREATE TABLE IF NOT EXISTS `dnsmac` (
 CREATE TABLE IF NOT EXISTS `global_options` (
   `name` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `value` varchar(1024) NOT NULL,
+  `basic` tinyint(1) NOT NULL,
   `changed_by` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   PRIMARY KEY (`id`),
   KEY `name` (`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Table holding options global to the servers' AUTO_INCREMENT=1465 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COMMENT='Table holding options and basic commands global to the servers' AUTO_INCREMENT=1466 ;
 
 -- --------------------------------------------------------
 
