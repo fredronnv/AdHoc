@@ -1,21 +1,24 @@
 #!/usr/bin/env python2.6
 import inspect
-
-from rpcc import *
-from util import *
-from protocol import *
+import os
+import sys
 
 env_prefix = "ADHOC_"
 
 # Automagic way to find out the home of adhoc.
-adhoc_home = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/.."
+adhoc_home = os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))), "..", "..")
 
 os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home  # Export as env variable ADHOC_RUNTIME_HOME if needed outside server
 
 sys.path.append(adhoc_home)
 sys.path.append(os.path.join(adhoc_home, 'server'))
+sys.path.append(os.path.join(adhoc_home, 'server', 'lib'))
 sys.path.append(os.path.join(adhoc_home, 'lib'))
-sys.path.append(os.path.join(adhoc_home, 'lib', 'python2.6'))
+
+
+from rpcc import *
+from protocol import *
+from util import AdHocSuperuserGuard
 
 
 class AdHocServer(Server):
@@ -24,6 +27,7 @@ class AdHocServer(Server):
     major_version = 0
     minor_version = 1
     
+    from util import AdHocSuperuserGuard
     superuser_guard = AdHocSuperuserGuard
     
     
@@ -83,8 +87,8 @@ if __name__ == "__main__":
     else:
         host, port = 'localhost', 4433
 
-    enable_ssl = os.environ.get("ADHOC_SSL_ENABLE", False)
-    
+    enable_ssl = os.environ.get("ADHOC_SSL_ENABLE", False) != "0"
+
     if enable_ssl:
         print "Serving HTTPS on '%s' port %d." % (host, port)
     else:
