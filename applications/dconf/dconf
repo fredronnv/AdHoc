@@ -2959,6 +2959,7 @@ addhost()
 #O addoption;N;network;Add option to this network
 #O addoption;S;subnetwork;Add option to this subnetwork
 #O addoption;G;;Add an option globally
+#O addoption;B;;Add a global option as a basic dhcpd command
 #M
 #M =head2 I<Description>
 #M
@@ -3017,6 +3018,11 @@ opoption()
                 opoption_gtype='global';
                 shift; opoption_arg='global';
                 ;;
+            -B)
+                _opoption_checkmultiple $opoption_gtype
+                opoption_gtype='global_basic';
+                shift; opoption_arg='global_basic';
+                ;;
             -p)
                 _opoption_checkmultiple $opoption_gtype
                 opoption_gtype='pool';
@@ -3046,9 +3052,12 @@ opoption()
         return
     fi
     _opoption_oname="$1"
-    if [ $opoption_gtype = "global" ]; then
+    
+    if [ $opoption_gtype = "global" -o $opoption_gtype = "global_basic" ]; then
         opoption_arg="global"
+        addoption_arg=$opoption_gtype
     fi
+    
     case $option_op in
 
         add)
@@ -3078,7 +3087,7 @@ _addoption()
     fi
 
     if _hasoptions_group $_addoption_group $_addoption_gtype | grep "$_addoption_key" >/dev/null 2>&1 ; then
-        if [ "${_addoption_gtype}" = "global" ]; then
+        if [ "${_addoption_gtype}" = "global" -o "${_addoption_gtype}" = "global_basic" ]; then
             echo The global option $_addoption_key is already defined. Use the choption command to change its value
         else
             echo The option $_addoption_key is already defined for the $_addoption_gtype $_addoption_group, use the choption command to change
@@ -3089,13 +3098,18 @@ _addoption()
     otype=`server_call "option_def_fetch('$_addoption_key',{'type':true})"`
 
 
-
-    if [ "${_addoption_gtype}" = "global" ]; then
+    if [ "${_addoption_gtype}" = "global" -o "${_addoption_gtype}" = "global_basic" ]; then
         global_option_id=`server_call "global_option_dig({'name':'$_addoption_key'},{'global_option':true})"`
-        if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
-            server_call "global_option_create('$_addoption_key',${_addoption_value})"
+        
+        if "${_addoption_gtype}" = "global_basic"; then
+            basic="True"
         else
-            server_call "global_option_create('$_addoption_key','${_addoption_value}')"
+            basic="False"
+        fi
+        if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
+            server_call "global_option_create('$_addoption_key',${_addoption_value}, $basic )"
+        else
+            server_call "global_option_create('$_addoption_key','${_addoption_value}', $basic)"
         fi
     else
         if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
