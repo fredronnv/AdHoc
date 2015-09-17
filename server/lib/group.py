@@ -6,10 +6,9 @@ from rpcc import *
 from optionspace import *
 from optionset import *
 from option_def import *
-from util import *
-from host import *
+from util import ExtHostList, AllowUserWithPriv, AdHocSuperuserGuard, AdHocModel, ExtLiteralOptionList, AdHocManager
 
-
+from util import g_rename, g_write_literal_option
 g_read = AnyGrants(AllowUserWithPriv("write_all_groups"), AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_groups"), AdHocSuperuserGuard)
 

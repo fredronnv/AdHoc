@@ -5,6 +5,21 @@
 from rpcc import *
 
 
+class ExtHostName(ExtString):
+    name = "host-name"
+    desc = "Name of a host"
+    regexp = r"^[-a-zA-Z0-9_]+$"
+    regexp = r"^[012][0-9]{3}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])-[0-9]{3}[A-Z]{1,2}$"
+    maxlen = 14
+    minlen = 12
+  
+    
+class ExtHostList(ExtList):
+    name = "host-list"
+    desc = "List of host names"
+    typ = ExtHostName
+
+
 class AdHocManager(Manager):
     """ Intermediate class to harbour methods common to all AdHoc Managers """
     approve_config = False

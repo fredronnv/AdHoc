@@ -9,6 +9,7 @@ import tempfile
 import subprocess
 from adhoc_version import *
 from util import *
+from option_def import ExtNoSuchOptionDefError
 
 g_reload = AnyGrants(AllowUserWithPriv("trigger_reload"), AdHocSuperuserGuard)
 
@@ -162,7 +163,8 @@ class DHCPManager(AdHocManager):
                       "global_options", 
                       "buildings", 
                       "rooms", 
-                      "optionset"]:
+                      "optionset",
+                      "dnsmac"]:
             self.db.put("TRUNCATE TABLE %s" % table)
             
         #
@@ -193,22 +195,40 @@ class DHCPManager(AdHocManager):
         # global_options takes input also from the table basic
         # print 
         # print "BASIC  OPTIONS"
+        
+                        
         qf = "SELECT command, arg, mtime, id FROM basic "
-        qp = "INSERT INTO global_options (name, value, changed_by, mtime, id) VALUES (:name, :value, :changedby, :mtime, :id)"
+        qp = "INSERT INTO global_options (name, value, basic, changed_by, mtime, id) VALUES (:name, :value, 1, :changedby, :mtime, :id)"
+              
         for(name, value, mtime, my_id) in self.odb.get(qf):
             # print name, value, mtime, my_id
             if name == 'ddns-update-style' and value == 'ad-hoc':
                 continue  # This mode is not supported in later versions of the dhcpd server
             self.db.insert("id", qp, name=name, value=value, changedby="DCONF-ng", mtime=mtime, id=my_id)
+            self.option_def_manager.define_option("", "DCONF-ng", mtime, name, "text", None, "parameter", None)
         
         # Global options
         qf = "SELECT name, value, changed_by, mtime, id FROM optionlist WHERE gtype='global'"
-        qp = "INSERT INTO global_options (name, value, changed_by, mtime, id) VALUES (:name, :value, :changedby, :mtime, :id)"
+        qp = "INSERT INTO global_options (name, value, basic, changed_by, mtime, id) VALUES (:name, :value, 0, :changedby, :mtime, :id)"
         for(name, value, changedby, mtime, my_id) in self.odb.get(qf):
             # print name, value, changedby, mtime, my_id
             if name == 'dhcp2_timestamp':
                 continue  # Not needed
+            
+            # In case it has already been defined by the glopal options, remove it here
+            try:
+                odef = self.option_def_manager.get_option_def(name)
+                self.option_def_manager.destroy_option_def(odef)
+            except ExtNoSuchOptionDefError:
+                pass
+            
             self.db.insert("id", qp, name=name, value=value, changedby=changedby, mtime=mtime, id=my_id)
+            self.option_def_manager.define_option("", changedby, mtime, name, "text", None, "parameter", None)
+            
+        self.db.insert("id", "INSERT INTO global_options (name, value, basic, changed_by, id) VALUES (:name, :value, 1, :changedby, :id)",
+                       name="log-facility", value="local4", changedby="DCONF-ng", id=my_id + 1)
+        
+        self.option_def_manager.define_option("", "DCONF-ng", mtime, "log-facility", "text", None, "parameter", None)
         
         # dhcp_servers
         # print 
@@ -266,6 +286,14 @@ class DHCPManager(AdHocManager):
             # dhcp2_timestamp is a special option for internal use by AdHoc
             if name == 'dhcp2_timestamp':
                 continue  # Not needed
+            
+            # In case it has already been defined by the glopal options, remove it here
+            try:
+                odef = self.option_def_manager.get_option_def(name)
+                self.option_def_manager.destroy_option_def(odef)
+            except ExtNoSuchOptionDefError:
+                pass
+            
             self.option_def_manager.define_option(info, changed_by, mtime, name, my_type, code, qualifier, optionspace)
             
             # Save option info for later usage when adding options
@@ -473,6 +501,7 @@ class DHCPManager(AdHocManager):
                            entry_status=entry_status, 
                            optset=optset, 
                            cid=cid)
+            self.db.insert(id, "INSERT INTO dnsmac (dns, mac) VALUES (:dns, :mac)", dns=dns, mac=mac)
         self.group_manager.gather_stats()
         # Stratum 4: host_literal_options and host_options
         qf = """SELECT `owner`, value, changed_by, mtime  FROM literal_options WHERE owner_type='host'"""
@@ -642,39 +671,16 @@ class DHCPManager(AdHocManager):
    
         self.emit("# dhcpd.conf - Rev: %d Automatically generated for DHCP server %s by AdHoc server %s (svn %s). Do not edit!" % (eventid, serverID, adhoc_release, adhoc_svn_version), 0)
        
-        self.emit("", 0)
-        self.emit("log-facility local4;")
-        self.emit("", 0)
-        q = "SELECT value FROM global_options WHERE name='domain-name-servers'"
-        iparr = []
-        for (ip,) in self.db.get_all(q):
-            if ip:
-                iparr.append(ip)
-        if iparr:
-            s = "option domain-name-servers "
-            s += ', '.join(iparr)
-            s += ";"
-            self.emit(s)
-        # timing_array.append(("Global-options 1", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
-        q = "SELECT value FROM global_options WHERE name='routers'"
-        iparr = []
-        for (ip,) in self.db.get_all(q):
-            if ip:
-                iparr.append(ip)
-        if iparr:
-            s = "option routers "
-            s += ', '.join(iparr)
-            s += ";"
+        #self.emit("", 0)
+        #self.emit("log-facility local4;")
+        #self.emit("", 0)
+            
+        # timing_array.append(("Global-options 1A", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
+        q = "SELECT name, value FROM global_options WHERE basic = 1"
+        for (name, value) in self.db.get_all(q):
+            s = name + " " + value + ";"
             self.emit(s)
 
-        # timing_array.append(("Global-options 2", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
-#         q = "SELECT command, arg FROM basic_commands"
-#         
-#         for (cmd, arg) in self.db.get_all(q):
-#             if cmd:
-#                 self.emit("%s %s;" % (cmd, arg))
-#         
-#         timing_array.append(("Global-options 3", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
         spacearr = []
         q = "SELECT value FROM optionspaces"
         
@@ -682,9 +688,9 @@ class DHCPManager(AdHocManager):
             if space:
                 spacearr.append(space)
         # print "SPACEARR=", spacearr    
-        if spacearr:
-            q = "SELECT name,code,qualifier,type FROM option_base WHERE optionspace IS NULL AND code IS NOT NULL"
-            for (name, code, qual, option_type) in self.db.get_all(q):
+        
+        q = "SELECT name,code,qualifier,type FROM option_base WHERE optionspace IS NULL AND code IS NOT NULL"
+        for (name, code, qual, option_type) in self.db.get_all(q):
                 """ NOTE The following prevents us from overloading the vendor-encapsulated-options option.
                     If this is to be used define vendor-encapsulated-options with code 43 in the database and use that option. 
                     If anyone defines another option with code 43, that one won't make it into the options definitions and any
@@ -697,7 +703,8 @@ class DHCPManager(AdHocManager):
                     self.emit("option %s code %s = array of %s;" % (name, code, option_type))
                 else:
                     self.emit("option %s code %s = %s;" % (name, code, option_type))
-
+                    
+        if spacearr:
             for space in spacearr:
                 self.emit("option space %s;" % space)
                 
@@ -707,6 +714,23 @@ class DHCPManager(AdHocManager):
                         self.emit("option %s.%s code %s = array of %s;" % (space, name, code, option_type))
                     else:
                         self.emit("option %s.%s code %s = %s;" % (space, name, code, option_type))
+                        
+        # timing_array.append(("Global-options 1A", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
+        q1 = "SELECT DISTINCT name FROM global_options WHERE basic = 0"
+        for (name,) in self.db.get_all(q1):
+            #print "GLOBAL OPTION NAMED:", name
+            value_list = []
+            q2 = "SELECT value FROM global_options WHERE name = :name"
+            for (value,) in self.db.get_all(q2, name=name):
+                #print "GLOBAL OPTION NAME, VALUE=", name, value
+                if value:
+                    value_list.append(value)
+            if value_list:
+                s = "option %s " % name
+                s += ', '.join(value_list)
+                s += ";"
+                self.emit(s)
+
         
         # timing_array.append(("Optionspaces", datetime.datetime.now(), datetime.datetime.now() - timing_array[-1][1]))
         self.emit_classes()

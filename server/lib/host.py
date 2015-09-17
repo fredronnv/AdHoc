@@ -8,6 +8,7 @@ from room import *
 from optionset import *
 from util import *
 from option_def import *
+from group import ExtGroup, ExtNoSuchGroupError
 from datetime import date
 
 g_read = AnyGrants(AllowUserWithPriv("write_all_hosts"), AllowUserWithPriv("read_all_hosts"), AdHocSuperuserGuard)
@@ -30,14 +31,8 @@ class ExtHostInUseError(ExtValueError):
     desc = "The host is referred to by other objects. It cannot be destroyed"    
 
  
-class ExtHostName(ExtString):
-    name = "host-name"
-    desc = "Name of a host"
-    regexp = r"^[-a-zA-Z0-9_]+$"
-    regexp = r"^[012][0-9]{3}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])-[0-9]{3}[A-Z]{1,2}$"
-    maxlen = 14
-    minlen = 12
-    
+# class ExtHostName(ExtString): is defined in util.py to break an import loop
+ 
     
 class ExtHostStatus(ExtEnum):
     name = "host-status"
@@ -75,12 +70,6 @@ class ExtMacAddress(ExtString):
     maxlen = 17
 
 
-class ExtHostList(ExtList):
-    name = "host-list"
-    desc = "List of host names"
-    typ = ExtHostName
-
-
 class ExtHost(ExtHostName):
     name = "host"
     desc = "A host instance"
@@ -91,9 +80,7 @@ class ExtHost(ExtHostName):
     def output(self, fun, obj):
         return obj.oid
 
-# This is a bit ugly, but solves an import loop. Do not move this import to the top
-from group import *
-       
+
 class ExtNewHostName(ExtHostName):
     name = "host"
     desc = "A host name not present in the database"

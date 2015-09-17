@@ -160,7 +160,7 @@ class OptionDefDestroy(SessionedFunction):
     returns = (ExtNull)
 
     def do(self):
-        self.option_def_manager.destroy_option_def(self, self.option_def)
+        self.option_def_manager.destroy_option_def(self.option_def)
 
 
 class OptionDef(AdHocModel):
@@ -347,14 +347,18 @@ class OptionDefManager(AdHocManager):
         else:
             struct = "{ " + ",".join([x.value for x in structlist.value]) + " }"
             
+        if optionspace:
+            optionspace = optionspace.oid
+            
         self.define_option(info, fun.session.authuser, None, option_def_name, type, code, qualifier, optionspace, struct=struct, encapsulate=encapsulate)
         optionset.OptionsetManager.init_class(self.db)  # Reinitialize class with new options in the table
         
     @entry(g_write)
     def define_option(self, info, changed_by, mtime, name, my_type, code, qualifier, optionspace, struct=None, encapsulate=None):
-        qp1 = "INSERT INTO option_base (name, code, qualifier, type, optionspace, info, changed_by"
-        qp2 = "VALUES(:name, :code, :qualifier, :type, :optionspace, :info, :changed_by"
-        param_dict = {"name": name, "code": code, "qualifier": qualifier, "type": my_type, "optionspace": optionspace.oid, "changed_by": changed_by, "info": info}
+        qp1 = "INSERT INTO option_base (name, code, qualifier, type, info, changed_by"
+        qp2 = "VALUES(:name, :code, :qualifier, :type, :info, :changed_by"
+        
+        param_dict = {"name": name, "code": code, "qualifier": qualifier, "type": my_type, "changed_by": changed_by, "info": info}
         if mtime:
             qp1 += ", mtime"
             qp2 += ", :mtime"
@@ -367,6 +371,10 @@ class OptionDefManager(AdHocManager):
             qp1 += ", encapsulate"
             qp2 += ", :encapsulate"
             param_dict["encapsulate"] = encapsulate.oid
+        if optionspace:
+            qp1 += ", optionspace"
+            qp2 += ", :optionspace"
+            param_dict["optionspace"] = optionspace
         qp1 += ") "
         qp2 += ") "
         
@@ -449,7 +457,7 @@ class OptionDefManager(AdHocManager):
         return id
               
     @entry(g_write)
-    def destroy_option_def(self, fun, option_def):
+    def destroy_option_def(self, option_def):
         
         try:
             q = "DELETE FROM option_base WHERE name=:name LIMIT 1"

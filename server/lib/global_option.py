@@ -52,12 +52,13 @@ class ExtGlobalOption(ExtGlobalOptionID):
 class GlobalOptionCreate(SessionedFunction):
     extname = "global_option_create"
     params = [("global_option_name", ExtGlobalOptionName, "Global option name to create"),
-              ("value", ExtGlobalOptionValue, "The value of this particular option")]
+              ("value", ExtGlobalOptionValue, "The value of this particular option"),
+              ("basic_command", ExtBoolean, "The option is a basic command rather than an option")]
     desc = "Creates a global option"
     returns = (ExtGlobalOptionID)
 
     def do(self):
-        id = self.global_option_manager.create_global_option(self, self.global_option_name, self.value)
+        id = self.global_option_manager.create_global_option(self, self.global_option_name, self.value, self.basic_command)
         return id
 
 
@@ -175,10 +176,10 @@ class GlobalOptionManager(AdHocManager):
         return "r.id"
     
     @entry(g_write)
-    def create_global_option(self, fun, name, value):
-        q = "INSERT INTO global_options (name, value, changed_by) VALUES (:name, :value, :changed_by)"
+    def create_global_option(self, fun, name, value, basic):
+        q = "INSERT INTO global_options (name, value, basic, changed_by) VALUES (:name, :value, :changed_by)"
         try:
-            id = self.db.insert("id", q, name=name, value=value, changed_by=fun.session.authuser)
+            id = self.db.insert("id", q, name=name, value=value, basic=1 if basic else 0, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtGlobalOptionAlreadyExistsError()
         
