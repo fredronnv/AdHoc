@@ -18,17 +18,17 @@ export ADHOC_SERVER_URL="http://${ADHOC_SERVER_HOST}:${ADHOC_SERVER_PORT}"
 
 
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"devel" ]; then
+    export ADHOC_DB_HOST=adhoc.ita.chalmers.se
     export ADHOC_DB_USER=$USER
-    export ADHOC_DB_DATABASE=AdHoc_devel
+    export ADHOC_DB_DATABASE=AdHoc-devel
+    export ADHOC_SSL_ENABLE=0
     export RPCC_DEBUG=1
-    #export ADHOC_DEBUG_SQL=1
-    
+    export ADHOC_DEBUG_SQL=1
     export ADHOC_TEST_MODE=1
-
     export VERSIONER_PYTHON_PREFER_32_BIT=yes export
         
-    export PYTHONPATH=/Users/bernerus/Applications/eclipse/plugins/org.python.pydev_2.7.5.2013052819/pysrc/pydev_sitecustomize
-    export PYTHONPATH=${PYTHONPATH}:/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages
+    #export PYTHONPATH=/Users/bernerus/Applications/eclipse/plugins/org.python.pydev_2.7.5.2013052819/pysrc/pydev_sitecustomize
+    #export PYTHONPATH=${PYTHONPATH}:/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages
     export ADHOC_DHCPD_PATH=/usr/local/sbin/dhcpd
 fi
 
@@ -40,7 +40,6 @@ fi
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"prod" ]; then
     export ADHOC_DB_DATABASE=AdHoc
     export ADHOC_DB_USER=srvadhoc
-    export ADHOC_SSL_ENABLE=1
     #export RPCC_DEBUG=1
     #export ADHOC_DEBUG_SQL=1
     #export ADHOC_TEST_MODE=1
