@@ -432,13 +432,13 @@ class PoolManager(AdHocManager):
     @entry(g_write)
     def destroy_pool(self, fun, pool):
         
-        pool.get_optionset().destroy()
-        
         try:
             q = "DELETE FROM pools WHERE poolname=:poolname LIMIT 1"
             self.db.put(q, poolname=pool.oid)
         except IntegrityError:
             raise ExtPoolInUseError()
+        
+        pool.get_optionset().destroy()
         
         self.db.put("DELETE FROM pool_literal_options WHERE `for`=:poolname", poolname=pool.oid)
         self.db.put("DELETE FROM pool_host_map WHERE poolname=:poolname", poolname=pool.oid)
