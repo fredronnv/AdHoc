@@ -161,11 +161,7 @@ class PoolRange(AdHocModel):
         self.event_manager.add("update", pool_range=self.oid, served_by=served_by.oid, authuser=self.function.session.authuser)
         
     def check_model(self):
-        q = "SELECT INET_ATON(:start_ip) > INET_ATON(:end_ip)"
-        val = self.db.get_value(q, start_ip=self.start_ip, end_ip=self.end_ip)
-        if val:
-            raise ExtPoolRangeReversedError()
-        # self.manager.checkoverlaps(self.start_ip, self.end_ip)
+        self.manager.check_reversed_range(self.start_ip, self.end_ip)
         self.manager.approve()
 
 
@@ -244,12 +240,13 @@ class PoolRangeManager(AdHocManager):
         overlaps = self.db.get_all(q, start_ip=start_ip, end_ip=end_ip)
         return overlaps
     
-    def checkoverlaps(self, start_ip, end_ip, from_range=None):
-        
+    def check_reversed_range(self, start_ip, end_ip):
         q = "SELECT INET_ATON(:start_ip) > INET_ATON(:end_ip)"
         val = self.db.get_value(q, start_ip=start_ip, end_ip=end_ip)
         if val:
             raise ExtPoolRangeReversedError()
+        
+    def checkoverlaps(self, start_ip, end_ip, from_range=None):
         
         overlaps = self.getoverlaps(start_ip, end_ip)
         
