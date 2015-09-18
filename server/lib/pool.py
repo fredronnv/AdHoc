@@ -233,7 +233,6 @@ class Pool(AdHocModel):
         self.oid = a.pop(0)
         self.network = a.pop(0)
         self.optionspace = a.pop(0)
-        self.max_lease_time = a.pop(0)
         self.info = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
@@ -254,7 +253,7 @@ class Pool(AdHocModel):
     
     @template("max_lease_time", ExtInteger)
     def get_max_lease_time(self):
-        return self.max_lease_time
+        return self.get_optionset().get_option("max-lease-time")
 
     @template("info", ExtString)
     def get_info(self):
@@ -346,8 +345,8 @@ class Pool(AdHocModel):
     @update("max_lease_time", ExtInteger)
     @entry(g_write)       
     def set_max_lease_time(self, value):
-        q = "UPDATE pools SET max_lease_time=:value WHERE poolname=:name"
-        self.db.put(q, name=self.oid, value=value)
+        set = self.get_optionset()
+        set.set_option_by_name("max-lease-time", value)
         self.event_manager.add("rename", pool=self.oid, max_lease_time=value, authuser=self.function.session.authuser)
         
     @update("open", ExtBoolean)
@@ -359,7 +358,7 @@ class Pool(AdHocModel):
                 raise ExtPoolHasGrants()
         q = "UPDATE pools SET open=:value WHERE poolname=:name"
         self.db.put(q, name=self.oid, value=value)
-        self.event_manager.add("update", pool=self.oid, max_lease_time=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", pool=self.oid, open=value, authuser=self.function.session.authuser)
                 
                 
 class PoolManager(AdHocManager):
@@ -373,7 +372,7 @@ class PoolManager(AdHocManager):
         
     @classmethod
     def base_query(cls, dq):
-        dq.select("g.poolname", "g.network", "g.optionspace", "g.max_lease_time",
+        dq.select("g.poolname", "g.network", "g.optionspace",
                   "g.info", "g.mtime", "g.changed_by", "g.optionset", "g.open")
         dq.table("pools g")
         return dq
@@ -400,11 +399,6 @@ class PoolManager(AdHocManager):
         dq.table("pools g")
         return "g.info"
     
-    @search("max_lease_time", IntegerMatch)
-    def s_max_lease_time(self, dq):
-        dq.table("pools g")
-        return "g.max_lease_time"
-    
     @entry(g_write)
     def create_pool(self, fun, pool_name, network, info, options):
         if options is None:
@@ -421,16 +415,16 @@ class PoolManager(AdHocManager):
         optionset = self.optionset_manager.get_optionset(optionset_id)
         optionset.set_option_by_name("max-lease-time", max_lease_time)
         
-        q = """INSERT INTO pools (poolname, network, optionspace, max_lease_time, info, changed_by, optionset, open) 
-               VALUES (:pool_name, :network, :optionspace, :max_lease_time, :info, :changed_by, :optionset, :open)"""
+        q = """INSERT INTO pools (poolname, network, optionspace, info, changed_by, optionset, open) 
+               VALUES (:pool_name, :network, :optionspace, :info, :changed_by, :optionset, :open)"""
         try:
             self.db.insert("id", q, pool_name=pool_name, network=network.oid, 
-                           optionspace=optionspace, max_lease_time=max_lease_time,
+                           optionspace=optionspace,
                            info=info, changed_by=fun.session.authuser, optionset=optionset_id,
                            open=int(open))
             # print "Pool created, name=", pool_name
             self.event_manager.add("create", pool=pool_name, parent_object=network.oid, 
-                                   optionspace=optionspace, max_lease_time=max_lease_time,
+                                   optionspace=optionspace,
                                    info=info, authuser=fun.session.authuser, optionset=optionset_id, open=int(open))
         except IntegrityError, e:
             raise ExtPoolAlreadyExistsError()
@@ -548,3 +542,4 @@ class PoolManager(AdHocManager):
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
             self.event_manager.add("update", pool=pool.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
+

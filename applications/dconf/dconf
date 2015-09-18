@@ -2580,7 +2580,7 @@ db_exists()
             fi
             return 1
             ;;
-        global)
+        global*)
             return 0
              ;;
         *)
@@ -3088,11 +3088,12 @@ _addoption()
 
     if _hasoptions_group $_addoption_group $_addoption_gtype | grep "$_addoption_key" >/dev/null 2>&1 ; then
         if [ "${_addoption_gtype}" = "global" -o "${_addoption_gtype}" = "global_basic" ]; then
-            echo The global option $_addoption_key is already defined. Use the choption command to change its value
+            :
+            #echo The global option $_addoption_key is already defined. Use the choption command to change its value
         else
             echo The option $_addoption_key is already defined for the $_addoption_gtype $_addoption_group, use the choption command to change
+            return
         fi
-        return
     fi
     proxy_start
     otype=`server_call "option_def_fetch('$_addoption_key',{'type':true})"`
@@ -3101,13 +3102,13 @@ _addoption()
     if [ "${_addoption_gtype}" = "global" -o "${_addoption_gtype}" = "global_basic" ]; then
         global_option_id=`server_call "global_option_dig({'name':'$_addoption_key'},{'global_option':true})"`
         
-        if "${_addoption_gtype}" = "global_basic"; then
+        if [ "${_addoption_gtype}" = "global_basic" ]; then
             basic="True"
         else
             basic="False"
         fi
         if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
-            server_call "global_option_create('$_addoption_key',${_addoption_value}, $basic )"
+            server_call "global_option_create('$_addoption_key','${_addoption_value}', $basic )"
         else
             server_call "global_option_create('$_addoption_key','${_addoption_value}', $basic)"
         fi
@@ -3482,7 +3483,7 @@ _chhost_foundaflag()
     chhost_anyflag=1
 }
 
-#S choption;co;Change an option;2;2;key value;Modify an option of a group, class, host, network, subnetwork, pool or a global option;96
+#S choption;co;Change an option;2;2;key_or_id value;Modify an option of a group, class, host, network, subnetwork, pool or a global option;96
 #O choption;c;class;Change option for this class
 #O choption;g;group;Change option for this group
 #O choption;p;pool;Change option for this pool
@@ -3494,7 +3495,9 @@ _chhost_foundaflag()
 #M =head2 I<Description>
 #M
 #M The choption changes the value of an option. Beware that there is no checking of the given value.
-#M Use B<-G global> to change global options, the argument I<global> here is the literal sting 'global'.
+#M For global options, either the option name or the numeric option ID may be given as a key.
+#M In case that global option with a certain name exists with more than one instance, typically
+#M for domain-name-servers, the option ID must be given. Use lsaotions -G to find out the option ID's
 #M
 choption()
 {
@@ -3508,28 +3511,69 @@ _choption()
     _choption_value="$3"
     _choption_gtype="$4"
 
-    if db_optionexists $_choption_key; then
-        :
-    else
-        echo The option $_choption_key is undefined.
-        return
+    if [ "$_choption_gtype" != "global" ]; then
+        if db_optionexists $_choption_key; then
+                :
+        else
+                echo The option $_choption_key is undefined.
+                return
+        fi
     fi
     
     if _hasoptions_group $_choption_group $_choption_gtype | grep "$_choption_key" >/dev/null 2>&1 ; then
         :
     else
         if [ "$_choption_gtype" = "global" ]; then
-            echo "$_choption_key is not defined as a global option, use the addooption command to add it"
+            :
         else
             echo The option $_choption_key is not defined for the $_choption_gtype $_choption_group, use the addoption command to add it
+            return
         fi
-
-        return
     fi
     
     proxy_start
-    otype=`server_call "option_def_fetch('$_choption_key',{'type':true})"`
+    
     if [ "${_choption_gtype}" = "global" ]; then
+        if [[ $_choption_key =~ [0-9]+$ ]]; then
+                # We got a numeric key. Use it as an ID
+                global_option_id=$_choption_key
+                global_option_name=`server_call "global_option_dig({'id':'$global_option_id'},{'name':true})"`
+                if [ -z "$global_option_name" ]; then
+                    echo "There is no global option with ID $global_option_id defined"
+                    return
+                fi
+                otype=`server_call "option_def_fetch('$global_option_name',{'type':true})"`
+                if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
+                        server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
+                else
+                        server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
+                fi
+                return
+        else
+                # We got a name, check if there are more than one ID with this name
+                global_option_name=$_choption_key
+                global_option_ids=`server_call "global_option_dig({'name':'$global_option_name'},{'global_option':true})"`
+                case "`echo "$global_option_ids" | wc -w | sed 's/ //g'`" in
+                    0) echo "No option found by the name $global_option_name";
+                       return
+                       ;;
+                    1) otype=`server_call "option_def_fetch('$_choption_key',{'type':true})"`;
+                       echo "Option type for $global_option_name is $otype";
+                       if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
+                           server_call "global_option_update($global_option_ids,{'value':'${_choption_value}'})"
+                       else
+                           server_call "global_option_update($global_option_ids,{'value':'${_choption_value}'})"
+                       fi
+                       return
+                       ;;
+                    *) echo "More than one option is defined using the name $global_option_name. Please use a numeric option ID instead"
+                       return
+                       ;;
+                esac
+                         
+                return
+                otype=`server_call "option_def_fetch('$_choption_key',{'type':true})"`
+        fi
         global_option_id=`server_call "global_option_dig({'name':'$_choption_key'},{'global_option':true})"`
         if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
             server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
@@ -3537,6 +3581,7 @@ _choption()
             server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
         fi
     else
+        otype=`server_call "option_def_fetch('$_choption_key',{'type':true})"`
         if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
             server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':${_choption_value}})"
         else
@@ -4428,6 +4473,35 @@ _lsnetworks_fmt()
 #M
 #M =back
 #M
+#M For global options, the columns are:
+#M
+#M =over
+#M
+#M =item ID
+#M 
+#M The option ID. Some global options may be entered more than once, in which case the resulting value to dhcpd is a comma separated list of values.
+#M To be able to add, delete or change the elements in such a list, it is allowed to enter multiple values for an option with the same name.
+#M When changing an element of such an option, the option ID may be used, and when deleting, the option ID must be used for identification.
+#M For global options that have only one value, its name may also be used for changing.
+#M
+#M =item Name
+#M
+#M This is the name of the option.
+#M
+#M =item Value
+#M
+#M The current value of the option.
+#M
+#M =item Basic command
+#M
+#M This column is set to 1 for options that are really basic dhcpd commands.
+#M
+#M =item Description
+#M
+#M A brief description of the purpose of the option, if that has been defined.
+#M
+#M =back
+#M
 lsoptions()
 {
 
@@ -4495,8 +4569,9 @@ lsoptions()
 
 # Globally defined options
     if [ -n "$lsoptions_G_flag" ]; then
+        echo 'ID	Name	Value	Basic command	Description' | _lsoptions_global_options_fmt
         proxy_start
-        server_call "global_option_dig({}, {'name':true, 'value':true, 'info':true})" | _lsoptions_group_fmt
+        server_call "global_option_dig({}, {'global_option': True, 'name':true, 'value':true, 'basic':true, 'info':true})" | _lsoptions_global_options_fmt
     fi
     
     olen=${olen:-0}
@@ -4504,6 +4579,11 @@ lsoptions()
 
     _lsoptions_do 
     _lsoptions_do print
+}
+
+_lsoptions_global_options_fmt()
+{
+    sed s/NULL//g | awk -F'	' '{printf("%-4s %28s %-36s %13s %s\n",$1,$2,$3,$4,$5);}' |  sed 's/ *$//'
 }
 
 _lsoptions_do()
@@ -4841,7 +4921,7 @@ _hasoptions_group()
     fi
     proxy_start
     #echo "proxy_pid H=$proxy_pid" >&2
-    if [ "$_hasoptions_group_gtype" = "global" ]; then
+    if [ "$_hasoptions_group_gtype" = "global" -o "$_hasoptions_group_gtype" = "global_basic" ]; then
         v1=`server_call "global_option_dig({'min_id':0}, {'name': true})" | tr '\n' ' '`
     else
         v1=`server_call "${px}_fetch('$1', {'options': true})" | tr '\n' ' '`
@@ -5326,19 +5406,20 @@ mkhost()
     exit 2
 }
 
-#S rmoption;;Remove an option;1;1;key;Remove an option from a group, class, host, network, subnetwork, pool or a global option;97
+#S rmoption;;Remove an option;1;1;key_or_id;Remove an option from a group, class, host, network, subnetwork, pool or a global option;97
 #O rmoption;c;class;Remove option for this class
 #O rmoption;g;group;Remove option for this group
 #O rmoption;p;pool;Remove option for this pool
 #O rmoption;H;host;Remove option for this host;;host_in_db
 #O rmoption;N;network;Remove option for this network
 #O rmoption;S;subnetwork;Remove option for this subnetwork
-#O rmoption;G;global;Remove a global option
+#O rmoption;G;;Remove a global option or a basic command
 #M
 #M =head2 I<Description>
 #M
 #M The rmoption removes an option from the option list that belongs to a group, host, 
-#M network, subnetwork, class or pool. You can also remove global options by specifying -G and the literal string "global".
+#M network, subnetwork, class or pool. You can also remove global options by specifying -G and the numeric option ID.
+#M Use lsoptions -G to find out the option ID.
 #M
 rmoption()
 {
@@ -5351,6 +5432,15 @@ _rmoption()
     _rmoption_group=$1
     _rmoption_key=$2
     _rmoption_gtype=$3
+    
+    if [ "${_rmoption_gtype}" = "global" ]; then
+        if [[ $_rmoption_key =~ [0-9]+$ ]]; then
+            server_call "global_option_destroy( $_rmoption_key)"
+        else
+            echo "Global options may only be removed using the numeric option ID"
+        fi
+        return
+    fi
  
     if _hasoptions_group $_rmoption_group $_rmoption_gtype | grep "$_rmoption_key" >/dev/null 2>&1 ; then
         :
@@ -5641,7 +5731,7 @@ deletepool()
     server_call "pool_destroy('$1')"
 }
 #S addrange;;Add an address range;3;3;pool from_address to_address;Add an IP address range to a pool;74
-#O addrange;dhcp_server;server_code;Specify which DHCP server will serve the range;M;dhcpserver
+#O addrange;dhcp_server;server_code;Specify which DHCP server will serve the range, typically A, B or C.;M;dhcpserver
 #M =head2 I<Description>
 #M
 #M The addrange subcommand adds a new IP number range to an already existing pool. You must use the --dhcp_server

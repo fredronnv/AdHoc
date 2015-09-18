@@ -591,7 +591,6 @@ CREATE TABLE IF NOT EXISTS `pool_ranges` (
 CREATE TABLE IF NOT EXISTS `pools` (
   `poolname` varchar(64) NOT NULL COMMENT 'Name of pool',
   `optionspace` varchar(16) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL COMMENT 'Option space, if any',
-  `max_lease_time` int(32) NOT NULL DEFAULT '600',
   `network` varchar(64) DEFAULT NULL COMMENT 'Network the pool belongs to',
   `info` varchar(80) DEFAULT NULL COMMENT 'Pool description',
   `changed_by` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Cid of last changer',

@@ -83,6 +83,7 @@ class GlobalOption(AdHocModel):
         self.oid = a.pop(0)
         self.name = a.pop(0)
         self.value = a.pop(0)
+        self.basic= a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
@@ -104,6 +105,10 @@ class GlobalOption(AdHocModel):
     def get_mtime(self):
         return self.mtime
     
+    @template("basic", ExtBoolean)
+    def get_basic_command(self):
+        return self.basic
+    
     @template("info", ExtOrNull(ExtString))
     def get_info(self):
         try:
@@ -121,6 +126,7 @@ class GlobalOption(AdHocModel):
         nn = str(newname)
         q = "UPDATE global_options SET name=:newname WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, newname=nn)
+        self.manager.approve_config = True
         self.event_manager.add("rename", global_option=self.oid, newstr=newname, authuser=self.function.session.authuser)
         # Do not call self.manager.rename_object(self, nn) here. Global options are identified with a separate ID
         # which is not touched by the setting of a new name.
@@ -132,6 +138,7 @@ class GlobalOption(AdHocModel):
     def set_value(self, newvalue):
         q = "UPDATE global_options SET value=:value WHERE id=:id LIMIT 1"
         self.db.put(q, id=self.oid, value=newvalue)
+        self.manager.approve_config = True
         if type(newvalue) is int:
             self.event_manager.add("update", global_option=self.oid, newint=newvalue, authuser=self.function.session.authuser)
         else:
@@ -149,7 +156,7 @@ class GlobalOptionManager(AdHocManager):
         
     @classmethod
     def base_query(cls, dq):
-        dq.select("r.id", "r.name", "r.value", "r.mtime", "r.changed_by")
+        dq.select("r.id", "r.name", "r.value", "r.basic", "r.mtime", "r.changed_by")
         dq.table("global_options r")
         return dq
 
@@ -177,13 +184,15 @@ class GlobalOptionManager(AdHocManager):
     
     @entry(g_write)
     def create_global_option(self, fun, name, value, basic):
-        q = "INSERT INTO global_options (name, value, basic, changed_by) VALUES (:name, :value, :changed_by)"
+        q = "INSERT INTO global_options (name, value, basic, changed_by) VALUES (:name, :value, :basic, :changed_by)"
         try:
             id = self.db.insert("id", q, name=name, value=value, basic=1 if basic else 0, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtGlobalOptionAlreadyExistsError()
         
         self.event_manager.add("create", global_option=name, id=id)
+        self.approve_config = True
+        self.approve()
         return id
         
     @entry(g_write)
@@ -195,3 +204,5 @@ class GlobalOptionManager(AdHocManager):
         except IntegrityError:
             raise ExtGlobalOptionInUseError()
         self.event_manager.add("destroy", global_option=global_option.name, id=global_option.oid)
+        self.approve_config = True
+        self.approve()
