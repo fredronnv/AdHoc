@@ -1080,17 +1080,13 @@ class Manager(object):
             raise AttributeError(attr)
 
     def new_result_set(self):
-        q = "SELECT resid FROM rpcc_result WHERE expires < :now"
-        for (expired,) in self.db.get_all(q, now=self.function.started_at()):
-            q = "DELETE FROM rpcc_result_string WHERE resid=:r"
-            with self.server.thread_lock:  # Failure to lock threads herw may cause database deadlock
-                self.db.put(q, r=expired)
-            q = "DELETE FROM rpcc_result_int WHERE resid=:r"
-            with self.server.thread_lock:
-                self.db.put(q, r=expired)
-            q = "DELETE FROM rpcc_result WHERE resid=:r"
-            with self.server.thread_lock:
-                self.db.put(q, r=expired)
+        with self.server.thread_lock:
+            q = "DELETE FROM rpcc_result_string WHERE resid IN (SELECT resid FROM rpcc_result WHERE expires < :now);"
+            self.db.put(q, now=self.function.started_at())
+            q = "DELETE FROM rpcc_result_int WHERE resid IN (SELECT resid FROM rpcc_result WHERE expires < :now);"
+            self.db.put(q, now=self.function.started_at())
+            q = "DELETE FROM rpcc_result WHERE expires < :now;"
+            self.db.put(q, now=self.function.started_at())
 
         while 1:
             rid = random.randint(0, 1 << 31)
