@@ -197,7 +197,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         print "ERROR (%.2fs) %s%s => %s" % (call_time, function_name, params, result)
 
     def get_running_functions(self):
-        print "THREAD_LOCK A:", self.thread_lock, hex(id(self.thread_lock))
+        # print "THREAD_LOCK A:", self.thread_lock, hex(id(self.thread_lock))
         with self.thread_lock:
             res = []
             now = time.time()
@@ -213,13 +213,13 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     def function_start(self, funobj, args, starttime, api_version):
         # print "Function_start", funobj.__dict__, args, api_version
-        print "THREAD_LOCK B:", self.thread_lock, hex(id(self.thread_lock))
+        # print "THREAD_LOCK B:", self.thread_lock, hex(id(self.thread_lock))
         with self.thread_lock:
             self.running_functions[funobj] = (args, starttime, api_version)
 
     def function_stop(self, funobj):
         # print "Function_stop", funobj.__dict__
-        print "THREAD_LOCK C:", self.thread_lock, hex(id(self.thread_lock))
+        # print "THREAD_LOCK C:", self.thread_lock, hex(id(self.thread_lock))
         with self.thread_lock:
             try:
                 del self.running_functions[funobj]

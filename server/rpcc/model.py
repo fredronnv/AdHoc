@@ -1083,11 +1083,14 @@ class Manager(object):
         q = "SELECT resid FROM rpcc_result WHERE expires < :now"
         for (expired,) in self.db.get_all(q, now=self.function.started_at()):
             q = "DELETE FROM rpcc_result_string WHERE resid=:r"
-            self.db.put(q, r=expired)
+            with self.server.thread_lock:  # Failure to lock threads herw may cause database deadlock
+                self.db.put(q, r=expired)
             q = "DELETE FROM rpcc_result_int WHERE resid=:r"
-            self.db.put(q, r=expired)
+            with self.server.thread_lock:
+                self.db.put(q, r=expired)
             q = "DELETE FROM rpcc_result WHERE resid=:r"
-            self.db.put(q, r=expired)
+            with self.server.thread_lock:
+                self.db.put(q, r=expired)
 
         while 1:
             rid = random.randint(0, 1 << 31)
