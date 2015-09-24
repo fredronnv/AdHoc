@@ -2486,6 +2486,18 @@ db_hostindb()
     fi
 }
 
+
+db_dnsindb()
+{
+    proxy_start
+    _hnames=`server_call "host_dig({'dns':'$1'}, {'host':true})"`
+
+    if [ -n "$_hnames" ]; then
+        return 0
+    fi
+    return 1
+}
+
 db_hostdelete()
 {
  
@@ -3121,7 +3133,7 @@ _addoption()
     fi 
 }
 
-#S addroom;ar;Add a room;1;2;roomcode [info];Add a room to the DHCP database;101
+#S addroom;ar;Add a room;1;2;room_id [info];Add a room to the DHCP database;101
 #O addroom;p;printers;Assign a default printer set
 #M =head2 I<Description>
 #M
@@ -3147,7 +3159,7 @@ addroom()
     done
 
     if [ -z "$1" ]; then
-        echo "No room codeame specified"
+        echo "No room ID specified"
         exit 2
     fi
 
@@ -3169,7 +3181,7 @@ addroom()
     fi
 
     if db_roomexists $addroom_roomcode; then
-        echo "The room code $addroom_roomcode is already defined in the database. Use the chroom subcommand to make changes"
+        echo "The room ID $addroom_roomcode is already defined in the database. Use the chroom subcommand to make changes"
         exit 1
     fi
 
@@ -3275,7 +3287,7 @@ _chgroup_foundaflag()
 #S chhost;;Change data for a host;1;1;host_id;Change the different data associated with a host. A ? last in host_id equates the -a flag.;23
 #O chhost;a;;Change all instances of a host
 #O chhost;d;dns;Change the DNS name
-#O chhost;r;room;Change the owner room number
+#O chhost;r;room_id;Change the owner room ID
 #O chhost;u;uname;Change the owner uname
 #O chhost;g;group;Change the group
 #O chhost;m;mac-address;Change the mac address;;mac_address
@@ -3590,7 +3602,7 @@ _choption()
     fi
 }
 
-#S chroom;cr;Change a room;1;1;room_code;Change the data stored for a room in the database;102
+#S chroom;cr;Change a room;1;1;room_id;Change the data stored for a room in the database;102
 #O chroom;i;info;Change room description
 #O chroom;p;printer_name;Change printer definition
 #M =head2 I<Description>
@@ -4162,7 +4174,7 @@ _lsgroups_fmt()
 #O lshosts;A;;Include only active entries
 #O lshosts;I;;Include only entries that are inactive
 #O lshosts;m;mac-pattern;List hosts matching a MAC pattern
-#O lshosts;r;room-pattern;List hosts registeren in a room matching a pattern
+#O lshosts;r;room_id_pattern;List hosts registered in a room ID matching a pattern
 #O lshosts;d;description_pattern;List hosts whose description (info) matches a pattern
 #O lshosts;i;id_pattern;List hosts whise ID matches a pattern.
 #M
@@ -4178,7 +4190,7 @@ _lsgroups_fmt()
 #M
 #M The default format only lists the host_id's.
 #M
-#M The long format (-l) gives host_id, dns name, MAC-address, status, group, room and comments.
+#M The long format (-l) gives host_id, dns name, MAC-address, status, group, room ID and comments.
 #M 
 #M =head3 I<Selection control>
 #M
@@ -5052,7 +5064,7 @@ _lsrooms_fmt()
 lssubnetworks()
 {
     pattern=$1
-    echo "Id	Network	Info" | _lssubnetworks_fmt
+    echo "CIDR	Network	Info" | _lssubnetworks_fmt
     proxy_start
     server_call "subnetwork_dig({}, {'subnetwork':true,'network':true,'info':true})" | egrep "$pattern" | _lssubnetworks_fmt
 }
@@ -5146,7 +5158,7 @@ _check_free()
             return 1
         fi
     fi
-    if db_hostindb `echo $1 | tr '.' '_'`; then
+    if db_dnsindb `echo $1`; then
         return 1
     fi
     if ping -c 1 ${1} >/dev/null 2>&1; then
@@ -5233,12 +5245,12 @@ _progbar_zap()
     
 
 
-#S mkhost;;Make a new host entry;1;3;network [mac-address [pattern]];Find a free DNS name in a network and enter a new host with that entry;22
+##S mkhost;;Make a new host entry;1;3;network [mac-address [pattern]];Find a free DNS name in a network and enter a new host with that entry;22
 #O mkhost;n;;Do not add any host, just display a free DNS name
 #O mkhost;A;;Do not stop looking for free DNS entries when one is found - implies -n
 #O mkhost;s;entry_status;Specify entry status[Active|Inactive]
 #O mkhost;u;uname;Assign user name
-#O mkhost;r;room;Assign room number
+#O mkhost;r;room_id;Assign room ID
 #O mkhost;g;group;Specify group
 #O mkhost;i;info;Specify information about the host
 #O mkhost;f;;Force - bypass checks
@@ -5912,12 +5924,14 @@ chpool()
     fi
 
     server_call "pool_update('$chpool_poolname', options)"
+    
 }
 #S chrange;;Change range;1;3;range_start [new_start [new_end]];Change data of a range;77
-#O chrange;dhcp_server;server_code;Specify which DHCP server will serve the range;;dhcpserver
+#O chrange;dhcp_server;server_code;Specify which DHCP server will serve the range, typically A, B or C;;dhcpserver
 #M =head2 I<Description>
 #M
-#M The chrange subcommand may be used to change start and end addresses of a pool range. 
+#M The chrange subcommand may be used to change start and end addresses of a pool range.
+#M I<server_code> is an uppercase character, A, B or C. 
 #M
 #M =head3 I<Changing DHCP server>
 #M
@@ -6368,6 +6382,9 @@ history()
     if [ -n "$history_n_flag" ]; then
     	search_exp="$search_exp, 'network_pattern':'*'"
     fi
+    if [ -n "$history_by_flag" ]; then
+        search_exp="$search_exp, 'authuser':'$history_by_arg'"
+    fi
     
     data_template='"event":true,"authuser":true, "created":true, "type":true, "parent_object":key, "pool":key, "host":key, '
     data_template=$data_template'"authoritative":key, "cid":key, "code":key, "dhcp_server":key, "pool_range":key, "start_ip":key, "end_ip":key, "errline":key, '
@@ -6407,7 +6424,7 @@ main "$@"
 #M =head2 Adding a host
 #M
 #M Suppose you get in a new laptop, running BeOS, and you want the DHCP server to give it the IP address of dhcp168-16.math.chalmers.se
-#M You also want to note the room number MC1234 so that we know where it is.
+#M You also want to note the room ID MC1234 so that we know where it is.
 #M The laptop has the mac address 01:12:34:c0:ff:fe and runs BeOS.
 #M
 #M I<Solution:>
