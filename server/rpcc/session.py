@@ -8,6 +8,8 @@ import model
 import default_error
 import default_type
 
+from database import DBTable, DBColumn, EngineType, VType
+
 """
 The session mechanism is used to give clients a call context that
 survives across calls. Although the intention is that only a single 
@@ -117,10 +119,8 @@ class SessionManager(model.Manager):
         raise NotImplementedError()
 
 
-from database import DBTable, DBColumn, EngineType, VType
 class DatabaseBackedSessionManager(SessionManager):
-    
-    
+
     @classmethod
     def base_query(cls, dq):
         dq.select("id", "expires")
@@ -151,28 +151,26 @@ class DatabaseBackedSessionManager(SessionManager):
         self.db.put(q, sesn=newid, exp=expires)
         self.db.commit()
         return newid
-    
+
     @classmethod
     def on_register(cls, srv, db):
-        session_tables=[
-          DBTable("rpcc_session",
-                  engine=EngineType.transactional,
-                  columns =
-                  [
-                   DBColumn("id", VType.string, 64, primary=True),
-                   DBColumn("expires", VType.datetime),
-                   ]),
-          DBTable("rpcc_session_string", 
-                  engine=EngineType.transactional,
-                  columns = 
-                  [
-                   DBColumn("session_id", VType.string, 64, primary=True),
-                   DBColumn("name", VType.string, 32),
-                   DBColumn("value",VType.string, 64, index=True),
-                   ]),
-          ]
+        session_tables = [
+            DBTable("rpcc_session",
+                    engine=EngineType.transactional,
+                    columns=[
+                        DBColumn("id", VType.string, 64, primary=True),
+                        DBColumn("expires", VType.datetime),
+                    ]),
+            DBTable("rpcc_session_string",
+                    engine=EngineType.transactional,
+                    columns=[
+                        DBColumn("session_id", VType.string, 64, primary=True),
+                        DBColumn("name", VType.string, 32),
+                        DBColumn("value", VType.string, 64, index=True),
+                    ]),
+        ]
         db.database.specify_tables(cls, session_tables)
-                
+
     def destroy_session(self, sesnid):
         # When destroying a session, all mutexes held by it are first
         # released, if mutexes are enabled in the server. This counts
@@ -187,18 +185,20 @@ class DatabaseBackedSessionManager(SessionManager):
             q += "      holder_public=NULL, "
             q += "      forced='Y' "
             q += "WHERE holder_session=:sesn "
-            self.db.put(q, sesn=sesnid)
+            with self.server.thread_lock:
+                self.db.put(q, sesn=sesnid)
 
         # Remove session variables.
-        q = "DELETE FROM rpcc_session_string "
-        q += " WHERE session_id=:sesn "
-        self.db.put(q, sesn=sesnid)
+        with self.server.thread_lock:
+            q = "DELETE FROM rpcc_session_string "
+            q += " WHERE session_id=:sesn "
+            self.db.put(q, sesn=sesnid)
 
         # Remove the session itself.
-        q = "DELETE FROM rpcc_session "
-        q += " WHERE id=:sesn "
-        self.db.put(q, sesn=sesnid)
-        self.db.commit()
+            q = "DELETE FROM rpcc_session "
+            q += " WHERE id=:sesn "
+            self.db.put(q, sesn=sesnid)
+            self.db.commit()
 
     def set_session_attribute(self, sesnid, attr, value):
         if attr == 'oid':
@@ -245,6 +245,7 @@ class DatabaseBackedSessionManager(SessionManager):
 
 # This isn't working.
 class XXMemoryBackedSessionManager(SessionManager):
+
     def init(self):
         self.session_data = {}
         self.lock = threading.Lock()
@@ -267,7 +268,7 @@ class XXMemoryBackedSessionManager(SessionManager):
             self.session_data[newid] = {"oid": newid, "expires": expires}
             print "LKJ", self.session_data
         return newid
-        
+
     def destroy_session(self, sid):
         if isinstance(sid, Session):
             sid = sid.oid

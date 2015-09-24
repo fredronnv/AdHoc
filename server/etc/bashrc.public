@@ -23,7 +23,8 @@ if [ x"$CHALMERS_DEPLOY_LEVEL" = x"devel" ]; then
     export ADHOC_DB_DATABASE=AdHoc-devel
     export ADHOC_SSL_ENABLE=0
     export RPCC_DEBUG=1
-    export ADHOC_DEBUG_SQL=1
+    #export ADHOC_DEBUG_SQL=1
+    
     export ADHOC_TEST_MODE=1
     export VERSIONER_PYTHON_PREFER_32_BIT=yes export
         
@@ -40,6 +41,7 @@ fi
 if [ x"$CHALMERS_DEPLOY_LEVEL" = x"prod" ]; then
     export ADHOC_DB_DATABASE=AdHoc
     export ADHOC_DB_USER=srvadhoc
+    export ADHOC_SSL_ENABLE=1
     #export RPCC_DEBUG=1
     #export ADHOC_DEBUG_SQL=1
     #export ADHOC_TEST_MODE=1
