@@ -68,7 +68,7 @@ install_conf()
     # Do syntax check first
     if /usr/sbin/dhcpd -t -cf ${TMP_CONF} >/dev/null 2>&1; then
         # Save old config in case restarting server fails
-        cp ${DHCPD_CONF} ${DHCPD_CONF}.bak || fatal "Failed to copy ${DHCPD_CONF} to backup file"
+        cp -p ${DHCPD_CONF} ${DHCPD_CONF}.bak || fatal "Failed to copy ${DHCPD_CONF} to backup file"
         mv ${TMP_CONF} ${DHCPD_CONF} || fatal "Failing to install fetched dhcpd.conf" 
     else
         fatal "$@ not approved by dhcpd"
