@@ -411,7 +411,7 @@ class PoolManager(AdHocManager):
         
         open = options.get("allow_all_hosts", False)
         
-        optionset_id = self.optionset_manager.create_optionset()
+        optionset_id = self.optionset_manager.create_optionset(fun)
         optionset = self.optionset_manager.get_optionset(optionset_id)
         optionset.set_option_by_name("max-lease-time", max_lease_time)
         
@@ -446,7 +446,7 @@ class PoolManager(AdHocManager):
         self.db.put("DELETE FROM pool_class_map WHERE poolname=:poolname", poolname=pool.oid)
         self.db.put("DELETE FROM pool_ranges WHERE pool=:poolname", poolname=pool.oid)
         
-        self.event_manager.add("destroy", pool=pool.oid)
+        self.event_manager.add("destroy", pool=pool.oid, authuser=fun.session.authuser)
         # print "Pool destroyed, name=", pool.oid
     
     @entry(g_write)   

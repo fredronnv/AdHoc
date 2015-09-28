@@ -190,7 +190,7 @@ class GlobalOptionManager(AdHocManager):
         except IntegrityError:
             raise ExtGlobalOptionAlreadyExistsError()
         
-        self.event_manager.add("create", global_option=name, id=id)
+        self.event_manager.add("create", global_option=name, id=id, authuser=fun.session.authuser)
         self.approve_config = True
         self.approve()
         return id
@@ -203,6 +203,6 @@ class GlobalOptionManager(AdHocManager):
             self.db.put(q, id=global_option.oid)
         except IntegrityError:
             raise ExtGlobalOptionInUseError()
-        self.event_manager.add("destroy", global_option=global_option.name, id=global_option.oid)
+        self.event_manager.add("destroy", global_option=global_option.name, id=global_option.oid, authuser=fun.session.authuser)
         self.approve_config = True
         self.approve()

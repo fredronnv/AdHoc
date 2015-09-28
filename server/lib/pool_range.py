@@ -225,7 +225,7 @@ class PoolRangeManager(AdHocManager):
             self.db.put(q, start_ip=pool_range.oid)
         except IntegrityError:
             raise ExtPoolRangeInUseError()
-        self.event_manager.add("destroy", pool_range=pool_range.oid)
+        self.event_manager.add("destroy", pool_range=pool_range.oid, authuser=fun.session.authuser)
         self.approve_config = True
         self.approve()
         

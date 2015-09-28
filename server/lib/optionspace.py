@@ -177,4 +177,4 @@ class OptionspaceManager(AdHocManager):
             self.db.put(q, value=optionspace.oid)
         except IntegrityError:
             raise ExtOptionspaceInUseError()
-        self.event_manager.add("destroy", optionspace=optionspace.oid)
+        self.event_manager.add("destroy", optionspace=optionspace.oid, authuser=fun.session.authuser)

@@ -263,7 +263,7 @@ class HostClassManager(AdHocManager):
             options = {}
         optionspace = options.get("optionspace", None)
         
-        optionset = self.optionset_manager.create_optionset()
+        optionset = self.optionset_manager.create_optionset(fun)
         
         q = """INSERT INTO classes (classname, vendor_class_id, optionspace, info, changed_by, optionset) 
                VALUES (:host_class_name, :vendor_class_id, :optionspace, :info, :changed_by, :optionset)"""
@@ -295,7 +295,7 @@ class HostClassManager(AdHocManager):
         q = "DELETE FROM class_literal_options WHERE `for`=:host_classname"
         self.db.put(q, host_classname=host_class.oid)
         
-        self.event_manager.add("destroy", host_class=host_class.oid)
+        self.event_manager.add("destroy", host_class=host_class.oid, authuser=fun.session.authuser)
         # print "HostClass destroyed, name=", host_class.oid
             
     @entry(g_write)
@@ -331,4 +331,4 @@ class HostClassManager(AdHocManager):
         optionset = omgr.get_optionset(host_class.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
-            self.event_manager.add("update", host_class=host_class.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
+            self.event_manager.add("update", host_class=host_class.oid, option=key, option_value=unicode(value), authuser=fun.session.authuser)

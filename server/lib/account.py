@@ -163,7 +163,7 @@ class AccountManager(AdHocManager):
     @entry(g_write)
     def create_account(self, fun, account_name, fname, lname):
         
-        #self.optionset_manager.create_optionset()
+        #self.optionset_manager.create_optionset(fun)
         
         q = """INSERT INTO accounts (account, fname, lname) 
                VALUES (:account, :fname, :lname)"""

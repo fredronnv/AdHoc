@@ -268,7 +268,7 @@ class SubnetworkManager(AdHocManager):
     @entry(g_write)
     def create_subnetwork(self, fun, id, network, info):
         
-        optionset = self.optionset_manager.create_optionset()
+        optionset = self.optionset_manager.create_optionset(fun)
         
         self.checkoverlap(id)
         
@@ -297,7 +297,7 @@ class SubnetworkManager(AdHocManager):
         except IntegrityError:
             raise ExtSubnetworkInUseError()
         
-        self.event_manager.add("destroy", subnetwork=subnetwork.oid)
+        self.event_manager.add("destroy", subnetwork=subnetwork.oid, authuser=fun.session.authuser)
         
         # print "Subnetwork destroyed, id=", id
      

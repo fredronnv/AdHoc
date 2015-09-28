@@ -549,7 +549,7 @@ class HostManager(AdHocManager):
         if not host_name:
             host_name = self.generate_host_name(mac, same_as=same_as)
         
-        optionset = self.optionset_manager.create_optionset()
+        optionset = self.optionset_manager.create_optionset(fun)
         
         if dns:
             res = self.db.get("SELECT dns, mac FROM dnsmac WHERE dns=:dns", dns=dns)
@@ -609,7 +609,7 @@ class HostManager(AdHocManager):
         q = "DELETE FROM host_literal_options WHERE `for`=:hostname"
         self.db.put(q, hostname=host.oid)
         
-        self.event_manager.add("destroy", host=host.oid, dns=host.dns, mac=host.mac)
+        self.event_manager.add("destroy", host=host.oid, dns=host.dns, mac=host.mac, authuser=fun.session.authuser)
         
         if host.status == "Active":
             gm = self.group_manager
@@ -642,5 +642,5 @@ class HostManager(AdHocManager):
         optionset = omgr.get_optionset(host.optionset)
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
-            self.event_manager.add("update", host=host.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
+            self.event_manager.add("update", host=host.oid, option=key, option_value=unicode(value), authuser=fun.session.authuser)
 

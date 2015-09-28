@@ -48,7 +48,7 @@ class DhcpXfer(SessionedFunction):
     returns = ExtNull
     
     def do(self):
-        self.dhcp_manager.transfer_from_old_database(self.optionset_manager)
+        self.dhcp_manager.transfer_from_old_database(self, self.optionset_manager)
   
         
 class DHCPManager(AdHocManager):
@@ -86,7 +86,7 @@ class DHCPManager(AdHocManager):
         return '.'.join(net_start) + '/' + netsize
     
     @entry(AdHocSuperuserGuard)          
-    def transfer_from_old_database(self, optionset_manager):
+    def transfer_from_old_database(self, fun, optionset_manager):
         """ This method clears the DHCP database completely and transfers all of the data
             from the old database while observing the changes in syntax and semantics.
             
@@ -249,7 +249,7 @@ class DHCPManager(AdHocManager):
         qp = "INSERT INTO networks (id, authoritative, info, changed_by, mtime, optionset) VALUES (:id, :authoritative, :info, :changedby, :mtime, :optset)"
         for(my_id, authoritative, info, changed_by, mtime) in self.odb.get(qf):
             # print my_id, authoritative, info, changed_by, mtime
-            optset = self.optionset_manager.create_optionset()
+            optset = self.optionsetManager.create_optionset(fun)
             self.db.insert("id", qp, id=my_id, authoritative=authoritative, info=info, changedby=changed_by, mtime=mtime, optset=optset)
         
         # optionspaces
@@ -272,7 +272,7 @@ class DHCPManager(AdHocManager):
         for(my_id, netmask, network, info, changed_by, mtime) in self.odb.get(qf):
             my_id = self.m2cidr(my_id, netmask)
             # print my_id, netmask, network, info, changed_by, mtime
-            optset = self.optionset_manager.create_optionset()
+            optset = self.optionsetManager.create_optionset(fun)
             self.db.insert("id", qp, id=my_id, network=network,
                            info=info, changedby=changed_by, mtime=mtime, optset=optset)
             
@@ -316,7 +316,7 @@ class DHCPManager(AdHocManager):
             if not parent_group:
                 parent_group = 'plain'
             group_targets.add(groupname)
-            optset = self.optionsetManager.create_optionset()
+            optset = self.optionsetManager.create_optionset(fun)
             self.db.insert("id", qp, groupname=groupname, parentgroup=parent_group, 
                            optionspace=optionspace, info=info, changedby=changed_by, mtime=mtime, optset=optset)
         
@@ -344,7 +344,7 @@ class DHCPManager(AdHocManager):
         qp = """INSERT INTO pools (poolname, optionspace, network, info, changed_by, mtime, optionset, open)
                        VALUES(:poolname, :optionspace, :network, :info, :changedby, :mtime, :optset, 1)"""
         for(poolname, optionspace, network, info, changed_by, mtime) in self.odb.get(qf):
-            optset = self.optionsetManager.create_optionset()
+            optset = self.optionsetManager.create_optionset(fun)
             # print poolname, optionspace, network, info, changed_by, mtime
             self.db.insert("id", qp, poolname=poolname, optionspace=optionspace, 
                            network=network, info=info, changedby=changed_by, mtime=mtime, optset=optset)
@@ -355,7 +355,7 @@ class DHCPManager(AdHocManager):
         qp = """INSERT INTO classes (classname, optionspace, vendor_class_id, info, changed_by, mtime, optionset)
                        VALUES(:classname, :optionspace, :vendorclassid, :info, :changedby, :mtime, :optset)"""
         for(classname, optionspace, vendor_class_id, info, changed_by, mtime) in self.odb.get(qf):
-            optset = self.optionsetManager.create_optionset()
+            optset = self.optionsetManager.create_optionset(fun)
             # print classname, optionspace, network, info, changed_by, mtime
             self.db.insert("id", qp, classname=classname, optionspace=optionspace, 
                            vendorclassid=vendor_class_id, info=info, changedby=changed_by, mtime=mtime, optset=optset)
@@ -484,7 +484,7 @@ class DHCPManager(AdHocManager):
                                cid=cid)
                 cids.add(cid)
             
-            optset = self.optionsetManager.create_optionset()
+            optset = self.optionsetManager.create_optionset(fun)
             
             # print "'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s'" % (my_id, dns, group, mac, room, optionspace, changed_by, mtime, info, entry_status, cid)
             # print my_id, dns, group, mac, room, optionspace, changed_by, mtime, info, entry_status, cid

@@ -30,9 +30,9 @@ class AdHocManager(Manager):
         del(self._model_cache[oid])
         self._model_cache[new_name] = obj
         
-    def approve(self):
-        if self.approve_config:
-            print "CONFIG APPROVAL NEEDED!!!"
+    def approve(self, approve_config=None):
+        if self.approve_config or approve_config:
+            print "CONFIG APPROVAL CHECK:"
             self.dhcp_manager.check_config()
         pass
     

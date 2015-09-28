@@ -112,7 +112,7 @@ class Optionset(AdHocModel):
         self.set_option(value, typ, optid)
         
     def destroy(self):
-        self.optionset_manager.destroy_optionset(self)
+        self.optionset_manager.destroy_optionset(self.function, self)
       
     @auto_update
     @entry(g_write)
@@ -362,16 +362,16 @@ class OptionsetManager(AdHocManager):
         dq.outer(tbl + " " + alias, onexpr)
         return alias + ".value"
     
-    def create_optionset(self):
+    def create_optionset(self, fun):
         q = """INSERT INTO optionset VALUES()"""
         id = self.db.insert("id", q) 
-        self.event_manager.add("create", optionset=id)
+        self.event_manager.add("create", optionset=id, authuser=fun.session.authuser)
         return id
     
-    def destroy_optionset(self, optset):
+    def destroy_optionset(self, fun, optset):
         q = """DELETE FROM optionset WHERE id=:optset"""
         self.db.put(q, optset=optset.oid)
-        self.event_manager.add("destroy", optionset=optset.oid)
+        self.event_manager.add("destroy", optionset=optset.oid, authuser=fun.session.authuser)
        
     def get_optid(self, opt_name):
         optid = self.db.get("SELECT id FROM option_base WHERE name = :name", name=opt_name)

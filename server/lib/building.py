@@ -165,7 +165,7 @@ class BuildingManager(AdHocManager):
             self.db.put(q, id=building_name, re=re, info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtBuildingAlreadyExistsError()
-        self.event_manager.add("create", building=building_name, re=re, info=info)
+        self.event_manager.add("create", building=building_name, re=re, info=info, authuser=fun.session.authuser)
                
     @entry(g_write)
     def destroy_building(self, fun, building):
@@ -175,5 +175,5 @@ class BuildingManager(AdHocManager):
         except IntegrityError:
             raise ExtBuildingInUseError()
         
-        self.event_manager.add("destroy", building=building.oid)
+        self.event_manager.add("destroy", building=building.oid, authuser=fun.session.authuser)
         # print "Building destroyed, id=", building.oid

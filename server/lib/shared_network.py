@@ -177,7 +177,7 @@ class NetworkManager(AdHocManager):
     @entry(g_write)
     def create_network(self, fun, network_name, authoritative, info):
         
-        optionset = self.optionset_manager.create_optionset()
+        optionset = self.optionset_manager.create_optionset(fun)
         
         q = """INSERT INTO networks (id, authoritative, info, changed_by, optionset) 
                VALUES (:id, :authoritative, :info, :changed_by, :optionset)"""
@@ -200,7 +200,7 @@ class NetworkManager(AdHocManager):
             self.db.put(q, id=network.oid)
         except IntegrityError:
             raise ExtNetworkInUseError()
-        self.event_manager.add("destroy", network=network.oid)
+        self.event_manager.add("destroy", network=network.oid, authuser=fun.session.authuser)
         
     @entry(g_write)
     def update_options(self, fun, network, updates):

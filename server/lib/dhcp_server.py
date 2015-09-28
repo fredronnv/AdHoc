@@ -152,7 +152,7 @@ class DHCPServerManager(AdHocManager):
             self.db.put(q, id=dhcp_server_id, name=dns, info=info, changed_by=fun.session.authuser)
         except IntegrityError:
             raise ExtDHCPServerAlreadyExistsError()
-        self.event_manager.add("create", dhcp_server=dhcp_server_id, dns=dns, info=info)
+        self.event_manager.add("create", dhcp_server=dhcp_server_id, dns=dns, info=info, authuser=fun.session.authuser)
         # print "DHCPServer created, id=", dhcp_server_id
         
     @entry(AdHocSuperuserGuard)
@@ -162,4 +162,4 @@ class DHCPServerManager(AdHocManager):
             self.db.put(q, id=dhcp_server.oid)
         except IntegrityError:
             raise ExtDHCPServerInUseError()
-        self.event_manager.add("destroy", dhcp_server=dhcp_server.oid)
+        self.event_manager.add("destroy", dhcp_server=dhcp_server.oid, authuser=fun.session.authuser)

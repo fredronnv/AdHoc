@@ -164,7 +164,7 @@ class PrivilegeManager(AdHocManager):
     
     @entry(g_write)
     def create_privilege(self, fun, privilege_name, info):
-        self.optionset_manager.create_optionset()
+        self.optionset_manager.create_optionset(fun)
         
         q = """INSERT INTO privileges (privilege, info) 
                VALUES (:privilege, :info)"""

@@ -160,7 +160,7 @@ class OptionDefDestroy(SessionedFunction):
     returns = (ExtNull)
 
     def do(self):
-        self.option_def_manager.destroy_option_def(self.option_def)
+        self.option_def_manager.destroy_option_def(self, self.option_def)
 
 
 class OptionDef(AdHocModel):
@@ -410,11 +410,7 @@ class OptionDefManager(AdHocManager):
                    
             qp3 = """INSERT INTO %s (option_base, minval, maxval) 
                  VALUES (:option_base, :minval, :maxval)""" % (table)
-            
-            param_dict["authuser"] = param_dict["changed_by"]
-            param_dict["option"] = param_dict["name"]
-            del(param_dict["changed_by"])
-            del(param_dict["name"])
+           
             param_dict["maxval"] = maxval
             param_dict["minval"] = minval
             sql_params["minval"] = minval
@@ -423,18 +419,10 @@ class OptionDefManager(AdHocManager):
         if my_type == 'string' or my_type == 'text':
             qp3 = """INSERT INTO str_option (option_base) 
                  VALUES (:option_base)"""
-            param_dict["authuser"] = param_dict["changed_by"]
-            param_dict["option"] = param_dict["name"]
-            del(param_dict["changed_by"])
-            del(param_dict["name"])
             
         if my_type == 'boolean':
             qp3 = """INSERT INTO bool_option (option_base) 
                  VALUES (:option_base)"""
-            param_dict["authuser"] = param_dict["changed_by"]
-            param_dict["option"] = param_dict["name"]
-            del(param_dict["changed_by"])
-            del(param_dict["name"])
             
         if my_type == 'ip-address':
             table = "ipaddr_option"
@@ -443,21 +431,23 @@ class OptionDefManager(AdHocManager):
                 
             qp3 = """INSERT INTO %s (option_base) 
                  VALUES (:option_base)""" % (table)
-            param_dict["authuser"] = param_dict["changed_by"]
-            param_dict["option"] = param_dict["name"]
-            del(param_dict["changed_by"])
-            del(param_dict["name"])
             if qualifier:
                 param_dict["qualifier"] = qualifier
         
         self.db.put(qp3, **sql_params)
         self.approve_config = True
         self.approve()
+        
+        param_dict["authuser"] = param_dict["changed_by"]
+        param_dict["option"] = param_dict["name"]
+        del(param_dict["changed_by"])
+        del(param_dict["name"])
+            
         self.event_manager.add("create", **param_dict)
         return id
               
     @entry(g_write)
-    def destroy_option_def(self, option_def):
+    def destroy_option_def(self, fun, option_def):
         
         try:
             q = "DELETE FROM option_base WHERE name=:name LIMIT 1"
@@ -466,4 +456,4 @@ class OptionDefManager(AdHocManager):
             raise ExtOptionDefInUseError()
         self.approve_config = True
         self.approve()
-        self.event_manager.add("destroy", option=option_def.name)
+        self.event_manager.add("destroy", option=option_def.name, authuser=fun.session.authuser)

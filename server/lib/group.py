@@ -290,7 +290,7 @@ class GroupManager(AdHocManager):
             options = {}
         optionspace = options.get("optionspace", None)
         
-        optionset = self.optionset_manager.create_optionset()
+        optionset = self.optionset_manager.create_optionset(fun)
             
         q = """INSERT INTO groups (groupname, parent_group, optionspace, info, changed_by, optionset) 
                VALUES (:group_name, :parent, :optionspace, :info, :changed_by, :optionset)"""
@@ -340,7 +340,7 @@ class GroupManager(AdHocManager):
         q = "DELETE FROM group_literal_options WHERE `for`=:groupname"
         self.db.put(q, groupname=group.oid)
               
-        self.event_manager.add("destroy", group=group.oid)
+        self.event_manager.add("destroy", group=group.oid, authuser=fun.session.authuser)
         optionset.destroy()
    
     @entry(g_rename)    

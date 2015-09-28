@@ -196,4 +196,4 @@ class RoomManager(AdHocManager):
             self.db.put(q, id=room.oid)
         except IntegrityError:
             raise ExtRoomInUseError()
-        self.event_manager.add("destroy", room=room.oid)
+        self.event_manager.add("destroy", room=room.oid, authuser=fun.session.authuser)
