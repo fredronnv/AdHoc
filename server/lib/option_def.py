@@ -383,6 +383,7 @@ class OptionDefManager(AdHocManager):
         except IntegrityError:
             raise ExtOptionDefAlreadyExistsError()
         
+        sql_params = {"option_base": id}
         if my_type.startswith("integer") or my_type.startswith("unsigned"):
             if my_type.endswith(' 8'):
                 u_maxval = 255
@@ -409,7 +410,6 @@ class OptionDefManager(AdHocManager):
                    
             qp3 = """INSERT INTO %s (option_base, minval, maxval) 
                  VALUES (:option_base, :minval, :maxval)""" % (table)
-            self.db.put(qp3, option_base=id, minval=minval, maxval=maxval)
             
             param_dict["authuser"] = param_dict["changed_by"]
             param_dict["option"] = param_dict["name"]
@@ -417,7 +417,8 @@ class OptionDefManager(AdHocManager):
             del(param_dict["name"])
             param_dict["maxval"] = maxval
             param_dict["minval"] = minval
-            self.event_manager.add("create", **param_dict)
+            sql_params["minval"] = minval
+            sql_params["maxval"] = maxval
             
         if my_type == 'string' or my_type == 'text':
             qp3 = """INSERT INTO str_option (option_base) 
@@ -426,8 +427,6 @@ class OptionDefManager(AdHocManager):
             param_dict["option"] = param_dict["name"]
             del(param_dict["changed_by"])
             del(param_dict["name"])
-            self.event_manager.add("create", **param_dict)
-            self.db.put(qp3, option_base=id)
             
         if my_type == 'boolean':
             qp3 = """INSERT INTO bool_option (option_base) 
@@ -436,8 +435,6 @@ class OptionDefManager(AdHocManager):
             param_dict["option"] = param_dict["name"]
             del(param_dict["changed_by"])
             del(param_dict["name"])
-            self.event_manager.add("create", **param_dict)
-            self.db.put(qp3, option_base=id)
             
         if my_type == 'ip-address':
             table = "ipaddr_option"
@@ -452,8 +449,11 @@ class OptionDefManager(AdHocManager):
             del(param_dict["name"])
             if qualifier:
                 param_dict["qualifier"] = qualifier
-            self.event_manager.add("create", **param_dict)
-            self.db.put(qp3, option_base=id)
+        
+        self.db.put(qp3, **sql_params)
+        self.approve_config = True
+        self.approve()
+        self.event_manager.add("create", **param_dict)
         return id
               
     @entry(g_write)
@@ -464,4 +464,6 @@ class OptionDefManager(AdHocManager):
             self.db.put(q, name=option_def.oid)
         except IntegrityError:
             raise ExtOptionDefInUseError()
+        self.approve_config = True
+        self.approve()
         self.event_manager.add("destroy", option=option_def.name)
