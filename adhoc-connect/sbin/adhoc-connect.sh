@@ -6,6 +6,7 @@ ADHOC_RELEASE="@@ADHOC_RELEASE@@"
 ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
 
 TMP_CONF=/etc/dhcp/dhcpd.conf.new
+RAW_CONF=/etc/dhcp/dhcpd.conf.raw
 DHCPD_CONF=/etc/dhcp/dhcpd.conf
 ADHOC_URL=https://adhoc.ita.chalmers.se:8877
 ADHOC_API_VERSION=0
@@ -83,18 +84,23 @@ main()
     mkdir -p ${LOGDIR} || die "Cannot create directory for $LOGFILE"
     touch $LOGFILE || die "Cannot update $LOGFILE"
 
-    touch ${DHCPD_CONF}  # Makes sure it exists
+    if [ ! -f ${DHCPD_CONF} ]; then
+        touch ${DHCPD_CONF}  # Makes sure it exists
+    fi
     if [ `egrep -v '^#' ${DHCPD_CONF} | wc -l` -lt 10 ]; then
-        wget -q -O ${TMP_CONF} ${ADHOC_URL}/dhcpd/${ADHOC_API_VERSION} || fatal "Failed fetching dhcpd.conf from ${ADHOC_URL}"
+        wget -q -O ${RAW_CONF} ${ADHOC_URL}/dhcpd/${ADHOC_API_VERSION} || fatal "Failed fetching dhcpd.conf from ${ADHOC_URL}"
+        mv ${RAW_CONF} ${TMP_CONF}
         install_conf "Initial dhcpd.conf"
         exit 0
     fi
 
-    wget -q -O  ${TMP_CONF} ${ADHOC_URL}/dhcpd/${ADHOC_API_VERSION}/${AUTO} || fatal "Failed fetching ${AUTO} dhcpd.conf from ${ADHOC_URL}"
-    if [ `cat ${TMP_CONF} | wc -l` -gt 10 ]; then
+    wget -q -O  ${RAW_CONF} ${ADHOC_URL}/dhcpd/${ADHOC_API_VERSION}/${AUTO} || fatal "Failed fetching ${AUTO} dhcpd.conf from ${ADHOC_URL}"
+    if [ `cat ${RAW_CONF} | wc -l` -gt 10 ]; then
+        mv ${RAW_CONF} ${TMP_CONF}
         install_conf "Updated dhcpd.conf"
         exit 0
     fi
+    rm -f $RAW_CONF
 }
 
 delay=`/sbin/ifconfig | grep inet | grep 129.16 | awk '{print $2}' | sed 's/addr://' | sed 's/\./+/g' | bc`
