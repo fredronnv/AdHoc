@@ -222,7 +222,7 @@ class ExtType(object):
 
             if idx < namelen - 2:
                 if name[idx].isupper() and name[idx + 1].isupper() \
-                       and name[idx + 2].islower():
+                        and name[idx + 2].islower():
                     parts[-1].append(name[idx].lower())
                     parts.append([])
                     continue
@@ -291,21 +291,21 @@ class ExtType(object):
         Also verify that no other type uses the same public name
         for the API versions where this type is valid.
         """
-        
+
         if cls.from_version > minv or cls.to_version < maxv:
             raise ValueError(cls._namevers() + " API version range too narrow")
 
         if not cls.name:
             # Invisible type class, no API version is relevant
             return
-            
+
         if cls.name not in typenames:
             typenames[cls.name] = [cls]
             return
 
         if cls in typenames[cls.name]:
             return
-        
+
         mymin, mymax = cls.from_version, cls.to_version
         for othercls in typenames[cls.name]:
             hermin, hermax = othercls.from_version, othercls.to_version
@@ -366,18 +366,19 @@ class ExtString(ExtType):
 
     def check(self, function, rawval):
         #import codecs
-        
+
         if not isinstance(rawval, unicode):
             if isinstance(rawval, str):
                 try:
                     rawval = rawval.decode("ascii")
                 except:
                     traceback.print_exc()
-                    raise ExtInternalError(desc="On input (or output) ExtString returned a non-ascii str instance instead of unicode")
+                    raise ExtInternalError(
+                        desc="On input (or output) ExtString returned a non-ascii str instance instead of unicode")
             else:
                 raise ExtExpectedStringError(value=rawval)
 
-        # A simple hack to avoid non-iso-8859-1-encodable characters, 
+        # A simple hack to avoid non-iso-8859-1-encodable characters,
         # if the service implementor so wishes.
         if self.only_iso_chars:
             try:
@@ -387,13 +388,13 @@ class ExtString(ExtType):
 
         if self.maxlen is not None and len(rawval) > self.maxlen:
             raise ExtStringTooLongError(self.maxlen, value=rawval)
-        
+
         if self._regexp():
             mo = re.match(self._regexp(), rawval, self.regexp_flags)
             if not mo:
                 raise ExtRegexpMismatchError(self._regexp(), value=rawval)
 
-    # SOAP 
+    # SOAP
     def xsd(self):
         xsd = self.xsd_simple_type()
         res = xsd.new('restriction', base='string')
@@ -533,7 +534,7 @@ class ExtInteger(ExtType):
 class ExtBoolean(ExtType):
     name = 'boolean'
     #desc = "True or False"
-    
+
     def check(self, function, rawval):
         """ The checking for Booleans is made complicated by the fact that MySQL does not have a  boolean type.
             instead, booleans are implemented using tinyint(1) which is returned as an integer, so
@@ -541,7 +542,7 @@ class ExtBoolean(ExtType):
         if isinstance(rawval, bool):
             return
         if isinstance(rawval, int) and rawval in [0, 1]:
-            return  
+            return
         raise ExtExpectedBooleanError(value=rawval)
 
     # SOAP
@@ -600,8 +601,8 @@ class _StructMetaClass(type):
     """By having ExtStructType be a class of this meta-class, a
     class-attribute "optional" or "mandatory" is created upon first
     access in a ExtStructType subclass, if one does not exist.
-    """    
-    
+    """
+
     def __getattr__(cls, attr):  # @NoSelf
         if attr == 'mandatory':
             cls.mandatory = {}
@@ -611,8 +612,8 @@ class _StructMetaClass(type):
             return cls.optional
         else:
             return type.__getattr__(cls, attr)
-  
-        
+
+
 ###
 # Struct
 #
@@ -643,7 +644,7 @@ class ExtStruct(ExtType):
     __metaclass__ = _StructMetaClass
     #mandatory = {}
     #optional = {}
-    
+
     def __init__(self, **kwargs):
         if "mandatory" in kwargs:
             self.mandatory = kwargs.pop("mandatory")
@@ -681,33 +682,36 @@ class ExtStruct(ExtType):
 
     def _api_versions(self):
         return (self.from_version or 0, self.to_version or 10000)
-    
+
         minv, maxv = (0, 10000)
         for (dummy, subt) in self._subtypes():
             submin, submax = ExtType.instance(subt)._api_versions()
             minv = max(minv, submin)
             maxv = min(maxv, submax)
             if minv > maxv:
-                raise IntAPIValidationError("Type %s contains subtypes whose validity do not overlap - detected when reading validity of %s" % (self, subt))
+                raise IntAPIValidationError(
+                    "Type %s contains subtypes whose validity do not overlap - detected when reading validity of %s" % (self, subt))
 
         if self.from_version is not None:
             if self.from_version >= minv:
                 minv = self.from_version
             else:
-                raise IntAPIValidationError("Type %s sets .from_version to be lower than the highest of its subtypes' .from_version" % (self,))
+                raise IntAPIValidationError(
+                    "Type %s sets .from_version to be lower than the highest of its subtypes' .from_version" % (self,))
 
         if self.to_version is not None:
             if self.to_version <= maxv:
                 maxv = self.to_version
             else:
-                raise IntAPIValidationError("Type %s sets .to_version to be higher than the lowest of its subtypes' .to_version" % (self,))
-        
+                raise IntAPIValidationError(
+                    "Type %s sets .to_version to be higher than the lowest of its subtypes' .to_version" % (self,))
+
         return (minv, maxv)
 
     def check(self, function, rawval):
         if not isinstance(rawval, dict):
             raise ExtExpectedStructError(value=rawval)
-        
+
         for key in self.mandatory:
             if key not in rawval:
                 raise ExtIncompleteStructError(key, value=rawval)
@@ -772,7 +776,7 @@ class ExtStruct(ExtType):
                 raise
 
         return converted
-            
+
     @classmethod
     def verify_subtypes_api_version(cls, minv, maxv, typenames):
         for (key, spec) in cls.mandatory.items() + cls.optional.items():
@@ -811,7 +815,7 @@ class ExtStruct(ExtType):
                 typ, desc = ExtType.instance(sub), None
 
             elemname = self.capsify(key)
-            x = optseq.new("element", name=elemname, 
+            x = optseq.new("element", name=elemname,
                            type="myxsd:" + typ.xsd_name(),
                            maxOccurs="1", minOccurs="0")
             if desc:
@@ -829,7 +833,7 @@ class ExtStruct(ExtType):
         optelem = None
         for child in self.child_elements(elem):
             elemname = child.tagName.split(":")[-1]
-            
+
             if elemname == "optionals":
                 optelem = child
                 continue
@@ -850,7 +854,7 @@ class ExtStruct(ExtType):
         for child in self.child_elements(optelem):
             elemname = child.tagName.split(":")[-1]
             if key not in opt:
-                    raise ExtSOAPUnexpectedElementError(child, "Unknown struct key")
+                raise ExtSOAPUnexpectedElementError(child, "Unknown struct key")
             key, typ = opt[child.tagName.split(":")[-1]]
             ret[key] = typ.from_xml(child)
 
@@ -862,7 +866,7 @@ class ExtStruct(ExtType):
                 typ = ExtType.instance(defs[key])
                 sub = elem.new(self.capsify(key))
                 typ.to_xml(sub, value)
-                
+
         mand = []
         opt = []
         for (key, subval) in value.items():
@@ -899,15 +903,16 @@ class ExtOrNull(ExtType):
     def __init__(self, typ=None, **kwargs):
         if typ is not None:
             if self.typ is not None:
-                raise TypeError("When an ExtOrNull subclass has its .typ set, you cannot override it on instantiation. You use an ExtOrNull subclass just like an ExtString or ExtInteger subclass.")
+                raise TypeError(
+                    "When an ExtOrNull subclass has its .typ set, you cannot override it on instantiation. You use an ExtOrNull subclass just like an ExtString or ExtInteger subclass.")
             self.typ = typ
-            
+
         if "typ" in kwargs:
             self.typ = kwargs.pop("typ")
-            
+
         if "desc" in kwargs:
             self.desc = kwargs["desc"]
-            
+
         if "name" in kwargs:
             self.name = kwargs["name"]
 
@@ -986,11 +991,12 @@ class ExtOrNull(ExtType):
 
 class ExtList(ExtType):
     typ = None
-    
+
     def __init__(self, typ=None, **kwargs):
         if typ is not None:
             if self.typ is not None:
-                raise TypeError("When an ExtList subclass has its .typ set, you cannot override it on instantiation. You use an ExtList subclass just like an ExtString or ExtInteger subclass.")            
+                raise TypeError(
+                    "When an ExtList subclass has its .typ set, you cannot override it on instantiation. You use an ExtList subclass just like an ExtString or ExtInteger subclass.")
             self.typ = typ
 
         if "typ" in kwargs:
@@ -1031,16 +1037,16 @@ class ExtList(ExtType):
             except ExtOutputError as e:
                 e.add_trace(self, "List element at index %d" % (subidx,))
                 raise
-            
+
         return out
-            
+
     @classmethod
     def verify_subtypes_api_version(cls, minv, maxv, typenames):
         try:
             cls.typ.verify_api_version(cls, minv, maxv, typenames)
         except ValueError, e:
             raise ValueError("%s for item type of %s" % (e.args[0], cls._namevers()))
-            
+
     def _subtypes(self):
         return [(None, self.typ)]
 
@@ -1107,10 +1113,10 @@ if __name__ == '__main__':
     class ExtCombo(ExtStruct):
         mandatory = {
             "a": ExtName25
-            }
+        }
         optional = {
             "b": ExtName25
-            }
+        }
 
     assert ExtCombo()._api_versions() == (2, 5)
 
@@ -1119,7 +1125,7 @@ if __name__ == '__main__':
         mandatory = {
             "a": ExtName25,
             "b": ExtName25
-            }
+        }
 
     assert ExtCombo()._api_versions() == (3, 5)
 
@@ -1128,7 +1134,7 @@ if __name__ == '__main__':
         mandatory = {
             "a": ExtName25,
             "b": ExtName25
-            }
+        }
 
     assert ExtCombo()._api_versions() == (2, 4)
 
@@ -1137,7 +1143,7 @@ if __name__ == '__main__':
         mandatory = {
             "a": ExtName25,
             "b": ExtName25
-            }
+        }
 
     try:
         dummy = ExtCombo()._api_versions()
@@ -1150,7 +1156,7 @@ if __name__ == '__main__':
         mandatory = {
             "a": ExtName25,
             "b": ExtName25
-            }
+        }
 
     try:
         dummy = ExtCombo()._api_versions()
@@ -1162,7 +1168,7 @@ if __name__ == '__main__':
         mandatory = {
             "a": ExtName03,
             "b": ExtName48
-            }
+        }
 
     try:
         dummy = ExtCombo()._api_versions()
@@ -1171,6 +1177,7 @@ if __name__ == '__main__':
         pass
 
     class Person(object):
+
         def __init__(self, myid):
             self.id = myid
 
@@ -1199,11 +1206,11 @@ if __name__ == '__main__':
         mandatory = {
             'person': ExtPerson,
             'friends': ExtList(ExtPerson),
-            }
+        }
 
         optional = {
             'name': ExtString
-            }
+        }
 
     p = ExtPerson().parse(0, u"person-viktor")
     print p
@@ -1222,8 +1229,9 @@ if __name__ == '__main__':
     except ExtRegexpMismatchError:
         pass
 
-    pd = ExtPersonData().parse(0, dict(person=u"person-viktor", friends=[u"person-mort", u"person-niklas"], name=u"Viktor Fougstedt"))
-        
+    pd = ExtPersonData().parse(
+        0, dict(person=u"person-viktor", friends=[u"person-mort", u"person-niklas"], name=u"Viktor Fougstedt"))
+
     print pd
 
     resp = XMLNode("response")

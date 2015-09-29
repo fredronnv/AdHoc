@@ -11,7 +11,7 @@ normally call .auth_session() and .deauth_session() respectively.
 
 import exterror
 import model
-import os
+
 
 class AuthenticationManager(model.Manager):
     """Supplies three default methods: 

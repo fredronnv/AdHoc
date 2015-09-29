@@ -138,7 +138,7 @@ class Function(object):
             for (name, subt) in t._subtypes():
                 add_type(typedict, subt)
 
-        for (p, t, _d) in cls.get_parameters():
+        for (_p, t, _d) in cls.get_parameters():
             add_type(types, t)
 
         add_type(types, cls._returns()[0])

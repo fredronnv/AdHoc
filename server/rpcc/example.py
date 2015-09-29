@@ -3,6 +3,9 @@
 from server import Server
 from function import Function
 import exttype
+import authentication
+
+
 
 class FnAdd(Function):
     extname = "add"
@@ -16,6 +19,7 @@ class FnAdd(Function):
 
     def do(self):
         return self.num1 + self.num2
+
 
 class FnAdd2(Function):
     from_version = 1
@@ -33,7 +37,6 @@ class FnAdd2(Function):
         return self.num1 + self.num2 + self.num3
 
 
-import authentication
 class MyServer(Server):
     authenticator = authentication.NullAuthenticationManager
 

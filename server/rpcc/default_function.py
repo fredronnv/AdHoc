@@ -57,6 +57,7 @@ class FunPing(Function):
  
         self.db.get('SELECT 1')
 
+
 class FunServerListAPIVersions(Function):
     extname = 'server_list_api_versions'
     params = []
@@ -78,7 +79,6 @@ current state and public comments."""
                         "comment": api.comment})
 
         return ret
-
 
 
 class FunSessionStart(Function):

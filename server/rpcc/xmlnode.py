@@ -35,7 +35,7 @@ class XMLNode(object):
         if "_cdata" in self.attrs:
             self.cdata_str = self.attrs.pop("_cdata")
 
-        if attrlist and type(attrlist[0]) == type({}):
+        if attrlist and type(attrlist[0]) is dict:
             self.attrs.update(attrlist[0])
 
     def add(self, node):
@@ -59,7 +59,7 @@ class XMLNode(object):
         if url:
             self.add_attribute('xmlns:' + shortname, url)
 
-        if not ':' in self.elem:
+        if ':' not in self.elem:
             self.elem = shortname + ':' + self.elem
 
         for child in self.subelems:

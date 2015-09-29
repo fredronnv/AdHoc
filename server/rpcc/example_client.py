@@ -10,5 +10,3 @@ print urllib2.urlopen("http://venus.ita.chalmers.se:12121/json", json.dumps({"fu
 print urllib2.urlopen("http://venus.ita.chalmers.se:12121/json?v1", json.dumps({"function": "add", "params": [1, 2]})).read()
 
 print urllib2.urlopen("http://venus.ita.chalmers.se:12121/json?v1", json.dumps({"function": "add", "params": [1, 2, 3]})).read()
-
-

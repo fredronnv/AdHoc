@@ -14,8 +14,8 @@ class ExtFunctionName(exttype.ExtString):
         if fun.api.has_function(cval):
             return cval
         raise default_error.ExtNoSuchFunctionError(value=cval)
-  
-    
+
+
 class ExtAPIVersionState(exttype.ExtEnum):
     name = "api-version-state"
     desc = "State of an API version"
@@ -31,7 +31,7 @@ class ExtAPIVersionInfo(exttype.ExtStruct):
         "version": exttype.ExtInteger,
         "state": ExtAPIVersionState,
         "comment": exttype.ExtString
-        }
+    }
 
 
 class ExtSession(exttype.ExtString):
@@ -86,7 +86,7 @@ class ExtServerVersion(exttype.ExtStruct):
         'service': exttype.ExtString,
         'major': exttype.ExtString,
         'minor': exttype.ExtString
-        }
+    }
 
 
 class ExtAPIVersion(exttype.ExtStruct):
@@ -96,7 +96,7 @@ class ExtAPIVersion(exttype.ExtStruct):
     mandatory = {
         "major": exttype.ExtInteger,
         "minor": exttype.ExtInteger
-        }
+    }
 
 
 class ExtDocTypename(exttype.ExtString):
@@ -121,12 +121,12 @@ class ExtDocParameter(exttype.ExtStruct):
 
     mandatory = {
         "type_name": ExtDocTypename
-        }
+    }
 
     optional = {
         "name": ExtDocParamname,
         "description": exttype.ExtString
-        }
+    }
 
 
 class ExtDocTypedef(exttype.ExtStruct):
@@ -136,7 +136,7 @@ class ExtDocTypedef(exttype.ExtStruct):
     mandatory = {
         "name": ExtDocTypename,
         "base": ExtDocBasetype,
-        }
+    }
 
     optional = {
         "regexp": (exttype.ExtString, "For strings: constraining regexp"),
@@ -147,7 +147,7 @@ class ExtDocTypedef(exttype.ExtStruct):
         "subtype": (ExtDocTypename, "For nullable: type of non-null, for lists: type of elements"),
         "mandatory": (exttype.ExtList(ExtDocParameter), "For structs: list of mandatory members"),
         "optional": (exttype.ExtList(ExtDocParameter), "For structs: list of optional members")
-        }
+    }
 
 
 class ExtDocFunction(exttype.ExtStruct):
@@ -159,11 +159,11 @@ class ExtDocFunction(exttype.ExtStruct):
         "parameters": exttype.ExtList(ExtDocParameter),
         "returns": ExtDocParameter,
         "types": exttype.ExtList(ExtDocTypedef)
-        }
+    }
 
     optional = {
         "description": exttype.ExtString,
-        }
+    }
 
 
 class ExtMutexName(exttype.ExtString):
@@ -199,11 +199,11 @@ class ExtMutexInfo(exttype.ExtStruct):
         "last_change": exttype.ExtDateTime,
         "state": ExtMutexState,
         "forced": exttype.ExtBoolean
-        }
+    }
 
     optional = {
         "holder": exttype.ExtString,
-        }
+    }
 
 
 class ExtMutexVarName(exttype.ExtString):
@@ -266,7 +266,7 @@ class ExtWatchdogInfo(exttype.ExtStruct):
         "state": ExtWatchdogState,
         "warning_at": exttype.ExtOrNull(exttype.ExtDateTime),
         "error_at": exttype.ExtOrNull(exttype.ExtDateTime)
-        }
+    }
 
 
 class ExtEvent(exttype.ExtInteger):

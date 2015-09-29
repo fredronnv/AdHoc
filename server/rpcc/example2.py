@@ -13,6 +13,7 @@ import authentication
 
 
 class AllowCertainUser(access.Guard):
+
     def __init__(self, uname):
         self.uname = uname
 
@@ -21,13 +22,16 @@ class AllowCertainUser(access.Guard):
             return access.AccessGranted(access.CacheInFunction)
         else:
             return access.AccessDenied(access.CacheInFunction)
-        
+
+
 class AllowUserWithPriv(access.Guard):
+
     def __init__(self, priv):
         self.priv = priv
-        
+
     def check(self, obj, fun):
-        privs = self.fun.db.get("SELECT privilege from account_privilege_map WHERE account=:account AND privilege=:privilege")
+        privs = self.fun.db.get(
+            "SELECT privilege from account_privilege_map WHERE account=:account AND privilege=:privilege")
         if len(privs):
             return access.AccessGranted(access.CacheInFunction)
         else:
@@ -35,6 +39,7 @@ class AllowUserWithPriv(access.Guard):
 
 
 class AllowOwner(access.Guard):
+
     def check(self, obj, fun):
         if isinstance(obj, Account):
             if fun.session.authuser == obj.oid:
@@ -51,6 +56,7 @@ class AllowOwner(access.Guard):
 
 
 class AllowBeforeLunch(access.Guard):
+
     def check(self, obj, fun):
         if fun.started_at().hour < 12:
             return access.AccessGranted(access.CacheInFunction)
@@ -59,6 +65,7 @@ class AllowBeforeLunch(access.Guard):
 
 
 class AllowAfterLunch(access.Guard):
+
     def check(self, obj, fun):
         if fun.started_at().hour >= 12:
             return access.AccessGranted(access.CacheInFunction)
@@ -136,7 +143,7 @@ class Person(Model):
 
     @template("firstname", ExtString, default=True, maxv=0)
     @template("firstname", ExtName, default=True, minv=1)
-    @template("lowfirstname", ExtString, kwargs=dict(low=True), maxv=1) 
+    @template("lowfirstname", ExtString, kwargs=dict(low=True), maxv=1)
     @template("upfirstname", ExtString, kwargs=dict(up=True))
     def get_firstname(self, up=False, low=False):
         if up:
@@ -333,11 +340,11 @@ class ExtStructSample(ExtStruct):
         "integer": (ExtIntegerSample, "Mandatory integer"),
         "bool": ExtBoolean,
         "or_null": ((ExtOrNull(ExtEnumSample), "Mandatory or-null enum")),
-        }
+    }
 
     optional = {
         "null": (ExtNull, "Optional null"),
-        }
+    }
 
 ExtStructSample.optional["self"] = (ExtStructSample, "A value of its own type")
 

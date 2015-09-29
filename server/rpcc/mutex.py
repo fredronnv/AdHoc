@@ -223,9 +223,9 @@ class Mutex(model.Model):
         if len(ret) == 0:
             raise default_error.ExtMutexNotHeldError()
 
-    ###             ###
+    #               ###
     # Mutex variables #
-    ###             ###
+    #               ###
 
     def get_variable(self, varname, other_session=None):
         self._check_current_holder(other_session)
@@ -270,7 +270,7 @@ class Mutex(model.Model):
         q += "          AND m.holder_session=:sesn "
         q += "          AND v.typ=:typ) "
 
-        ret = list(self.db.get(q, sesn=session_id, typ=typ))
+        ret = list(self.db.get(q, sesn=session, typ=typ))
 
         # No rows returned -> mutex not held
         if len(ret) == 0:
@@ -294,7 +294,7 @@ class Mutex(model.Model):
 
         try:
             affected = self.db.put(q, mtx=self.mutex_id, name=name, typ=typ)
-        except database.IntegrityError as e:
+        except database.IntegrityError as _e:
             raise default_error.ExtMutexVariableAlreadyExistsError()
 
         if affected == 0:
@@ -328,9 +328,9 @@ class Mutex(model.Model):
     def destroy_stringset_variable(self, name, session=None):
         return self.destroy_variable(name, 'C', session)
 
-    ###       ###
+    #         ###
     # Watchdogs #
-    ###       ###
+    #         ###
 
     def get_watchdog(self, wdname, session=None, override=False):
         # If override is True, this is a call from the
@@ -344,7 +344,7 @@ class Mutex(model.Model):
             self._check_current_holder(session)
             readonly = False
 
-        return Watchdog(self, wdname, maywrite)
+        return Watchdog(self, wdname, not readonly)
 
     def get_all_watchdogs(self, session=None):
         self._check_current_holder(session)
@@ -361,7 +361,7 @@ class Mutex(model.Model):
         except:
             raise default_error.ExtWatchdogAlreadyExistsError()
 
-    def destroy_watchdog(self, wdname):
+    def destroy_watchdog(self, wdname, session=None):
         self._check_current_holder(session)
 
         q = "DELETE FROM rpcc_watchdog "
@@ -371,12 +371,6 @@ class Mutex(model.Model):
 
         if affected == 0:
             raise default_error.ExtNoSuchWatchdogError()
-
-
-
-
-
-
 
 
 class MutexManager(model.Manager):
@@ -425,6 +419,3 @@ class MutexManager(model.Manager):
     def list_mutex_names(self):
         q = "SELECT name FROM rpcc_mutex"
         return [row[0] for row in self.db.get(q)]
-
-
-

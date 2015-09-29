@@ -48,5 +48,3 @@ class FunctionCategory(object):
             if self.__class__ in funclass.categories:
                 return True
         return self.match(funclass)
-    
-

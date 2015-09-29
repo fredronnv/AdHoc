@@ -346,7 +346,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         import types
 
         for (_key, value) in mod.__dict__.items():
-            if type(value) != types.TypeType:
+            if not isinstance(value, types.TypeType):
                 continue
             if not issubclass(value, Function):
                 continue

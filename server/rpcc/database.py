@@ -63,6 +63,8 @@ from enum import Enum, unique
 from interror import IntInvalidUsageError
 
 # Classes for describing databases in a way independent of database engines
+
+
 class VType(Enum):
     """ Enumeration of column types """
     integer = 1
@@ -70,21 +72,22 @@ class VType(Enum):
     datetime = 3
     float = 4
     blob = 5
-    
+
+
 class EngineType(Enum):
     """ Enumeratuon of database table engine types"""
     temporary = 1
     memory = 2
     transactional = 3
     big = 4
-    
-    
+
 
 class DBColumn(object):
     """ Column description class"""
+
     def __init__(self, name, value_type=None, size=None, autoincrement=None, index=None, primary=False, unique=False, not_null=False):
         self.name = name
-        
+
         if value_type and type(value_type) is not VType:
             raise TypeError("Bad type for database table column")
         self.value_type = value_type
@@ -92,28 +95,30 @@ class DBColumn(object):
         if value_type and value_type is not VType.integer and autoincrement:
             raise TypeError("Autoincrement is only for integer type columns")
         self.autoincrement = autoincrement
-        self.index=index
-        self.primary=primary
-        self.unique=unique
-        self.index=index
-        self.not_null=not_null
-        self.owning_table=None
-        
+        self.index = index
+        self.primary = primary
+        self.unique = unique
+        self.index = index
+        self.not_null = not_null
+        self.owning_table = None
+
     def set_value_type(self, value_type):
         if type(value_type) is not VType:
             raise TypeError("Bad type for database table column")
         if value_type is not VType.integer and self.autoincrement:
             raise TypeError("Cannot set table value_type to anything but integer because autioncrement is already set")
         self.value_type = value_type
-        
+
     def set_primary(self):
-        self.primary=True
-        
+        self.primary = True
+
     def unset_primary(self):
-        self.primary=False
+        self.primary = False
+
 
 class DBTable(object):
     """Table description class"""
+
     def __init__(self, name, desc=None, engine=None, collation=None, columns=None):
         self.name = name
         self.desc = desc
@@ -124,25 +129,26 @@ class DBTable(object):
         if columns:
             for c in columns:
                 self.add_column(c)
-        
+
     def add_column(self, column):
         if type(column) is DBColumn:
             if self.primary_col and column.primary:
                 raise ValueError("Data table already has a column specified as primary")
             if column.primary:
-                self.primary_col=column
+                self.primary_col = column
             self.columns.append(column)
-            column.owning_table=self
+            column.owning_table = self
         else:
             raise TypeError("Database column is not of type DBColumn")
-        
+
     def column_names(self):
         return [x.name for x in self.columns]
-    
+
 import default_tables
 
 
 class DatabaseError(Exception):
+
     def __init__(self, msg, inner=None):
         Exception.__init__(self, msg)
         if inner:
@@ -174,12 +180,14 @@ class ProgrammingError(DatabaseError):
 
 
 class InvalidIdentifierError(ProgrammingError):
+
     def __init__(self, idf, **kwargs):
         ProgrammingError.__init__(self, "Invalid identifier: " + idf, **kwargs)
         self.identifier = idf
 
 
 class InvalidTableError(ProgrammingError):
+
     def __init__(self, tbl, **kwargs):
         ProgrammingError.__init__(self, "Invalid table name: " + tbl, **kwargs)
         self.table = tbl
@@ -244,7 +252,7 @@ class DynamicQuery(object):
         self.selects = []
         self.aliases = set()
         self.tables = set()
-        self.table_aliases = {} # Collects table aliases
+        self.table_aliases = {}  # Collects table aliases
         self.outers = set()
         self.conditions = set()
         self.subqueries = []
@@ -259,7 +267,7 @@ class DynamicQuery(object):
     def subquery(self, onexpr):
         """Return a DynamicQuery which uses the same database values and
         is executed as a subquery (implicit condition: <onexpr> IN (<subq string>))
-        
+
         Usage:
           dynq.table(...)
           dynq.wher(...)
@@ -322,7 +330,8 @@ class DynamicQuery(object):
 
         mo = self.onre.match(onexpr)
         if not mo:
-            raise ValueError("OUTER JOIN on-expression needs to have a leftside of the a.b format, '%s' does not" % (onexpr,))
+            raise ValueError(
+                "OUTER JOIN on-expression needs to have a leftside of the a.b format, '%s' does not" % (onexpr,))
 
         leftside = self.onre.match(onexpr).group(1)
 
@@ -331,12 +340,15 @@ class DynamicQuery(object):
             try:
                 alias, _col = leftside.split(".")
             except:
-                raise ValueError("OUTER JOIN on-expression's first leftside needs to be an alias.column value, '%s' is not." % (leftside,))
+                raise ValueError(
+                    "OUTER JOIN on-expression's first leftside needs to be an alias.column value, '%s' is not." % (leftside,))
             if alias not in self.aliases:
-                raise ValueError("OUTER JOIN on-expressions's first leftside needs to use an alias that is already defined, '%s' is not." % (alias,))
+                raise ValueError(
+                    "OUTER JOIN on-expressions's first leftside needs to use an alias that is already defined, '%s' is not." % (alias,))
             self.outer_join_alias = alias
         elif self.outer_join_leftside != leftside:
-            raise ValueError("All OUTER JOIN on-expressions need to use the same initial leftside, but '%s' is different from previously used '%s'" % (leftside, self.outer_join_leftside))
+            raise ValueError(
+                "All OUTER JOIN on-expressions need to use the same initial leftside, but '%s' is different from previously used '%s'" % (leftside, self.outer_join_leftside))
 
         self.outers.add( (tblalias, onexpr) )
 
@@ -446,19 +458,19 @@ class DatabaseLink(object):
 
     def execute(self, curs, query, values):
         raise NotImplementedError()
-    
+
     def get_all(self, query, **kwargs):
         """ Executes the query and returns the result as a list instead of an iterator.
-        
+
             This is needed when looping over a result and the loop body is doing writes
             to the database.
         """
         return list(self._get(query, **kwargs).fetchall())
-    
+
     def get(self, query, **kwargs):
         curs = self._get(query, **kwargs)
         return curs.fetchall()
-    
+
     def get_iterator(self, query, **kwargs):
         curs = self._get(query, **kwargs)
         return self.iterator(curs)
@@ -568,12 +580,12 @@ class Database(object):
         self.lock = threading.Lock()
         self.init(**args)
         self.debug = server.config("DEBUG_SQL", default=False)
-        self.dynamic_table_specs = {} # Dict keyed by manager type containng table specs for that manager
-     
+        self.dynamic_table_specs = {}  # Dict keyed by manager type containng table specs for that manager
+
     def specify_tables(self, cls, tables):
         """ Specify a list of table specifications for a manager"""
         self.dynamic_table_specs[cls] = tables
-        
+
     def get_tables_spec(self, cls):
         """ Return a list of table specifications for a manager, if present"""
         if cls in self.dynamic_table_specs:
@@ -588,10 +600,10 @@ class Database(object):
 
     def query(self):
         return self.query_class()
-    
+
     def table_exists(self, table_spec):
         raise NotImplementedError()
-    
+
     def add_tables_from_dynamic_query(self, dq, cls):
         if not isinstance(dq, DynamicQuery):
             raise ValueError("dq argument is not a DynamicQuery")
@@ -601,15 +613,15 @@ class Database(object):
         for t in dq.tables:
             if " " in t:
                 t, _alias = t.split()
-            dt=DBTable(t, desc="Dynamically created table")
+            dt = DBTable(t, desc="Dynamically created table")
             for sel in dq.selects:
                 if "." in sel:
                     tbl, col = sel.split(".")
                 else:
                     if len(dq.tables) < 1:
-                        raise ProgrammingError("No tables defined in base query for selects in %s"%dq)
+                        raise ProgrammingError("No tables defined in base query for selects in %s" % dq)
                     if len(dq.tables) > 1:
-                        raise ProgrammingError("Selects specified ambigously in base query of %s"%dq)
+                        raise ProgrammingError("Selects specified ambigously in base query of %s" % dq)
                     tbl = list(dq.tables)[0]
                     col = sel
                 if tbl in dq.table_aliases:
@@ -625,7 +637,10 @@ class Database(object):
 ###
 # Oracle specifics
 ###
+
+
 class OracleDynamicQuery(DynamicQuery):
+
     def dbvar(self, name):
         return ":" + name
 
@@ -635,6 +650,7 @@ class OracleDynamicQuery(DynamicQuery):
 
 
 class OracleIterator(DatabaseIterator):
+
     def convert(self, row):
         ret = None
         for idx in range(len(row)):
@@ -753,25 +769,27 @@ class OracleDatabase(Database):
 # MySQL specifics.
 ###
 class MySQLDynamicQuery(DynamicQuery):
+
     def dbvar(self, name):
         #return "%(" + name + ")s"
-        return ":" + name 
+        return ":" + name
 
     def dblimit(self, limit):
         return "LIMIT %d" % (limit,)
 
 
 class MySQLIterator(DatabaseIterator):
+
     def convert(self, row):
         # TODO: Check if any data types need special treatment like in OracleIterator
         return row
 
 
 class MySQLLink(DatabaseLink):
-    
+
     iterator_class = MySQLIterator
     query_class = MySQLDynamicQuery
-    
+
     def __init__(self, *args, **kwargs):
         DatabaseLink.__init__(self, *args, **kwargs)
         self.re = re.compile(":([a-z0-9_]+)")
@@ -809,7 +827,7 @@ class MySQLLink(DatabaseLink):
                 self.exception(e, q, v)
         finally:
             curs.close()
-            
+
     def exception(self, inner, query, args):
         if self.database.server.config("DEBUG_SQL", default=False):
             print "ERROR IN QUERY: ", query
@@ -821,12 +839,12 @@ class MySQLLink(DatabaseLink):
             if errno == 1452:
                 message = "Cannot add or update a child row: a foreign key constraint fails"
             raise IntegrityError(message, inner=inner)
-                   
+
 #         if isinstance(inner, cx_Oracle.DatabaseError):
 #             err = inner.args[0]
 #             if isinstance(err, str):
 #                 raise
-# 
+#
 #             if err.code == 904:
 #                 idf = err.message.split('"')[1]
 #                 raise InvalidIdentifierError(idf, inner=inner)
@@ -853,7 +871,7 @@ class MySQLDatabase(Database):
         host = host or self.server.config("DB_HOST")
         port = port or self.server.config("DB_PORT")
         socket = port or self.server.config("DB_SOCKET")
-        
+
         if mysql.connector.__version_info__[0] > 1:
             raise exterror.ExtRuntimeError("The server is not supporting the use of MySQL connector version 2 and above")
 
@@ -884,33 +902,33 @@ class MySQLDatabase(Database):
         lnk = self.get_link()
         default_tables.check_default_mysql_tables(lnk)
         self.return_link(lnk)
-    
+
     def check_rpcc_tables(self, tables_spec=default_tables._dig_tables, fix=False):
         lnk = self.get_link()
         for table_spec in tables_spec:
             if not self.table_check(table_spec, lnk, fix=fix):
                 raise ValueError("Database Tables validation failed")
         self.return_link(lnk)
-        
+
     def col_sql_type(self, col):
         if col.value_type == VType.integer:
             return "INT(11) "
         if col.value_type == VType.string:
-            return  "VARCHAR(256) "
+            return "VARCHAR(256) "
         if col.value_type == VType.datetime:
-            return  "DATEME "
+            return "DATEME "
         if col.value_type == VType.float:
-            return  "DOUBLE "
+            return "DOUBLE "
         if col.value_type == VType.blob:
-            return  "BLOB "
+            return "BLOB "
         if not col.value_type:
             raise ValueError("MySQL database column has no type")
-        
+
     def table_check(self, table_spec, link, fix=False):
         q_check = "SELECT " + \
                   ", ".join(table_spec.column_names()) + \
                   " FROM " + table_spec.name + " LIMIT 1"
-        
+
         while(True):
             try:
                 dummy = list(link.get(q_check))
@@ -921,7 +939,7 @@ class MySQLDatabase(Database):
                         try:
                             q_addcol = "ALTER TABLE %s ADD COLUMN %s TYPE " % (table_spec.name, col.name)
                             q_addcol += self.col_sql_type(col)
-                            
+
                             # TODO: Column type specification not done
                             link.put(q_addcol)
                         except:
@@ -931,7 +949,7 @@ class MySQLDatabase(Database):
                 else:
                     print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (e.identifier, table_spec.name)
                     return False
-                
+
             except InvalidTableError as e:
                 if fix:
                     try:
@@ -949,9 +967,9 @@ class MySQLDatabase(Database):
                                     colsql += "NOT NULL "
                             colsqls.append(colsql)
                         q_create += ", ".join(colsqls) + ")"
-                            
+
                         link.put(q_create)
-                        
+
                     except:
                         print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
                         return False
@@ -962,26 +980,31 @@ class MySQLDatabase(Database):
             except Exception as e:
                 raise
 
+
 class SQLiteIterator(DatabaseIterator):
+
     def convert(self, row):
         # TODO: Check if any data types need special treatment like in OracleIterator
         return row
-    
+
+
 class SQLiteDynamicQuery(DynamicQuery):
+
     def dbvar(self, name):
-        return ":" + name 
+        return ":" + name
 
     def dblimit(self, limit):
         return "LIMIT %d" % (limit,)
-    
+
+
 class SQLiteLink(DatabaseLink):
-    
+
     query_class = SQLiteDynamicQuery
-    
+
     def __init__(self, *args, **kwargs):
         DatabaseLink.__init__(self, *args, **kwargs)
         self.re = re.compile(":([a-z0-9_]+)")
-        
+
     def iterator(self, curs):
         return curs
 
@@ -990,9 +1013,9 @@ class SQLiteLink(DatabaseLink):
         value_list = []
         try:
             for m in self.re.finditer(query):
-                key=m.group(0)[1:]
+                key = m.group(0)[1:]
                 value_list.append(values[key])
-                values_usage[key]=True
+                values_usage[key] = True
         except KeyError:
             raise ProgrammingError("No value for query parameter %s" % key)
         if len(values_usage) != len(values):
@@ -1026,7 +1049,7 @@ class SQLiteLink(DatabaseLink):
                 self.exception(e, q, raw_values)
         finally:
             curs.close()
-            
+
     def exception(self, inner, query, args):
         if self.database.server.config("DEBUG_SQL", default=False):
             print "ERROR IN QUERY: ", query
@@ -1039,7 +1062,7 @@ class SQLiteLink(DatabaseLink):
             else:
                 msg = message
             if msg == "no such table":
-                raise InvalidTableError(param, inner=inner) 
+                raise InvalidTableError(param, inner=inner)
             raise IntegrityError(message, inner=inner)
         if isinstance(inner, sqlite3.IntegrityError):
             message = inner.message
@@ -1053,10 +1076,9 @@ class SQLiteDatabase(Database):
 
     def init(self, database=None):
         if not database:
-            database="rpcc_scratch_database"
+            database = "rpcc_scratch_database"
         self.connect_args = {"database": database}
-        
-        
+
     def check_rpcc_tables_old(self):
         lnk = self.get_link()
         default_tables.check_default_mysql_tables(lnk)
@@ -1081,26 +1103,26 @@ class SQLiteDatabase(Database):
             if not self.table_check(table_spec, lnk, fix=fix):
                 raise ValueError("Database Tables validation failed")
         self.return_link(lnk)
-        
+
     def col_sql_type(self, col):
         if col.value_type == VType.integer:
             return "INTEGER "
         if col.value_type == VType.string:
-            return  "TEXT "
+            return "TEXT "
         if col.value_type == VType.datetime:
-            return  "NUMERIC "
+            return "NUMERIC "
         if col.value_type == VType.float:
-            return  "REAL "
+            return "REAL "
         if col.value_type == VType.blob:
-            return  "NONE "
+            return "NONE "
         if not col.value_type:
-            return  "NONE "
-        
+            return "NONE "
+
     def table_check(self, table_spec, link, fix=False):
         q_check = "SELECT " + \
                   ", ".join(table_spec.column_names()) + \
                   " FROM " + table_spec.name + " LIMIT 1"
-        
+
         while(True):
             try:
                 dummy = list(link.get(q_check))
@@ -1111,7 +1133,7 @@ class SQLiteDatabase(Database):
                         try:
                             q_addcol = "ALTER TABLE %s ADD COLUMN %s TYPE " % (table_spec.name, col.name)
                             q_addcol += self.col_sql_type(col)
-                            
+
                             # TODO: Column type specification not done
                             link.put(q_addcol)
                         except:
@@ -1121,7 +1143,7 @@ class SQLiteDatabase(Database):
                 else:
                     print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (e.identifier, table_spec.name)
                     return False
-                
+
             except InvalidTableError as e:
                 if fix:
                     try:
@@ -1139,9 +1161,9 @@ class SQLiteDatabase(Database):
                                     colsql += "NOT NULL "
                             colsqls.append(colsql)
                         q_create += ", ".join(colsqls) + ")"
-                            
+
                         link.put(q_create)
-                        
+
                     except:
                         print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
                         return False
@@ -1151,7 +1173,7 @@ class SQLiteDatabase(Database):
                     return False
             except Exception as e:
                 raise
-        
+
 
 if __name__ == '__main__':
     if False:

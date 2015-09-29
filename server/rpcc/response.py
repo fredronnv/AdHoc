@@ -25,9 +25,7 @@ class HTTPResponse(object):
             self.headers = []
         self.headers.extend(headlist)
 
+
 class HTTP404(HTTPResponse):
     def __init__(self):
         HTTPResponse.__init__(self, "404 Not Found", ctype="text/plain", encoding="UTF-8", code=404)
-
-
-

@@ -120,8 +120,8 @@ class RawRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.flush()
 
         if self.server.ssl_enabled:
-	    self.connection.shutdown(socket.SHUT_WR)
-        
+            self.connection.shutdown(socket.SHUT_WR)
+
     # BaseHTTPServer logging override.
     def log_message(self, *args):
         pass
