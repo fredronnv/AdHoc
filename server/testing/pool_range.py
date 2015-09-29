@@ -124,7 +124,7 @@ class T1400_PoolRangeList(UnAuthTests, PoolRangeTests):
 class T1410_PoolRangeFetch(UnAuthTests, PoolRangeTests):
     """ Test pool_range_fetch """
     
-    def dont(self):
+    def do(self):
         pool_ranges = [x.start_ip for x in self.superuser.pool_range_dig({}, data_template)]
         
         n = 0
@@ -139,7 +139,7 @@ class T1410_PoolRangeFetch(UnAuthTests, PoolRangeTests):
 class T1420_PoolRangeCreate(NetworkAdminTests, PoolRangeTests):
     """ Test pool_range_create """
     
-    def dont(self):  
+    def do(self):  
         self.teardown_pool_range()
         self.setup_dhcp_server()
         self.setup_pool()
@@ -156,7 +156,8 @@ class T1420_PoolRangeCreate(NetworkAdminTests, PoolRangeTests):
 class T1430_PoolRangeDestroy(NetworkAdminTests, PoolRangeTests):
     """ Test pool_range destroy """
     
-    def dont(self):
+    def do(self):
+        self.teardown_pool_range()
         self.setup_pool_range()
         
         try:
@@ -170,7 +171,7 @@ class T1430_PoolRangeDestroy(NetworkAdminTests, PoolRangeTests):
         
 class T1440_PoolRangeSetRange(NetworkAdminTests, PoolRangeTests):
     """ Test setting the range of a pool_range"""
-    
+
     def do(self):
         
         self.teardown_pool_range()
@@ -197,6 +198,7 @@ class T1441_PoolRangeSetReversedRange(NetworkAdminTests, PoolRangeTests):
     """ Test reversing the range of a pool_range"""
 
     def do(self):
+        self.teardown_pool_range()
         self.setup_pool_range()
         try:
             with AssertAccessError(self):
@@ -217,28 +219,45 @@ class T1441_PoolRangeSetReversedRange(NetworkAdminTests, PoolRangeTests):
             
             
 class T1442_PoolRangeSetOverlappingRange(NetworkAdminTests, PoolRangeTests):
-    """ Test setting the range of a pool_range"""
+    """ Test setting the range of a pool_range, possibly overlapping"""
+    
+    wip = True
     
     def do(self):
-        self.setup_pool_range()
-        self.setup_pool_range(start_ip=self.testrange2, end_ip=self.testrange2_end)
+        self.teardown_pool_range()
+        self.setup_pool_range()  # 192.5.50.100 - 192.5.50.150
+        self.setup_pool_range(start_ip=self.testrange2, end_ip=self.testrange2_end)   # 192.5.50.200 - 192.5.50.228
         try:
             with AssertAccessError(self):
+                # New:192.5.50.150 - 192.5.50.228 Overlaps 192.5.50.100 - 192.5.50.150
                 with AssertRPCCError("ValueError::PoolRangeOverlap", True):
-                    self.proxy.pool_range_update(self.testrange2, {"start_ip": "192.5.50.150"})
+                    self.proxy.pool_range_update(self.testrange2, {"start_ip": "192.5.50.150"}) 
                     
+                # New: 192.5.50.100 - 192.5.50.228 Overlaps 192.5.50.200 - 192.5.50.228
                 with AssertRPCCError("ValueError::PoolRangeOverlap", True):
-                    self.proxy.pool_range_update(self.testrange, {"end_ip": self.testrange2})
+                    self.proxy.pool_range_update(self.testrange, {"end_ip": self.testrange2})  
                     
+                # New: 192.5.50.202 - 192.5.50.210 overlaps  192.5.50.200 - 192.5.50.228
                 with AssertRPCCError("ValueError::PoolRangeOverlap", True):
-                    self.proxy.pool_range_update(self.testrange, {"start_ip": "192.5.50.202", "end_ip": "192.5.50.210"})
+                    self.proxy.pool_range_update(self.testrange, {"start_ip": "192.5.50.202", "end_ip": "192.5.50.210"})  
                     
+                # New: 192.5.50.99 - 192.5.50.180 overlaps 192.5.50.100 - 192.5.50.150
                 with AssertRPCCError("ValueError::PoolRangeOverlap", True):
-                    self.proxy.pool_range_update(self.testrange2, {"start_ip": "192.5.50.99", "end_ip": "192.5.50.180"})
+                    self.proxy.pool_range_update(self.testrange2, {"start_ip": "192.5.50.99", "end_ip": "192.5.50.180"})  
                     
+                # New: 192.5.50.110 - 192.5.50.115 overlaps 192.5.50.100 - 192.5.50.150
                 with AssertRPCCError("ValueError::PoolRangeOverlap", True):
-                    self.proxy.pool_range_update(self.testrange2, {"start_ip": "192.5.50.110", "end_ip": "192.5.50.115"})
-                    
+                    self.proxy.pool_range_update(self.testrange2, {"start_ip": "192.5.50.110", "end_ip": "192.5.50.115"})  
+                
+                # New 192.5.50.200 - 192.5.50.233, No overlap
+                self.proxy.pool_range_update(self.testrange2, {"end_ip": "192.5.50.233"})
+                
+                # New 192.5.50.2151 - 192.5.50.233, No overlap  
+                self.proxy.pool_range_update(self.testrange2, {"start_ip": "192.5.50.151"})
+                
+                # reset testrange2 no overlap
+                self.proxy.pool_range_update("192.5.50.151", {"start_ip": self.testrange2})
+                
                 ret = self.superuser.pool_range_fetch(self.testrange, data_template)
                 self.assert_pool_data(ret, start_ip=self.testrange, end_ip=self.testrange_end)
                 

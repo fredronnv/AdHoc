@@ -40,8 +40,15 @@ class T0220_SubnetworkCreate(NetworkAdminTests):
 
     def do(self):  
         try:
+            pools = self.superuser.pool_dig({"network": "network_test"}, {"pool": True})
+            for pool in pools:
+                ranges = self.superuser.pool_range_dig({"pool": pool.pool}, {"start_ip": True})
+                for range in ranges:
+                    self.superuser.pool_range_destroy(range.start_ip)
+                self.superuser.pool_destroy(pool.pool)
             self.superuser.network_destroy('network_test')
-        except:
+        except Exception, e:
+            print e
             pass
         try:
             self.superuser.subnetwork_destroy('192.5.55.0/24')
@@ -105,10 +112,10 @@ class T0231_SubnetworkDestroyDHCP(NetworkAdminTests):
         try:
             with AssertAccessError(self):
                 with AssertRPCCError("ValueError::SubnetworkInUse::SubnetworkInUseByDHCPServer", True):
-                    self.proxy.subnetwork_destroy('129.16.4.88/29')  # A DHCP server is supposed to  be configured on 129.16.4.92
+                    self.proxy.subnetwork_destroy('129.16.4.64/29')  # A DHCP server is supposed to  be configured on 129.16.4.92
         finally:
             try:
-                self.superuser.subnetwork_create("129.16.4.88/29", 'dhcp-ng', 'Chalmers DHCP NG server 1')
+                self.superuser.subnetwork_create("129.16.4.64/29", 'dhcp-ng', 'Chalmers DHCP NG server 1')
             except:
                 pass
 
@@ -120,10 +127,10 @@ class T0232_SubnetworkModifyRangeExcludingDHCPServer(NetworkAdminTests):
         try:
             with AssertAccessError(self):
                 with AssertRPCCError("ValueError::SubnetworkInUse::SubnetworkInUseByDHCPServer", True):
-                    self.proxy.subnetwork_update('129.16.4.88/29', {"subnetwork": "129.16.4.88/30"})   # A DHCP server is supposed to  be configured on 129.16.4.92
+                    self.proxy.subnetwork_update('129.16.4.64/29', {"subnetwork": "129.16.4.64/30"})   # A DHCP server is supposed to  be configured on 129.16.4.72
         finally:
             try:
-                self.superuser.subnetwork_update("129.16.4.88/30", {"subnetwork": "129.16.4.88/29"})
+                self.superuser.subnetwork_update("129.16.4.64/30", {"subnetwork": "129.16.4.64/29"})
             except:
                 pass
             

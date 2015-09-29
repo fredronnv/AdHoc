@@ -40,14 +40,14 @@ class T0920_GlobalOptionCreate(NetworkAdminTests):
         try:
             goid = None
             with AssertAccessError(self):
-                goid = self.proxy.global_option_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3')
+                goid = self.proxy.global_option_create('finger-server', '192.5.50.11', False)
                 ret = self.superuser.global_option_fetch(goid, {"global_option": True, "value": True, "name": True})
                 assert "value" in ret, "Key value missing in returned struct from global_option_fetch"
                 assert "name" in ret, "Key name missing in returned struct from global_option_fetch" 
                 assert "global_option" in ret, "Kay global_option  missing in returned struct from global_option_fetch" 
                 assert ret.global_option == goid, "Bad global_option id, is %d should be %s" % (ret.global_option, goid)
-                assert ret.name == "QZ1243A", "Bad global_option, is % should be %s" % (ret.name, "QZ1243A")
-                assert ret.value == "a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3", "Value is " + ret.value + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3'"
+                assert ret.name == "finger-server", "Bad global_option, is % should be %s" % (ret.name, "QZ1243A")
+                assert ret.value == "192.5.50.11", "Value is " + ret.value + " but should be 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3'"
         finally:
             if goid:
                 self.superuser.global_option_destroy(goid)
@@ -57,7 +57,7 @@ class T0930_GlobalOptionDestroy(NetworkAdminTests):
     """ Test global_option destroy """
     
     def do(self):
-        goid = self.superuser.global_option_create('QZ1243A', 'a-2234-color2,a-2234-plot2,a-2234-plot1,a-2234-color3')
+        goid = self.superuser.global_option_create('finger-server', '192.5.50.11', False)
         try:
             with AssertAccessError(self):
                 # print "DESTROYING GO", self.proxy.goid
@@ -77,13 +77,13 @@ class T0940_GlobalOptionSetName(NetworkAdminTests):
     """ Test setting name of a global_option"""
     
     def do(self):
-        self.proxy.goid = self.superuser.global_option_create('QZ1243A', '.*')
+        self.proxy.goid = self.superuser.global_option_create('finger-server', '192.5.50.11', False)
         with AssertAccessError(self):
             try:
-                self.proxy.global_option_update(self.proxy.goid, {"name": 'ZQ1296'})
+                self.proxy.global_option_update(self.proxy.goid, {"name": 'irc-server'})
                 nd = self.superuser.global_option_fetch(self.proxy.goid, {"value": True, "name": True})
-                assert nd.name == "ZQ1296", "Bad global_option name"
-                assert nd.value == '.*', "Bad value"
+                assert nd.name == "irc-server", "Bad global_option name"
+                assert nd.value == '192.5.50.11', "Bad value"
             finally:
                 self.superuser.global_option_destroy(self.proxy.goid)
                 
@@ -92,13 +92,13 @@ class T0950_GlobalOptionSetValue(NetworkAdminTests):
     """ Test setting value on a global_option"""
     
     def do(self):
-        self.proxy.goid = self.superuser.global_option_create('QZ1243A', '.*')
+        self.proxy.goid = self.superuser.global_option_create('finger-server', '192.5.50.11', False)
         with AssertAccessError(self):
             try:
-                self.proxy.global_option_update(self.proxy.goid, {"value": ".+"})
+                self.proxy.global_option_update(self.proxy.goid, {"value": "192.5.50.34"})
                 nd = self.superuser.global_option_fetch(self.proxy.goid, {"value": True, "name": True})
-                assert nd.name == "QZ1243A", "Bad global_option name"
-                assert nd.value == '.+', "Bad value"
+                assert nd.name == "finger-server", "Bad global_option name"
+                assert nd.value == '192.5.50.34', "Bad value"
             finally:
                 self.superuser.global_option_destroy(self.proxy.goid)
         

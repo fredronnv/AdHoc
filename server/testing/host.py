@@ -63,23 +63,25 @@ class T1315_HostCreate(FloorAdminTests):
             pass
         
         with AllowRPCCError("LookupError"): 
-            self.superuser.host_destroy(today + "-000A")
-        with AllowRPCCError("LookupError"): 
-            self.superuser.host_destroy(today + "-000B")
-        with AllowRPCCError("LookupError"): 
             self.superuser.host_destroy(today + "-001A")
         with AllowRPCCError("LookupError"): 
             self.superuser.host_destroy(today + "-001B")
         with AllowRPCCError("LookupError"): 
-            self.superuser.host_destroy(today + "-000C")
+            self.superuser.host_destroy(today + "-002A")
         with AllowRPCCError("LookupError"): 
-            self.superuser.host_destroy(today + "-000D")
+            self.superuser.host_destroy(today + "-002B")
         with AllowRPCCError("LookupError"): 
-            self.superuser.host_destroy(today + "-000E")
+            self.superuser.host_destroy(today + "-001C")
         with AllowRPCCError("LookupError"): 
-            self.superuser.host_destroy(today + "-000F")
+            self.superuser.host_destroy(today + "-001D")
         with AllowRPCCError("LookupError"): 
-            self.superuser.host_destroy(today + "-000G")
+            self.superuser.host_destroy(today + "-001E")
+        with AllowRPCCError("LookupError"): 
+            self.superuser.host_destroy(today + "-001F")
+        with AllowRPCCError("LookupError"): 
+            self.superuser.host_destroy(today + "-001G")
+        with AllowRPCCError("LookupError"): 
+            self.superuser.host_destroy(today + "-001H")
             
         # Remove all hosts whose mac starts with 00:00:00:00.00 because the following test assumes
         # that there will be no connections to hosts sharing the mac address
@@ -90,15 +92,15 @@ class T1315_HostCreate(FloorAdminTests):
         with AssertAccessError(self):
             try:
                 hostid = self.proxy.host_create("00:00:00:00:00:01", {})
-                assert hostid == today + "-000A", "Returned hostid=" + hostid
-                hostid = self.proxy.host_create("00:00:00:00:00:01", {})
-                assert hostid == today + "-000B", "Returned hostid=" + hostid
-                hostid = self.proxy.host_create("00:00:00:00:00:02", {})
                 assert hostid == today + "-001A", "Returned hostid=" + hostid
                 hostid = self.proxy.host_create("00:00:00:00:00:01", {})
-                assert hostid == today + "-000C", "Returned hostid=" + hostid
-                hostid = self.proxy.host_create("00:00:00:00:00:19", {"same_as": today + "-001A"})
                 assert hostid == today + "-001B", "Returned hostid=" + hostid
+                hostid = self.proxy.host_create("00:00:00:00:00:02", {})
+                assert hostid == today + "-002A", "Returned hostid=" + hostid
+                hostid = self.proxy.host_create("00:00:00:00:00:01", {})
+                assert hostid == today + "-001C", "Returned hostid=" + hostid
+                hostid = self.proxy.host_create("00:00:00:00:00:19", {"same_as": today + "-002A"})
+                assert hostid == today + "-002B", "Returned hostid=" + hostid
             finally:
                 pass
         
@@ -176,6 +178,10 @@ class T1340_HostSetName(FloorAdminTests):
     """ Test setting name of a host"""
     
     def do(self):
+        
+        with AllowRPCCError("LookupError"): 
+            self.superuser.host_destroy("20111111-009A")
+        
         self.superuser.host_create_with_name('20111113-007A', '00:01:02:03:04:05', {})
         with AssertAccessError(self):
             try:
