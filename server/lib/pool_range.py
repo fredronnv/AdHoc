@@ -129,7 +129,6 @@ class PoolRange(AdHocModel):
     @update("start_ip", ExtPoolRangeName)
     @entry(g_write)
     def set_start_ip(self, value):
-        self.manager.checkoverlaps(value, self.end_ip, from_range=(self.start_ip, self.end_ip))
         q = "UPDATE pool_ranges SET start_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
         self.manager.rename_object(self, value)
@@ -139,7 +138,6 @@ class PoolRange(AdHocModel):
     @update("end_ip", ExtIpV4Address)
     @entry(g_write)
     def set_end_ip(self, value):
-        self.manager.checkoverlaps(self.start_ip, value, from_range=(self.start_ip, self.end_ip))
         q = "UPDATE pool_ranges SET end_ip=:value WHERE id=:id"
         self.db.put(q, id=self.id, value=value)
         self.manager.approve_config = True
@@ -161,7 +159,13 @@ class PoolRange(AdHocModel):
         self.event_manager.add("update", pool_range=self.oid, served_by=served_by.oid, authuser=self.function.session.authuser)
         
     def check_model(self):
+        """ This method is called after all updates are made
+        
+            Check for reversed range and for overlaps with other ranges except for the
+            range we have changed """
+            
         self.manager.check_reversed_range(self.start_ip, self.end_ip)
+        self.manager.checkoverlaps()
         self.manager.approve()
 
 
@@ -209,7 +213,7 @@ class PoolRangeManager(AdHocManager):
         
         if socket.inet_aton(end_ip) < socket.inet_aton(start_ip):
             raise ExtPoolRangeReversedError()
-        self.checkoverlaps(start_ip, end_ip)
+        self.checkoverlaps()
         try:
             self.db.put(q, start_ip=start_ip, end_ip=end_ip, pool=pool.oid, served_by=served_by.oid, changed_by=fun.session.authuser)
         except IntegrityError:
@@ -240,20 +244,23 @@ class PoolRangeManager(AdHocManager):
         overlaps = self.db.get_all(q, start_ip=start_ip, end_ip=end_ip)
         return overlaps
     
+    def getoverlaps2(self):
+        q = """SELECT t1.start_ip, t2.end_ip FROM pool_ranges AS t1, pool_ranges AS t2 WHERE
+                INET_ATON(t2.start_ip) <= INET_ATON(t1.end_ip) AND
+                INET_ATON(t2.end_ip) >= INET_ATON(t1.start_ip) AND t1.id != t2.id"""
+        overlaps = self.db.get_all(q)
+        return overlaps
+    
     def check_reversed_range(self, start_ip, end_ip):
         q = "SELECT INET_ATON(:start_ip) > INET_ATON(:end_ip)"
         val = self.db.get_value(q, start_ip=start_ip, end_ip=end_ip)
         if val:
             raise ExtPoolRangeReversedError()
         
-    def checkoverlaps(self, start_ip, end_ip, from_range=None):
+    def checkoverlaps(self):
+
+        overlaps = self.getoverlaps2()
         
-        overlaps = self.getoverlaps(start_ip, end_ip)
-        
-        true_overlaps = []
-        for overlap in overlaps:
-            if from_range and overlap[0] == from_range[0] and overlap[1] == from_range[1]:
-                continue  # Don't count former range as an overlap. It will disappear.
-                true_overlaps.append(overlap)
-        if true_overlaps:
-                raise ExtPoolRangeOverlapError("The range would overlap the ranges: %s" % ",".join(elem[0] for elem in true_overlaps))
+        if overlaps:
+                raise ExtPoolRangeOverlapError("The change would cause overlap between the ranges: %s" % ",".join(elem[0] for elem in overlaps))
+

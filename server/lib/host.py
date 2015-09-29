@@ -58,7 +58,7 @@ class ExtDNSName(ExtString):
 class ExtHostDns(ExtOrNull):
     name = "host_fqdn"
     desc = "The fully qualified DNS name of a host, if statically allocated"
-    typ = ExtString
+    typ = ExtDNSName
     regexp = r'^([0-9a-zA-Z][-0-9a-zA-Z]+\.)+[a-z0-9\-]{2,15}$'
     maxlen = 255
     
@@ -89,6 +89,7 @@ class ExtNewHostName(ExtHostName):
         if fun.host_manager.get_host(cval):
             raise ExtHostAlreadyExistsError()
  
+ 
 class ExtHostInfo(ExtOrNull):
     name = "host_info"
     desc = "Information about a host"
@@ -98,7 +99,7 @@ class ExtHostInfo(ExtOrNull):
 class ExtHostRoom(ExtOrNull):
     name = "host_room"
     desc = "Location of a host"
-    typ = ExtString
+    typ = ExtRoomName
     
     
 class ExtHostAccount(ExtOrNull):
@@ -112,6 +113,7 @@ class ExtHostAccount(ExtOrNull):
         
         fun.account_manager.get_account(str(cval))  # We don't look up the account here, just checking that it exists
         return cval
+    
     
 class ExtHostCreateOptions(ExtStruct):
     name = "host_create_options"

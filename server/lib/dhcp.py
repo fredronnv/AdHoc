@@ -770,9 +770,14 @@ class DHCPManager(AdHocManager):
             if info:
                 self.emit("# " + info)
             q = "SELECT id, network, info FROM subnetworks WHERE network=:network"
-            if self.db.get_all(q, network=netid) or self.has_pools(netid):
-                for poolname in self.get_network_pools(netid):
-                    self.emit_allowed_classes(poolname, 0)
+            
+            subnetworks = self.db.get_all(q, network=netid)
+            pools = self.get_network_pools(netid)
+            classes = 0
+            for poolname in self.get_network_pools(netid):
+                    classes += self.emit_allowed_classes(poolname, 0) 
+                    
+            if len(subnetworks) + classes > 0:
                 self.emit("shared-network %s {" % netid)
                 if authoritative:
                     self.emit("    authoritative;")
@@ -980,13 +985,14 @@ class DHCPManager(AdHocManager):
 # subclass "allocation-class-1" 1:8:0:2b:4c:39:ad;
 # subclass "allocation-class-2" 1:8:0:2b:a9:cc:e3;
 # subclass "allocation-class-2" 1:0:1c:c0:06:7e:84;
+        count = 0
         if self.has_allowed_group(poolname):
             q = "SELECT groupname FROM pool_group_map WHERE poolname=:poolname ORDER BY groupname ASC"
             for (groupname,) in self.db.get_all(q, poolname=poolname):
                 groupclass = "allocation-class-group-%s" % groupname
                 if groupclass in self.generated_allocation_group_classes:
                     continue
-
+                count += 1
                 self.emit("class \"%s\" {" % groupclass, 4 * indent)
                 self.emit("match pick-first-value (option dhcp-client-identifier, hardware);", 4 * (indent + 1))
                 self.emit("}", 4 * (indent))
@@ -1006,6 +1012,7 @@ class DHCPManager(AdHocManager):
             hostclass = "allocation-class-host-%s" % (poolname)
             if hostclass in self.generated_allocation_group_classes:
                 return
+            count += 1
             self.emit("class \"%s\" {" % hostclass, 4 * indent)
             self.emit("match pick-first-value (option dhcp-client-identifier, hardware);", 4 * (indent + 1))
             self.emit("}", 4 * (indent))
@@ -1013,6 +1020,7 @@ class DHCPManager(AdHocManager):
                 q = "SELECT id, mac FROM hosts WHERE id=:id"
                 for (hostid, mac) in self.db.get_all(q, id=h):
                     self.emit("subclass \"%s\" 1:%s; # %s" % (hostclass, mac, hostid), 4 * (indent))
+        return count
     
     def emit_pools(self, network, indent):
         q = "SELECT poolname, optionspace, info FROM pools WHERE network=:network"
