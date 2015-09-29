@@ -87,7 +87,7 @@ if __name__ == "__main__":
     else:
         host, port = 'localhost', 4433
 
-    enable_ssl = os.environ.get("ADHOC_SSL_ENABLE", False) != "0"
+    enable_ssl = os.environ.get("ADHOC_SSL_ENABLE", "0") != "0"
 
     if enable_ssl:
         print "Serving HTTPS on '%s' port %d." % (host, port)
