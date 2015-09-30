@@ -182,6 +182,11 @@ class GlobalOptionManager(AdHocManager):
         dq.table("global_options r")
         return "r.id"
     
+    @search("basic", BooleanMatch, desc="If option is a basic command or not")
+    def s_basic(self, dq):
+        dq.table("global_options r")
+        return "r.basic"
+    
     @entry(g_write)
     def create_global_option(self, fun, name, value, basic):
         q = "INSERT INTO global_options (name, value, basic, changed_by) VALUES (:name, :value, :basic, :changed_by)"

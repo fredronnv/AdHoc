@@ -245,10 +245,20 @@ class HostClassManager(AdHocManager):
         dq.table("classes g")
         return "g.classname"
     
-    @search("vendor_class_id", StringMatch)
+    @search("vendor_class_id", NullableStringMatch)
     def s_vendor_class_id(self, dq):
         dq.table("classes g")
         return "g.vendor_class_id"
+    
+    @search("info", NullableStringMatch)
+    def s_info(self, dq):
+        dq.table("classes g")
+        return "g.info"
+    
+    @search("optionset", IntegerMatch, desc="Server internal option set number")
+    def s_optionset(self, dq):
+        dq.table("classes g")
+        return "g.optionset"
     
     # Note: This seems to do the trick I want, but I don't understand why...
     @search("granted_for", StringMatch)

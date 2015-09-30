@@ -154,7 +154,7 @@ class AccountManager(AdHocManager):
         dq.table("accounts a")
         return "a.lname"
     
-    @search("status", StringMatch)
+    @search("status", NullableStringMatch)
     @entry(g_read)
     def s_status(self, dq):
         dq.table("accounts a")

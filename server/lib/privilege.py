@@ -162,6 +162,12 @@ class PrivilegeManager(AdHocManager):
         dq.table("privileges p")
         return "p.privilege"
     
+    @search("info", StringMatch)
+    @entry(g_read)
+    def s_info(self, dq):
+        dq.table("privileges p")
+        return "p.info"
+    
     @entry(g_write)
     def create_privilege(self, fun, privilege_name, info):
         self.optionset_manager.create_optionset(fun)

@@ -256,19 +256,39 @@ class GroupManager(AdHocManager):
     def search_select(self, dq):
         dq.table("groups g")
         dq.select("g.groupname")
+        
+    @search("info", NullableStringMatch)
+    def s_info(self, dq):
+        dq.table("groups g")
+        return "g.info"
+    
+    @search("optionspace", NullableStringMatch)
+    def s_optionspace(self, dq):
+        dq.table("groups g")
+        return "g.optionspace"
+    
+    @search("optionset", IntegerMatch, desc="Server internal option set number")
+    def s_optionset(self, dq):
+        dq.table("groups g")
+        return "g.optionset"
+    
+    @search("hostcount", IntegerMatch, desc="Number of hosts on the group")
+    def s_hostcount(self, dq):
+        dq.table("groups g")
+        return "g.hostcount"
     
     @search("group", StringMatch)
     def s_name(self, dq):
         dq.table("groups g")
         return "g.groupname"
     
-    @search("parent", StringMatch)
+    @search("parent", StringMatch, desc="Parent group")
     def s_parent(self, dq):
         dq.table("groups g")
         return "g.parent_group"
     
     # Note: This seems to do the trick I want, but I don't understand why...
-    @search("granted_for", StringMatch)
+    @search("granted_for", StringMatch, "Groups granted for a certain named pool")
     def s_granted_for(self, q):
         q.table("pool_group_map pgm")
         q.where("g.groupname = pgm.groupname")

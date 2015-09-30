@@ -35,6 +35,25 @@ class ExtPoolRangeName(ExtIpV4Address):
     desc = "Starting IP address of a pool range"
 
 
+class IpV4Match(Match):
+    @suffix("equal", ExtIpV4Address)
+    @suffix("", ExtString)
+    def eq(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") = INET_ATON(" + q.var(val) + ")" )
+    
+    @suffix("not_equal", ExtIpV4Address)
+    def neq(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") <> INET_ATON(" + q.var(val) + ")" )
+        
+    @prefix("max", ExtIpV4Address)
+    def max(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") <= INET_ATON(" + q.var(val) + ")" )
+    
+    @prefix("min", ExtIpV4Address)
+    def min(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") >= INET_ATON(" + q.var(val) + ")" )
+
+
 class ExtPoolRange(ExtPoolRangeName):
     name = "pool_range"
     desc = "A DHCP shared pool_range"
@@ -191,10 +210,15 @@ class PoolRangeManager(AdHocManager):
         dq.table("pool_ranges pr")
         dq.select("pr.start_ip")
 
-    @search("start_ip", StringMatch)
+    @search("start_ip", IpV4Match)
     def s_start_ip(self, dq):
         dq.table("pool_ranges pr")
         return "pr.start_ip"
+    
+    @search("end_ip", IpV4Match)
+    def s_end_ip(self, dq):
+        dq.table("pool_ranges pr")
+        return "pr.end_ip"
     
     @search("pool", StringMatch)
     def s_pool(self, dq):

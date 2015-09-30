@@ -440,17 +440,17 @@ class HostManager(AdHocManager):
         dq.table("hosts h")
         return "h.`entry_status`"
     
-    @search("info", StringMatch)
+    @search("info", NullableStringMatch)
     def s_info(self, dq):
         dq.table("hosts h")
         return "h.`info`"
     
-    @search("cid", StringMatch)
+    @search("cid", NullableStringMatch)
     def s_cid(self, dq):
         dq.table("hosts h")
         return "h.`cid`"
     
-    @search("room", StringMatch)
+    @search("room", NullableStringMatch)
     def s_room(self, dq):
         dq.table("hosts h")
         return "h.`room`"
@@ -460,7 +460,7 @@ class HostManager(AdHocManager):
         dq.table("hosts h")
         return "h.`mac`"
     
-    @search("dns", StringMatch)
+    @search("dns", NullableStringMatch)
     def s_dns(self, dq):
         dq.table("hosts h")
         return "h.`dns`"
@@ -471,6 +471,11 @@ class HostManager(AdHocManager):
         q.table("pool_host_map phm")
         q.where("h.id = phm.hostname")
         return "phm.poolname"
+    
+    @search("optionset", IntegerMatch, desc="Server internal option set number")
+    def s_optionset(self, dq):
+        dq.table("hosts h")
+        return "h.optionset"
     
     def generate_host_name(self, mac, today=None, same_as=None):
         """ Generates a free host name according to standard naming devised by the networking group"""

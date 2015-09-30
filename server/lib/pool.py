@@ -389,15 +389,20 @@ class PoolManager(AdHocManager):
         dq.table("pools g")
         return "g.poolname"
     
-    @search("network", StringMatch)
+    @search("network", NullableStringMatch)
     def s_network(self, dq):
         dq.table("pools g")
         return "g.network"
     
-    @search("info", StringMatch)
+    @search("info", NullableStringMatch)
     def s_info(self, dq):
         dq.table("pools g")
         return "g.info"
+    
+    @search("optionset", IntegerMatch, desc="Server internal option set number")
+    def s_optionset(self, dq):
+        dq.table("pools g")
+        return "g.optionset"
     
     @entry(g_write)
     def create_pool(self, fun, pool_name, network, info, options):

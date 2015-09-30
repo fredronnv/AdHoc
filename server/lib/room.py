@@ -169,12 +169,12 @@ class RoomManager(AdHocManager):
         dq.table("rooms r")
         return "r.id"
     
-    @search("info", StringMatch)
+    @search("info", NullableStringMatch)
     def s_info(self, dq):
         dq.table("rooms r")
         return "r.info"
     
-    @search("printers", StringMatch)
+    @search("printers", NullableStringMatch)
     def s_sprinters(self, dq):
         dq.table("rooms r")
         return "r.printers"

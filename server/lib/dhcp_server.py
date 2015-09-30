@@ -145,6 +145,16 @@ class DHCPServerManager(AdHocManager):
         dq.table("dhcp_servers ds")
         return "ds.name"
     
+    @search("info", StringMatch)
+    def s_info(self, dq):
+        dq.table("dhcp_servers ds")
+        return "ds.info"
+    
+    @search("latest_fetch", IntegerMatch, desc="Look for latest fetch using timestamp (seconds since 1970-01-01)")
+    def s_latest_fetch(self, dq):
+        dq.table("dhcp_servers ds")
+        return "ds.latest_fetch"
+    
     @entry(AdHocSuperuserGuard)
     def create_dhcp_server(self, fun, dhcp_server_id, dns, info):
         q = "INSERT INTO dhcp_servers (id, name, info, changed_by) VALUES (:id, :name, :info, :changed_by)"

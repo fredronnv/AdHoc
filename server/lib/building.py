@@ -158,6 +158,16 @@ class BuildingManager(AdHocManager):
         dq.table("buildings r")
         return "r.id"
     
+    @search("re", StringMatch)
+    def s_re(self, dq):
+        dq.table("buildings r")
+        return "r.re"
+    
+    @search("info", StringMatch)
+    def s_info(self, dq):
+        dq.table("buildings r")
+        return "r.info"
+    
     @entry(g_write)
     def create_building(self, fun, building_name, re, info):
         q = "INSERT INTO buildings (id, re, info, changed_by) VALUES (:id, :re, :info, :changed_by)"

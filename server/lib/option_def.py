@@ -333,6 +333,41 @@ class OptionDefManager(AdHocManager):
         dq.table("option_base r")
         return "r.name"
     
+    @search("info", NullableStringMatch)
+    def s_info(self, dq):
+        dq.table("option_base r")
+        return "r.info"
+    
+    @search("code", NullableIntegerMatch)
+    def s_code(self, dq):
+        dq.table("option_base r")
+        return "r.code"
+    
+    @search("qualifier", NullableStringMatch)
+    def s_qualifier(self, dq):
+        dq.table("option_base r")
+        return "r.qualifier"
+    
+    @search("type", StringMatch)
+    def s_type(self, dq):
+        dq.table("option_base r")
+        return "r.type"
+    
+    @search("optionspace", NullableStringMatch)
+    def s_optionspace(self, dq):
+        dq.table("option_base r")
+        return "r.optionspace"
+    
+    @search("encapsulate", NullableStringMatch)
+    def s_encapsulate(self, dq):
+        dq.table("option_base r")
+        return "r.encapsulate"
+    
+    @search("struct", NullableStringMatch)
+    def s_struct(self, dq):
+        dq.table("option_base r")
+        return "r.struct"
+    
     @entry(g_write)
     def create_option_def(self, fun, option_def_name, code, type, info, options):
         if options is None:

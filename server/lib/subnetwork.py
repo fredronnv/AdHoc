@@ -255,12 +255,12 @@ class SubnetworkManager(AdHocManager):
         dq.table("subnetworks nw")
         return "nw.id"
     
-    @search("network", StringMatch)
+    @search("network", NullableStringMatch)
     def s_net(self, dq):
         dq.table("subnetworks nw")
         return "nw.network"
     
-    @search("info", StringMatch)
+    @search("info", NullableStringMatch)
     def s_info(self, dq):
         dq.table("subnetworks nw")
         return "nw.info"

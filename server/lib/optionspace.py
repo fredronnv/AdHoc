@@ -159,6 +159,16 @@ class OptionspaceManager(AdHocManager):
         dq.table("optionspaces ds")
         return "ds.value"
     
+    @search("type", StringMatch)
+    def s_type(self, dq):
+        dq.table("optionspaces ds")
+        return "ds.type"
+    
+    @search("info", NullableStringMatch)
+    def s_info(self, dq):
+        dq.table("optionspaces ds")
+        return "ds.info"
+    
     @entry(g_write)
     def create_optionspace(self, fun, optionspace_name, optionspace_type, info):
         q = "INSERT INTO optionspaces (value, type, info, changed_by) VALUES (:value, :type, :info, :changed_by)"

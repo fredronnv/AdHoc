@@ -174,6 +174,21 @@ class NetworkManager(AdHocManager):
         dq.table("networks nw")
         return "nw.id"
     
+    @search("authoritative", BooleanMatch)
+    def s_authoritative(self, dq):
+        dq.table("networks nw")
+        return "nw.authoritative"
+    
+    @search("info", NullableStringMatch)
+    def s_info(self, dq):
+        dq.table("networks nw")
+        return "nw.info"
+    
+    @search("optionset", IntegerMatch, desc="Server internal option set number")
+    def s_optionset(self, dq):
+        dq.table("networks nw")
+        return "nw.optionset"
+    
     @entry(g_write)
     def create_network(self, fun, network_name, authoritative, info):
         

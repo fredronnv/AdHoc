@@ -18,7 +18,7 @@ class ExtHostList(ExtList):
     name = "host-list"
     desc = "List of host names"
     typ = ExtHostName
-
+    
 
 class AdHocManager(Manager):
     """ Intermediate class to harbour methods common to all AdHoc Managers """
@@ -125,6 +125,8 @@ class ExtIpV4Address(ExtString):
     name = "ipv4-address"
     desc = "An IPv4 address using dotted decimal representation"
     regexp = "^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+
+
 
 
 class ExtIPAddress(ExtString):
