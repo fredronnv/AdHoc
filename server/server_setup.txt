@@ -266,6 +266,9 @@ EOF
         Run the script:
 
    $ADHOC_RUNTIME_HOME/migrate_data
+   
+    Disregard any warnings in the log about DHCPD Checks being disabled. It is essential for the migration 
+    script to work properly that these checks are turned off during migration.
 
     Leave the install level password as is because it is used by the backup 
     script.
