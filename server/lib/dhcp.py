@@ -218,7 +218,7 @@ class DHCPManager(AdHocManager):
             # In case it has already been defined by the glopal options, remove it here
             try:
                 odef = self.option_def_manager.get_option_def(name)
-                self.option_def_manager.destroy_option_def(odef)
+                self.option_def_manager.destroy_option_def(fun, odef)
             except ExtNoSuchOptionDefError:
                 pass
             
@@ -290,7 +290,7 @@ class DHCPManager(AdHocManager):
             # In case it has already been defined by the glopal options, remove it here
             try:
                 odef = self.option_def_manager.get_option_def(name)
-                self.option_def_manager.destroy_option_def(odef)
+                self.option_def_manager.destroy_option_def(fun, odef)
             except ExtNoSuchOptionDefError:
                 pass
             
