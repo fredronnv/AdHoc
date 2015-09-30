@@ -151,7 +151,9 @@ class DHCPManager(AdHocManager):
         for table in ["option_base", 
                       "pools", 
                       "classes", 
-                      "subnetworks"]:
+                      "subnetworks",
+                      "rpcc_event_str",
+                      "rpcc_event_int"]:
             self.db.put("TRUNCATE TABLE %s" % table)
         
         self.db.put("DELETE FROM accounts WHERE account != 'srvadhoc' AND account != 'int_0002'")
@@ -164,7 +166,8 @@ class DHCPManager(AdHocManager):
                       "buildings", 
                       "rooms", 
                       "optionset",
-                      "dnsmac"]:
+                      "dnsmac",
+                      "rpcc_event"]:
             self.db.put("TRUNCATE TABLE %s" % table)
             
         #
@@ -195,8 +198,7 @@ class DHCPManager(AdHocManager):
         # global_options takes input also from the table basic
         # print 
         # print "BASIC  OPTIONS"
-        
-                        
+                       
         qf = "SELECT command, arg, mtime, id FROM basic "
         qp = "INSERT INTO global_options (name, value, basic, changed_by, mtime, id) VALUES (:name, :value, 1, :changedby, :mtime, :id)"
               
@@ -222,6 +224,8 @@ class DHCPManager(AdHocManager):
             except ExtNoSuchOptionDefError:
                 pass
             
+            if not changedby:
+                changedby = "DCONF-ng"
             self.db.insert("id", qp, name=name, value=value, changedby=changedby, mtime=mtime, id=my_id)
             self.option_def_manager.define_option("", changedby, mtime, name, "text", None, "parameter", None)
             
@@ -293,7 +297,8 @@ class DHCPManager(AdHocManager):
                 self.option_def_manager.destroy_option_def(fun, odef)
             except ExtNoSuchOptionDefError:
                 pass
-            
+            if not changed_by:
+                changed_by = "DCONF-ng"
             self.option_def_manager.define_option(info, changed_by, mtime, name, my_type, code, qualifier, optionspace)
             
             # Save option info for later usage when adding options
