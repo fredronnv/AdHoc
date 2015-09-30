@@ -647,6 +647,22 @@ class EqualityMatchMixin(object):
         q.where(expr + "<>" + q.var(val))
 
 
+class BooleanMatchMixin(object):
+    @prefix("is", ExtBoolean)
+    def is_true(self, fun, q, expr, val):
+        if val:
+            q.where(expr + " != 0")
+        else:
+            q.where(expr + " = 0")
+            
+    @prefix("is_not", ExtBoolean)        
+    def is_false(self, fun, q, expr, val):
+        if val:
+            q.where(expr + " = 0")
+        else:
+            q.where(expr + " != 0")
+            
+            
 class NullMatchMixin(object):
     @suffix("is_set", ExtBoolean)
     def set(self, fun, q, expr, val):
@@ -719,6 +735,29 @@ class IntegerMatch(EqualityMatchMixin, Match):
     @prefix("min", ExtInteger)
     def min(self, fun, q, expr, val):
         q.where(expr + ">=" + q.var(val))
+
+
+class IPv4Match(Match):
+    @suffix("equal", ExtString)
+    @suffix("", ExtString)
+    def eq(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") = INET_ATON(" + q.var(val) + ")" )
+    
+    @suffix("not_equal", ExtString)
+    def neq(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") <> INET_ATON(" + q.var(val) + ")" )
+        
+    @prefix("max", ExtInteger)
+    def max(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") <= INET_ATON(" + q.var(val) + ")" )
+    
+    @prefix("min", ExtInteger)
+    def min(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") >= INET_ATON(" + q.var(val) + ")" )
+
+
+class BooleanMatch(BooleanMatchMixin, Match):
+    pass
 
 
 class DateTimeMatch(Match):
