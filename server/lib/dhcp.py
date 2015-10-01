@@ -27,6 +27,7 @@ class DhcpdConf(Function):
     params = [("server_id", ExtString),
               ]
     returns = ExtString
+    log_call_event = False
 
     def do(self):
         s = self.dhcp_manager.make_dhcpd_conf(self.server_id)

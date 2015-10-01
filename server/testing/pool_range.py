@@ -104,8 +104,8 @@ class PoolRangeTests():
         if not pool:
             pool = self.testpool
         
-        assert ret.start_ip == start_ip, "Bad start_ip, is % should be %s" % (ret.start_ip, start_ip)
-        assert ret.end_ip == end_ip, "Bad end_ip, is % should be %s" % (ret.end_ip, end_ip)
+        assert ret.start_ip == start_ip, "Bad start_ip, is %s should be %s" % (ret.start_ip, start_ip)
+        assert ret.end_ip == end_ip, "Bad end_ip, is %s should be %s" % (ret.end_ip, end_ip)
         assert ret.pool == pool, "Bad pool %s, should be %s" % (ret.pool, pool)
         
     
@@ -221,8 +221,6 @@ class T1441_PoolRangeSetReversedRange(NetworkAdminTests, PoolRangeTests):
 class T1442_PoolRangeSetOverlappingRange(NetworkAdminTests, PoolRangeTests):
     """ Test setting the range of a pool_range, possibly overlapping"""
     
-    wip = True
-    
     def do(self):
         self.teardown_pool_range()
         self.setup_pool_range()  # 192.5.50.100 - 192.5.50.150
@@ -255,8 +253,9 @@ class T1442_PoolRangeSetOverlappingRange(NetworkAdminTests, PoolRangeTests):
                 # New 192.5.50.2151 - 192.5.50.233, No overlap  
                 self.proxy.pool_range_update(self.testrange2, {"start_ip": "192.5.50.151"})
                 
-                # reset testrange2 no overlap
+                # reset testrange2
                 self.proxy.pool_range_update("192.5.50.151", {"start_ip": self.testrange2})
+                self.proxy.pool_range_update(self.testrange2, {"end_ip": "192.5.50.228"})
                 
                 ret = self.superuser.pool_range_fetch(self.testrange, data_template)
                 self.assert_pool_data(ret, start_ip=self.testrange, end_ip=self.testrange_end)

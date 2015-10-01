@@ -272,12 +272,15 @@ EOF
 
     Leave the install level password as is because it is used by the backup 
     script.
+    
+    When this is done, contact PDB support to get a complete update of accounts and privileges in AdHoc.
 
 25. Reboot and check that the server is running    
 
    /sbin/shutdown -r now
   
     See step 18 for checking connectivity.
+    
 
 ---------------------------------------------------------------------------
 
