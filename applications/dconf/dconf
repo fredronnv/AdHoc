@@ -4662,7 +4662,7 @@ _lsoptions_do()
             fi
             return;
         fi
-    
+        seen_options=   
         found_options=`_hasoptions_group $lsoptions_s_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
             if [ -n "$_lsoptions_print" ];then
@@ -4700,6 +4700,7 @@ _lsoptions_do()
             return;
         fi
     
+        seen_options=   
         found_options=`_hasoptions_group $lsoptions_c_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
             if [ -n "$_lsoptions_print" ];then
@@ -4725,6 +4726,7 @@ _lsoptions_do()
             return;
         fi
     
+        seen_options=   
         found_options=`_hasoptions_group $lsoptions_p_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
             if [ -n "$_lsoptions_print" ];then
@@ -4749,6 +4751,7 @@ _lsoptions_do()
             return;
         fi
     
+        seen_options=   
         found_options=`_hasoptions_group $lsoptions_n_arg $lsoptions_gtype`
         if [ -n "$found_options" ]; then
             if [ -n "$_lsoptions_print" ];then
@@ -4774,8 +4777,6 @@ _lsoptions_do()
             fi
             return;
         fi
-        
-        
         
         seen_options=
         found_options=`_hasoptions_group $lsoptions_H_arg $lsoptions_gtype`
@@ -4864,7 +4865,7 @@ lsoptions_mutexcheck()
 
 
 
-# This routine is used both for groups, classes and pools
+# This routine is used both for groups, classes, networks, subnetworks and pools
 # Args: $1 = Object name
 #       $2 = Type of object
 #       $3 = Options already found
