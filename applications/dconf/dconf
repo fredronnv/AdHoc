@@ -99,17 +99,17 @@ cd $MY_DIR
 #M
 #M Use B<dconf addhost mac-address> dconf will generate a host ID and print it.
 #M
-#M =head3 Adding a host with a free DNS entry of a network
-#M
-#M If you need to find a DNS entry for a fixed addresse, the dconf mkhost command may be of help. You need to know
-#M which network the machine will be connected to. 
-#M
-#M Use B<dconf mkhost -n network-name>
-#M
+##M =head3 Adding a host with a free DNS entry of a network
+##M
+##M If you need to find a DNS entry for a fixed addresse, the dconf mkhost command may be of help. You need to know
+##M which network the machine will be connected to. 
+##M
+##M Use B<dconf mkhost -n network-name>
+##M
 #M =head3 Finding out network names
 #M
-#M To be able to use mkhost, you need to find out which network names that are acceptable. 
-#M
+##M To be able to use mkhost, you need to find out which network names that are acceptable. 
+##M
 #M Use B<dconf lsnetworks> to get a list. The "Id" column lists the names.
 #M
 #M =head3 Finding out the syntax of a dconf subcommand
@@ -4443,8 +4443,8 @@ _lsnetworks_fmt()
 #O lsoptions;c;class;List the options for a I<class>
 #O lsoptions;g;group;List the options for a I<group>
 #O lsoptions;H;host;List the options for a I<host>
-#O lsoptions;n;network;List the options for a I<network>
-#O lsoptions;s;subnetwork;List the options for a I<subnetwork>
+#O lsoptions;N;network;List the options for a I<network>
+#O lsoptions;S;subnetwork;List the options for a I<subnetwork>
 #O lsoptions;p;pool;List the options for a I<pool>
 #O lsoptions;G;;List the global options
 #M
@@ -5247,57 +5247,57 @@ _progbar_zap()
 
 
 ##S mkhost;;Make a new host entry;1;3;network [mac-address [pattern]];Find a free DNS name in a network and enter a new host with that entry;22
-#O mkhost;n;;Do not add any host, just display a free DNS name
-#O mkhost;A;;Do not stop looking for free DNS entries when one is found - implies -n
-#O mkhost;s;entry_status;Specify entry status[Active|Inactive]
-#O mkhost;u;uname;Assign user name
-#O mkhost;r;room_id;Assign room ID
-#O mkhost;g;group;Specify group
-#O mkhost;i;info;Specify information about the host
-#O mkhost;f;;Force - bypass checks
-#M
-#M =head2 I<Description>
-#M
-#M The mkhost subcommand looks for a free DNS entry in a network, and if one is found calls addhost using the found DNS entry.
-#M
-#M Unless the -n flag or a I<pattern> are specified, the I<mac-address> is mandatory. If the -n flag is given, then
-#M the I<mac-address> argument is not checked for validity, but it must be a nonzero string in order to specify a I<pattern>.
-#M
-#M If a I<pattern> is specified, only host_id's that match the specfied pattern are considered for selection.
-#M The first two IP addresses are not considered for selection because they are usually reserved for network
-#M equipment.
-#M
-#M To be selected, an IP number must:
-#M
-#M =over
-#M
-#M =item A
-#M
-#M Lie in a range if IP addresses defined by a subnetwork belonging to the specified network
-#M
-#M =item B
-#M
-#M Not be one of the first two in a subnetwork
-#M
-#M =item C
-#M
-#M Have a host ID assigned to it.
-#M
-#M =item D
-#M
-#M If a pattern is given, the fqdn assigned must match that pattern.
-#M
-#M =item E
-#M
-#M Not be defined in the DHCP database
-#M
-#M =item F
-#M
-#M Not have a running host that answers ICMP ping messages.
-#M
-#M =back
-#M
-#M
+##O mkhost;n;;Do not add any host, just display a free DNS name
+##O mkhost;A;;Do not stop looking for free DNS entries when one is found - implies -n
+##O mkhost;s;entry_status;Specify entry status[Active|Inactive]
+##O mkhost;u;uname;Assign user name
+##O mkhost;r;room_id;Assign room ID
+##O mkhost;g;group;Specify group
+##O mkhost;i;info;Specify information about the host
+##O mkhost;f;;Force - bypass checks
+##M
+##M =head2 I<Description>
+##M
+##M The mkhost subcommand looks for a free DNS entry in a network, and if one is found calls addhost using the found DNS entry.
+##M
+##M Unless the -n flag or a I<pattern> are specified, the I<mac-address> is mandatory. If the -n flag is given, then
+##M the I<mac-address> argument is not checked for validity, but it must be a nonzero string in order to specify a I<pattern>.
+##M
+##M If a I<pattern> is specified, only host_id's that match the specfied pattern are considered for selection.
+##M The first two IP addresses are not considered for selection because they are usually reserved for network
+##M equipment.
+##M
+##M To be selected, an IP number must:
+##M
+##M =over
+##M
+##M =item A
+##M
+##M Lie in a range if IP addresses defined by a subnetwork belonging to the specified network
+##M
+##M =item B
+##M
+##M Not be one of the first two in a subnetwork
+##M
+##M =item C
+##M
+##M Have a host ID assigned to it.
+##M
+##M =item D
+##M
+##M If a pattern is given, the fqdn assigned must match that pattern.
+##M
+##M =item E
+##M
+##M Not be defined in the DHCP database
+##M
+##M =item F
+##M
+##M Not have a running host that answers ICMP ping messages.
+##M
+##M =back
+##M
+##M
 mkhost()
 {
     for i in "$@"; do
