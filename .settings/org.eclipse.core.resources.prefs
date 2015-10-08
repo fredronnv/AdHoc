@@ -7,6 +7,7 @@ encoding//server/rpcc/database.py=utf-8
 encoding//server/rpcc/example2-client.py=utf-8
 encoding//server/rpcc/exterror.py=utf-8
 encoding//server/rpcc/exttype.py=utf-8
+encoding//server/rpcc/mutex.py=utf-8
 encoding//server/testing/building.py=utf8
 encoding//server/testing/dhcp_server.py=utf8
 encoding//server/testing/global_option.py=utf8
