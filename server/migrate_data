@@ -35,5 +35,5 @@ unset ADHOC_GENERIC_PASSWORD
 /etc/init.d/adhoc-server start
 
 echo "Migration is done. If in a hurry to do administration of DHCP, contact the PDB integrations team"
-echo "to get a full update of accounts and privileges done quickly.
+echo "to get a full update of accounts and privileges done quickly."
 echo "In any case, a full update will be made overnight"
