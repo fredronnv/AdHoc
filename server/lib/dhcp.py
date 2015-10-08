@@ -794,7 +794,7 @@ class DHCPManager(AdHocManager):
                 self.emit_pools(netid, 0)
                 self.emit("}")
             else:
-                self.emit("#shared-network %s {} # Empty, no pools or subnetworks" % id)
+                self.emit("#shared-network %s {} # Empty, no pools or subnetworks" % netid)
 
     def emit_groups(self, parent=None, indent=0, timing_array=None):
         
