@@ -1,6 +1,9 @@
 INSTALLATION PROCEDURE:
 
 Installation assumes a Unix/Linux or Mac OS X system having bash and python version 2.6+ installed beforehand.
+The used python version needs to have the kerberos module available for import.
+The kerberos module is likely to be available at https://pypi.python.org/pypi/kerberos.
+
 
 As the installation can be done in many ways, the path and procedure may vary greatly with your system and your preferences.
 The following is only an example of an installation for all users on a typical unix based system:
