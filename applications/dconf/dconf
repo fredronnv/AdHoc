@@ -3108,8 +3108,6 @@ _addoption()
         fi
     fi
     proxy_start
-    otype=`server_call "option_def_fetch('$_addoption_key',{'type':true})"`
-
 
     if [ "${_addoption_gtype}" = "global" -o "${_addoption_gtype}" = "global_basic" ]; then
         global_option_id=`server_call "global_option_dig({'name':'$_addoption_key'},{'global_option':true})"`
@@ -3119,14 +3117,15 @@ _addoption()
         else
             basic="False"
         fi
-        if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
-            server_call "global_option_create('$_addoption_key','${_addoption_value}', $basic )"
-        else
-            server_call "global_option_create('$_addoption_key','${_addoption_value}', $basic)"
-        fi
+        server_call "global_option_create('$_addoption_key','${_addoption_value}', $basic )"
     else
-        if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
-            server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':${_addoption_value}})"
+        otype=`server_call "option_def_fetch('$_addoption_key',{'type':true, 'qualifier':true})"`
+        if [[ $otype =~ integer|unsigned ]]; then
+            if [[ $otype =~ array ]]; then
+                server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':[${_addoption_value}]})"
+            else
+                server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':${_addoption_value}})"
+            fi
         else
             server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
         fi
@@ -3269,7 +3268,7 @@ chgroup()
         fi
     fi
 
-    if [ -z "$chgroup_anyflag" -a -z "${chgroup_hotbeat_class_flag}" ]; then
+    if [ -z "$chgroup_anyflag" ]; then
         echo "No flags specified, so there is nothing to change"
         exit 0
     fi
@@ -3554,12 +3553,7 @@ _choption()
                     echo "There is no global option with ID $global_option_id defined"
                     return
                 fi
-                otype=`server_call "option_def_fetch('$global_option_name',{'type':true})"`
-                if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
-                        server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
-                else
-                        server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
-                fi
+                server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
                 return
         else
                 # We got a name, check if there are more than one ID with this name
@@ -3569,33 +3563,26 @@ _choption()
                     0) echo "No option found by the name $global_option_name";
                        return
                        ;;
-                    1) otype=`server_call "option_def_fetch('$_choption_key',{'type':true})"`;
-                       echo "Option type for $global_option_name is $otype";
-                       if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
-                           server_call "global_option_update($global_option_ids,{'value':'${_choption_value}'})"
-                       else
-                           server_call "global_option_update($global_option_ids,{'value':'${_choption_value}'})"
-                       fi
+                    1) server_call "global_option_update($global_option_ids,{'value':'${_choption_value}'})"
                        return
                        ;;
                     *) echo "More than one option is defined using the name $global_option_name. Please use a numeric option ID instead"
                        return
                        ;;
-                esac
-                         
+                esac    
                 return
-                otype=`server_call "option_def_fetch('$_choption_key',{'type':true})"`
         fi
+      
         global_option_id=`server_call "global_option_dig({'name':'$_choption_key'},{'global_option':true})"`
-        if echo $otype | egrep 'integer|unsigned'  >/dev/null 2>&1; then
-            server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
-        else
-            server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
-        fi
+        server_call "global_option_update($global_option_id,{'value':'${_choption_value}'})"
     else
-        otype=`server_call "option_def_fetch('$_choption_key',{'type':true})"`
-        if echo $otype | egrep 'integer|unsigned' >/dev/null 2>&1; then
-            server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':${_choption_value}})"
+        otype=`server_call "option_def_fetch('$_choption_key',{'type':true, 'qualifier':true})"`
+        if [[ $otype =~ integer|unsigned ]]; then
+            if [[ $otype =~ array ]]; then
+                server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':[${_choption_value}]})"
+            else
+                server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':${_choption_value}})"
+            fi
         else
             server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
         fi
@@ -6408,6 +6395,98 @@ _history_fmt()
 {
     sed 's/NULL//g' |  awk -F"	" '{ printf("%-11d %8s %20s %-14s %s %s %s %s %s %s %s %s %s %s %s\n",$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15);}' |  sed 's/ *$//' | sort -n -t. -k 1,1 -k 2,2 -k 3,3 -k 4,4
 }
+#S chclass;;Change a host class;1;1;class;Change the attributes of a class;52
+#O chclass;V;vendor_class_id;Change vendor class id of the class;;
+#O chclass;O;optionspace;Change option space of the class;;
+#O chclass;I;info;Change description of the class;;
+#M =head2 I<Description>
+#M
+#M The chclass subcommand is used for altering DHCP or vendor attributes of a class. 
+#M
+chclass()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -I)
+                chclass_I_flag=$i; shift
+                chclass_I_arg=$1; shift
+                ;;
+            -O)
+                chclass_O_flag=$i; shift
+                chclass_O_arg=$1; shift
+                ;;
+            -V)
+                chclass_V_flag=$i; shift
+                chclass_V_arg=$1; shift
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+    chclass_anyflag=
+
+    if [ -z "$1" ]; then
+        echo "No class name specified"
+        exit 2
+    fi
+    chclass_classname=$1; shift
+
+    if db_classexists $chclass_classname; then
+        :
+    else
+        echo "The class $chclass_classname is not defined in the database"
+        exit 2
+    fi
+    proxy_start
+    proxy_call "update_template={}"
+
+    if [ -n "$chclass_O_flag" ]; then
+        _chclass_foundaflag
+        if db_spaceexists "$chclass_O_arg"; then
+            proxy_call "update_template['optionspace']='$chclass_O_arg'"
+        else
+            echo "The specified option space $chclass_O_arg is unknown in the database"
+            exit 1
+        fi
+    fi
+
+    if [ -n "$chclass_I_flag"  ]; then
+        _chclass_foundaflag
+        if [ -n "$chclass_I_arg" ]; then
+            proxy_call "update_template['info']='$chclass_I_arg'"
+        else
+            proxy_call "update_template['info']=None"
+            echo "You just erased the information on the class ${chclass_classname}, hope that is OK"
+        fi
+    fi
+
+    if [ -n "$chclass_V_flag"  ]; then
+        _chclass_foundaflag
+        if [ -n "$chclass_V_arg" ]; then
+            proxy_call "update_template['vendor_class_id']='$chclass_V_arg'"
+        else
+            proxy_call "update_template['vendor_class_id']=None"
+            echo "You just erased the vendor class ID on the class ${chclass_classname}, hope that is OK"
+        fi
+    fi
+
+    if [ -z "$chclass_anyflag" ]; then
+        echo "No flags specified, so there is nothing to change"
+        exit 0
+    fi
+   
+    if [ -n "$chclass_anyflag" ]; then
+        server_call "host_class_update('${chclass_classname}', update_template)"
+    fi
+}
+
+_chclass_foundaflag()
+{
+    chclass_anyflag=1
+}
+
 ##SGIP Subcommand generation insertion point, do not delete!!
 
 ##SSCB2 Suite specific code begin 2
