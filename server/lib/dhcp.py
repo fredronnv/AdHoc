@@ -231,7 +231,7 @@ class DHCPManager(AdHocManager):
             self.option_def_manager.define_option("", changedby, mtime, name, "text", None, "parameter", None)
             
         self.db.insert("id", "INSERT INTO global_options (name, value, basic, changed_by, id) VALUES (:name, :value, 1, :changedby, :id)",
-                       name="log-facility", value="local4", changedby="DCONF-ng", id=my_id + 1)
+                       name="log-facility", value="local5", changedby="DCONF-ng", id=my_id + 1)
         
         self.option_def_manager.define_option("", "DCONF-ng", mtime, "log-facility", "text", None, "parameter", None)
         
