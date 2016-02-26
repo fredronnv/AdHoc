@@ -455,20 +455,3 @@ class RPCC(object):
 #         
 #         self._server = xmlrpclib.Server(self._url, encoding='UTF-8', allow_none=1)
 #         
-
-
-def pp(d, ind=0):
-    for (k, v) in d.iteritems():
-        print ' ' * ind + k + ':',
-        if type(v) == type({}):
-            print '{'
-            pp(v, ind + 4)
-            print ' ' * ind + '}'
-        elif type(v) == type([]):
-            print '['
-            for sv in v:
-                pp(sv, ind + 4)
-                print ' ' * ind + ','
-            print ' ' * ind + ']'
-        else:
-            print v

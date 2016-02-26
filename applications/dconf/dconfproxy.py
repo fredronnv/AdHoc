@@ -9,7 +9,7 @@ import os
 import kerberos
 import re
 import StringIO
-import rpcc_client
+from rpcc_client import RPCC, RPCCRuntimeError, RPCCValueError, RPCCTypeError, RPCCLookupError
 
 true = True
 false = False
@@ -108,7 +108,7 @@ def process(command, output):
         if not srv:
             if not srv_url:
                 srv_url = "https://adhoc.ita.chalmers.se:8877"
-            srv = rpcc_client.RPCC(srv_url)
+            srv = RPCC(srv_url)
         
         p = re.compile('":key')
         carg = p.sub('":true', arg)
@@ -119,7 +119,7 @@ def process(command, output):
         try:
             exec s
             # print >>sys.stderr, "EXEC DONE"
-        except rpcc_client.RPCCRuntimeError, e:
+        except RPCCRuntimeError, e:
             # print >>sys.stderr, "RPCCRuntimeError"
             e = e[0]
             try:
@@ -131,7 +131,7 @@ def process(command, output):
                 print >>sys.stderr, "Unexpected error from server:", e
             raise
             
-        except (rpcc_client.RPCCValueError, rpcc_client.RPCCLookupError, rpcc_client.RPCCTypeError) as e:
+        except (RPCCValueError, RPCCLookupError, RPCCTypeError) as e:
             
             # print >>sys.stderr, "RPCCCaughtError"
             e = e[0]
