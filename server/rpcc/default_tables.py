@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-import database
 
-from database import *
+from database_description import *
 
 
 def table_exists(db, q_check, tbl, cols, fix, q_create, q_addcol):
@@ -10,29 +9,29 @@ def table_exists(db, q_check, tbl, cols, fix, q_create, q_addcol):
         try:
             dummy = list(db.get(q_check))
             return True
-        except database.InvalidIdentifierError as e:
+        except InvalidIdentifierError as e:
             if fix:
                 for col in cols:
                     try:
                         # TODO: Column type specification not done
                         db.put(q_addcol, tbl, col)
                     except:
-                        print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (col, tbl)
+                        db.logger.error("COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (col, tbl))
                         return False
                 continue
             else:
-                print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (e.identifier, tbl)
+                db.logger.error("COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (e.identifier, tbl))
                 return False
-        except database.InvalidTableError as e:
+        except InvalidTableError as e:
             if fix:
                 try:
                     db.put(q_create, tbl)
                 except:
-                    print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (tbl,)
+                    db.logger.error("TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (tbl,))
                     return False
                 continue
             else:
-                print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (tbl,)
+                db.logger.error("TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (tbl,))
                 return False
         except Exception as e:
             raise

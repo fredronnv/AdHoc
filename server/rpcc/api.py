@@ -23,6 +23,7 @@ class API(object):
     def __init__(self, handler, version):
         self.handler = handler
         self.server = handler.server
+        self.logger = self.server.logger
         self.version = version
 
         # Indexed by public names
@@ -77,7 +78,7 @@ class API(object):
         except IntAPIValidationError as e:
             raise TypeError("%s return type: %s" % (funclass, e.args[0]))
         except:
-            print "Defunct return type:", funclass.returns
+            self.logger.error("Defunct return type: %s" % str(funclass.returns))
             raise
 
     def get_function(self, funname):
@@ -274,7 +275,7 @@ class API(object):
             mssuffix = ""
             mscompat = False
         else:
-            print "VOLVO"
+            self.logger.error("VOLVO")
             raise ExtInternalError()
 
         wsdl_ns = self.get_wsdl_url(mscompat)

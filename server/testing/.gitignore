@@ -1,7 +1,7 @@
 /framework.pyc
 /test_rpcc_client.pyc
 /basic.pyc
-/util.pyc
+/testutil.pyc
 /dhcpd.pyc
 /dhcp_server.pyc
 /shared_network.pyc

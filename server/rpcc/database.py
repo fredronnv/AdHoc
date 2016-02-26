@@ -38,12 +38,13 @@ import threading
 import datetime
 import re
 
+import default_tables
+
 
 import exterror
-from _sqlite3 import InternalError
 
 try:
-    import cx_Oracle
+    import cx_Oracle  # @UnresolvedImport
 except:
     pass
 
@@ -59,93 +60,10 @@ try:
 except:
     pass
 
-from enum import Enum, unique
+from enum import Enum
 from interror import IntInvalidUsageError
 
-# Classes for describing databases in a way independent of database engines
-
-
-class VType(Enum):
-    """ Enumeration of column types """
-    integer = 1
-    string = 2
-    datetime = 3
-    float = 4
-    blob = 5
-
-
-class EngineType(Enum):
-    """ Enumeratuon of database table engine types"""
-    temporary = 1
-    memory = 2
-    transactional = 3
-    big = 4
-
-
-class DBColumn(object):
-    """ Column description class"""
-
-    def __init__(self, name, value_type=None, size=None, autoincrement=None, index=None, primary=False, unique=False, not_null=False):
-        self.name = name
-
-        if value_type and type(value_type) is not VType:
-            raise TypeError("Bad type for database table column")
-        self.value_type = value_type
-        self.size = size
-        if value_type and value_type is not VType.integer and autoincrement:
-            raise TypeError("Autoincrement is only for integer type columns")
-        self.autoincrement = autoincrement
-        self.index = index
-        self.primary = primary
-        self.unique = unique
-        self.index = index
-        self.not_null = not_null
-        self.owning_table = None
-
-    def set_value_type(self, value_type):
-        if type(value_type) is not VType:
-            raise TypeError("Bad type for database table column")
-        if value_type is not VType.integer and self.autoincrement:
-            raise TypeError("Cannot set table value_type to anything but integer because autioncrement is already set")
-        self.value_type = value_type
-
-    def set_primary(self):
-        self.primary = True
-
-    def unset_primary(self):
-        self.primary = False
-
-
-class DBTable(object):
-    """Table description class"""
-
-    def __init__(self, name, desc=None, engine=None, collation=None, columns=None):
-        self.name = name
-        self.desc = desc
-        self.engine = engine
-        self.collation = collation
-        self.primary_col = None
-        self.columns = []
-        if columns:
-            for c in columns:
-                self.add_column(c)
-
-    def add_column(self, column):
-        if type(column) is DBColumn:
-            if self.primary_col and column.primary:
-                raise ValueError("Data table already has a column specified as primary")
-            if column.primary:
-                self.primary_col = column
-            self.columns.append(column)
-            column.owning_table = self
-        else:
-            raise TypeError("Database column is not of type DBColumn")
-
-    def column_names(self):
-        return [x.name for x in self.columns]
-
-import default_tables
-
+from database_description import *
 
 class DatabaseError(Exception):
 
@@ -435,6 +353,7 @@ class DatabaseLink(object):
 
     def __init__(self, database, raw_link):
         self.database = database
+        self.logger = self.database.logger
         self.link = raw_link
         self.intrans = False
         self.open = True
@@ -447,7 +366,7 @@ class DatabaseLink(object):
         self.link.close()
 
     def exception(self, inner, query, args):
-        print "Unhandled error: %s" % (inner,)
+        self.logger.error("Unhandled error: %s" % (inner,))
         raise inner
 
     def iterator(self, curs):
@@ -481,8 +400,8 @@ class DatabaseLink(object):
             raise LinkClosedError()
 
         if self.database.debug:
-            print id(self), "QUERY:", query
-            print id(self), "ARGS: ", kwargs
+            self.logger.debug("%s %s" % (id(self), "QUERY: " + query))
+            self.logger.debug("%s %s" % (id(self), "ARGS: %s" % str(kwargs)))
 
         curs = self.link.cursor()
         try:
@@ -511,8 +430,8 @@ class DatabaseLink(object):
             raise LinkClosedError()
 
         if self.database.debug:
-            print id(self), "QUERY:", query
-            print id(self), "ARGS: ", kwargs
+            self.logger.debug("%s %s" % (id(self), "QUERY: " + query))
+            self.logger.debug("%s %s" % (id(self), "ARGS: %s" % str(kwargs)))
 
         curs = self.link.cursor()
         try:
@@ -525,7 +444,7 @@ class DatabaseLink(object):
                     q, v = self.convert(query, kwargs)
                 self.execute(curs, q, v)
                 if self.database.debug:
-                    print id(self), "-> ", curs.rowcount
+                    self.logger.debug("%s -> %s" % (id(self), str(curs.rowcount)))
                 return curs.rowcount
             except Exception as e:
                 self.exception(e, query, v)
@@ -540,7 +459,7 @@ class DatabaseLink(object):
             raise LinkClosedError()
 
         if self.database.debug:
-            print id(self), "BEGIN"
+            self.logger.debug("%s BEGIN" % id(self))
 
         self.link.begin()
         self.intrans = True
@@ -550,7 +469,7 @@ class DatabaseLink(object):
             raise LinkClosedError()
 
         if self.database.debug:
-            print id(self), "COMMIT"
+            self.logger.debug("%s COMMIT" % id(self))
 
         self.link.commit()
         self.intrans = False
@@ -560,7 +479,7 @@ class DatabaseLink(object):
             raise LinkClosedError()
 
         if self.database.debug:
-            print id(self), "ROLLBACK"
+            self.logger.debug("%s ROLLBACK" % id(self))
 
         self.link.rollback()
         self.intrans = False
@@ -577,6 +496,7 @@ class Database(object):
 
     def __init__(self, server, **args):
         self.server = server
+        self.logger = server.logger
         self.lock = threading.Lock()
         self.init(**args)
         self.debug = server.config("DEBUG_SQL", default=False)
@@ -655,10 +575,7 @@ class OracleIterator(DatabaseIterator):
         ret = None
         for idx in range(len(row)):
             c = row[idx]
-            if isinstance(c, cx_Oracle.BLOB) or \
-                    isinstance(c, cx_Oracle.CLOB) or \
-                    isinstance(c, cx_Oracle.NCLOB) or \
-                    isinstance(c, cx_Oracle.LOB):
+            if isinstance(c, cx_Oracle.BLOB) or isinstance(c, cx_Oracle.CLOB) or isinstance(c, cx_Oracle.NCLOB) or isinstance(c, cx_Oracle.LOB):  # @UndefinedVariable
                 if not ret:
                     ret = list(row)
                 ret[idx] = c.read()
@@ -672,10 +589,10 @@ class OracleLink(DatabaseLink):
 
     def exception(self, inner, query, args):
         if self.database.server.config("DEBUG_SQL", default=False):
-            print "ERROR IN QUERY: ", query
-            print "WITH ARGUMENTS: ", args
+            self.logger.debug("ERROR IN QUERY: " + query)
+            self.logger.debug("WITH ARGUMENTS: " + args)
 
-        if isinstance(inner, cx_Oracle.DatabaseError):
+        if isinstance(inner, cx_Oracle.DatabaseError):  # @UndefinedVariable
             err = inner.args[0]
             if isinstance(err, str):
                 raise
@@ -688,10 +605,10 @@ class OracleLink(DatabaseLink):
             if err.code == 1:
                 const = err.message.split("(")[1].split(")")[0]
                 raise IntegrityError(const, inner=inner)
-            print "CODE:", err.code
-            print "CONTEXT:", err.context
-            print "MESSAGE:", err.message.strip()
-            print "OFFSET:", err.offset
+            self.logger.debug("CODE:" + err.code)
+            self.logger.debug("CONTEXT:" + err.context)
+            self.logger.debug("MESSAGE:" + err.message.strip())
+            self.logger.debug("OFFSET:" + err.offset)
         raise
 
     def execute(self, curs, query, values):
@@ -702,8 +619,8 @@ class OracleLink(DatabaseLink):
             raise LinkClosedError()
 
         if self.database.debug:
-            print id(self), "QUERY:", query
-            print id(self), "ARGS: ", kwargs
+            self.logger.debug("%s QUERY: %s" % (id(self), query))
+            self.logger.debug("%s ARGS: %s" % (id(self), kwargs))
 
         curs = self.link.cursor()
         try:
@@ -713,7 +630,7 @@ class OracleLink(DatabaseLink):
                 else:
                     q, kw = self.convert(query, kwargs)
 
-                var = curs.var(cx_Oracle.NUMBER)
+                var = curs.var(cx_Oracle.NUMBER)  # @UndefinedVariable
                 kw["last_insert_id"] = var
                 q += " RETURNING %s INTO :last_insert_id" % (insert_col,)
                 curs.execute(q, **kw)
@@ -749,7 +666,7 @@ class OracleDatabase(Database):
                     pass
 
             try:
-                raw_link = cx_Oracle.connect(self.user, self.password, self.database, threaded=True)
+                raw_link = cx_Oracle.connect(self.user, self.password, self.database, threaded=True)  # @UndefinedVariable
 
                 # Disable the buggy "cardinality feedback" misfeature.
                 raw_link.cursor().execute('alter session set "_optimizer_use_feedback" = false')
@@ -801,8 +718,8 @@ class MySQLLink(DatabaseLink):
         try:
             curs.execute(query, values)
         except Exception as e:
-            print "DBEXCEPTION:", e, type(e)
-            print "QUERY=", query
+            self.logger.error("DBEXCEPTION: %s %s" % (str(e), str(type(e))))
+            self.logger.error("QUERY= " + query)
             raise
 
     def insert(self, dummy, query, **kwargs):
@@ -810,8 +727,8 @@ class MySQLLink(DatabaseLink):
             raise LinkClosedError()
 
         if self.database.debug:
-            print id(self), "QUERY:", query
-            print id(self), "ARGS: ", kwargs
+            self.logger.debug("%s QUERY: %s" % (id(self), query))
+            self.logger.debug("%s ARGS: %s" % (id(self), kwargs))
 
         curs = self.link.cursor()
         try:
@@ -823,16 +740,16 @@ class MySQLLink(DatabaseLink):
                 curs.execute(q, v)
                 return curs.lastrowid
             except Exception as e:
-                print "DBEXCEPTION:", e, type(e)
+                self.logger.error("DBEXCEPTION: %s %s" % (str(e), str(type(e))))
                 self.exception(e, q, v)
         finally:
             curs.close()
 
     def exception(self, inner, query, args):
         if self.database.server.config("DEBUG_SQL", default=False):
-            print "ERROR IN QUERY: ", query
-            print "WITH ARGUMENTS: ", args
-            print "INNER ERROR: ", inner
+            self.logger.error("ERROR IN QUERY: " + query)
+            self.logger.error("WITH ARGUMENTS: " + str(args))
+            self.logger.error("INNER ERROR: " + str(inner))
         if isinstance(inner, mysql.connector.errors.IntegrityError):
             errno = inner.errno
             message = inner.msg
@@ -916,7 +833,7 @@ class MySQLDatabase(Database):
         if col.value_type == VType.string:
             return "VARCHAR(256) "
         if col.value_type == VType.datetime:
-            return "DATEME "
+            return "DATETIME "
         if col.value_type == VType.float:
             return "DOUBLE "
         if col.value_type == VType.blob:
@@ -943,11 +860,12 @@ class MySQLDatabase(Database):
                             # TODO: Column type specification not done
                             link.put(q_addcol)
                         except:
-                            print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (col, table_spec.name)
+                            self.logger.critical("COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" %
+                                                 (col, table_spec.name))
                             return False
                     continue
                 else:
-                    print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (e.identifier, table_spec.name)
+                    self.logger.critical("COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (e.identifier, table_spec.name))
                     return False
 
             except InvalidTableError as e:
@@ -971,11 +889,11 @@ class MySQLDatabase(Database):
                         link.put(q_create)
 
                     except:
-                        print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
+                        self.logger.critical("TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,))
                         return False
                     continue
                 else:
-                    print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
+                    self.logger.critical("TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,))
                     return False
             except Exception as e:
                 raise
@@ -1030,8 +948,8 @@ class SQLiteLink(DatabaseLink):
             raise LinkClosedError()
 
         if self.database.debug:
-            print id(self), "QUERY:", query
-            print id(self), "ARGS: ", kwargs
+            self.logger.debug("%s QUERY: %s" % (id(self), query))
+            self.logger.debug("%s ARGS: %s" % (id(self), kwargs))
 
         curs = self.link.cursor()
         try:
@@ -1045,16 +963,16 @@ class SQLiteLink(DatabaseLink):
                 curs.execute(q, v)
                 return curs.lastrowid
             except Exception as e:
-                print "DBEXCEPTION:", e, type(e)
+                self.logger.error("DBEXCEPTION: %s %s" % (str(e), str(type(e))))
                 self.exception(e, q, raw_values)
         finally:
             curs.close()
 
     def exception(self, inner, query, args):
         if self.database.server.config("DEBUG_SQL", default=False):
-            print "ERROR IN QUERY: ", query
-            print "WITH ARGUMENTS: ", args
-            print "INNER ERROR: ", inner
+            self.logger.debug("ERROR IN QUERY: " + query)
+            self.logger.debug("WITH ARGUMENTS: " + str(args))
+            self.logger.debug("INNER ERROR: " + str(inner))
         if isinstance(inner, sqlite3.OperationalError):
             message = inner.message
             if ":" in message:
@@ -1137,11 +1055,13 @@ class SQLiteDatabase(Database):
                             # TODO: Column type specification not done
                             link.put(q_addcol)
                         except:
-                            print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (col, table_spec.name)
+                            self.logger.critical("COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" %
+                                                 (col, table_spec.name))
                             return False
                     continue
                 else:
-                    print "COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" % (e.identifier, table_spec.name)
+                    self.logger.critical("COLUMN %s MISSING FROM TABLE %s - FIX MANUALLY" %
+                                         (e.identifier, table_spec.name))
                     return False
 
             except InvalidTableError as e:
@@ -1165,11 +1085,11 @@ class SQLiteDatabase(Database):
                         link.put(q_create)
 
                     except:
-                        print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
+                        self.logger.critical("TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,))
                         return False
                     continue
                 else:
-                    print "TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,)
+                    self.logger.critical("TABLE %s MISSING FROM DATABASE - FIX MANUALLY" % (table_spec.name,))
                     return False
             except Exception as e:
                 raise

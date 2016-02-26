@@ -3,7 +3,7 @@
 
 """ ADHOC option_def API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 
 class T1000_OptionDefList(UnAuthTests):

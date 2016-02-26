@@ -3,7 +3,7 @@
 
 """ ADHOC building API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 
 class T0800_BuildingList(UnAuthTests):

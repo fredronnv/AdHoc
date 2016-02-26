@@ -266,7 +266,7 @@ class XXMemoryBackedSessionManager(SessionManager):
         expires = self.function.started_at() + self.session_lifetime
         with self.lock:
             self.session_data[newid] = {"oid": newid, "expires": expires}
-            print "LKJ", self.session_data
+            self.logger.info("LKJ " + str(self.session_data))
         return newid
 
     def destroy_session(self, sid):

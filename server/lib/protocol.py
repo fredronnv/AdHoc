@@ -40,10 +40,10 @@ class DhcpdConfProtocol(Protocol):
             try:
                 res = self.server.call_rpc(httphandler, "dhcp_server_dig", [session, {'dns': remote_dns}, {'dhcp_server': True, "dns": True, "latest_fetch": True}], api_version)
             except Exception, e:
-                print "dhcp_server_fetch error", e
+                self.server.logger.error("dhcp_server_fetch error: %s" % str(e))
                 raise
             if "result" not in res:
-                print "dhcp_server_fetch error:", res["error"]
+                self.server.logger.error("dhcp_server_fetch error: %s" % str(res["error"]))
                 return HTTPResponse("500 Internal server error.", ctype="text/plain", code=500)
 
             if len(res["result"]) == 0:
@@ -56,7 +56,7 @@ class DhcpdConfProtocol(Protocol):
             if "result" in res:
                 maxid = res["result"]
             else:
-                print "event_get_max_id error", res["error"]
+                self.server.logger.error("event_get_max_id error: %s" % str(res["error"]))
                 return HTTPResponse("500 Internal server error.", ctype="text/plain", code=500)
         
             if auto and maxid <= latest_fetch:
@@ -72,6 +72,6 @@ class DhcpdConfProtocol(Protocol):
             return HTTPResponse(s.encode("utf-8"), ctype="text/html", encoding="utf-8")
         
         except Exception, e:
-            print e
+            self.server.logger.error(str(e))
             raise
             return HTTPResponse("500 Internal server error.", ctype="text/plain", code=500)

@@ -43,7 +43,7 @@ class ExtHostStatus(ExtEnum):
 class ExtDNSName(ExtString):
     name = "fqdn"
     desc = "A fully qualified and defined DNS name"
-    regexp = r'^([0-9a-zA-Z][-0-9a-zA-Z]+\.)+[a-z0-9\-]{2,15}$'
+    regexp = r'^([0-9a-zA-Z][-0-9a-zA-Z]*\.)+[a-zA-Z0-9\-]{2,15}$'
     maxlen = 255
     
     def lookup(self, fun, cval):
@@ -59,7 +59,7 @@ class ExtHostDns(ExtOrNull):
     name = "host_fqdn"
     desc = "The fully qualified DNS name of a host, if statically allocated"
     typ = ExtDNSName
-    regexp = r'^([0-9a-zA-Z][-0-9a-zA-Z]+\.)+[a-z0-9\-]{2,15}$'
+    regexp = r'^([0-9a-zA-Z][-0-9a-zA-Z]*\.)+[a-zA-Z0-9\-]{2,15}$'
     maxlen = 255
     
     
@@ -301,7 +301,7 @@ class Host(AdHocModel):
         try:
             self.db.put(q, name=self.oid, value=nn)
         except IntegrityError as e:
-            print e
+            self.server.logger.error(str(e))
             raise ExtHostAlreadyExistsError()
         # print "Host %s changed Name to %s" % (self.oid, nn)
         self.manager.rename_object(self, nn)
@@ -580,7 +580,7 @@ class HostManager(AdHocManager):
                         cid=cid, optionset=optionset)
             
         except IntegrityError, e:
-            print e
+            self.logger.error(str(e))
             raise ExtHostAlreadyExistsError()
         
         self.event_manager.add("create", host=host_name, 

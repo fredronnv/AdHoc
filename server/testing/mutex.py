@@ -3,7 +3,7 @@
 """ RPCC API test suite
     This suite tests the different mutex_ functions in RPCC"""
 from framework import *
-from util import *
+from testutil import *
 
 
 class MutexTests(AuthTests):

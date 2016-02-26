@@ -4,7 +4,8 @@
 # $Id$
 
 from rpcc import *
-from util import *
+from util import * 
+
 from privilege import *
 
 g_read = AnyGrants(AllowUserWithPriv("write_all_accounts"), AllowUserWithPriv("read_all_accounts"), AdHocSuperuserGuard)

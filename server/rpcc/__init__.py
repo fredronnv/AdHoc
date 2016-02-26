@@ -75,8 +75,6 @@ class Func_SetAccountOwner(RPCTypedFunction):
         target.set_owner(self.owner)
 """
 
-DEBUG = True
-
 from access import *
 from api import *
 from api_handler import *
@@ -93,3 +91,5 @@ from response import *
 from protocol import *
 from server import *
 from session import *
+
+DEBUG = True

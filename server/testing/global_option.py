@@ -3,7 +3,7 @@
 
 """ ADHOC global_option API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 
 class T0900_GlobalOptionList(UnAuthTests):

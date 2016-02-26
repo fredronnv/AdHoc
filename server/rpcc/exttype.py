@@ -372,7 +372,8 @@ class ExtString(ExtType):
                 try:
                     rawval = rawval.decode("ascii")
                 except:
-                    traceback.print_exc()
+                    msg = traceback.format_exc()
+                    function.logger.error(msg)
                     raise ExtInternalError(
                         desc="On input (or output) ExtString returned a non-ascii str instance instead of unicode")
             else:
@@ -718,10 +719,10 @@ class ExtStruct(ExtType):
 
         for key in rawval:
             if key not in self.mandatory and key not in self.optional:
-                print '"' + key + '"'
-                print self.__class__.__name__
-                print "mandatory:", self.mandatory.keys()
-                print "optional:", self.optional.keys()
+                function.logger.error('"' + key + '"')
+                function.logger.error(self.__class__.__name__)
+                function.logger.error("mandatory: %s" % str(self.mandatory.keys()))
+                function.logger.error("optional: %s" % str(self.optional.keys()))
                 raise ExtUnknownStructKeyError(value=key)
 
         for (key, val) in rawval.items():

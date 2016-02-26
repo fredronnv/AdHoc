@@ -219,6 +219,7 @@ class Function(object):
 
     def __init__(self, server, http_handler, api):
         self.server = server
+        self.logger = server.logger
         # HTTPRequestHandler that handles this request. Interesting
         # for the .headers and .client attributes.
         self.http_handler = http_handler
@@ -348,10 +349,10 @@ class Function(object):
                 self.db.rollback()
             
             if isinstance(e, exterror.ExtOutputError):
-                print "ExtOutputError"
-                e.print_trace()
+                self.logger.error("ExtOutputError")
+                e.print_trace(self.logger)
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_exc()
+            self.logger.error(traceback.format_exc())
             tb = traceback.extract_tb(exc_traceback)
             evattrs["error"] = exc_type.__name__
             evattrs["errline"] = "%s:%d" % (tb[-1][0], tb[-1][1])

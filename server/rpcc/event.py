@@ -460,7 +460,7 @@ class EventManager(Manager):
 
             self.master_event.write(success, datetime.datetime.now())
         else:
-            print "EventManager.stop(): not .start()ed"
+            self.logger.warning("EventManager.stop(): not .start()ed")
 
     def search_select(self, dq):
         dq.select("e.id")

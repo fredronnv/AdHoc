@@ -2,7 +2,11 @@
 
 # $Id$
 
-from rpcc import *
+from rpcc import ExtString, ExtList, ExtStruct, ExtType, ExtInteger, \
+                 Manager, Model, Guard, AccessGranted, CacheInFunction, DecisionReferred, AnyGrants, \
+                 ExtError, ExtLookupError, ExtExpectedStructError, ExtOutputError, ExtValueError
+import re
+import socket
 
 
 class ExtHostName(ExtString):
@@ -32,7 +36,7 @@ class AdHocManager(Manager):
         
     def approve(self, approve_config=None):
         if self.approve_config or approve_config:
-            print "CONFIG APPROVAL CHECK:"
+            self.logger.debug("CONFIG APPROVAL CHECK:")
             self.dhcp_manager.check_config()
         pass
     
@@ -57,7 +61,7 @@ class AdHocSuperuserGuard(Guard):
         return DecisionReferred(CacheInFunction)
     
 
-class AllowUserWithPriv(access.Guard):
+class AllowUserWithPriv(Guard):
     def __init__(self, priv):
         self.priv = priv
         
@@ -65,7 +69,7 @@ class AllowUserWithPriv(access.Guard):
         privs = function.db.get("SELECT privilege from account_privilege_map WHERE account=:account AND privilege=:privilege",
                                 account=function.session.authuser, privilege=self.priv)
         if len(privs):
-            return access.AccessGranted(access.CacheInFunction)
+            return AccessGranted(CacheInFunction)
         else:
             function.privs_checked.add(self.priv)
             return DecisionReferred(CacheInFunction)

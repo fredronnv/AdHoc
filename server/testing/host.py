@@ -3,7 +3,7 @@
 
 """ ADHOC host API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 from datetime import date
 

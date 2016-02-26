@@ -7,10 +7,11 @@ import mimetypes
 import xmlrpclib
 import json
 
-import xml.dom.minidom
+import xml.dom.minidom as minidom
 
 from response import HTTPResponse
 import exterror
+from soap import *
 
 
 class Protocol(object):
@@ -230,19 +231,6 @@ class MicrosoftWorkaroundWSDLProtocol(WSDLProtocol):
 # Authorization: Negotiate header is present and just calls the request handler
 # below otherwise.
 #
-def od(s):
-    chunks = [""]
-    for char in s:
-        if len(chunks[-1]) == 16:
-            chunks.append("")
-        chunks[-1] += char
-    for chunk in chunks:
-        for char in chunk:
-            print "%02x" % (ord(char),),
-        print "   " * (16 - len(chunk)),
-        print chunk.replace("\n", " ").replace("\r", " ").replace("\t", " ")
-    print
-
 
 class XMLRPCProtocol(Protocol):
 
@@ -252,10 +240,6 @@ class XMLRPCProtocol(Protocol):
             params, function = xmlrpclib.loads(data)
             if function is None:
                 raise ValueError
-            #if function == "person_update":
-            #    od(data)
-            #    print type(params[-1]["lastname"])
-            #    od(params[-1]["lastname"])
         except:
             traceback.print_exc()
             response = ({'error': exterror.ExtMalformedXMLRPCError().struct()},)
@@ -390,14 +374,14 @@ class SOAPProtocol(Protocol):
     def request(self, httphandler, path, data):
         namespace = "https://unknown/name/space"
         try:
-            dom = xml.dom.minidom.parseString(data)
+            dom = minidom.parseString(data)
 
             top = dom.documentElement
             if self.tag(top) != 'envelope':
                 raise ValueError("1")
 
             if top.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/':
-                raise exterror.ExtSOAPVersionMismatchError()
+                raise SOAPVersionMismatchError()
 
             header = None
             body = None
@@ -423,7 +407,7 @@ class SOAPProtocol(Protocol):
                         must = 0
 
                     if must == '1' or must == 'true':
-                        raise exterror.ExtSOAPMustUnderstandError()
+                        raise SOAPMustUnderstandError()
 
                     try:
                         enc = hdrelem.getAttribute("encodingStyle")
@@ -431,7 +415,7 @@ class SOAPProtocol(Protocol):
                         enc = None
 
                     if enc:
-                        raise exterror.ExtSOAPDataEncodingUnknownError()
+                        raise SOAPDataEncodingUnknownError()
 
             bodylist = self.cleancopy(body.childNodes)
             if len(bodylist) != 1:
@@ -456,13 +440,15 @@ class SOAPProtocol(Protocol):
             #params = tuple(params)
 
             params = funcls.from_xml(msgelem)
-            ret = self.server.call_rpc(httphandler, fun._name(), params, api.version)
+            ret = self.server.call_rpc(httphandler, funcls._name(), params, api.version)
             if "error" in ret:
                 if ret['error']['name'] == 'InternalError':
                     raise exterror.ExtSOAPServerError(ret['error'])
                 else:
                     raise exterror.ExtSOAPClientError(ret['error']['name'])
-            retelem = funcls.to_xml_node(retval)
+            retval = ret['result']
+            
+            retelem = funcls.to_xml_node(retval) 
             retelem.set_namespace("m", namespace)
 
             env = XMLNode("Envelope")

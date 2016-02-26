@@ -3,7 +3,7 @@
 
 """ ADHOC host_class API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 data_template = {"optionspace": True,
                  "vendor_class_id": True,

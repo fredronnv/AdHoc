@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ ADHOC basic API test suite"""
 from framework import *
-from util import *
+from testutil import *
 import urllib2
 
 from xml.sax._exceptions import SAXParseException

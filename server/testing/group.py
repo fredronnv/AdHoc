@@ -3,7 +3,7 @@
 
 """ ADHOC group API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 data_template = {"optionspace": True,
                  "parent": True,

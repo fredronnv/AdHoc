@@ -3,7 +3,7 @@
 
 """ ADHOC network API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 
 class T0400_networkList(UnAuthTests):

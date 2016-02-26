@@ -1,5 +1,5 @@
 
-from rpctype import *
+
 from xmlnode import XMLNode
 from exttype import *
 
@@ -63,7 +63,8 @@ class SOAPError(Exception):
             #            tb.new("index").cdata(str(item))
             #        else:
             #            tb.new("key").cdata(item)
-            err.set_namespace("e", server.get_schema_url(mssuffix))
+            # TODO: Follwoing line has reference errors for server and mssuffix
+            err.set_namespace("e", server.get_schema_url(mssuffix))  # @UndefinedVariable
 
         return env
 

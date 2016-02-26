@@ -3,7 +3,7 @@
 
 """ ADHOC dhcp_server API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 
 class T0500_DHCPServerList(UnAuthTests):

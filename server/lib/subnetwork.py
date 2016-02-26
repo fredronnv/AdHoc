@@ -143,7 +143,7 @@ class Subnetwork(AdHocModel):
     def get_size(self):
         (_ip, n) = self.oid.split('/', 1)
         n = int(n)
-        print "Subnetwork get_size: n=", n, "_ip=", _ip
+        self.logger.debug("Subnetwork get_size: n=%s, _ip=%s" % (str(n), str(_ip)))
         if n >= 32:
             return 0
         return (1 << 32 - n)

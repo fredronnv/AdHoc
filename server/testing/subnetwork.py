@@ -3,7 +3,7 @@
 
 """ ADHOC subnetwork API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 
 class T0200_SubnetworkList(UnAuthTests):

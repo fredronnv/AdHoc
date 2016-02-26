@@ -6,6 +6,7 @@ import traceback
 import threading
 import SocketServer
 import BaseHTTPServer
+import logging
 
 import mutex
 import event
@@ -23,7 +24,8 @@ import exttype
 from exterror import ExtInternalError
 
 from function import Function
-from rpcc.database import VType
+from database_description import VType
+from mutex import MutexManager
 
 try:
     import ssl
@@ -121,13 +123,15 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     
     superuser_guard = access.NeverAllowGuard()
 
-    def __init__(self, address, port, ssl_config=None, handler_class=None):
+    def __init__(self, address, port, ssl_config=None, handler_class=None, generic_password=None, logger=None):
         self.database = None
         self.digs_n_updates = False
         self.sessions_enabled = False
         self.mutexes_enabled = False
         self.events_enabled = False
         self.tables_checked = False
+
+        self.logger = logger if logger else logging.getLogger(__name__)
 
         self.manager_by_name = {}
         for cls in self.manager_classes:
@@ -172,7 +176,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         self.add_default_protocol_handlers()
         self.documentation = documentation.Documentation(self)
-        self.generic_password = self.config("GENERIC_PASSWORD", default=None)
+        self.generic_password = generic_password
 
     def config(self, varname, **kwargs):
         envvar = (self.envvar_prefix + varname).upper()
@@ -188,13 +192,13 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         """Log succesful calls. Called if the Function subclass
         instance's .do() did not raise an exception.
         """
-        print "SUCCESS (%.2fs) %s%s => %s" % (call_time, function_name, params, result)
+        self.logger.debug("SUCCESS (%.2fs) %s%s => %s" % (call_time, function_name, params, result))
 
     def log_error(self, handler, function_name, function_object, params, result, exc, call_time):
         """Log exceptions. Called id the Function subclass
         instance's .do()-method raised an exception.
         """
-        print "ERROR (%.2fs) %s%s => %s" % (call_time, function_name, params, result)
+        self.logger.error("ERROR (%.2fs) %s%s => %s" % (call_time, function_name, params, result))
 
     def get_running_functions(self):
         # print "THREAD_LOCK A:", self.thread_lock, hex(id(self.thread_lock))
@@ -279,7 +283,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                 db.commit()
                 
         except exterror.ExtInternalError as e:
-            print(e.intdesc)
+            self.logger.error((e.intdesc))
             traceback.print_exc()
             s = e.struct()
             ret = {'error': s}
@@ -373,6 +377,9 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             mo = re.match(r"^([a-z0-9_]+).py$", filename)
             if not mo:
                 continue
+            if mo.group(1) == "__init__":
+                continue
+            self.logger.debug("Looking for managers in %s" % filename)
             module = __import__(mo.group(1))
             for _name, obj in inspect.getmembers(module):
                 if inspect.isclass(obj):
@@ -380,9 +387,10 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                         if hasattr(obj, "name") and obj.name and obj.name not in seen_managers:
                             try:
                                 self.register_manager(obj)
+                                self.logger.debug("Registered manager %s" % str(obj))
                                 seen_managers.append(obj.name)
                             except:
-                                print "Failed to register manager ", obj, " in module", mo.group(1)
+                                self.logger.error("Failed to register manager ", obj, " in module", mo.group(1))
                                 raise
             self.register_functions_from_module(module)
 
@@ -512,7 +520,7 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     def enable_static_documents(self, docroot):
         self.add_protocol_handler('__GET__', protocol.StaticDocumentProtocol(docroot))
 
-    def enable_mutexes(self, mutex_manager_class=mutex.MutexManager):
+    def enable_mutexes(self, mutex_manager_class=MutexManager):
         self.mutexes_enabled = True
         self.register_manager(mutex_manager_class)
         self.register_function(default_function.FunMutexAcquire)
@@ -591,6 +599,8 @@ class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
             my_type = types[mgr.manages.name + "-templated-data"]
             model_name = mgr.manages.name
             if model_name not in my_type.optional:
+                self.logger.warning(
+                    "Warning: model name %s of manager %s not found among its templated data" % (model_name, mgr))
                 continue
             my_id_type_tuple = my_type.optional[model_name]
             my_id_type = my_id_type_tuple[0]

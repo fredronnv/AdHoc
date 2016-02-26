@@ -1,0 +1,59 @@
+2015-09-17T11:09:46 Adding PA mech: SRP
+2015-09-17T11:09:46 Adding PA mech: ENCRYPTED_CHALLENGE
+2015-09-17T11:09:46 Adding PA mech: ENCRYPTED_TIMESTAMP
+2015-09-17T11:09:46 krb5_get_init_creds: loop 1
+2015-09-17T11:09:46 KDC sent 0 patypes
+2015-09-17T11:09:46 fast disabled, not doing any fast wrapping
+2015-09-17T11:09:46 Trying to find service kdc for realm CHALMERS.SE flags 0
+2015-09-17T11:09:46 configuration file for realm CHALMERS.SE found
+2015-09-17T11:09:46 submissing new requests to new host
+2015-09-17T11:09:46 connecting to host: udp 129.16.7.25:kerberos (kdc2.ita.chalmers.se) tid: 00000001
+2015-09-17T11:09:46 writing packet: udp 129.16.7.25:kerberos (kdc2.ita.chalmers.se) tid: 00000001
+2015-09-17T11:09:46 reading packet: udp 129.16.7.25:kerberos (kdc2.ita.chalmers.se) tid: 00000001
+2015-09-17T11:09:46 host completed: udp 129.16.7.25:kerberos (kdc2.ita.chalmers.se) tid: 00000001
+2015-09-17T11:09:46 set-error: -1765328359: Error from KDC: Need to use PA-ENC-TIMESTAMP/PA-PK-AS-REQ
+2015-09-17T11:09:46 krb5_sendto_context CHALMERS.SE done: 0 hosts 1 packets 1 wc: 0.018724 nr: 0.001299 kh: 0.000458 tid: 00000001
+2015-09-17T11:09:46 krb5_get_init_creds: loop 2
+2015-09-17T11:09:46 krb5_get_init_creds: processing input
+2015-09-17T11:09:46 krb5_get_init_creds: got an KRB-ERROR from KDC
+2015-09-17T11:09:46 set-error: -1765328359: Error from KDC: Need to use PA-ENC-TIMESTAMP/PA-PK-AS-REQ
+2015-09-17T11:09:46 krb5_get_init_creds: KRB-ERROR -1765328359/Error from KDC: Need to use PA-ENC-TIMESTAMP/PA-PK-AS-REQ
+2015-09-17T11:09:46 KDC sent 5 patypes
+2015-09-17T11:09:46 KDC sent PA-DATA type: 2 (ENCRYPTED_TIMESTAMP)
+2015-09-17T11:09:46 KDC sent PA-DATA type: 16 (PK_AS_REQ)
+2015-09-17T11:09:46 KDC sent PA-DATA type: 15 (PKINIT(win))
+2015-09-17T11:09:46 KDC sent PA-DATA type: 11 (ETYPE_INFO)
+2015-09-17T11:09:46 KDC sent PA-DATA type: 19 (ETYPE_INFO2)
+2015-09-17T11:09:46 pa-mech trying: SRP, searching for 250
+2015-09-17T11:09:46 Stepping pa-mech: SRP
+2015-09-17T11:09:46 KDC didn't return any SRP pa data
+2015-09-17T11:09:46 PA type SRP returned -1980176627: Can't continue with this preauth
+2015-09-17T11:09:46 Dropping PA type SRP
+2015-09-17T11:09:46 dropped pa-mech ENCRYPTED_CHALLENGE since not running under FAST
+2015-09-17T11:09:46 pa-mech trying: ENCRYPTED_TIMESTAMP, searching for 2
+2015-09-17T11:09:46 Stepping pa-mech: ENCRYPTED_TIMESTAMP
+2015-09-17T11:09:46 krb5_get_init_creds: pa-info found, using 23
+2015-09-17T11:09:46 krb5_get_init_creds: using ENC-TS with enctype 23
+2015-09-17T11:09:46 krb5_get_init_creds: using default_s2k_func: arcfour-hmac-md5 (23)
+2015-09-17T11:09:46 PA type ENCRYPTED_TIMESTAMP returned -1980176628: Need to continue preauth stepping
+2015-09-17T11:09:46 Continue needed for ENCRYPTED_TIMESTAMP
+2015-09-17T11:09:46 fast disabled, not doing any fast wrapping
+2015-09-17T11:09:46 Trying to find service kdc for realm CHALMERS.SE flags 0
+2015-09-17T11:09:46 configuration file for realm CHALMERS.SE found
+2015-09-17T11:09:46 submissing new requests to new host
+2015-09-17T11:09:46 connecting to host: udp 129.16.7.25:kerberos (kdc2.ita.chalmers.se) tid: 00010001
+2015-09-17T11:09:46 writing packet: udp 129.16.7.25:kerberos (kdc2.ita.chalmers.se) tid: 00010001
+2015-09-17T11:09:46 reading packet: udp 129.16.7.25:kerberos (kdc2.ita.chalmers.se) tid: 00010001
+2015-09-17T11:09:46 host completed: udp 129.16.7.25:kerberos (kdc2.ita.chalmers.se) tid: 00010001
+2015-09-17T11:09:46 krb5_sendto_context CHALMERS.SE done: 0 hosts 1 packets 1 wc: 0.003968 nr: 0.000522 kh: 0.000355 tid: 00010001
+2015-09-17T11:09:46 krb5_get_init_creds: loop 3
+2015-09-17T11:09:46 krb5_get_init_creds: processing input
+2015-09-17T11:09:46 KDC sent 1 patypes
+2015-09-17T11:09:46 KDC sent PA-DATA type: 3 (PW_SALT)
+2015-09-17T11:09:46 pa-mech trying: ENCRYPTED_TIMESTAMP, searching for 2
+2015-09-17T11:09:46 Stepping pa-mech: ENCRYPTED_TIMESTAMP
+2015-09-17T11:09:46 krb5_get_init_creds: using default_s2k_func: arcfour-hmac-md5 (23)
+2015-09-17T11:09:46 PA type ENCRYPTED_TIMESTAMP returned 0: Success
+2015-09-17T11:09:46 final pamech done step
+2015-09-17T11:09:46 krb5_get_init_creds: extracting ticket
+2015-09-17T11:09:46 krb5_get_init_creds: wc: 0.026862

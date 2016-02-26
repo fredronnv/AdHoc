@@ -230,6 +230,7 @@ class Model(object):
         if not isinstance(manager, Manager):
             raise ValueError("The first argument to all Model instances must be the Manager that created them - received %s instead" % (manager,))
         self.manager = manager
+        self.logger = self.manager.logger
         self.function = manager.function
         self.db = manager.function.db
         self._templated = {}
@@ -1016,7 +1017,9 @@ class Manager(object):
     def __init__(self, function, *args, **kwargs):
         self.function = function
         self.server = function.server
+        self.logger = self.server.logger
         self.db = function.db
+        
 
         # Dict of Model instances already created, indexed by Model id.
         self._model_cache = {}

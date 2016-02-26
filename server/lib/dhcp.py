@@ -16,7 +16,7 @@ g_reload = AnyGrants(AllowUserWithPriv("trigger_reload"), AdHocSuperuserGuard)
 
 class ExtDhcpdRejectsConfigurationError(ExtValueError):
     desc = "The resulting configuration is rejected by dhcpd."
- 
+
 
 class ExtDhcpdCheckConfigurationError(ExtValueError):
     desc = "The AdHoc server is not configured to run dhcpd configuration checks."
@@ -461,7 +461,7 @@ class DHCPManager(AdHocManager):
         # datecounts = {}
         cids = set()
         for(my_id, group, mac, room, optionspace, changed_by, mtime, info, entry_status, cid) in self.odb.get(qf):
-            dns = my_id
+            dns = my_id.lower()
             
             mdate = mtime.strftime("%Y%m%d")
             
@@ -1206,7 +1206,7 @@ class DHCPManager(AdHocManager):
     def check_config(self):
 
         if self.server.config("SKIP_DHCPD_CHECKS", default=None):
-            print "WARNING! DHCPD Check skipped"
+            self.server.logger.warning("WARNING! DHCPD Check skipped")
         else:
             if self.server.config("DHCPD_PATH", default=None):
                 s = self.make_dhcpd_conf(None)

@@ -3,7 +3,7 @@
 
 """ ADHOC pool_range API test suite"""
 from framework import *
-from util import *
+from testutil import *
 
 data_template = {"start_ip": True,
                  "end_ip": True,

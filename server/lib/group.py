@@ -317,7 +317,7 @@ class GroupManager(AdHocManager):
         try:
             self.db.insert("id", q, group_name=groupname, parent=parent.oid, optionspace=optionspace,
                            info=info, changed_by=fun.session.authuser, optionset=optionset)
-            print "Group created, name=", groupname
+            self.logger.info("Group created, name=%s" % groupname)
             
         except IntegrityError, e:
             raise ExtGroupAlreadyExistsError()
