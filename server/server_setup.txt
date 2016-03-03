@@ -151,7 +151,7 @@ EOF
    chown srvadhoc:srvadhoc /cdg/adhoc
    chmod 0700 /cdg/adhoc
 
-10. Create a directory for the adhoc server's keytab and certifikate files
+10. Create a directory for the adhoc server's keytab and certificate files
 
    mkdir ~srvadhoc/etc
    chown srvadhoc:srvadhoc ~srvadhoc/etc
@@ -173,6 +173,15 @@ EOF
 
    chown srvadhoc:srvadhoc server.keytab
    chmod 0640 server.keytab
+   
+12A. Create a directory for the parts that store changing data and make a symlink
+     to that directory. This is the place where the log, the server process ID,
+     and the database backups will be stored. The software will assume that
+     this place is at /cdg/adhoc/var, so a symbolic link to the actual place is needed:
+     
+   mkdir /var/cdg/adhoc
+   chown srvadhoc:srvadhoc /var/cdg/adhoc
+   ln -s /var/cdg/adhoc /cdg/adhoc/var
   
 ---------------------------------------------------------------------------
 
@@ -251,7 +260,7 @@ EOF
         
 22. Check connectivity again, see step 18.
 
-23. Link in the cron job that creates the the database backup. This script 
+23. Copy the cron job that creates the the database backup. This script 
     has the path to the backup script hardwired, so if the server software 
     is installed elsewhere than /cdg/adhoc, the cron job will have to be 
     changed.
@@ -259,8 +268,8 @@ EOF
     It is necessary that the script file is owned by root in order to be
     run by cron.
     
-   ln -s $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron /etc/cron.d/adhoc-server-backup
-   chown root:root  $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron
+   cp $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron /etc/cron.d/adhoc-server-backup
+   chown root:root /etc/cron.d/adhoc-server-backup
 
 24. Transfer current setup from old database
         Run the script:
