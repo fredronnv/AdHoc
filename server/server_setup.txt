@@ -179,7 +179,7 @@ EOF
      and the database backups will be stored. The software will assume that
      this place is at /cdg/adhoc/var, so a symbolic link to the actual place is needed:
      
-   mkdir /var/cdg/adhoc
+   mkdir -p /var/cdg/adhoc
    chown srvadhoc:srvadhoc /var/cdg/adhoc
    ln -s /var/cdg/adhoc /cdg/adhoc/var
   
