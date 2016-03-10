@@ -18,8 +18,8 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 --
 -- Database: `AdHoc`
 --
-CREATE DATABASE `AdHoc-devel` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
-USE AdHoc-devel;
+CREATE DATABASE `AdHoc` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+USE AdHoc;
 
 -- --------------------------------------------------------
 
