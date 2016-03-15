@@ -63,7 +63,7 @@ class StartMe(object):
         srv.register_manager(authentication.KerberosAuthenticationManager)
         srv.enable_global_functions()
         srv.enable_documentation()
-        srv.enable_static_documents(os.path.join(adhoc_home, "server", 'docroot'))
+        srv.enable_static_documents(os.path.join(adhoc_home, "adhoc-server", 'docroot'))
         srv.enable_digs_and_updates()
         
         srv.check_tables(tables_spec=None, dynamic=False, fix=False)
