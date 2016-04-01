@@ -503,7 +503,7 @@ class DHCPManager(AdHocManager):
                 cids.add(cid)
 
             if mac and not re.match(ExtMacAddress.regexp, mac):
-                msg = "Host %s cannot be migrated. Its Mac address is %s which does match the regexp %s. Fix this in dhcp2" % (
+                msg = "Host %s cannot be migrated. Its Mac address is %s which does not match the regexp %s. Fix this in dhcp2" % (
                     dns, mac, ExtMacAddress.regexp)
                 self.server.logger.error(msg)
                 raise ValueError(msg)

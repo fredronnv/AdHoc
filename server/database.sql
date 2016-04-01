@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS `buildings` (
 
 CREATE TABLE IF NOT EXISTS `class_literal_options` (
   `for` varchar(64) NOT NULL COMMENT 'Class on which to apply this option',
-  `value` varchar(256) NOT NULL COMMENT 'Option value',
+  `value` varchar(1024) NOT NULL COMMENT 'Option value',
   `changed_by` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Time of last change',
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS `group_groups_flat` (
 
 CREATE TABLE IF NOT EXISTS `group_literal_options` (
   `for` varchar(64) NOT NULL COMMENT 'Group on which to apply this option',
-  `value` varchar(256) NOT NULL COMMENT 'Option value',
+  `value` varchar(1024) NOT NULL COMMENT 'Option value',
   `changed_by` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Time of last change',
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -234,7 +234,7 @@ CREATE TABLE IF NOT EXISTS `groups` (
 
 CREATE TABLE IF NOT EXISTS `host_literal_options` (
   `for` varchar(64) NOT NULL COMMENT 'Host on which to apply this option',
-  `value` varchar(256) NOT NULL COMMENT 'Option value',
+  `value` varchar(1024) NOT NULL COMMENT 'Option value',
   `changed_by` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Time of last change',
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -552,7 +552,7 @@ CREATE TABLE IF NOT EXISTS `pool_host_map` (
 
 CREATE TABLE IF NOT EXISTS `pool_literal_options` (
   `for` varchar(64) NOT NULL COMMENT 'Pool on which to apply this option',
-  `value` varchar(256) NOT NULL COMMENT 'Option value',
+  `value` varchar(1024) NOT NULL COMMENT 'Option value',
   `changed_by` varchar(8) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Cid of last changer',
   `mtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Time of last change',
   `id` int(11) NOT NULL AUTO_INCREMENT,
