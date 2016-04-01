@@ -1,6 +1,6 @@
 TOP=../..
 SUBDIRS=
-DISTDIR=${TOP}/dist/dconf
+DISTDIR=${TOP}/dist/dhconf
 RELEASEDIR=${TOP}/releases
 
 subdirs:
@@ -22,16 +22,16 @@ install: clean
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p ${DISTDIR};\
-	cp INSTALL.txt dconfproxy.py ${TOP}/client/rpcc_client.py ${DISTDIR};\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < dconf | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/dconf ;\
-	(cd ${DISTDIR}; chmod +x dconf; ./dconf Release; mv ./dconf-* ./dconf ) ;\
+	cp INSTALL.txt dhconfproxy.py ${TOP}/client/rpcc_client.py ${DISTDIR};\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < dhconf | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/dhconf ;\
+	(cd ${DISTDIR}; chmod +x dhconf; ./dhconf Release; mv ./dhconf-* ./dhconf ) ;\
 	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;)
 
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_dconf.txt ;\
-	(cd ${DISTDIR}/..; mv dconf dconf-$${revno};tar cf ${RELEASEDIR}/dconf-$${revno}.tar dconf-$${revno};)
+	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_dhconf.txt ;\
+	(cd ${DISTDIR}/..; mv dhconf dhconf-$${revno};tar cf ${RELEASEDIR}/dhconf-$${revno}.tar dhconf-$${revno};)
 	
 patch: svnstatus patchbump install
 
@@ -68,7 +68,7 @@ svnstatus:
 	    	    if [ `svnversion rel_major` -ge $${svn_version} ]; then \
 	    		true; \
 	    	    else \
-	    	    	echo "Release number for dconf needs to be bumped"; \
+	    	    	echo "Release number for dhconf needs to be bumped"; \
 	    		false; \
 	    	    fi \
 	    	fi \

@@ -4,9 +4,11 @@
 
 import struct
 from rpcc import *
+from room import ExtRoomName
 import optionset
 import tempfile
 import subprocess
+
 from adhoc_version import *
 from util import *
 from option_def import ExtNoSuchOptionDefError
@@ -207,8 +209,8 @@ class DHCPManager(AdHocManager):
             # print name, value, mtime, my_id
             if name == 'ddns-update-style' and value == 'ad-hoc':
                 continue  # This mode is not supported in later versions of the dhcpd server
-            self.db.insert("id", qp, name=name, value=value, changedby="DCONF-ng", mtime=mtime, id=my_id)
-            self.option_def_manager.define_option("", "DCONF-ng", mtime, name, "text", None, "parameter", None)
+            self.db.insert("id", qp, name=name, value=value, changedby="DHCONF-ng", mtime=mtime, id=my_id)
+            self.option_def_manager.define_option("", "DHCONF-ng", mtime, name, "text", None, "parameter", None)
         
         # Global options
         qf = "SELECT name, value, changed_by, mtime, id FROM optionlist WHERE gtype='global'"
@@ -226,14 +228,14 @@ class DHCPManager(AdHocManager):
                 pass
             
             if not changedby:
-                changedby = "DCONF-ng"
+                changedby = "DHCONF-ng"
             self.db.insert("id", qp, name=name, value=value, changedby=changedby, mtime=mtime, id=my_id)
             self.option_def_manager.define_option("", changedby, mtime, name, "text", None, "parameter", None)
             
         self.db.insert("id", "INSERT INTO global_options (name, value, basic, changed_by, id) VALUES (:name, :value, 1, :changedby, :id)",
-                       name="log-facility", value="local5", changedby="DCONF-ng", id=my_id + 1)
+                       name="log-facility", value="local5", changedby="DHCONF-ng", id=my_id + 1)
         
-        self.option_def_manager.define_option("", "DCONF-ng", mtime, "log-facility", "text", None, "parameter", None)
+        self.option_def_manager.define_option("", "DHCONF-ng", mtime, "log-facility", "text", None, "parameter", None)
         
         # dhcp_servers
         # print 
@@ -299,7 +301,7 @@ class DHCPManager(AdHocManager):
             except ExtNoSuchOptionDefError:
                 pass
             if not changed_by:
-                changed_by = "DCONF-ng"
+                changed_by = "DHCONF-ng"
             self.option_def_manager.define_option(info, changed_by, mtime, name, my_type, code, qualifier, optionspace)
             
             # Save option info for later usage when adding options
@@ -472,12 +474,16 @@ class DHCPManager(AdHocManager):
                 room = None
             else:
                 room = room.upper()
-               
-            # Add yet unseen rooms into the rooms table    
-            if room and room not in rooms:
-                self.db.insert(id, "INSERT INTO rooms (id, info, changed_by) VALUES (:id, :info, :changed_by)",
-                               id=room, info="Auto inserted on hosts migration", changed_by="AdHoc_server")
-                rooms.add(room)
+                
+            if re.match(ExtRoomName.regexp, room):
+                   
+                # Add yet unseen rooms into the rooms table    
+                if room and room not in rooms:
+                    self.db.insert(id, "INSERT INTO rooms (id, info, changed_by) VALUES (:id, :info, :changed_by)",
+                                   id=room, info="Auto inserted on hosts migration", changed_by="AdHoc_server")
+                    rooms.add(room)
+                else:
+                    self.server.logger.warning("WARNING! Room code %s not accepted")
                 
             # Handle cid quirks
             if not cid or cid == 'root' or cid == 'nobody':
