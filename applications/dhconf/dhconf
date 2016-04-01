@@ -50,7 +50,7 @@ esac
 TEST=`which test`
 
 
-# Code below extracts into MY_DIR the path to the directori in which the actual dconf script lives.
+# Code below extracts into MY_DIR the path to the directori in which the actual dhconf script lives.
 # The code is designed to handle all the strange ways that man lead up to this script.
 MY_SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$MY_SOURCE" ]; do # resolve $MY_SOURCE until the file is no longer a symlink
@@ -67,21 +67,21 @@ cd $MY_DIR
 
 #D 
 #D =pod
-#D =head4 dconf - DHCP configuration program
+#D =head4 dhconf - DHCP configuration program
 #D
-#D The command suite I<dconf> implements a CLI interface to the Avancez DHCP online configuration system (AdHoc). 
+#D The command suite I<dhconf> implements a CLI interface to the Avancez DHCP online configuration system (AdHoc). 
 #D
 #M =head1 NAME
 #M
-#M dconf - DHCP configuration program
+#M dhconf - DHCP configuration program
 #M
 #M =head1 SYNOPSIS
 #M
-#M dconf [global options] subcommand [options...]
+#M dhconf [global options] subcommand [options...]
 #M
 #M =head1 DESCRIPTION
 #M
-#M The command suite dconf implements a CLI interface to the Avancez DHCP online configuration system (AdHoc).
+#M The command suite dhconf implements a CLI interface to the Avancez DHCP online configuration system (AdHoc).
 #M
 #M =head1 USAGE
 #M
@@ -97,30 +97,30 @@ cd $MY_DIR
 #M A plain host is one that only need the network setup parameters, but no boot or installation options.
 #M Most machines are in this group. E.g. all self administered machines
 #M
-#M Use B<dconf addhost mac-address> dconf will generate a host ID and print it.
+#M Use B<dhconf addhost mac-address> dhconf will generate a host ID and print it.
 #M
 ##M =head3 Adding a host with a free DNS entry of a network
 ##M
-##M If you need to find a DNS entry for a fixed addresse, the dconf mkhost command may be of help. You need to know
+##M If you need to find a DNS entry for a fixed addresse, the dhconf mkhost command may be of help. You need to know
 ##M which network the machine will be connected to. 
 ##M
-##M Use B<dconf mkhost -n network-name>
+##M Use B<dhconf mkhost -n network-name>
 ##M
 #M =head3 Finding out network names
 #M
 ##M To be able to use mkhost, you need to find out which network names that are acceptable. 
 ##M
-#M Use B<dconf lsnetworks> to get a list. The "Id" column lists the names.
+#M Use B<dhconf lsnetworks> to get a list. The "Id" column lists the names.
 #M
-#M =head3 Finding out the syntax of a dconf subcommand
+#M =head3 Finding out the syntax of a dhconf subcommand
 #M
 #M If you are unsure about the syntax for a subcommand, jyst type
 #M
-#M B<dconf >I<subcommand> B<-h>
+#M B<dhconf >I<subcommand> B<-h>
 #M
 #M If you need a little more help: 
 #M
-#M use B<dconf >I<subcommand> B<--help>
+#M use B<dhconf >I<subcommand> B<--help>
 #M
 #M =head1 ABBREVIATIONS
 #M 
@@ -895,7 +895,7 @@ help()
 
 man()
 {
-#   echo dconf man "$@" >&2
+#   echo dhconf man "$@" >&2
     man_pager="less"
     man_formatter="pod2man --center=Chalmers/ITA --release=$version --section=1"
     post_formatter="nroff -man"
@@ -943,18 +943,18 @@ man()
 
    
     
-    TMPDIR=`mktemp -d /tmp/dconf_man.XXXXXX`|| exit 1
-    (cd $TMPDIR; _extract '#M' '#S' < $myself | _syntaxexpand > $TMPDIR/dconf)
+    TMPDIR=`mktemp -d /tmp/dhconf_man.XXXXXX`|| exit 1
+    (cd $TMPDIR; _extract '#M' '#S' < $myself | _syntaxexpand > $TMPDIR/dhconf)
 
     if [ -z "$man_o_arg" ]; then
-         (cd $TMPDIR; ${man_formatter} $TMPDIR/dconf | ${post_formatter} | ${man_pager} )
+         (cd $TMPDIR; ${man_formatter} $TMPDIR/dhconf | ${post_formatter} | ${man_pager} )
     else
         trace "Sending output to file ${man_o_arg}"
-        (cd $USER_DIR ; (cd $TMPDIR; ${man_formatter} $TMPDIR/dconf | ${post_formatter} ) > ${man_o_arg} )
+        (cd $USER_DIR ; (cd $TMPDIR; ${man_formatter} $TMPDIR/dhconf | ${post_formatter} ) > ${man_o_arg} )
     fi
    
     #echo $TMPDIR >&2
-    rm -rf $TMPDIR/dconf
+    rm -rf $TMPDIR/dhconf
     
 }
 
@@ -1037,7 +1037,7 @@ _syntaxexpand()
 #M
 Release()
 {
-#    echo "dconf Release " "$@"
+#    echo "dhconf Release " "$@"
 #   exit
 
     offspring=$1; 
@@ -1685,7 +1685,7 @@ _validate_validator()
 #M
 #M =head1 CANONICAL ETHERNET ADDRESSES
 #M
-#M Dconf checks all given ethernet addresses and rewrites them on the form xx:xx:xx:xx:xx:xx
+#M Dhconf checks all given ethernet addresses and rewrites them on the form xx:xx:xx:xx:xx:xx
 #M All parts of the ethernet address is supposed to be in hexadecimal, 0-9a-fA-F. Each field is 
 #M first converted to upper case, translated to decimal, checked for range between 0 and 255, and then
 #M converted back to lower case hexadecimal. This means that an address given as 00:08:a4:Fe:35:CA, which is
@@ -2160,7 +2160,7 @@ proxy_start()
     #trace "Starting proxy by pid=$$"
                  
     mkfifo $proxyin $proxyout
-    /usr/bin/env python $MY_DIR/dconfproxy.py $proxyin $proxyout &
+    /usr/bin/env python $MY_DIR/dhconfproxy.py $proxyin $proxyout &
 
     store_proxy_pid $!
     proxy_pid=`fetch_proxy_pid`
@@ -2625,9 +2625,9 @@ dhcp_format()
 #M
 #M =head1 HOST IDENTIFIERS
 #M
-#M Each host has an identifier that is used in order to identify a host within dconf. (hostid)
+#M Each host has an identifier that is used in order to identify a host within dhconf. (hostid)
 #M
-#M These identifiers are on the form yyyymmdd-nnnX, where yymmdd is the date the host was first entered into dconf.
+#M These identifiers are on the form yyyymmdd-nnnX, where yymmdd is the date the host was first entered into dhconf.
 #M nnn is a three digit serial number beginning at 000 and the X suffix denotes different entries for teh same device.
 #M In the case of hosts transferred from the previous version, known as dhcp2, yyyymmdd signifies the date of latest change 
 #M in the old system.
@@ -6493,9 +6493,9 @@ _chclass_foundaflag()
 # Run the command
 #proxy_start
 #server_call "session_start()"
-export proxyin="/tmp/dconf_in_$$"
-export proxyout="/tmp/dconf_out_$$"
-export proxy_pid_file="/tmp/dconf_proxy_pid_$$"
+export proxyin="/tmp/dhconf_in_$$"
+export proxyout="/tmp/dhconf_out_$$"
+export proxy_pid_file="/tmp/dhconf_proxy_pid_$$"
 trap "proxy_stop" INT TERM EXIT
 main "$@" 
 #M
@@ -6512,11 +6512,11 @@ main "$@"
 #M The fact that it runs BeOS shows that it is not part of any automatic installation procedures. This goes for all
 #M machines that are self administered. Thus, we do not assign the machine to any group. (Backstage, "no group" really means
 #M the group named 'plain'. In case that shows up somewhere, it might be useful to know)
-#M dconf will generate a unique ID with which the host can be easily identified later on. This ID is printed.
+#M dhconf will generate a unique ID with which the host can be easily identified later on. This ID is printed.
 #M
 #M Execute the command:
 #M
-#M dconf addhost -r MC1234 -d dhcp168-16.math.chalmers.se  01:12:34:c0:ff:fe 
+#M dhconf addhost -r MC1234 -d dhcp168-16.math.chalmers.se  01:12:34:c0:ff:fe 
 #M
 #M 20140923-001A
 #M 
@@ -6530,17 +6530,17 @@ main "$@"
 #M
 #M Find the host identifier
 #M
-#M dconf lsh starwars.tekno.chalmers.se
+#M dhconf lsh starwars.tekno.chalmers.se
 #M
 #M 19880719-007A
 #M
 #M Deactivate the entry using:
 #M
-#M dconf chhost -s Inactive 19880719-007A
+#M dhconf chhost -s Inactive 19880719-007A
 #M
 #M Should he come back, you can activate the entry using
 #M
-#M dconf chhost -s Active 19880719-007A
+#M dhconf chhost -s Active 19880719-007A
 #M
 #M =head2 Getting entry status
 #M
@@ -6565,7 +6565,7 @@ main "$@"
 #M
 #M First, create a group to put the machines in. Let's call the group I<ibmvm>.
 #M
-#M B<dconf mkgroup ibmvm>
+#M B<dhconf mkgroup ibmvm>
 #M
 #M Next thing is to configure the group with an option set so that they will install 
 #M from omaha. The old IBM manual says nothing about networks at all, but these boxen 
@@ -6598,45 +6598,45 @@ main "$@"
 #M
 #M First, we have to define the namespace I<IBMSUN>, do that using
 #M
-#M B<dconf defspace IBMSUN "Namespace for old IBM machines refurbished by Sun">
+#M B<dhconf defspace IBMSUN "Namespace for old IBM machines refurbished by Sun">
 #M
 #M The last argument is only meant as a clue for humans, please be informative.
 #M
 #M Next, we define the options:
 #M
-#M B<dconf defoption -s IBMSUN -c 73 ibm-mount-options text "NFS options to use when mounting from install server">
+#M B<dhconf defoption -s IBMSUN -c 73 ibm-mount-options text "NFS options to use when mounting from install server">
 #M 
-#M B<dconf defoption -s IBMSUN -c 88 ibm-install-server-ip-address ip-address "IP address of install server">
+#M B<dhconf defoption -s IBMSUN -c 88 ibm-install-server-ip-address ip-address "IP address of install server">
 #M
-#M B<dconf defoption -s IBMSUN -c 99 ibm-install-server-hostname text "Hostname of install server">
+#M B<dhconf defoption -s IBMSUN -c 99 ibm-install-server-hostname text "Hostname of install server">
 #M
 #M Now, we have defined the options, let's give them values for the I<ibmvm> group of hosts:
 #M
-#M B<dconf addoption -g ibmvm ibm-mount-options "rsize=4096">
+#M B<dhconf addoption -g ibmvm ibm-mount-options "rsize=4096">
 #M
-#M B<dconf addoption -g ibmvm ibm-install-server-ip-address 129.16.223.74>
+#M B<dhconf addoption -g ibmvm ibm-install-server-ip-address 129.16.223.74>
 #M
-#M B<dconf addoption -g ibmvm ibm-install-server-hostname omaha.medic.chalmers.se>
+#M B<dhconf addoption -g ibmvm ibm-install-server-hostname omaha.medic.chalmers.se>
 #M
 #M Now, the group is ready to accept the machines:
 #M
-#M B<dconf addhost -g ibmvm 00:00:01:01:19:74>
+#M B<dhconf addhost -g ibmvm 00:00:01:01:19:74>
 #M
 #M 20150211-003A
 #M
-#M B<dconf addhost -g ibmvm 00:00:01:01:19:75>
+#M B<dhconf addhost -g ibmvm 00:00:01:01:19:75>
 #M
 #M 20150211-004A
 #M
-#M B<dconf addhost -g ibmvm 00:00:01:01:19:76>
+#M B<dhconf addhost -g ibmvm 00:00:01:01:19:76>
 #M
 #M 20150211-005A
 #M
-#M B<dconf addhost -g ibmvm 00:00:01:01:19:77>
+#M B<dhconf addhost -g ibmvm 00:00:01:01:19:77>
 #M
 #M 20150211-006A
 #M
-#M B<dconf addhost -g ibmvm 00:00:01:01:19:78>
+#M B<dhconf addhost -g ibmvm 00:00:01:01:19:78>
 #M
 #M 20150211-007A
 #M
