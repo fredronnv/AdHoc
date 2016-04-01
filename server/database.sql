@@ -49,7 +49,7 @@ INSERT INTO `account_privilege_map` (`account`, `privilege`) VALUES
 --
 
 CREATE TABLE IF NOT EXISTS `accounts` (
-  `account` varchar(8) COLLATE ascii_bin NOT NULL COMMENT 'PDB account',
+  `account` varchar(9) COLLATE ascii_bin NOT NULL COMMENT 'PDB account',
   `fname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci NOT NULL COMMENT 'First name of owner',
   `lname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci NOT NULL COMMENT 'Last name of owner',
   `status` varchar(12) COLLATE ascii_bin NULL COMMENT 'PDB status',
