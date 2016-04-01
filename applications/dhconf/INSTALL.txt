@@ -8,19 +8,19 @@ The kerberos module is likely to be available at https://pypi.python.org/pypi/ke
 As the installation can be done in many ways, the path and procedure may vary greatly with your system and your preferences.
 The following is only an example of an installation for all users on a typical unix based system:
 
-Download the dconf package from the distribution server
-wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/dconf-x.y.z.tar
+Download the dhconf package from the distribution server
+wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/dhconf-x.y.z.tar
 
 Change to a directory where you want to store the installation /usr/local/lib
 
 cd /usr/local/lib
-tar -xf dconf-x.y.z.tar
-ln -s dconf-x.y.z dconf
+tar -xf dhconf-x.y.z.tar
+ln -s dhconf-x.y.z dhconf
 
-Install a symlink from /usr/local/bin to the dconf script
+Install a symlink from /usr/local/bin to the dhconf script
 
 cd /usr/local/bin
-ln -s /usr/local/lib/dconf/dconf dconf
+ln -s /usr/local/lib/dhconf/dhconf dhconf
 
 ---------------------------------------------------------------------------
 
@@ -29,8 +29,8 @@ UPGRADE PROCEDURE:
 cd /usr/local/lib
 
 Download the adhoc-connect package from the distribution server
-wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/dconf-v.w.u.tar
+wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/dhconf-v.w.u.tar
 
-tar -xf dconf-v.w.u.tar
-rm dconf
-ln -s dconf-v.w.u dconf
+tar -xf dhconf-v.w.u.tar
+rm dhconf
+ln -s dhconf-v.w.u dhconf

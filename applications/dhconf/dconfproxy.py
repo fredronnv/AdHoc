@@ -203,8 +203,8 @@ def process(command, output):
 
 
 srv_url = None
-if "DCONF_SRV_URL" in os.environ:
-    srv_url = os.environ["DCONF_SRV_URL"]
+if "DHCONF_SRV_URL" in os.environ:
+    srv_url = os.environ["DHCONF_SRV_URL"]
     print >>sys.stderr, "NOTE: SERVER URL=", srv_url
     
 srv = None
@@ -212,8 +212,8 @@ srv = None
 fifo_in = sys.argv[1]
 fifo_out = sys.argv[2]
 
-update_template = {}  # For use by dconf
-options = {}  # For use by dconf
+update_template = {}  # For use by dhconf
+options = {}  # For use by dhconf
 
 while True:
         fin = open(fifo_in, "r")
