@@ -412,7 +412,7 @@ class MutexManager(model.Manager):
         self.db.put(q, mtx=mutexid)
 
         q = "DELETE FROM rpcc_mutex "
-        q += "WHERE mutex_is = :mtx "
+        q += "WHERE mutex_id = :mtx "
         self.db.put(q, mtx=mutexid)
 
     @access.entry(access.SuperuserGuardProxy)
