@@ -593,7 +593,7 @@ class DHCPManager(AdHocManager):
                 oset.set_option_by_name("server-name", server_name)
         
         qf = """SELECT id, subnet_mask, next_server, server_name FROM networks
-                WHERE  server_name IS NOT NULL """
+                WHERE  server_name IS NOT NULL OR subnet_mask IS NOT NULL OR next_server IS NOT NULL"""
         # print
         # print "NETWORK PARAMETERS"
         for(name, subnet_mask, next_server, server_name) in self.odb.get(qf):
