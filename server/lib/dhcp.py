@@ -5,6 +5,7 @@
 import struct
 from rpcc import *
 from room import ExtRoomName
+from host import ExtMacAddress
 import optionset
 import tempfile
 import subprocess
@@ -486,8 +487,9 @@ class DHCPManager(AdHocManager):
                                        id=room, info="Auto inserted on hosts migration", changed_by="AdHoc_server")
                         rooms.add(room)
                 else:
-                    self.server.logger.warning("WARNING! Room code %s not accepted" % room)
-                    room = None
+                    msg = "Room code %s for host %s not accepted" % (room, dns)
+                    self.server.logger.error(msg)
+                    raise ValueError(msg)
 
             # Handle cid quirks
             if not cid or cid == 'root' or cid == 'nobody':
@@ -499,6 +501,12 @@ class DHCPManager(AdHocManager):
                 self.db.insert(id, "INSERT INTO accounts (account, status) VALUES (:cid, NULL)",
                                cid=cid)
                 cids.add(cid)
+
+            if mac and not re.match(ExtMacAddress.regexp, mac):
+                msg = "Host %s cannot be migrated. Its Mac address is %s which does match the regexp %s. Fix this in dhcp2" % (
+                    dns, mac, ExtMacAddress.regexp)
+                self.server.logger.error(msg)
+                raise ValueError(msg)
 
             optset = self.optionsetManager.create_optionset(fun)
 
