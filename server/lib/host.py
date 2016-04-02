@@ -170,7 +170,7 @@ class HostLiteralOptionAdd(HostFunBase):
     extname = "host_literal_option_add"
     desc = "Add a literal option to a host"
     returns = (ExtInteger, "ID of added literal option")
-    params = [("option_text", ExtString, "Text of literal option")]
+    params = [("option_text", ExtLiteralOptionString, "Text of literal option")]
     
     def do(self):
         return self.host_manager.add_literal_option(self, self.host, self.option_text)

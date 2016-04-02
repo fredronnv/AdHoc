@@ -5,7 +5,7 @@
 from rpcc import *
 from optionset import *
 from option_def import *
-
+from util import ExtLiteralOptionString
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_host_classes"), AdHocSuperuserGuard)
 
@@ -90,7 +90,7 @@ class HostClassLiteralOptionAdd(HostClassFunBase):
     extname = "host_class_literal_option_add"
     desc = "Add a literal option to a host_class"
     returns = (ExtInteger, "ID of added literal option")
-    params = [("option_text", ExtString, "Text of literal option")]
+    params = [("option_text", ExtLiteralOptionString, "Text of literal option")]
     
     def do(self):
         return self.host_class_manager.add_literal_option(self, self.host_class, self.option_text)

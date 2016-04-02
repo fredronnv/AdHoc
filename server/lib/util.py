@@ -9,6 +9,12 @@ import re
 import socket
 
 
+class ExtLiteralOptionString(ExtString):
+    name = "literal-option-string"
+    desc = "Option value literally tranferred to the dhcpd configutation file"
+    maxlen = 1024  # If increased, the database definiton must be changed
+
+    
 class ExtHostName(ExtString):
     name = "host-name"
     desc = "Name of a host"

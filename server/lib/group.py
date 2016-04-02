@@ -8,7 +8,7 @@ from optionset import *
 from option_def import *
 from util import ExtHostList, AllowUserWithPriv, AdHocSuperuserGuard, AdHocModel, ExtLiteralOptionList, AdHocManager
 
-from util import g_rename, g_write_literal_option
+from util import g_rename, g_write_literal_option, ExtLiteralOptionString
 g_read = AnyGrants(AllowUserWithPriv("write_all_groups"), AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_groups"), AdHocSuperuserGuard)
 
@@ -92,7 +92,7 @@ class GroupLiteralOptionAdd(GroupFunBase):
     extname = "group_literal_option_add"
     desc = "Add a literal option to a group"
     returns = (ExtInteger, "ID of added literal option")
-    params = [("option_text", ExtString, "Text of literal option")]
+    params = [("option_text", ExtLiteralOptionString, "Text of literal option")]
     
     def do(self):
         return self.group_manager.add_literal_option(self, self.group, self.option_text)

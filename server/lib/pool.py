@@ -9,6 +9,7 @@ from option_def import *
 from host import ExtHostList, ExtHost
 from group import ExtGroupList, ExtGroup
 from host_class import ExtHostClassList, ExtHostClass
+from util import ExtLiteralOptionString
 
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_pools"), AdHocSuperuserGuard)
@@ -117,7 +118,7 @@ class PoolLiteralOptionAdd(PoolFunBase):
     extname = "pool_literal_option_add"
     desc = "Add a literal option to a pool"
     returns = (ExtInteger, "ID of added literal option")
-    params = [("option_text", ExtString, "Text of literal option")]
+    params = [("option_text", ExtLiteralOptionString, "Text of literal option")]
     
     def do(self):
         return self.pool_manager.add_literal_option(self, self.pool, self.option_text)
