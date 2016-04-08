@@ -408,8 +408,7 @@ class DHCPManager(AdHocManager):
                     if tbl[0] == 'network':
                         target = self.network_manager.get_network(unicode(address))
                     if tbl[0] == 'subnetwork':
-                        address = address + '/' + targets[address]
-                        target = self.subnetwork_manager.get_subnetwork(address)
+                        target = self.subnetwork_manager.get_subnetwork(address + '/' + targets[address])
                     if tbl[0] == 'class':
                         target = self.host_class_manager.get_host_class(unicode(address))
 
