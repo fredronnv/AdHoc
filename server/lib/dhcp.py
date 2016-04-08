@@ -106,6 +106,7 @@ class DHCPManager(AdHocManager):
 
         arrayoptions = []
         optiontypes = {}
+        hostidmap = {}
 
         self.odbase = database.MySQLDatabase(self.server, user=user, password=password, database=db, host=host, port=port)
 
@@ -469,6 +470,7 @@ class DHCPManager(AdHocManager):
             mdate = mtime.strftime("%Y%m%d")
 
             my_id = self.host_manager.generate_host_name(mac, today=mdate)
+            hostidmap[dns] = my_id  # Save the mappimg between old ID (dns) and new id for future reference
 
             # Handle room value quirks such as zero length rooms or rooms being just blanks
             if not room or not bool(room.strip()):
@@ -538,7 +540,10 @@ class DHCPManager(AdHocManager):
             targets.add(row[0])
         # print targets
         for(address, value, changed_by, mtime) in self.odb.get(qf):
-            address = address.replace('.', '_')
+            try:
+                address = hostidmap[address.lower()]
+            except KeyError:
+                continue
             if address in targets:
                 # print address, value, changed_by, mtime
                 self.db.put(qp, address=address, value=value, changed_by=changed_by, mtime=mtime)
@@ -555,10 +560,19 @@ class DHCPManager(AdHocManager):
         # using targets from last operation
         # print targets
         for(address, name, value, changed_by, mtime, my_id) in self.odb.get(qf):
-            address = address.replace('.', '_')
+            try:
+                address = hostidmap[address.lower()]
+            except KeyError:
+                continue
 
             if address in targets:
                 host = self.host_manager.get_host(unicode(address))
+                
+                if name in arrayoptions:
+                            value = [y.strip() for y in value.split(",")]
+                            if "integer" in optiontypes[name]:
+                                value = [ int(x) for x in value]  # Convert elements to integers
+                                
                 host.get_optionset().set_option_by_name(name, value)
 
         # Pick up options formerly encoded in the data model tables:
