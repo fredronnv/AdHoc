@@ -135,7 +135,7 @@ class Function(object):
             if n in typedict:
                 return
             typedict[n] = t
-            for (name, subt) in t._subtypes():
+            for (_name, subt) in t._subtypes():
                 add_type(typedict, subt)
 
         for (_p, t, _d) in cls.get_parameters():
@@ -195,7 +195,7 @@ class Function(object):
     def from_xml(cls, elem):
         children = ExtType.child_elements(elem)
         params = []
-        for (name, typ, desc) in cls.get_parameters():
+        for (name, typ, _desc) in cls.get_parameters():
             elemname = ExtType.capsify(name)
 
             if len(children) == 0:
@@ -272,7 +272,7 @@ class Function(object):
         argidx = 0
         for (param, arg) in zip(params, args):
             try:
-                (attr, typ, desc) = param
+                (attr, typ, _desc) = param
             except:
                 raise exterror.ExtInternalError("Wrong tuple member count in params of %s" % (self.__class__.__name__))
 

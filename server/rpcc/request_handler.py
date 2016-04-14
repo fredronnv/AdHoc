@@ -1,12 +1,12 @@
 
 import sys
-import time
 import socket
 import datetime
 import traceback
 import BaseHTTPServer
 
 from response import HTTPResponse
+
 
 class RawRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """Raw equest handler. Dispatches to RPCServer, handles exceptions.

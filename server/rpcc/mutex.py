@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import datetime
 
 import model
 import access
 import database
 import default_type
 import default_error
+
 
 class MutexVariable(object):
     type_field = None

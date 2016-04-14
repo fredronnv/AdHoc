@@ -1,8 +1,6 @@
 
 import os
-import re
 import sys
-import traceback
 import mimetypes
 import xmlrpclib
 import json
@@ -283,7 +281,7 @@ class ApacheXMLRPCProtocol(XMLRPCProtocol):
 class KRB5XMLRPCProtocol(XMLRPCProtocol):
 
     def request(self, httphandler, path, data):
-        if not httphandler.headers.has_key('authorization'):
+        if 'authorization' not in httphandler.headers:
             return HTTPResponse(code=401, data="<h1>401 Authentication Required</h1>",
                                 headers=[('WWW-Authentication', 'Negotiate')],
                                 ctype="text/html")
@@ -294,7 +292,7 @@ class KRB5XMLRPCProtocol(XMLRPCProtocol):
 class KRB5ApacheXMLRPCProtocol(ApacheXMLRPCProtocol):
 
     def request(self, httphandler, path, data):
-        if not httphandler.headers.has_key('authorization'):
+        if 'authorization' not in httphandler.headers:
             return HTTPResponse(code=401, data="<h1>401 Authentication Required</h1>",
                                 headers=[('WWW-Authentication', 'Negotiate')],
                                 ctype="text/html")
@@ -432,7 +430,7 @@ class SOAPProtocol(Protocol):
             elemname = msgelem.tagName
 
             apihdl = self.server.api_handler
-            (mscompat, api) = apihdl.lookup_soap_namespace(namespace)
+            (_mscompat, api) = apihdl.lookup_soap_namespace(namespace)
             funcls = api.function_for_element_name(elemname)
 
             #fundef = api.get_soap_fundef_for_element(elemname)

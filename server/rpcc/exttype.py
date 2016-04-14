@@ -572,7 +572,7 @@ class ExtNull(ExtType):
     #desc = 'Null type'
 
     def check(self, function, rawval):
-        if not rawval is None:
+        if rawval is not None:
             raise ExtExpectedNullError(value=rawval)
         return rawval
 

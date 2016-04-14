@@ -1,6 +1,5 @@
 
 
-from xmlnode import XMLNode
 from exttype import *
 
 
@@ -521,7 +520,7 @@ class SOAPTypeDefFactory(object):
         self.server = server
 
     def typedef(self, docdict):
-        type = docdict['dict_type']
+        typ = docdict['dict_type']
 
         typemap = {
             'integer-type': SOAPIntegerTypeDef,
@@ -535,7 +534,7 @@ class SOAPTypeDefFactory(object):
             'recursion-marker': SOAPRecursionMarkerTypeDef
         }
 
-        typedef = typemap[type](self.server, docdict)
+        typedef = typemap[typ](self.server, docdict)
         return typedef
 
 

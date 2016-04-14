@@ -1020,7 +1020,6 @@ class Manager(object):
         self.logger = self.server.logger
         self.db = function.db
         
-
         # Dict of Model instances already created, indexed by Model id.
         self._model_cache = {}
 
@@ -1048,7 +1047,6 @@ class Manager(object):
         return None
 
     def args_for_model(self, mid):
-        mysql_connector_2 = False  # Change here if using MySQL connector version 2.x.x
         dq = self.db.dynamic_query()
         self.base_query(dq)
         dq.where(dq.get_select_at(0) + "=" + dq.var(mid))
