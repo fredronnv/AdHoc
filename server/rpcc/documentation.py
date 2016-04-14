@@ -91,7 +91,6 @@ HTML documentation:
 
 from exttype import *
 from xmlnode import HTMLNode
-from encodings.utf_8 import decode
 
 
 class Documentation(object):
@@ -493,7 +492,7 @@ td.type{
         if funcls._returns()[1]:
             ret["returns"]["description"] = funcls._returns()[1]
         ret["types"] = []
-        for (name, typ) in funcls._subtypes_flat().items():
+        for (_name, typ) in funcls._subtypes_flat().items():
             tps = {}
             ret["types"].append(tps)
             t = ExtType.instance(typ)

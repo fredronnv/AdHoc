@@ -60,10 +60,10 @@ try:
 except:
     pass
 
-from enum import Enum
 from interror import IntInvalidUsageError
 
 from database_description import *
+
 
 class DatabaseError(Exception):
 

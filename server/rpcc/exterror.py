@@ -342,5 +342,3 @@ class ExtSOAPUnexpectedElementError(ExtSOAPParseError):
 
 class ExtSOAPMissingElementError(ExtSOAPParseError):
     desc = "An element that was expected is missing."
-
-

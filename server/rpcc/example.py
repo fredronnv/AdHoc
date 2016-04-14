@@ -6,7 +6,6 @@ import exttype
 import authentication
 
 
-
 class FnAdd(Function):
     extname = "add"
     to_version = 0

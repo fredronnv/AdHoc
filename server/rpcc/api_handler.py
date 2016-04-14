@@ -91,7 +91,7 @@ class APIHandler(object):
 
         import types
         
-        for (key, value) in mod.__dict__.items():
+        for (_key, value) in mod.__dict__.items():
             if not isinstance(value, types.TypeType):
                 continue
             if not issubclass(value, FunctionCategory):

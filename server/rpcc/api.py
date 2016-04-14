@@ -347,7 +347,7 @@ class API(object):
             already_added.add(typ._name())
             schemaelem.add(typ.xsd())
 
-            for (key, subtyp) in typ._subtypes():
+            for (_key, subtyp) in typ._subtypes():
                 add_type(schemaelem, already_added, subtyp)
 
         added_types = set()
@@ -356,10 +356,10 @@ class API(object):
             wsdl_schema_root.add(funcls.xsd_request(mscompat))
             wsdl_schema_root.add(funcls.xsd_response())
 
-            for (name, typ, desc) in funcls.get_parameters():
+            for (_name, typ, _desc) in funcls.get_parameters():
                 add_type(wsdl_schema_root, added_types, typ)
 
-            (typ, desc) = funcls._returns()
+            (typ, _desc) = funcls._returns()
             add_type(wsdl_schema_root, added_types, typ)
 
             # Doc/lit-wrap input message
