@@ -8,7 +8,6 @@ import SocketServer
 import BaseHTTPServer
 import logging
 
-import mutex
 import event
 import access
 import session

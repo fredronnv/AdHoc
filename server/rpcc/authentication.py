@@ -46,7 +46,7 @@ class AuthenticationManager(model.Manager):
     @classmethod
     def has_krb5(self):
         try:
-            import kerberos
+            import kerberos  # @UnusedImport
             return True
         except:
             return False
