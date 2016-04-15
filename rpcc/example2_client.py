@@ -1,10 +1,9 @@
 #!/usr/bin/env python2.6
 # -*- coding: utf-8 -*-
 
-import sys
-sys.path.append("/home/viktor/AdHoc/trunk/client")
 
 import rpcc_client
+import xmlrpclib
 from rpcc_client import RPCCValueError, RPCCLookupError
 
 rpcc0 = rpcc_client.RPCC("http://venus.ita.chalmers.se:12121", 0)
@@ -118,6 +117,7 @@ rpcc.stop()
 def worked(r):
     return "result" in r
 
+
 def failed(r, witherr=None):
     if "error" not in r:
         return False
@@ -125,7 +125,6 @@ def failed(r, witherr=None):
         return False
     return True
 
-import xmlrpclib
 
 s = xmlrpclib.ServerProxy("http://venus.ita.chalmers.se:12121/RPC2", allow_none=True, encoding="UTF-8")
 
