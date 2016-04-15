@@ -2,13 +2,14 @@
 
 # $Id$
 
-from rpcc import *
-from optionspace import *
-from optionset import *
-from option_def import *
+from rpcc import AnyGrants, IntegrityError, ExtLookupError, ExtValueError, ExtString, ExtList, ExtOrNull, ExtInteger, \
+                 ExtStruct, SessionedFunction, ExtNull, ExtDateTime, update, template, entry, search, \
+                 NullableStringMatch, IntegerMatch, StringMatch
+from optionset import Optionset, ExtOptionset
+from option_def import ExtOptionspace, ExtOrNullOptionspace, ExtOptionKeyList
 from util import ExtHostList, AllowUserWithPriv, AdHocSuperuserGuard, AdHocModel, ExtLiteralOptionList, AdHocManager
-
 from util import g_rename, g_write_literal_option, ExtLiteralOptionString
+
 g_read = AnyGrants(AllowUserWithPriv("write_all_groups"), AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_groups"), AdHocSuperuserGuard)
 
@@ -319,7 +320,7 @@ class GroupManager(AdHocManager):
                            info=info, changed_by=fun.session.authuser, optionset=optionset)
             self.logger.info("Group created, name=%s" % groupname)
             
-        except IntegrityError, e:
+        except IntegrityError, _e:
             raise ExtGroupAlreadyExistsError()
         
         self.event_manager.add("create", group=groupname, parent_object=parent.oid, info=info, optionspace=optionspace,
@@ -333,7 +334,7 @@ class GroupManager(AdHocManager):
         qif = "INSERT INTO group_groups_flat (groupname, descendant) VALUES (:groupname, :descendant)"
         try:
             self.db.put(qif, groupname=group_name, descendant=group_name)  # The group itself
-        except IntegrityError, e:
+        except IntegrityError, _e:
             raise ExtGroupAlreadyExistsError()
             
         g2 = group_name  # Traverse the tree upward and fill in the group for every node traversed
@@ -450,4 +451,3 @@ class GroupManager(AdHocManager):
         if not group.parent or group.parent == groupname:
             return  # No parents to adjust
         self.adjust_hostcount(self.get_group(group.parent), adjust)  # Walk the tree upwards and do the same adjustment
-

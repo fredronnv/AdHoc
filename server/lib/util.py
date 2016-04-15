@@ -137,8 +137,6 @@ class ExtIpV4Address(ExtString):
     regexp = "^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
 
 
-
-
 class ExtIPAddress(ExtString):
     name = "ip-address"
     desc = "An IP address specified either as a numeric IP Address or a DNS name"

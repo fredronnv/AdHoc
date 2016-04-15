@@ -45,7 +45,6 @@ class HostGrantFunBase(SessionedFunction):
     params = [("grant", ExtHostGrantID, "Host_grant id")]
     
     
-    
 class HostGrantCreate(SessionedFunction):
     extname = "host_grant_create"
     params = [("pool", ExtPool, "Pool"),

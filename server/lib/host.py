@@ -650,4 +650,3 @@ class HostManager(AdHocManager):
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
             self.event_manager.add("update", host=host.oid, option=key, option_value=unicode(value), authuser=fun.session.authuser)
-

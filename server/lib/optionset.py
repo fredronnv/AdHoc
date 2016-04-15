@@ -2,10 +2,7 @@
 
 # $Id$
 
-import sys
 
-sys.path.append("/home/viktor/AdHoc/trunk/server")
-sys.path.append("/home/viktor/mysql-connector-python-1.1.5/build/lib")
 from rpcc import *
 from util import *
 

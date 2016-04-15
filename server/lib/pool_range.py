@@ -287,4 +287,3 @@ class PoolRangeManager(AdHocManager):
         
         if overlaps:
                 raise ExtPoolRangeOverlapError("The change would cause overlap between the ranges: %s" % ",".join(elem[0] for elem in overlaps))
-

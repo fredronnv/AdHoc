@@ -46,12 +46,13 @@ import os
 import sys
 
 
-### Kludge to enalme TLSv1 protocol via urllib2
+# Kludge to enable TLSv1 protocol via urllib2
 #
 import functools
 import ssl
 
 old_init = ssl.SSLSocket.__init__
+
 
 @functools.wraps(old_init)
 def adhoc_ssl(self, *args, **kwargs):
@@ -60,7 +61,7 @@ def adhoc_ssl(self, *args, **kwargs):
 
 ssl.SSLSocket.__init__ = adhoc_ssl
 #
-### End kludge
+# End kludge
 
 env_prefix = "ADHOC_"
 
@@ -73,7 +74,8 @@ os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home  # Export as env variable A
 sys.path.append(adhoc_home)
 sys.path.append(os.path.join(adhoc_home, 'client'))
 sys.path.append(os.path.join(adhoc_home, 'lib'))
-sys.path.append(os.path.join(adhoc_home, 'lib','python2.6'))
+sys.path.append(os.path.join(adhoc_home, 'lib', 'python2.6'))
+
 
 class AttrDict(dict):
     """A dictionary where keys can also be accessed as attributes."""
@@ -234,7 +236,7 @@ class RPCC(object):
             except:
                 raise ValueError("No kerberos module installed - cannot perform kerberos authentication")
 
-            (res, ctx) = kerberos.authGSSClientInit("HTTP@" + self._host)
+            (_res, ctx) = kerberos.authGSSClientInit("HTTP@" + self._host)
             kerberos.authGSSClientStep(ctx, "")
             token = kerberos.authGSSClientResponse(ctx)
             #print >>sys.stderr, "TOKEN=",token
@@ -268,7 +270,7 @@ class RPCC(object):
             if self._attrdicts:
                 err = self._convert_to_attrdicts(err)
 
-            errname = err['name']
+            _errname = err['name']
             raise error_object(err, self._pyexceptions)
 
     def _convert_to_attrdicts(self, val):
@@ -453,20 +455,3 @@ class RPCC(object):
 #         
 #         self._server = xmlrpclib.Server(self._url, encoding='UTF-8', allow_none=1)
 #         
-
-
-def pp(d, ind=0):
-    for (k, v) in d.iteritems():
-        print ' ' * ind + k + ':',
-        if type(v) == type({}):
-            print '{'
-            pp(v, ind + 4)
-            print ' ' * ind + '}'
-        elif type(v) == type([]):
-            print '['
-            for sv in v:
-                pp(sv, ind + 4)
-                print ' ' * ind + ','
-            print ' ' * ind + ']'
-        else:
-            print v

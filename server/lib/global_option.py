@@ -83,7 +83,7 @@ class GlobalOption(AdHocModel):
         self.oid = a.pop(0)
         self.name = a.pop(0)
         self.value = a.pop(0)
-        self.basic= a.pop(0)
+        self.basic = a.pop(0)
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
 
