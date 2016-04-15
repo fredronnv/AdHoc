@@ -23,7 +23,7 @@ class T0410_networkFetch(UnAuthTests):
     """ Test network_fetch """
     
     def do(self):
-        networks = [x.network for x in self.superuser.network_dig({}, {"network":True})]
+        networks = [x.network for x in self.superuser.network_dig({}, {"network": True})]
         
         for network in networks:
             ret = self.proxy.network_fetch(network, {"network": True, "info": True, "authoritative": True})
@@ -48,7 +48,7 @@ class T0420_networkCreate(NetworkAdminTests):
                 assert "info" in ret, "Key authoritative missing in returned struct from network_fetch"
                 assert "authoritative" in ret, "Key authoritative missing in returned struct from network_fetch" 
                 assert ret.network == "network_test", "Bad network, is % should be %s" % (ret.network, "network_test")
-                assert ret.authoritative == False, "Authoritative is " + ret.authoritative + " but should be False"
+                assert not ret.authoritative, "Authoritative is " + ret.authoritative + " but should be False"
         finally:
             try:
                 self.superuser.network_destroy('network_test')
@@ -84,7 +84,7 @@ class T0440_networkSetAuthoritative(NetworkAdminTests):
                 nd = self.superuser.network_fetch('network_test', {"network": True, "info": True, "authoritative": True})
                 assert nd.network == "network_test", "Bad network"
                 assert nd.authoritative, "Bad autoritativity"
-                assert nd.info == u"Testnätverk 2", "Bad info: is %s should be %s"%(nd.info,u"Testnätverk 2" )
+                assert nd.info == u"Testnätverk 2", "Bad info: is %s should be %s" % (nd.info, u"Testnätverk 2" )
         finally:
             try:
                 self.superuser.network_destroy('network_test')

@@ -87,7 +87,7 @@ class T0092_ServerLastSourceEdit(UnAuthTests):
         with AssertAccessError(self):
             last_edit = self.proxy.server_last_source_edit()
             # print last_edit
-            assert type(last_edit) is type(u'xx'), "Returned last source edit is not a string, it is a %s" % (type(last_edit))
+            assert type(last_edit) is unicode, "Returned last source edit is not a string, it is a %s" % (type(last_edit))
 
 
 class T0093_ServerListFunctions(UnAuthTests):
@@ -114,7 +114,7 @@ class T0094_ServerNodeName(UnAuthTests):
         with AssertAccessError(self):
             node_name = self.proxy.server_node_name()
             # print node_name
-            assert type(node_name) is type(u'xx'), "Returned last source edit is not a string, it is a %s" % (type(node_name))
+            assert type(node_name) is unicode, "Returned last source edit is not a string, it is a %s" % (type(node_name))
             assert "." in node_name, "Node name does not contain any dot"
 
 

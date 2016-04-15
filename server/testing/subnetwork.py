@@ -14,8 +14,6 @@ class T0200_SubnetworkList(UnAuthTests):
             ret = self.proxy.subnetwork_dig({}, {"network": True, "info": True, "subnetwork": True, "changed_by": True, "mtime": True})
             
             assert len(ret) > 0, "Too few subnetworks returned"
-            #for ds in ret:
-                #print ds.id, ds.network, ds.info, ds.changed_by, ds.mtime
    
   
 class T0210_SubnetworkFetch(UnAuthTests):

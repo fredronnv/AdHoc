@@ -59,7 +59,7 @@ class T1315_HostCreate(FloorAdminTests):
         try:
             for h in self.superuser.host_dig({"host_pattern": today + "-*"}, {"host": True}):
                 self.superuser.host_destroy(h.host)
-        except Exception as e:
+        except Exception as _e:
             pass
         
         with AllowRPCCError("LookupError"): 
