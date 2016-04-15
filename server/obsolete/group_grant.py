@@ -3,8 +3,8 @@
 # $Id: group_class.py 683 2015-02-23 10:09:22Z bernerus@CHALMERS.SE $
 
 from rpcc import *
-from pool import *
-from group import *
+from lib.pool import ExtPool, ExtPoolIsOpenError, ExtPoolName
+from lib.group import *
 
 
 class ExtNoSuchGroupGrantError(ExtLookupError):

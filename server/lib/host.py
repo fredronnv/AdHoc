@@ -4,7 +4,7 @@
 
 from rpcc import *
 from optionspace import *
-from room import *
+from room import ExtRoom, ExtRoomName
 from optionset import *
 from util import *
 from option_def import *

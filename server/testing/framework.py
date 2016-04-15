@@ -51,10 +51,12 @@
     """
 
 import os
+import sys  # @UnusedImport
 import datetime
 import pprint
 from types import *
 sys.path.append(os.environ["ADHOC_RUNTIME_HOME"] + "/client")
+
 import test_rpcc_client
 import rpcc_client
 

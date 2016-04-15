@@ -3,8 +3,8 @@
 # $Id: host_class.py 683 2015-02-23 10:09:22Z bernerus@CHALMERS.SE $
 
 from rpcc import *
-from pool import *
-from host import *
+from lib.pool import *
+from lib.host import *
 
 
 class ExtNoSuchHostGrantError(ExtLookupError):

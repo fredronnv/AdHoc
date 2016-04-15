@@ -5,7 +5,7 @@
 from rpcc import *
 from optionset import *
 from option_def import *
-from util import ExtLiteralOptionString
+#from util import ExtLiteralOptionString
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_host_classes"), AdHocSuperuserGuard)
 
