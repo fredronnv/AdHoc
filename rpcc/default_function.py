@@ -53,9 +53,10 @@ class FunPing(Function):
 
     def do(self):
         for api in self.server.api_handler.apis:
-            print api.get_version_string()
+            self.logger.debug("%s" % api.get_version_string())
  
         self.db.get('SELECT 1')
+
 
 class FunServerListAPIVersions(Function):
     extname = 'server_list_api_versions'
@@ -78,7 +79,6 @@ current state and public comments."""
                         "comment": api.comment})
 
         return ret
-
 
 
 class FunSessionStart(Function):

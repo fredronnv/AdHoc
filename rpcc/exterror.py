@@ -164,10 +164,10 @@ class ExtOutputError(ExtInternalError):
     def add_trace(self, typething, msg):
         self.output_trace.append((typething, msg))
 
-    def print_trace(self):
+    def print_trace(self, logger):
         for (typething, msg) in self.output_trace:
-            print "  In %s" % (typething,)
-            print "    ", msg
+            logger.error("  In %s" % (typething,))
+            logger.error("     " + msg)
      
 
 class ExtValueError(ExtError):
@@ -322,7 +322,6 @@ class ExtSOAPParseError(ExtSOAPError):
             t = t.parentNode
 
         self.desc += " Backtrace: " + "".join(reversed(epath))
-        print self.desc
 
 
 class ExtSOAPNonTextNodeError(ExtSOAPParseError):
@@ -343,5 +342,3 @@ class ExtSOAPUnexpectedElementError(ExtSOAPParseError):
 
 class ExtSOAPMissingElementError(ExtSOAPParseError):
     desc = "An element that was expected is missing."
-
-

@@ -1,23 +1,26 @@
 This example illustrates subclassing of the server and server configuration as well as adding authentication
 and more to the online documentation.
 
+The example implements a simple host registru that could be user for maintaining a database over
+the servers run by an IT depertment somewhere.
+
 Configuration can be done using the environment of the operating system.
 IN this example, we have subclassed the sever to be able to alter the default value of some
 class variables in the rpcc.Server class:
 See the rpcc.server.py source code for a complete list of such class variables.
-In this example we have altered envvar_prefix = "USERSERVICE_" which will
-cause the default perfix for configuration environment variables to change frpm "RPCC_" to "USERSERVICE_"
+In this example we have altered envvar_prefix = "HOSTREG_" which will
+cause the default perfix for configuration environment variables to change frpm "RPCC_" to "HOSTREG_"
 
 Here is a list of configuration variables:
 
-USERSERVICE_SUPERUSER_PASSWORD - The sole password usable when using the SuperuserOnlyAuthenticationManager
-USERSERVICE_DEBUG_SQL - To get SQL queries printed
-USERSERVICE_DB_USER - User to use Oracle or MySQL database
-USERSERVICE_DB_PASSWORD - Password for that user
-USERSERVICE_DB_DATABASE - Database to use
-USERSERVICE_DB_HOST - Database host
-USERSERVICE_DB_PORT - Database port
-USERSERVICE_DB_SOCKET - Database socket
+HOSTREG_SUPERUSER_PASSWORD - The sole password usable when using the SuperuserOnlyAuthenticationManager
+HOSTREG_DEBUG_SQL - To get SQL queries printed
+HOSTREG_DB_USER - User to use Oracle or MySQL database
+HOSTREG_DB_PASSWORD - Password for that user
+HOSTREG_DB_DATABASE - Database to use
+HOSTREG_DB_HOST - Database host
+HOSTREG_DB_PORT - Database port
+HOSTREG_DB_SOCKET - Database socket
 
 Another change is that we have provided a docroot to serve some static HTML pages servicing as
 an introduction for programmers who need to access the server.
@@ -26,8 +29,8 @@ This is done using the statement
     
 Third change is that we have enabled the SuperuserOnlyAuthenticationManager which is a sample 
  authentication manager that only allows one account, #root# using the password specified in
- USERSERVICE_SUPERUSER_PASSWORD. 
+ HOSTREG_SUPERUSER_PASSWORD. 
 
-Now, start personserrver.py, and point the browser to  http://localhost/12121
+Now, start hostregserver.py, and point the browser to  http://localhost/12121
 Check the home page and look up  the functions list that now contains session_auth_login() and session_deauth()
 

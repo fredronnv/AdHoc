@@ -7,11 +7,14 @@ shouldn't normally do).
 
 """
 
+
 class IntAPINotFoundError(ValueError):
     pass
 
+
 class IntAPIValidationError(ValueError):
     pass
+
 
 class IntInvalidUsageError(TypeError):
     pass

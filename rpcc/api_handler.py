@@ -8,6 +8,7 @@ from category import FunctionCategory
 class APIHandler(object):
     def __init__(self, server):
         self.server = server
+        self.logger = self.server.logger
         self.all_funclasses_added = []
         self.initialize()
 
@@ -38,7 +39,7 @@ class APIHandler(object):
             try:
                 api.add_function(funclass)
             except:
-                print "Defunct function class:", funclass
+                self.logger.error("Defunct function class:", funclass)
                 raise
 
     def get_function_class(self, funname, api_version):
@@ -90,8 +91,8 @@ class APIHandler(object):
 
         import types
         
-        for (key, value) in mod.__dict__.items():
-            if type(value) != types.TypeType:
+        for (_key, value) in mod.__dict__.items():
+            if not isinstance(value, types.TypeType):
                 continue
             if not issubclass(value, FunctionCategory):
                 continue

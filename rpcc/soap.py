@@ -1,6 +1,5 @@
 
-from rpctype import *
-from xmlnode import XMLNode
+
 from exttype import *
 
 
@@ -27,7 +26,7 @@ class SOAPError(Exception):
 
     def fix_header(self, header):
         pass
-    
+
     def get_envelope(self, schema_url):
         env = XMLNode("Envelope")
         header = env.new("Header")
@@ -52,7 +51,7 @@ class SOAPError(Exception):
 
         if self.rpcerr:
             err = det.new("soapFaultDetail")
-            
+
             err.new("errorId").cdata(self.rpcerr['id'])
             err.new("errorName").cdata(self.rpcerr['name'])
 
@@ -63,11 +62,12 @@ class SOAPError(Exception):
             #            tb.new("index").cdata(str(item))
             #        else:
             #            tb.new("key").cdata(item)
-            err.set_namespace("e", server.get_schema_url(mssuffix))
+            # TODO: Follwoing line has reference errors for server and mssuffix
+            err.set_namespace("e", server.get_schema_url(mssuffix))  # @UndefinedVariable
 
         return env
-   
-    
+
+
 class SOAPVersionMismatchError(SOAPError):
     soapcode = "VersionMismatch"
 
@@ -101,7 +101,7 @@ class SOAPFaultDetailType(ExtStruct):
     mandatory = {
         'errorName': ExtString,
         'errorID': ExtInteger,
-        }
+    }
 
 
 class SOAPParseError(SOAPClientError):
@@ -116,7 +116,7 @@ class SOAPGenerationError(SOAPServerError):
 
 class SOAPTypeDef(object):
     visible = True
-    
+
     def __init__(self, server, docdict):
         self.server = server
         self.docdict = docdict
@@ -190,10 +190,11 @@ class SOAPTypeDef(object):
 
 
 class SOAPStringTypeDef(SOAPTypeDef):
+
     def init_specials(self):
         self.regexp = self.docdict.get('regexp', None)
         self.maxlen = self.docdict.get('maxlen', None)
-        
+
     def XXXwsdl_add_restriction(self, base):
         r = base.new('restriction', base='string')
         if self.regexp is not None:
@@ -209,6 +210,7 @@ class SOAPStringTypeDef(SOAPTypeDef):
 
 
 class SOAPEnumTypeDef(SOAPTypeDef):
+
     def init_specials(self):
         self.values = self.docdict['values']
 
@@ -225,6 +227,7 @@ class SOAPEnumTypeDef(SOAPTypeDef):
 
 
 class SOAPIntegerTypeDef(SOAPTypeDef):
+
     def init_specials(self):
         self.minval = self.docdict.get('min_value', None)
         self.maxval = self.docdict.get('max_value', None)
@@ -248,6 +251,7 @@ class SOAPIntegerTypeDef(SOAPTypeDef):
 
 
 class SOAPBoolTypeDef(SOAPTypeDef):
+
     def XXXwsdl_add_restriction(self, base):
         base.new('restriction', base='boolean')
 
@@ -265,6 +269,7 @@ class SOAPBoolTypeDef(SOAPTypeDef):
 
 
 class SOAPListTypeDef(SOAPTypeDef):
+
     def init_specials(self):
         itemdd = self.docdict['value_type']
         self.value_type = self.factory().typedef(itemdd)
@@ -316,7 +321,7 @@ class SOAPStructItemTypeDef(SOAPTypeDef):
         else:
             elem = base.new('element', name=self.get_element_name(),
                             type=self.type.wsdlrefname)
-            
+
         if self.desc:
             desc = xml_escape(self.desc)
             elem.new('annotation').new('documentation').cdata(desc)
@@ -330,9 +335,10 @@ class SOAPStructItemTypeDef(SOAPTypeDef):
     def soap_encode(self, element, value):
         child = element.new(self.get_element_name())
         self.type.soap_encode(child, value)
-  
-        
+
+
 class SOAPStructTypeDef(SOAPTypeDef):
+
     def init_specials(self):
         self.element_to_key = {}
         self.key_to_element = {}
@@ -391,7 +397,7 @@ class SOAPStructTypeDef(SOAPTypeDef):
                 typedef = defdict.pop(name)
             except KeyError:
                 raise SOAPParseError("Unknown %s element %s" % (kind, name))
-                
+
             value = typedef.soap_parse(elem)
             targetdict[self.element_to_key[name]] = value
 
@@ -420,7 +426,7 @@ class SOAPStructTypeDef(SOAPTypeDef):
         # is not found, it is an error.
         for elemname in self.mandatory_order:
             key = self.element_to_key[elemname]
-            if valcopy.has_key(key):
+            if key in valcopy:
                 self.mandatory[elemname].soap_encode(element, valcopy[key])
                 del valcopy[key]
             else:
@@ -434,7 +440,7 @@ class SOAPStructTypeDef(SOAPTypeDef):
         optional = element.new('optionalElements')
         for elemname in self.optional_order:
             key = self.element_to_key[elemname]
-            if valcopy.has_key(key):
+            if key in valcopy:
                 if valcopy[key] is not None:
                     self.optional[elemname].soap_encode(optional, valcopy[key])
                 del valcopy[key]
@@ -444,7 +450,7 @@ class SOAPStructTypeDef(SOAPTypeDef):
             # This is not a SOAP-error, but will be converted to
             # one when responding.
             raise ValueError("Undocumented response keys %s in result" % (", ".join(valcopy.keys()),))
-        
+
         #for (key, v) in value.items():
         #    k = self.key_to_element[key]
         #    if k in self.mandatory:
@@ -453,9 +459,10 @@ class SOAPStructTypeDef(SOAPTypeDef):
         #        self.optional[k].soap_encode(optional, v)
         #    else:
         #        raise ValueError("Unknown response key %s in dict %s" % (k, value))
-            
+
 
 class SOAPOrNullTypeDef(SOAPTypeDef):
+
     def init_specials(self):
         self.value_type = self.factory().typedef(self.docdict['otherwise'])
 
@@ -468,7 +475,7 @@ class SOAPOrNullTypeDef(SOAPTypeDef):
         chelem = elem.new('choice')
         chelem.new('element', name='set', type=self.value_type.wsdlrefname)
         chelem.new('element', name='notSet', type="myxsd:nullType")
-        return elem            
+        return elem
 
     def soap_parse(self, elem):
         if len(elem.childNodes) != 1:
@@ -490,6 +497,7 @@ class SOAPOrNullTypeDef(SOAPTypeDef):
 
 
 class SOAPNullTypeDef(SOAPTypeDef):
+
     def wsdl_element(self):
         elem = XMLNode('complexType', name=self.wsdlname)
         elem.new('sequence')
@@ -507,12 +515,13 @@ class SOAPRecursionMarkerTypeDef(SOAPTypeDef):
 
 
 class SOAPTypeDefFactory(object):
+
     def __init__(self, server):
         self.server = server
 
     def typedef(self, docdict):
-        type = docdict['dict_type']
-        
+        typ = docdict['dict_type']
+
         typemap = {
             'integer-type': SOAPIntegerTypeDef,
             'string-type': SOAPStringTypeDef,
@@ -523,13 +532,14 @@ class SOAPTypeDefFactory(object):
             'null-type': SOAPNullTypeDef,
             'enum-type': SOAPEnumTypeDef,
             'recursion-marker': SOAPRecursionMarkerTypeDef
-            }
+        }
 
-        typedef = typemap[type](self.server, docdict)
+        typedef = typemap[typ](self.server, docdict)
         return typedef
 
 
 class SOAPParameterDefinition(object):
+
     def __init__(self, function, index, docdict):
         self.function = function
         self.server = self.function.server
@@ -547,7 +557,7 @@ class SOAPParameterDefinition(object):
         else:
             elem = XMLNode('element', name=self.soapname,
                            type=self.type.wsdlrefname)
-            
+
         if self.desc:
             desc = xml_escape(self.desc)
             elem.new('annotation').new('documentation').cdata(desc)
@@ -564,27 +574,27 @@ class SOAPParameterDefinition(object):
 class SOAPFunctionDefiniton(object):
     """A class which represents a function definition, with
     SOAP information such as request and response element name etc."""
-        
+
     def __init__(self, server, funname, funclass):
         self.server = server
-        
+
         # Funname is the XMLRPC function name (.rpcname attribute
         # of the RPCFunction class)
         self.name = funname
         self.funclass = funclass
         self.funclass_encoding = funclass.encoding
         self.docdict = server.get_docdict(funclass)
-        
+
         # SOAP-name is a capsified version of the funname, since
         # underscores work poorly with SOAP.
         self.soapname = self.capsify_name(funname)
-        
+
         # WSDL Message names
         self.input_message = self.capsify_name("msg-" + funname + "-input")
         self.input_message_ref = "self:" + self.input_message
         self.output_message = self.capsify_name("msg-" + funname + "-output")
         self.output_message_ref = "self:" + self.output_message
-        
+
         # SOAP message element tagNames
         self.request_element = self.soapname
         self.request_element_ref = "myxsd:" + self.soapname
@@ -604,25 +614,25 @@ class SOAPFunctionDefiniton(object):
             self.params_by_index[idx] = pardef.soapname
 
         self.return_type = SOAPTypeDefFactory(self.server).typedef(self.docdict['return_type'])
-            
+
     def capsify_name(self, name):
         return self.server.capsify_name(name)
 
     def dencode_strings(self, val, encoding, encode=True):
-        if type(val) == type(u'') and encode:
+        if isinstance(val, unicode) and encode:
             return val.encode(encoding)
-        elif type(val) == type(''):
+        elif isinstance(val, str):
             if encode:
                 return val
             else:
                 return val.decode(encoding)
-        elif type(val) in [type(True), type(0)]:
+        elif type(val) in [bool, int]:
             return val
         elif val is None:
             return val
-        elif type(val) == type([]):
+        elif isinstance(val, list):
             return [self.dencode_strings(v, encoding, encode) for v in val]
-        elif type(val) == type({}):
+        elif isinstance(val, dict):
             new = {}
             for (k, v) in val.items():
                 if encode:
@@ -631,7 +641,8 @@ class SOAPFunctionDefiniton(object):
                     key = k.decode(encoding)
                 new[key] = self.dencode_strings(v, encoding, encode)
             return new
-        raise ValueError("Cannot decode/encode received value %s as the target function class encoding %s" % (val, encoding))
+        raise ValueError(
+            "Cannot decode/encode received value %s as the target function class encoding %s" % (val, encoding))
 
     def fix_error_traceback(self, errdict):
         if errdict['traceback']:
@@ -670,7 +681,7 @@ class SOAPFunctionDefiniton(object):
             value = self.dencode_strings(value, self.funclass_encoding, False)
 
         ret = XMLNode(self.response_element)
-            
+
         if mscompat and type(self.return_type) in [SOAPStringTypeDef, SOAPIntegerTypeDef, SOAPBoolTypeDef]:
             top = ret.new("value")
         else:

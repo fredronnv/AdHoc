@@ -11,7 +11,7 @@ normally call .auth_session() and .deauth_session() respectively.
 
 import exterror
 import model
-import os
+
 
 class AuthenticationManager(model.Manager):
     """Supplies three default methods: 
@@ -46,7 +46,7 @@ class AuthenticationManager(model.Manager):
     @classmethod
     def has_krb5(self):
         try:
-            import kerberos
+            import kerberos  # @UnusedImport
             return True
         except:
             return False
@@ -54,7 +54,8 @@ class AuthenticationManager(model.Manager):
     @classmethod
     def base_query(cls, dq):  # Dummy method. Do not remove
         return None
-    
+
+
 class NullAuthenticationManager(AuthenticationManager):
     
     def login(self, session, username, password, _generic_password):
@@ -66,12 +67,13 @@ class NullAuthenticationManager(AuthenticationManager):
     def logout(self, session):
         session.unset("authuser")
 
+
 class KerberosAuthenticationManager(AuthenticationManager):
         
     def login(self, session, username, password, generic_password):
-        krb_realm=self.server.config('KRB_REALM', default='CHALMERS.SE')
+        krb_realm = self.server.config('KRB_REALM', default='CHALMERS.SE')
         
-        if generic_password and password==generic_password:
+        if generic_password and password == generic_password:
             session.set("authuser", username)
             session.set("authrealm", krb_realm)
             return

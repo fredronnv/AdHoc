@@ -1,12 +1,12 @@
 
 import sys
-import time
 import socket
 import datetime
 import traceback
 import BaseHTTPServer
 
 from response import HTTPResponse
+
 
 class RawRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """Raw equest handler. Dispatches to RPCServer, handles exceptions.
@@ -120,8 +120,8 @@ class RawRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.flush()
 
         if self.server.ssl_enabled:
-	    self.connection.shutdown(socket.SHUT_WR)
-        
+            self.connection.shutdown(socket.SHUT_WR)
+
     # BaseHTTPServer logging override.
     def log_message(self, *args):
         pass

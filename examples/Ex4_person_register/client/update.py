@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python3.4
 # -*- coding: utf-8 -*-
 
 from rpcc_client import *

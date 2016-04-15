@@ -1,16 +1,15 @@
 
 import os
-import re
 import sys
-import traceback
 import mimetypes
 import xmlrpclib
 import json
 
-import xml.dom.minidom
+import xml.dom.minidom as minidom
 
 from response import HTTPResponse
 import exterror
+from soap import *
 
 
 class Protocol(object):
@@ -53,6 +52,7 @@ class Protocol(object):
 
 
 class StaticDocumentProtocol(Protocol):
+
     def __init__(self, docroot):
         self.docroot = docroot
         Protocol.__init__(self)
@@ -81,8 +81,7 @@ class StaticDocumentProtocol(Protocol):
             return HTTPResponse(ctype='text/html', data=doc)
 
         if path:
-            if ('..' in path or '/.' in path or 
-                './' in path or path[0] == '/'):
+            if ('..' in path or '/.' in path or './' in path or path[0] == '/'):
                 return HTTPResponse(ctype='text/html', data='<h1>Invalid path</h1>')
             if path[-1] == '/':
                 path += 'index.html'
@@ -108,7 +107,7 @@ class StaticDocumentProtocol(Protocol):
                 data = file(path).read()
             else:
                 mime_type, enc, data = error404
-        except Exception as e:
+        except Exception as _e:
             mime_type, enc, data = error404
 
         if mime_type == 'text/html' and not enc:
@@ -143,9 +142,9 @@ class StaticDocumentProtocol(Protocol):
                         data += "INVALID CATEGORY"
                 else:
                     data += "INVALID COLON FUNCTION"
-            
+
         return HTTPResponse(ctype=mime_type, encoding=enc, data=data)
-        
+
     def html_function_definition(self, funname):
         try:
             funobj = self.server.get_function(funname, handler=None)
@@ -156,11 +155,12 @@ class StaticDocumentProtocol(Protocol):
 
 
 class FunctionDefinitionProtocol(Protocol):
+
     def request(self, httphandler, path, data):
         # [/api/]3/funname
         #print "PATH=", path, " DATA=", data
         pathcomp = path.split("/")
-        
+
         if len(pathcomp) == 1 and pathcomp[0] == "api.css":
             s = self.server.documentation.css_for_html()
             return HTTPResponse(s.encode("utf-8"), ctype="text/css", encoding="utf-8")
@@ -179,7 +179,7 @@ class FunctionDefinitionProtocol(Protocol):
 
 class WSDLProtocol(Protocol):
     mscompat = False
-    
+
     def request(self, httphandler, path, data):
         if not path:
             data = "<html><body><h1>Available WSDL:s</h1><ul>"
@@ -217,8 +217,9 @@ class MicrosoftWorkaroundWSDLProtocol(WSDLProtocol):
     SOAP modify the names of the input variable names, so that they
     never match the output names.
     """
-    
+
     mscompat = True
+
 
 #
 # To implement Kerberos HTTP SPNEGO authentication, the XMLRPC request handler
@@ -228,31 +229,15 @@ class MicrosoftWorkaroundWSDLProtocol(WSDLProtocol):
 # Authorization: Negotiate header is present and just calls the request handler
 # below otherwise.
 #
-def od(s):
-    chunks = [""]
-    for char in s:
-        if len(chunks[-1]) == 16:
-            chunks.append("")
-        chunks[-1] += char
-    for chunk in chunks:
-        for char in chunk:
-            print "%02x" % (ord(char),),
-        print "   " * (16 - len(chunk)),
-        print chunk.replace("\n", " ").replace("\r", " ").replace("\t", " ")
-    print
-
 
 class XMLRPCProtocol(Protocol):
+
     def request(self, httphandler, path, data):
         response = None
         try:
             params, function = xmlrpclib.loads(data)
             if function is None:
                 raise ValueError
-            #if function == "person_update":
-            #    od(data)
-            #    print type(params[-1]["lastname"])
-            #    od(params[-1]["lastname"])
         except:
             traceback.print_exc()
             response = ({'error': exterror.ExtMalformedXMLRPCError().struct()},)
@@ -271,41 +256,46 @@ class XMLRPCProtocol(Protocol):
             retdata = xmlrpclib.dumps(response, methodresponse=1,
                                       allow_none=1, encoding='ISO-8859-1')
         except:
-            sys.stderr.write("Exception caught when serializing response for %s#%d(%s)\n" % (function, api_version, params))
+            sys.stderr.write("Exception caught when serializing response for %s#%d(%s)\n" %
+                             (function, api_version, params))
             raise
 
         return HTTPResponse(data=retdata, encoding='iso-8859-1',
-                               ctype='application/xml+rpc')
+                            ctype='application/xml+rpc')
 
 
 class ApacheXMLRPCProtocol(XMLRPCProtocol):
+
     def request(self, httphandler, path, data):
         data = data.replace('<ex:nil', '<nil')
 
         resp = XMLRPCProtocol.request(self, httphandler, path, data)
 
         resp.set_data(resp.data.replace('<nil/>', '<ex:nil/>'))
-        resp.set_data(resp.data.replace('<methodResponse>', "<methodResponse xmlns:ex='http://ws.apache.org/xmlrpc/namespaces/extensions'>"))
+        resp.set_data(resp.data.replace(
+            '<methodResponse>', "<methodResponse xmlns:ex='http://ws.apache.org/xmlrpc/namespaces/extensions'>"))
 
         return resp
 
 
 class KRB5XMLRPCProtocol(XMLRPCProtocol):
+
     def request(self, httphandler, path, data):
-        if not httphandler.headers.has_key('authorization'):
+        if 'authorization' not in httphandler.headers:
             return HTTPResponse(code=401, data="<h1>401 Authentication Required</h1>",
-                                   headers=[('WWW-Authentication', 'Negotiate')],
-                                   ctype="text/html")
+                                headers=[('WWW-Authentication', 'Negotiate')],
+                                ctype="text/html")
 
         return XMLRPCProtocol.request(self, httphandler, path, data)
 
 
 class KRB5ApacheXMLRPCProtocol(ApacheXMLRPCProtocol):
+
     def request(self, httphandler, path, data):
-        if not httphandler.headers.has_key('authorization'):
+        if 'authorization' not in httphandler.headers:
             return HTTPResponse(code=401, data="<h1>401 Authentication Required</h1>",
-                                   headers=[('WWW-Authentication', 'Negotiate')],
-                                   ctype="text/html")
+                                headers=[('WWW-Authentication', 'Negotiate')],
+                                ctype="text/html")
 
         return ApacheXMLRPCProtocol.request(self, httphandler, path, data)
 
@@ -332,6 +322,7 @@ class KRB5ApacheXMLRPCProtocol(ApacheXMLRPCProtocol):
 # This eases development with PHP, where prepending a session argument
 # leads to ugly code.
 class JSONProtocol(Protocol):
+
     def request(self, httphandler, path, data):
         response = None
         try:
@@ -355,16 +346,17 @@ class JSONProtocol(Protocol):
         try:
             retdata = json.dumps(response, separators=(',', ':'), encoding="utf-8")
         except:
-            sys.stderr.write("Exception caught when encoding JSON response for %s#%d(%s)\n" % (function, api_version, params))
+            sys.stderr.write("Exception caught when encoding JSON response for %s#%d(%s)\n" %
+                             (function, api_version, params))
             raise
 
         return HTTPResponse(data=retdata, encoding='utf-8',
                             ctype='application/json')
 
-            
+
 class SOAPProtocol(Protocol):
     mscompat = False
-    
+
     def tag(self, domelem):
         if ":" in domelem.tagName:
             return domelem.tagName.split(':')[1].lower()
@@ -380,14 +372,14 @@ class SOAPProtocol(Protocol):
     def request(self, httphandler, path, data):
         namespace = "https://unknown/name/space"
         try:
-            dom = xml.dom.minidom.parseString(data)
-            
+            dom = minidom.parseString(data)
+
             top = dom.documentElement
             if self.tag(top) != 'envelope':
                 raise ValueError("1")
 
             if top.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/':
-                raise exterror.ExtSOAPVersionMismatchError()
+                raise SOAPVersionMismatchError()
 
             header = None
             body = None
@@ -395,10 +387,10 @@ class SOAPProtocol(Protocol):
 
             if self.tag(c[0]) == 'header':
                 header = c.pop(0)
-            
+
             if self.tag(c[0]) == 'body':
                 body = c.pop(0)
-            
+
             if c:
                 raise exterror.ExtSOAPServerError("Too many children of envelope")
 
@@ -413,20 +405,20 @@ class SOAPProtocol(Protocol):
                         must = 0
 
                     if must == '1' or must == 'true':
-                        raise exterror.ExtSOAPMustUnderstandError()
+                        raise SOAPMustUnderstandError()
 
                     try:
                         enc = hdrelem.getAttribute("encodingStyle")
                     except:
                         enc = None
-                    
+
                     if enc:
-                        raise exterror.ExtSOAPDataEncodingUnknownError()
-                
+                        raise SOAPDataEncodingUnknownError()
+
             bodylist = self.cleancopy(body.childNodes)
             if len(bodylist) != 1:
                 raise exterror.ExtSOAPClientError("Wrong number of body children")
-            
+
             msgelem = bodylist[0]
 
             # The message element just extracted determines what
@@ -438,7 +430,7 @@ class SOAPProtocol(Protocol):
             elemname = msgelem.tagName
 
             apihdl = self.server.api_handler
-            (mscompat, api) = apihdl.lookup_soap_namespace(namespace)
+            (_mscompat, api) = apihdl.lookup_soap_namespace(namespace)
             funcls = api.function_for_element_name(elemname)
 
             #fundef = api.get_soap_fundef_for_element(elemname)
@@ -446,13 +438,15 @@ class SOAPProtocol(Protocol):
             #params = tuple(params)
 
             params = funcls.from_xml(msgelem)
-            ret = self.server.call_rpc(httphandler, fun._name(), params, api.version)
-            if ret.has_key('error'):
+            ret = self.server.call_rpc(httphandler, funcls._name(), params, api.version)
+            if "error" in ret:
                 if ret['error']['name'] == 'InternalError':
                     raise exterror.ExtSOAPServerError(ret['error'])
                 else:
                     raise exterror.ExtSOAPClientError(ret['error']['name'])
-            retelem = funcls.to_xml_node(retval)
+            retval = ret['result']
+            
+            retelem = funcls.to_xml_node(retval) 
             retelem.set_namespace("m", namespace)
 
             env = XMLNode("Envelope")
@@ -464,21 +458,22 @@ class SOAPProtocol(Protocol):
         except exterror.ExtSOAPError, e:
             env = e.get_envelope(namespace)
         except Exception, e:
-            import traceback
             traceback.print_exc()
             srverr = exterror.ExtSOAPServerError("Internal server error, contact developer")
             env = srverr.get_envelope(namespace)
 
         retxml = "<?xml version='1.0' encoding='UTF-8'?>\n" + env.xml()
-        
+
         return HTTPResponse(data=retxml, encoding="UTF-8", ctype="text/xml")
 
+
 class KRB5SOAPProtocol(SOAPProtocol):
+
     def request(self, httphandler, path, data):
-        if not httphandler.headers.has_key('authorization'):
+        if 'authorization' not in httphandler.headers:
             return HTTPResponse(code=401, data="<h1>401 Authentication Required</h1>",
-                                   headers=[('WWW-Authentication', 'Negotiate')],
-                                   ctype="text/html")
+                                headers=[('WWW-Authentication', 'Negotiate')],
+                                ctype="text/html")
 
         path = path.replace("spnego+", "")
         return SOAPProtocol.request(self, httphandler, path, data)

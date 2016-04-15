@@ -23,6 +23,7 @@ class API(object):
     def __init__(self, handler, version):
         self.handler = handler
         self.server = handler.server
+        self.logger = self.server.logger
         self.version = version
 
         # Indexed by public names
@@ -48,8 +49,7 @@ class API(object):
         return nxt
 
     def add_function(self, funclass):
-        if funclass.from_version > self.version or \
-               funclass.to_version < self.version:
+        if funclass.from_version > self.version or funclass.to_version < self.version:
             raise IntAPIValidationError()
 
         # By using the capsified name internally, we make sure that
@@ -62,7 +62,8 @@ class API(object):
         if funname in self.functions:
             if self.functions[funname] == funclass:
                 return
-            raise IntAPIValidationError("Both %s and %s implement public name %s for version %d" % (funclass, self.functions[funname], funname, self.version))
+            raise IntAPIValidationError("Both %s and %s implement public name %s for version %d" % (
+                funclass, self.functions[funname], funname, self.version))
 
         self.functions[funname] = funclass
 
@@ -77,7 +78,7 @@ class API(object):
         except IntAPIValidationError as e:
             raise TypeError("%s return type: %s" % (funclass, e.args[0]))
         except:
-            print "Defunct return type:", funclass.returns
+            self.logger.error("Defunct return type: %s" % str(funclass.returns))
             raise
 
     def get_function(self, funname):
@@ -106,12 +107,14 @@ class API(object):
         minv, maxv = typ._api_versions()
 
         if minv > self.version or maxv < self.version:
-            raise IntAPIValidationError("%s (%d-%d) invalid for version %d" % (typething, typething.from_version, typething.to_version, self.version))
-        
+            raise IntAPIValidationError("%s (%d-%d) invalid for version %d" %
+                                        (typething, typething.from_version, typething.to_version, self.version))
+
         if typename in self.types:
             if self.types[typename] == typ:
                 return
-            raise IntAPIValidationError("Both %s and %s implement public name %s for version %d" % (typething, self.types[typename], typename, self.version))
+            raise IntAPIValidationError("Both %s and %s implement public name %s for version %d" % (
+                typething, self.types[typename], typename, self.version))
 
         self.types[typename] = typ
 
@@ -135,8 +138,7 @@ class API(object):
 
         """
 
-        if catclass.from_version > self.version or \
-               catclass.to_version < self.version:
+        if catclass.from_version > self.version or catclass.to_version < self.version:
             raise IntAPIValidationError()
 
         catname = catclass.get_public_name()
@@ -145,7 +147,8 @@ class API(object):
             if isinstance(self.categories[catname], catclass):
                 return
 
-            raise IntAPIValidationError("API version mismatch adding %s - %s already implements public name %s for version %d" % (catclass, self.types[catclass], catclass, self.version))
+            raise IntAPIValidationError("API version mismatch adding %s - %s already implements public name %s for version %d" % (
+                catclass, self.types[catclass], catclass, self.version))
 
         self.categories[catname] = catclass(self)
 
@@ -272,7 +275,7 @@ class API(object):
             mssuffix = ""
             mscompat = False
         else:
-            print "VOLVO"
+            self.logger.error("VOLVO")
             raise ExtInternalError()
 
         wsdl_ns = self.get_wsdl_url(mscompat)
@@ -283,7 +286,7 @@ class API(object):
             'xmlns:myxsd': schema_ns,
             'xmlns:soap': "http://schemas.xmlsoap.org/wsdl/soap/",
             'xmlns': "http://schemas.xmlsoap.org/wsdl/",
-            }
+        }
 
         name_attr = self.server.service_name
         if self.version > 0:
@@ -331,7 +334,7 @@ class API(object):
                                     binding="self:" + bndname)
         prt.new('soap:address', location=self.server.get_server_url() + 'SOAP')
 
-        ### TODO ###
+        # TODO ###
         #faultdef = RPCSOAPTypeDefFactory(self).typedef(SOAPFaultDetailType()._docdict())
         #faultmsg = wsdl_root.new("message", name="msgFaultDetail")
         #faultmsg.new("part", name="fault", element="myxsd:soapFaultDetail")
@@ -344,7 +347,7 @@ class API(object):
             already_added.add(typ._name())
             schemaelem.add(typ.xsd())
 
-            for (key, subtyp) in typ._subtypes():
+            for (_key, subtyp) in typ._subtypes():
                 add_type(schemaelem, already_added, subtyp)
 
         added_types = set()
@@ -353,10 +356,10 @@ class API(object):
             wsdl_schema_root.add(funcls.xsd_request(mscompat))
             wsdl_schema_root.add(funcls.xsd_response())
 
-            for (name, typ, desc) in funcls.get_parameters():
+            for (_name, typ, _desc) in funcls.get_parameters():
                 add_type(wsdl_schema_root, added_types, typ)
 
-            (typ, desc) = funcls._returns()
+            (typ, _desc) = funcls._returns()
             add_type(wsdl_schema_root, added_types, typ)
 
             # Doc/lit-wrap input message
@@ -376,7 +379,7 @@ class API(object):
             # SOAP operation
             soapaction = self.server.get_server_url() + "SOAP" + "/" + funcls.soap_name()
             _soapns = self.server.get_server_url() + "WSDL" + mssuffix
-            
+
             op2 = wsdl_binding_root.new('operation', name=funcls.soap_name())
             op2.new('soap:operation', soapAction=soapaction)
             op2.new('input').new('soap:body', use='literal')
@@ -468,12 +471,15 @@ class API(object):
                                   ("template", self._template_by_model[name], "Data template")]
             clsattrs["returns"] = (self._data_by_model[name], "Templated data")
             clsattrs["desc"] = "Get data about a particular %s. The template indicates which fields (and optionally sub-fields for linked templates) to return." % (name,)
-            
+
+            if hasattr(modelcls, "log_fetch_calls"):
+                clsattrs["log_call_event"] = modelcls.log_fetch_calls
+
             if self.server.sessions_enabled:
                 fetchcls = type("Fun" + capsname + "Fetch", (function.FetchSessionedFunction,), clsattrs)
             else:
                 fetchcls = type("Fun" + capsname + "Fetch", (function.FetchFunction,), clsattrs)
-            
+
             self.add_function(fetchcls)
 
     def generate_update_functions(self):
@@ -488,6 +494,8 @@ class API(object):
             clsattrs["params"] = [(name, modelcls.exttype, "The %s to update" % (name,)),
                                   ("updates", self._update_by_model[name], "Fields and updates")]
             clsattrs["desc"] = "Update one or more fields atomically."
+            if hasattr(modelcls, "log_update_calls"):
+                clsattrs["log_call_event"] = modelcls.log_update_calls
             if self.server.sessions_enabled:
                 upcls = type("Fun" + capsname + "Update", (function.UpdateSessionedFunction,), clsattrs)
             else:
@@ -513,7 +521,10 @@ class API(object):
                                   ("template", self._template_by_model[modelname], "Fields and updates")]
             clsattrs["desc"] = "Search and return %ss." % (modelname,)
             clsattrs["dig_manager"] = mgrname
-            clsattrs["returns"] = (ExtList(self._data_by_model[modelname]), "Formatted data for matched %ss." % (modelname,))
+            clsattrs["returns"] = (
+                ExtList(self._data_by_model[modelname]), "Formatted data for matched %ss." % (modelname,))
+            if hasattr(mgrcls, "log_dig_calls"):
+                clsattrs["log_call_event"] = mgrcls.log_dig_calls
 
             if self.server.sessions_enabled:
                 digcls = type("Fun" + capsname + "Dig", (function.DigSessionedFunction,), clsattrs)

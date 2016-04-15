@@ -230,6 +230,7 @@ class Model(object):
         if not isinstance(manager, Manager):
             raise ValueError("The first argument to all Model instances must be the Manager that created them - received %s instead" % (manager,))
         self.manager = manager
+        self.logger = self.manager.logger
         self.function = manager.function
         self.db = manager.function.db
         self._templated = {}
@@ -391,15 +392,17 @@ class Model(object):
     def check_model(self):  # To be overriden in subclasses, if needed.
         pass
     
+    def pre_update(self):  # To be overridden in subclasses, if needed
+        pass
+    
     def apply_update(self, api_version, updates):
         writeattrs = self._write_attributes(api_version)
+        self.pre_update()
         for (name, newval) in updates.items():
             attr = writeattrs[name]
             attr.method(self, newval, **attr.kwargs)
         self.reload()
         self.check_model()
-        self.reload()
-        self.check_model()  # Hook for checking the model consistency.
 
     def apply_template(self, api_version, tmpl):
         # Note: many different other Model instances may call
@@ -428,7 +431,7 @@ class Model(object):
         out = {}
         readattrs = self._read_attributes(api_version)
         for (name, tmpl_value) in tmpl.items():
-            if tmpl_value == False:
+            if not tmpl_value:
                 continue
 
             # The ExternalAttribute instance has a reference to the
@@ -446,7 +449,7 @@ class Model(object):
 
             if attr.model:
                 subtmpl = tmpl_value
-                if remove_nulls != None and "_remove_nulls" not in subtmpl:
+                if remove_nulls is not None and "_remove_nulls" not in subtmpl:
                     subtmpl = subtmpl.copy()
                     subtmpl["_remove_nulls"] = remove_nulls
                 
@@ -643,6 +646,22 @@ class EqualityMatchMixin(object):
         q.where(expr + "<>" + q.var(val))
 
 
+class BooleanMatchMixin(object):
+    @prefix("is", ExtBoolean)
+    def is_true(self, fun, q, expr, val):
+        if val:
+            q.where(expr + " != 0")
+        else:
+            q.where(expr + " = 0")
+            
+    @prefix("is_not", ExtBoolean)        
+    def is_false(self, fun, q, expr, val):
+        if val:
+            q.where(expr + " = 0")
+        else:
+            q.where(expr + " != 0")
+            
+            
 class NullMatchMixin(object):
     @suffix("is_set", ExtBoolean)
     def set(self, fun, q, expr, val):
@@ -716,6 +735,68 @@ class IntegerMatch(EqualityMatchMixin, Match):
     def min(self, fun, q, expr, val):
         q.where(expr + ">=" + q.var(val))
 
+
+class IPv4Match(Match):
+    @suffix("equal", ExtString)
+    @suffix("", ExtString)
+    def eq(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") = INET_ATON(" + q.var(val) + ")" )
+    
+    @suffix("not_equal", ExtString)
+    def neq(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") <> INET_ATON(" + q.var(val) + ")" )
+        
+    @prefix("max", ExtInteger)
+    def max(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") <= INET_ATON(" + q.var(val) + ")" )
+    
+    @prefix("min", ExtInteger)
+    def min(self, fun, q, expr, val):
+        q.where("INET_ATON(" + expr + ") >= INET_ATON(" + q.var(val) + ")" )
+
+
+class BooleanMatch(BooleanMatchMixin, Match):
+    pass
+
+
+class DateTimeMatch(Match):
+    
+    @suffix("at", ExtDateTime)
+    @suffix("", ExtDateTime)
+    def eq(self, fun, q, expr, val):
+        q.where(expr + "=" + q.var(val))
+
+    @suffix("not_at", ExtDateTime)
+    def neq(self, fun, q, expr, val):
+        q.where(expr + "<>" + q.var(val))
+    
+    @suffix("before", ExtDateTime)
+    def before(self, fun, q, expr, val):
+        q.where(expr + "<=" + q.var(val))
+        
+    @suffix("after", ExtDateTime)
+    def after(self, fun, q, expr, val):
+        q.where(expr + ">=" + q.var(val))
+        
+        
+class DateMatch(Match):
+    @suffix("on", ExtDate)
+    @suffix("", ExtDate)
+    def eq(self, fun, q, expr, val):
+        q.where(expr + "=" + q.var(val))
+
+    @suffix("not_on", ExtDate)
+    def neq(self, fun, q, expr, val):
+        q.where(expr + "<>" + q.var(val))
+    
+    @suffix("before", ExtDate)
+    def before(self, fun, q, expr, val):
+        q.where(expr + "<=" + q.var(val))
+        
+    @suffix("after", ExtDate)
+    def after(self, fun, q, expr, val):
+        q.where(expr + ">=" + q.var(val))
+    
 
 class NullableIntegerMatch(NullMatchMixin, IntegerMatch):
     pass
@@ -889,7 +970,6 @@ class Manager(object):
             styp.optional[skey.key] = (skey.exttype, skey.desc)
 
         return styp
-    
         
     @classmethod
     def on_register(cls, srv, db):
@@ -919,8 +999,7 @@ class Manager(object):
             return  # Specs already there for this class.
         dq = db.dynamic_query()
         cls.base_query(dq)
-        db.database.add_tables_from_dynamic_query(dq, cls) # Collect table definition in the database object.
-
+        db.database.add_tables_from_dynamic_query(dq, cls)  # Collect table definition in the database object.
 
     @classmethod
     def _add_search(cls, method_name, *args, **kwargs):
@@ -936,8 +1015,9 @@ class Manager(object):
     def __init__(self, function, *args, **kwargs):
         self.function = function
         self.server = function.server
+        self.logger = self.server.logger
         self.db = function.db
-
+        
         # Dict of Model instances already created, indexed by Model id.
         self._model_cache = {}
 
@@ -980,7 +1060,7 @@ class Manager(object):
 
         if oid not in self._model_cache:
             if not isinstance(oid, self.manages.id_type):
-                #print "AAAA", self.manages, self.manages.id_type, type(oid)
+                # print "AAAA", self.manages, self.manages.id_type, type(oid), oid
                 raise ValueError("%s id is of type %s, but must be of type %s - supplied value %s isn't" % (self.manages.__name__, type(oid), self.manages.id_type, oid))
             args = self.args_for_model(oid)
             kwargs = self.kwargs_for_model(oid) or {}
@@ -1021,7 +1101,7 @@ class Manager(object):
         extras = self.kwargs_for_result(rid)
         for args in list(dq.run()):
             oid = args[0]
-            if not oid in self._model_cache:
+            if oid not in self._model_cache:
                 if extras:
                     kwargs = extras.get(oid, {})
                 else:
@@ -1040,14 +1120,13 @@ class Manager(object):
             raise AttributeError(attr)
 
     def new_result_set(self):
-        q = "SELECT resid FROM rpcc_result WHERE expires < :now"
-        for (expired,) in self.db.get_all(q, now=self.function.started_at()):
-            q = "DELETE FROM rpcc_result_string WHERE resid=:r"
-            self.db.put(q, r=expired)
-            q = "DELETE FROM rpcc_result_int WHERE resid=:r"
-            self.db.put(q, r=expired)
-            q = "DELETE FROM rpcc_result WHERE resid=:r"
-            self.db.put(q, r=expired)
+        with self.server.thread_lock:
+            q = "DELETE FROM rpcc_result_string WHERE resid IN (SELECT resid FROM rpcc_result WHERE expires < :now);"
+            self.db.put(q, now=self.function.started_at())
+            q = "DELETE FROM rpcc_result_int WHERE resid IN (SELECT resid FROM rpcc_result WHERE expires < :now);"
+            self.db.put(q, now=self.function.started_at())
+            q = "DELETE FROM rpcc_result WHERE expires < :now;"
+            self.db.put(q, now=self.function.started_at())
 
         while 1:
             rid = random.randint(0, 1 << 31)

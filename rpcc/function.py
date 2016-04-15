@@ -135,10 +135,10 @@ class Function(object):
             if n in typedict:
                 return
             typedict[n] = t
-            for (name, subt) in t._subtypes():
+            for (_name, subt) in t._subtypes():
                 add_type(typedict, subt)
 
-        for (p, t, _d) in cls.get_parameters():
+        for (_p, t, _d) in cls.get_parameters():
             add_type(types, t)
 
         add_type(types, cls._returns()[0])
@@ -195,7 +195,7 @@ class Function(object):
     def from_xml(cls, elem):
         children = ExtType.child_elements(elem)
         params = []
-        for (name, typ, desc) in cls.get_parameters():
+        for (name, typ, _desc) in cls.get_parameters():
             elemname = ExtType.capsify(name)
 
             if len(children) == 0:
@@ -219,6 +219,7 @@ class Function(object):
 
     def __init__(self, server, http_handler, api):
         self.server = server
+        self.logger = server.logger
         # HTTPRequestHandler that handles this request. Interesting
         # for the .headers and .client attributes.
         self.http_handler = http_handler
@@ -271,7 +272,7 @@ class Function(object):
         argidx = 0
         for (param, arg) in zip(params, args):
             try:
-                (attr, typ, desc) = param
+                (attr, typ, _desc) = param
             except:
                 raise exterror.ExtInternalError("Wrong tuple member count in params of %s" % (self.__class__.__name__))
 
@@ -348,10 +349,10 @@ class Function(object):
                 self.db.rollback()
             
             if isinstance(e, exterror.ExtOutputError):
-                print "ExtOutputError"
-                e.print_trace()
+                self.logger.error("ExtOutputError")
+                e.print_trace(self.logger)
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_exc()
+            self.logger.error(traceback.format_exc())
             tb = traceback.extract_tb(exc_traceback)
             evattrs["error"] = exc_type.__name__
             evattrs["errline"] = "%s:%d" % (tb[-1][0], tb[-1][1])
