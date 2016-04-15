@@ -10,5 +10,6 @@
 <path>/${PROJECT_DIR_NAME}</path>
 <path>/${PROJECT_DIR_NAME}/server/lib</path>
 <path>/${PROJECT_DIR_NAME}/client</path>
+<path>/${PROJECT_DIR_NAME}/server/testing</path>
 </pydev_pathproperty>
 </pydev_project>

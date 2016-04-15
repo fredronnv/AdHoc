@@ -5,7 +5,7 @@
 from rpcc import AnyGrants, IntegrityError, ExtLookupError, ExtValueError, ExtString, ExtList, ExtOrNull, ExtInteger, \
                  ExtStruct, SessionedFunction, ExtNull, ExtDateTime, update, template, entry, search, \
                  NullableStringMatch, IntegerMatch, StringMatch
-from optionset import Optionset, ExtOptionset
+from optionset import ExtOptionset, Optionset, OptionsetManager  # @UnusedImport OptionSetManager is needed anyway. Do not remove!
 from option_def import ExtOptionspace, ExtOrNullOptionspace, ExtOptionKeyList
 from util import ExtHostList, AllowUserWithPriv, AdHocSuperuserGuard, AdHocModel, ExtLiteralOptionList, AdHocManager
 from util import g_rename, g_write_literal_option, ExtLiteralOptionString
