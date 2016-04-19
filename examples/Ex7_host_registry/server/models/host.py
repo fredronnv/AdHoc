@@ -31,7 +31,6 @@ class ExtHostId(ExtString):
     regexp = "^[a-z]{1,8}$"
   
 
-    
 # The host record itself
 class ExtHost(ExtHostId):
     name = "host"
@@ -147,16 +146,6 @@ class HostManager(AuthenticationManager):
         dq.table("hosts h")
         return "h.id"
     
-    @search("ip", IPMatch)
-    def s_ip(self, dq):
-        dq.table("hosts h")
-        return "h.ip"
-    
-    @search("dns", DNSMatch)
-    def s_dns(self, dq):
-        dq.table("hosts h")
-        return "h.dns"
-    
     @search("placement", StringMatch)
     def s_placement(self, dq):
         dq.table("hosts h")
@@ -173,21 +162,9 @@ class HostManager(AuthenticationManager):
         return "h.serial"
     
     @search("roles", StringMatch)
+    def s_roles(self, dq):
         dq.table("roles r")
-    
-    @search("dns", StringMatch)
-    def s_placement(self, dq):
-        dq.table("hosts h")
-        return "h.placement"
-    @search("dns", StringMatch)
-    def s_placement(self, dq):
-        dq.table("hosts h")
-        return "h.placement"
-    @search("dns", StringMatch)
-    def s_placement(self, dq):
-        dq.table("hosts h")
-        return "h.placement"
-    
+  
     def create_host(self, host_id, firstname, lastname, email, password):  
         q = """INSERT INTO hosts (id, firstname, lastname) 
                VALUES (:host_id, :firstname, :lastname)"""

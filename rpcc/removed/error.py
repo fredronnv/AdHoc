@@ -39,6 +39,7 @@ Base classes for your own errors:
     expected to be, an example would be XMLRPC sent to the JSON URL.
 """
 
+
 class ExtError(Exception):
     # Explicit external error name for this particular subclass, if
     # any.  If set, the external error path and external error name
@@ -54,13 +55,13 @@ class ExtError(Exception):
     # from the class name when generating the error path.
     prefix = "Ext"
     suffix = "Error"
-    
+
     # Whether this exception class should be visible in the error path
     # or not. If this is False, the name will not be included in the
     # "::"-separated error path. Note that this attribute is looked up
     # locally in each class - inherited values do not count!
     visible = True
-    
+
     def __init__(self, desc=None, argno=None, value=None):
         self.argno = argno
         self.traceback = []
@@ -117,56 +118,56 @@ class ExtError(Exception):
                 'desc': self.desc,
                 'value': self.value,
                 'traceback': self.traceback}
-        
 
-    def XXXstruct(self):
-        namel = []
-        cls = self.__class__
 
-        while 1:
-            if cls.__dict__.has_key('invisible'):
-                # If the class under consideration has an "invisible"
-                # attribute itself (rather than an inherited one),
-                # pass to the next stage.
-                pass
-            else:
-                # Otherwise add it's name to the name list.
-                if cls.__dict__.has_key('name'):
-                    # If it has a non-inherited "name" attribute, use that.
-                    namel.append(cls.name)
-                else:
-                    # Otherwise use the class' own error_name_for_class
-                    # method (inherited). Using self.error_name_for_class()
-                    # would use the error object's such method for all
-                    # classes, but classes up the chain expect their
-                    # own to be used.
-                    namel.append(cls.error_name_for_class(self, cls))
+#     def XXXstruct(self):
+#         namel = []
+#         cls = self.__class__
+#
+#         while 1:
+#             if cls.__dict__.has_key('invisible'):
+#                 # If the class under consideration has an "invisible"
+#                 # attribute itself (rather than an inherited one),
+#                 # pass to the next stage.
+#                 pass
+#             else:
+#                 # Otherwise add it's name to the name list.
+#                 if cls.__dict__.has_key('name'):
+#                     # If it has a non-inherited "name" attribute, use that.
+#                     namel.append(cls.name)
+#                 else:
+#                     # Otherwise use the class' own error_name_for_class
+#                     # method (inherited). Using self.error_name_for_class()
+#                     # would use the error object's such method for all
+#                     # classes, but classes up the chain expect their
+#                     # own to be used.
+#                     namel.append(cls.error_name_for_class(self, cls))
+#
+#             # Now iterate over all base classes, and find one that is
+#             # a subclass of RPCError. Other base classes are uninteresting.
+#             # If a class inherits multiple times from RPCError, something
+#             # else is very weird, and it is undefined what the "name"
+#             # should be in the final error struct.
+#             for cls in cls.__bases__:
+#                 if issubclass(cls, RPCCError):
+#                     break
+#             else:
+#                 raise ValueError("No RPCError base class... Eh? WHAT?!")
+#
+#             # ...and stop the iteration when we reach up to RPCError.
+#             if cls == RPCCError:
+#                 break
+#
+#         namel.reverse()
+#
+#         return {'name': '::'.join(namel),
+#                 'namelist': namel,
+#                 'argno': self.argno,
+#                 'id': self.id,
+#                 'desc': self.desc,
+#                 'value': self.value,
+#                 'traceback': self.traceback}
 
-            # Now iterate over all base classes, and find one that is
-            # a subclass of RPCError. Other base classes are uninteresting.
-            # If a class inherits multiple times from RPCError, something
-            # else is very weird, and it is undefined what the "name"
-            # should be in the final error struct.
-            for cls in cls.__bases__:
-                if issubclass(cls, RPCError):
-                    break
-            else:
-                raise ValueError("No RPCError base class... Eh? WHAT?!")
-
-            # ...and stop the iteration when we reach up to RPCError.
-            if cls == RPCError:
-                break
-
-        namel.reverse()
-
-        return {'name': '::'.join(namel),
-                'namelist': namel,
-                'argno': self.argno,
-                'id': self.id,
-                'desc': self.desc,
-                'value': self.value,
-                'traceback': self.traceback}
-        
 
 # The naming standard is that base class errors have "Error" in their
 # names, while others do not. This makes the error look pretty to the
@@ -181,11 +182,14 @@ class ExtInternalError(ExtError):
 class ExtValueError(ExtError):
     name = "ValueError"
 
+
 class ExtMalformedStringError(ExtValueError):
     pass
 
+
 class ExtUnhandledCharatersError(ExtMalformedStringError):
     desc = "The string contained characters that this call can't handle."
+
 
 class ExtStringTooLongError(ExtMalformedStringError):
     desc = "The string exceeds the maximum length for this type, which is %d characters."
@@ -193,7 +197,8 @@ class ExtStringTooLongError(ExtMalformedStringError):
     def __init__(self, maxlen, **kwargs):
         self.desc = self.desc % (maxlen,)
         ExtMalformedStringError.__init__(self, **kwargs)
-        
+
+
 class ExtRegexpMismatchError(ExtMalformedStringError):
     desc = "The string did not match the regexp for this type, which is '%s'."
 
@@ -221,6 +226,7 @@ class ExtIntegerOutOfRangeError(ExtValueError):
 class ExtMalformedStructError(ExtValueError):
     pass
 
+
 class ExtIncompleteStructError(ExtMalformedStructError):
     desc = "Struct is incomplete, the mandatory key %s is missing"
 
@@ -228,47 +234,53 @@ class ExtIncompleteStructError(ExtMalformedStructError):
         self.desc = self.desc % (key,)
         ExtMalformedStructError.__init__(self, **kwargs)
 
+
 class ExtUnknownStructKeyError(ExtMalformedStructError):
     desc = "The struct has a key which is not defined for this type."
-
-
 
 
 class ExtLookupError(ExtError):
     name = 'LookupError'
 
+
 class ExtInvalidSessionIDError(ExtLookupError):
     desc = 'No session by that id is active for this client'
 
+
 class ExtFunctionNotFoundError(ExtLookupError):
     desc = 'No function by that name is callable on the server in the api version you selected'
+
 
 class ExtAPIVersionNotFoundError(ExtLookupError):
     desc = 'No such API version exists on the server.'
 
 
-
 class ExtTypeError(ExtError):
     name = 'TypeError'
+
 
 class ExtExpectedStringError(ExtTypeError):
     pass
 
+
 class ExtExpectedIntegerError(ExtTypeError):
     pass
+
 
 class ExtExpectedBooleanError(ExtTypeError):
     pass
 
+
 class ExtExpectedNullError(ExtTypeError):
     pass
+
 
 class ExtExpectedStructError(ExtTypeError):
     pass
 
+
 class ExtExpectedListError(ExtTypeError):
     pass
-
 
 
 class ExtRuntimeError(ExtError):
@@ -282,10 +294,10 @@ class ExtAccessDeniedError(ExtRuntimeError):
 class ExtTransportError(ExtError):
     name = "TransportError"
 
+
 class ExtMalformedXMLRPCError(ExtTransportError):
     desc = 'The data you sent could not be parsed as an XMLRPC request. Perhaps the XML is malformed, or i sent in another encoding than the <?xml?>-tag claims?'
 
+
 class ExtMalformedJSONError(ExtTransportError):
     desc = "The data you sent could not be parsed as a JSON request. Perhaps you sent malformed JSON, or it wasn't a struct with the 'function' and 'params' keys?"
-
-

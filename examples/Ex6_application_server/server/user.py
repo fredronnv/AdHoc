@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from rpcc import *
-import uuid
-import hashlib
 from __builtin__ import classmethod
 from email.utils import parseaddr
 from userauthentication import UserAuthenticationManager
