@@ -1,7 +1,5 @@
 #!/usr/bin/env python2.6
 import inspect
-import os
-import sys
 
 from protocol import *
 from rpcc import *
@@ -19,8 +17,7 @@ sys.path.append(os.path.join(adhoc_home, 'adhoc-server'))
 sys.path.append(os.path.join(adhoc_home, 'adhoc-server', 'lib'))
 sys.path.append(os.path.join(adhoc_home, 'lib'))
 
-for path in sys.path: print path
-
+# for path in sys.path: print path
 
 
 class AdHocServer(Server):
@@ -28,16 +25,16 @@ class AdHocServer(Server):
     service_name = "AdHoc"
     major_version = 0
     minor_version = 1
-    
+
     from util import AdHocSuperuserGuard
-    
+
     superuser_guard = AdHocSuperuserGuard
-    
-    
+
+
 class StartMe(object):
 
     def __init__(self, host, port, enable_ssl=False, generic_password=None, logger=None):
-        
+
         self.logger = logger if logger else logging.getLogger(__name__)
 
         ssl_config = None
@@ -57,28 +54,28 @@ class StartMe(object):
         serverdir = os.path.join(scriptparent, "lib")
 
         srv.register_manager(session.DatabaseBackedSessionManager)
-        
+
         srv.register_manager(event.EventManager)
         event.EventManager.clean_all_markers(srv)
-        
+
         srv.register_from_directory(serverdir)
         srv.register_manager(authentication.KerberosAuthenticationManager)
         srv.enable_global_functions()
         srv.enable_documentation()
         srv.enable_static_documents(os.path.join(adhoc_home, "adhoc-server", 'docroot'))
         srv.enable_digs_and_updates()
-        
+
         srv.check_tables(tables_spec=None, dynamic=False, fix=False)
-        
+
         srv.add_protocol_handler("dhcpd", DhcpdConfProtocol)
-        
+
         self.srv = srv
-        
+
     def serve_forever(self):
         self.srv.serve_forever()
-        
+
 if __name__ == "__main__":
-    
+
     import argparse  # @UnresolvedImport
 
     argv = []
@@ -106,13 +103,14 @@ if __name__ == "__main__":
     generic_password = os.environ.get("ADHOC_GENERIC_PASSWORD", None)
 
     os.environ['PDB4_GENERIC_PASSWORD'] = 'xxxxxxxxxxxxxxx'  # Possibly zap the password
-        
+
     protocol = "HTTPS" if opts.ssl else "HTTP"
-    
+
     starter = StartMe(opts.host, opts.port, generic_password=generic_password, enable_ssl=opts.ssl, logger=logger)
-    
+
     if starter.srv.config("SKIP_DHCPD_CHECKS", default=None):
-        logger.warning("WARNING: DHCPD Checks disabled. Remove ADHOC_SKIP_DHCPD_CHECKS from the environment and define ADHOC_DHCPD_PATH")
-        
+        logger.warning(
+            "WARNING: DHCPD Checks disabled. Remove ADHOC_SKIP_DHCPD_CHECKS from the environment and define ADHOC_DHCPD_PATH")
+
     logger.info("Serving %s on '%s' port %d." % (protocol, opts.host, opts.port))
     starter.serve_forever()
