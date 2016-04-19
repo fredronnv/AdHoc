@@ -5,7 +5,7 @@ Client for RPCC servers.
 
 To create a client proxy, instantiate the RPCCProxy class.
 
-  rpcc = RPCC("https://some.where/", api=1, attrdicts=True)
+  rpcc = RPCCProxy("https://some.where/", api=1, attrdicts=True)
 
 Functions on the server appear as methods on the proxy object. 
 
@@ -36,22 +36,22 @@ a GSSAPI authentication to the server by implicitly adding the 'token'
 argument to the session_auth_kerberos call.
 """
 
-import re
-import json
-import time
-import getpass
-import urllib2
-import inspect
-import os
-import sys
-
-
-### Kludge to enalme TLSv1 protocol via urllib2
-#
 import functools
+import getpass
+import inspect
+import json
+import os
+import re
 import ssl
+import sys
+import time
+import urllib2
 
+
+# ## Kludge to enable TLSv1 protocol via urllib2
+#
 old_init = ssl.SSLSocket.__init__
+
 
 @functools.wraps(old_init)
 def adhoc_ssl(self, *args, **kwargs):
@@ -60,20 +60,21 @@ def adhoc_ssl(self, *args, **kwargs):
 
 ssl.SSLSocket.__init__ = adhoc_ssl
 #
-### End kludge
+# ## End kludge
 
 env_prefix = "ADHOC_"
 
 
 # Automagic way to find out the home of adhoc.
 adhoc_home = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/.."
-#print "ADHOC_HOME=", adhoc_home
+# print "ADHOC_HOME=", adhoc_home
 os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home  # Export as env variable ADHOC_RUNTIME_HOME if needed outside server
 
 sys.path.append(adhoc_home)
 sys.path.append(os.path.join(adhoc_home, 'client'))
 sys.path.append(os.path.join(adhoc_home, 'lib'))
-sys.path.append(os.path.join(adhoc_home, 'lib','python2.6'))
+sys.path.append(os.path.join(adhoc_home, 'lib', 'python2.6'))
+
 
 class AttrDict(dict):
     """A dictionary where keys can also be accessed as attributes."""
@@ -175,7 +176,7 @@ class RPCC(object):
         self._host = url.replace("http://", "").replace("https://", "").split(":")[0]
         self._api = api_version
         self._auth = None
-        #print >>sys.stderr, "URL='%s'"%self._url
+        # print >>sys.stderr, "URL='%s'"%self._url
         self.reset()
 
     def __getattr__(self, name):
@@ -234,10 +235,10 @@ class RPCC(object):
             except:
                 raise ValueError("No kerberos module installed - cannot perform kerberos authentication")
 
-            (res, ctx) = kerberos.authGSSClientInit("HTTP@" + self._host)
+            (_res, ctx) = kerberos.authGSSClientInit("HTTP@" + self._host)
             kerberos.authGSSClientStep(ctx, "")
             token = kerberos.authGSSClientResponse(ctx)
-            #print >>sys.stderr, "TOKEN=",token
+            # print >>sys.stderr, "TOKEN=",token
             args.append(token)
 
         # Perform call, measuring passed time.
@@ -268,7 +269,7 @@ class RPCC(object):
             if self._attrdicts:
                 err = self._convert_to_attrdicts(err)
 
-            errname = err['name']
+            _errname = err['name']
             raise error_object(err, self._pyexceptions)
 
     def _convert_to_attrdicts(self, val):
@@ -453,20 +454,3 @@ class RPCC(object):
 #         
 #         self._server = xmlrpclib.Server(self._url, encoding='UTF-8', allow_none=1)
 #         
-
-
-def pp(d, ind=0):
-    for (k, v) in d.iteritems():
-        print ' ' * ind + k + ':',
-        if type(v) == type({}):
-            print '{'
-            pp(v, ind + 4)
-            print ' ' * ind + '}'
-        elif type(v) == type([]):
-            print '['
-            for sv in v:
-                pp(sv, ind + 4)
-                print ' ' * ind + ','
-            print ' ' * ind + ']'
-        else:
-            print v

@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import datetime
-
 import model
 import access
 import database
 import default_type
 import default_error
+
 
 class MutexVariable(object):
     type_field = None
@@ -36,7 +35,7 @@ class MutexString(MutexVariable):
         q += "  SET value=:val "
         q += "WHERE var=:var "
         affected = self.db.put(q, var=self.varid, val=newval)
-        
+
         if affected == 0:
             q = "INSERT INTO rpcc_mutex_var_val (var, value) "
             q += " VALUES (:var, :val) "
@@ -275,7 +274,7 @@ class Mutex(model.Model):
         # No rows returned -> mutex not held
         if len(ret) == 0:
             raise default_error.ExtMutexNotHeldError()
-    
+
         # One or more rows -> non-null values are variable names of the
         # specified type.
         return [var for (_, var) in ret if var is not None]
@@ -316,7 +315,7 @@ class Mutex(model.Model):
 
         # Mutex hold check was performed by .get_variable(), no need
         # to do it again.
-        
+
         muvar.clear()
 
         q = "DELETE FROM rpcc_mutex_var WHERE id=:var "
