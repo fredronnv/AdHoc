@@ -11,7 +11,6 @@ import rpcc_client
 sys.path.append(os.environ["ADHOC_RUNTIME_HOME"] + "/rpcc_client")
 
 
-
 class ADHOCNotATestSystem(Exception):
     def is_type(self, name):
         if "::" in name:
