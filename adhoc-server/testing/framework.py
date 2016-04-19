@@ -61,7 +61,6 @@ import test_rpcc_client
 sys.path.append(os.environ["ADHOC_RUNTIME_HOME"] + "/client")
 
 
-
 def main(argv=None):
     """ Main function called from the bottom of this script"""
     tests = MyTests()  # Create a mother object within which all tests are run
@@ -75,8 +74,10 @@ class MyTests(object):
         the main methods for driving the test sequence."""
     # Whether to skip the test or not
     skip = False
-        
-    # Default access and privilege expectations for all tests. These expectations are most likely altered by subclassing or explicit definitions
+
+    # Default access and privilege expectations for all tests. These
+    # expectations are most likely altered by subclassing or explicit
+    # definitions
     expected_authenticated = False
     sufficient_privs = []
     expected_access = ["unauth"]
@@ -84,12 +85,12 @@ class MyTests(object):
     expected_loa = False
     expected_exception_name = None
     possible_exception_name = None
-    
+
     # Some groups and accounts used by the tests.
     normal_group_1 = "vtest-entry-1"
     normal_group_2 = "vtest-entry-2"
     internal_group = "_vtest_entry-1"
-    
+
     normal_user_id = "vtest-01"  # A privlesss normal user
     admin_user_id = "vtest-02"  # A privless normal user logged in as /admin!
     registrator_user_id = "vtest-03"  # A registrator logged in normally
@@ -97,7 +98,7 @@ class MyTests(object):
     normal_user2_id = "fbq"  # A privless normal user not owned by the superuser
     noloa_admin = "testsys"  # Used as a non-identified superuser logged in as /admin
     scratch_admin = "aeb"  # A scracthcard admin
-    
+
     # The actual access and privileges for each test as fetched from the server
     actual_access = None
     actual_privs = None
@@ -108,14 +109,14 @@ class MyTests(object):
     public_attributes = ["group", "admin_group", "description", "valid_to", "unix_gid"]
     protected_attributes = ["public_sv", "public_en", "it_billing", "file_intpath", "file_quota_mb", "file_reserved_mb"]
     group_protected_attributes = ["it_billing", "file_intpath", "file_quota_mb", "file_reserved_mb"]
-    
+
     # Test phases information
     phaseinfo = [""]
-    
-    # Override to make the test run twice, once with asmember argument set to true. 
+
+    # Override to make the test run twice, once with asmember argument set to true.
     do_as_group_member_test = False
-    
-    # 
+
+    #
     superuser_test_may_fail = False  # Normally superusers tests should succeed, but there is an exception
 
     # When a test is instantiated it may be given a proxy to use as agent for the test. If no proxy is given, it will
@@ -128,10 +129,10 @@ class MyTests(object):
 
     def prepare_test(self):
         pass  # Toe be overridden if needed
-    
+
     def cleanup_test(self):
         pass  # To be overridden if needed
-    
+
     def set_proxy(self, proxy):
         if not proxy:
             self.proxy = test_rpcc_client.RPCC(None, "", None, 3, basic_exceptions=False)
@@ -146,7 +147,7 @@ class MyTests(object):
 #             except KeyError:
 #                 self.actual_access = self.proxy.session_get_access()
 #                 self.proxy.put_into_cache("actual_access", self.actual_access)
-                 
+
             try:
                 self.actual_privs = self.proxy.get_from_cache("actual_privs")
             except KeyError:
@@ -156,7 +157,7 @@ class MyTests(object):
                 self.actual_access = {"anyauth": True, "unauth": True, "superusers": True}
             else:
                 self.actual_access = {"anyauth": True, "unauth": True, "superusers": False}
-            
+
             # self.actual_privs = []
             self.actual_admin = self.proxy._auth.endswith("/admin")
 
@@ -180,7 +181,7 @@ class MyTests(object):
         try:
             dummy_grp = superu.group_get(groupid)
             return
-       
+
         except rpcc_client.RPCCError as e:
             if e[0]["name"] == "LookupError::NoSuchGroup":
                 pass
@@ -189,29 +190,29 @@ class MyTests(object):
         except:
             raise
         super.group_create(groupid, "Group for testing purposes", None)
-        
+
     def setup(self):
         self.setup_proxies()  # Set up the proxies
         # Put in attribute values into the groups used so that refused reads become clear and distinguished from attributed having the null value
 #         for g in (self.normal_group_1, self.normal_group_2, self.internal_group):
 #             self.establish_group(g)
 #             self.superuser.group_set_it_billing(g, "96023")
-#             self.superuser.group_set_file_reserved_mb(g, 42) 
+#             self.superuser.group_set_file_reserved_mb(g, 42)
 #             self.superuser.group_set_file_quota_mb(g, 4242)
 #             self.superuser.group_set_file_intpath(g, "/dev/null")
 
     def setup_proxies(self):
         """ Setup the proxies or agents to use when testing. The superuser is treated specially. Its proxy is given to all other
             proxies so that the tests may use the superuser's privileges to set up and tear down things for the tests"""
-        
+
         adhoc_superuser = os.environ.get("ADHOC_SUPERUSER", "bernerus")
         generic_password = os.environ.get("ADHOC_GENERIC_PASSWORD", None)
         url = None
-        
+
         try:
             self.nouser = test_rpcc_client.RPCC(None, "", None, 0, basic_exceptions=False)
             self.superuser = test_rpcc_client.RPCC(url, adhoc_superuser, generic_password, 0, basic_exceptions=False)
-            
+
             self.superuser.add_privilege("write_all_host_classes")
             self.superuser.add_privilege("write_all_rooms")
             self.superuser.add_privilege("write_all_hosts")
@@ -220,25 +221,29 @@ class MyTests(object):
             self.superuser.add_privilege("write_all_pools")
             self.superuser.add_privilege("write_all_optionspaces")
             self.superuser.add_privilege("write_all_buildings")
-            
-            self.reguser = test_rpcc_client.RPCC(url, "fbq", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
-            self.flooradmin = test_rpcc_client.RPCC(url, "flooradm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
-            self.flooradmin.set_privileges("write_all_hosts", 
+
+            self.reguser = test_rpcc_client.RPCC(
+                url, "fbq", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+            self.flooradmin = test_rpcc_client.RPCC(
+                url, "flooradm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+            self.flooradmin.set_privileges("write_all_hosts",
                                            "admin_all_pools",
                                            "write_all_rooms")
-            self.servicedesk = test_rpcc_client.RPCC(url, "sdadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
-            self.servicedesk.set_privileges("write_all_hosts", 
-                                            "write_all_groups", 
+            self.servicedesk = test_rpcc_client.RPCC(
+                url, "sdadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+            self.servicedesk.set_privileges("write_all_hosts",
+                                            "write_all_groups",
                                             "admin_all_pools",
                                             "write_all_host_classes",
                                             "write_all_rooms",
                                             "write_all_buildings",
                                             )
-            self.networkadmin = test_rpcc_client.RPCC(url, "nwadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
-            self.networkadmin.set_privileges("write_all_hosts", 
-                                             "write_all_groups", 
-                                             "write_all_networks", 
-                                             "write_all_subnetworks", 
+            self.networkadmin = test_rpcc_client.RPCC(
+                url, "nwadm", generic_password, 0, basic_exceptions=False, superuser=self.superuser)
+            self.networkadmin.set_privileges("write_all_hosts",
+                                             "write_all_groups",
+                                             "write_all_networks",
+                                             "write_all_subnetworks",
                                              "write_all_pools",
                                              "admin_all_pools",
                                              "write_all_rooms",
@@ -249,15 +254,15 @@ class MyTests(object):
                                              "write_all_pool_ranges")
             # regular_users = (self.reguser,)
             regular_users = (self.reguser, self.servicedesk, self.flooradmin, self.networkadmin)
-            
+
 #             for px in regular_users:
 #                 px.clear_privileges()
 #                 px.clear_access()
 
-        except test_rpcc_client.ADHOCNotATestSystem as _e: 
+        except test_rpcc_client.ADHOCNotATestSystem as _e:
             print "Not a test system"
             sys.exit(2)
-        
+
         except rpcc_client.RPCCError as _e:
             print "One or more accounts needed for testing could not be logged in to"
             raise
@@ -281,7 +286,7 @@ class MyTests(object):
                 pxname = px.username()
             print "RPCs executed by ", pxname, ": ", len(px.rpcs_called)
             print "RPCs succeeded by ", pxname, ": ", len(px.rpcs_succeeded)
-            for x in px.rpcs_called: 
+            for x in px.rpcs_called:
                 rpcs_called.add(x)
 
         print "RPCs not executed:"
@@ -297,9 +302,9 @@ class MyTests(object):
         for cls_ in self.get_subsubclasses_for(self.__class__):
             if hasattr(cls_, "do") and callable(getattr(cls_, "do")):
                 classes.append(cls_)
-       
+
         classes.sort(self.__lt__, None, True)
-        
+
         # For all of the proxies run all tests, in the test order, one proxy at a time.
         tests_run = 0
         test_phases_run = 0
@@ -332,7 +337,8 @@ class MyTests(object):
 
                     proxyname = px.username()
 
-                    # Inject a test info string to the test which can be used for logging or e.g. setting the description of created memberships
+                    # Inject a test info string to the test which can be used for logging or
+                    # e.g. setting the description of created memberships
 
                     if not skip:
                         testobject.testphase = 0
@@ -367,7 +373,8 @@ class MyTests(object):
 
     def assertnotindict(self, value, items):
         """ Asserts that 'value' is a RPCC Attribute dictionary and that it does not contain the items given in the list 'items'"""
-        assert type(value) is rpcc_client.AttrDict, "%s response is not a RPCC attribute dictionary, it is a %s" % (self.function(), type(value))
+        assert type(value) is rpcc_client.AttrDict, "%s response is not a RPCC attribute dictionary, it is a %s" % (
+            self.function(), type(value))
 
         for item in items:
             assert item not in value, "%s returned by %s" % (item, self.function())
@@ -375,8 +382,9 @@ class MyTests(object):
     def assertindict(self, value, items, optional=[], exact=True):
         """ Asserts that 'value' is a RPCC Attribute dictionary and that it contains exactly the items given in the list 'items'
             To make the test more lenient and allow more items, set 'exact' to False"""
-        assert type(value) is rpcc_client.AttrDict, "%s response is not a RPCC attribute dictionary, it is a %s" % (self.function(), type(value))
-        
+        assert type(value) is rpcc_client.AttrDict, "%s response is not a RPCC attribute dictionary, it is a %s" % (
+            self.function(), type(value))
+
         minval = 0
         for item in items:
             if not item.startswith('_'):
@@ -388,10 +396,12 @@ class MyTests(object):
             if(len(value) < minval or len(value) > maxval):
                 pprint.pprint(value)
                 pprint.pprint(items)
-            assert len(value) >= minval and len(value) <= maxval, "%s returns %d items, should be between %d and %d" % (self.function(), len(value), minval, maxval)
+            assert len(value) >= minval and len(value) <= maxval, "%s returns %d items, should be between %d and %d" % (
+                self.function(), len(value), minval, maxval)
         else:
-            assert len(value) >= minval, "%s returns %d items, should be at least %d" % (self.function(), len(value), minval)
-        
+            assert len(value) >= minval, "%s returns %d items, should be at least %d" % (
+                self.function(), len(value), minval)
+
         if "_remove_nulls" not in items:
             for item in items:
                 if item.startswith('_'):
@@ -400,16 +410,19 @@ class MyTests(object):
 
         if(exact):
             for item in value:
-                assert item in items or item in optional, "Item %s returned by %s but should not be" % (item, self.function())
+                assert item in items or item in optional, "Item %s returned by %s but should not be" % (
+                    item, self.function())
 
     def assertinlist(self, value, items, exact="True"):
         """ Asserts that 'value' is a list and that the values given in 'items' is in the list. If 'exact' is True, it is also checked that
             the length of the list is exactly the length of the 'items' list, or larger if 'eact' is False."""
         assert type(value) is list, "%s response is not a list" % (self.function())
         if exact:
-            assert len(value) == len(items), "%s returns %d items, should be %d" % (self.function(), len(value), len(items))
+            assert len(value) == len(items), "%s returns %d items, should be %d" % (
+                self.function(), len(value), len(items))
         else:
-            assert len(value) >= len(items), "%s returns %d items, should be %d" % (self.function(), len(value), len(items))
+            assert len(value) >= len(items), "%s returns %d items, should be %d" % (
+                self.function(), len(value), len(items))
 
         for item in items:
             assert item in value, "%s not returned by %s" % (item, self.function())
@@ -429,13 +442,13 @@ class MyTests(object):
         if type(expected) is dict:
             for k, v in expected.iteritems():
                 # print "DICT assertion, k=",k, "v=",v, "data=",data[k]
-                if type(v) is type(rpcc_client.AttrDict()):
-                    assert type(data[k]) is type(rpcc_client.AttrDict()), "Data type for key '%s' is not a rpcc_client.AttrDict" % (k)
+                if type(v) is rpcc_client.AttrDict:
+                    assert type(data[k]) is rpcc_client.AttrDict, "Data type for key '%s' is not a rpcc_client.AttrDict" % (k)
                     self.assert_expected_data(data[k], v)
                 if type(v) is dict:
                     # pprint.pprint(data[k])
                     assert (type(data[k]) is dict or
-                            type(data[k]) is type(rpcc_client.AttrDict())), "Data type for key '%s' is not a dict" % (k)
+                            type(data[k]) is rpcc_client.AttrDict), "Data type for key '%s' is not a dict" % (k)
                     self.assert_expected_data(data[k], v)
                     continue
                 if type(v) is list:
@@ -466,7 +479,7 @@ class MyTests(object):
         tb4 = self.times_before[kind][:19]
         taft = self.times_after[kind][:19]
         assert not (t >= tb4 and t <= taft), "Wrong %s time: %s, should not be between %s and %s" % (key, t, tb4, taft)
-   
+
     def get_subsubclasses_for(self, klass):
         """ Returns a list of all subclasses to 'klass', recursively"""
         subclasses = []
@@ -483,7 +496,7 @@ class MyTests(object):
         """ Compares the names of self and other. This operator is used by the sorting function, specifically to sort the list of subclasses to order the
             tests."""
         if a.__name__ == b.__name__:
-                return 0
+            return 0
         ret = a.__name__ < b.__name__
         if ret:
             return 1
@@ -503,7 +516,7 @@ class MyTests(object):
         if expected_access is None:
             return self.expected_access
         return expected_access
-        
+
     def expect_admin(self, expected_admin=None):
         """ Returns whether we expect the proxy to be logged in as /admin or not. The method is used by expect_exception below"""
         if expected_admin is None:
@@ -515,19 +528,19 @@ class MyTests(object):
         if expected_loa is None:
             return self.expected_loa
         return expected_loa
-    
+
     def expect_authenticated(self, expected_authenticated=None):
         """ Returns whether we expect the proxy to be logged in or not. The method is used by expect_exception below"""
         if expected_authenticated is None:
             return self.expected_authenticated
         return expected_authenticated
-    
+
     def expect_exception_name(self, expected_exception_name=None):
         """ Returns the expected exception name, if any"""
         if expected_exception_name is None:
             return self.expected_exception_name
         return expected_exception_name
-    
+
     def get_possible_exception_name(self, possible_exception_name=None):
         """ Returns the possible exception name, if any"""
         if possible_exception_name is None:
@@ -621,130 +634,133 @@ class MyTests(object):
                     return (True, ("AccessError::LoA2Required",), possible_exception_name)
         return(True, errs, possible_exception_name)
 
-  
+
 class AssertRPCCError(object):
-        """ This class implements a simple context manager in which the tests wraps operations using the python 'with' statement.
-        Given a RPCCError eception name and a boolean to tell whether we expect the operation to fail or not, the method 
-        will silently swallow operations that behave as expected. For operations that do not behave as expected, the raised exception
-        is sent through or an Exception is raised to signal that an expected exception did NOT occur.
-        """
-        def __init__(self, name, expected=True):
-            self.exception_name = name
-            self.exception_expected = expected
+    """ This class implements a simple context manager in which the tests wraps operations using the python 'with' statement.
+    Given a RPCCError eception name and a boolean to tell whether we expect the operation to fail or not, the method 
+    will silently swallow operations that behave as expected. For operations that do not behave as expected, the raised exception
+    is sent through or an Exception is raised to signal that an expected exception did NOT occur.
+    """
 
-        def __enter__(self):
-            return True
-        
-        def __exit__(self, ex_type, value, traceback):
-            if self.exception_expected:
-                if not ex_type:
-                    raise Exception("RPCCError %s expected", self.exception_name)
-                if ex_type == rpcc_client.RPCCError and value[0]["name"] == self.exception_name:
-                    return True
-                return False
-            else:
-                if not ex_type:
-                    return True
-                return False
+    def __init__(self, name, expected=True):
+        self.exception_name = name
+        self.exception_expected = expected
 
-           
-class AllowRPCCError(object):
-        """ This class implements a simple context manager in which the tests wraps operations using the python 'with' statement.
-        Given a RPCCError exception name the method 
-        will silently swallow exception of the staring with the given name. 
-        """
-        def __init__(self, name):
-            self.exception_name = name
+    def __enter__(self):
+        return True
 
-        def __enter__(self):
-            return True
-        
-        def __exit__(self, ex_type, value, traceback):
+    def __exit__(self, ex_type, value, traceback):
+        if self.exception_expected:
             if not ex_type:
-                return True
-            if ex_type == rpcc_client.RPCCError and value[0]["name"].startswith(self.exception_name):
+                raise Exception("RPCCError %s expected", self.exception_name)
+            if ex_type == rpcc_client.RPCCError and value[0]["name"] == self.exception_name:
                 return True
             return False
-          
-            
-class AssertAccessError(object):
-        """ This class implements an elaboration of AssertRPCCError above. 
-            It evaluates the expected behavior using the expect_exception method of the test using this class.
-        """
-        def __init__(self, thetest, expected_admin=None,
-                     expected_access=None,
-                     sufficient_privs=None,
-                     expected_authenticated=None,
-                     expected_loa=None,
-                     expected_exception_name=None,
-                     possible_exception_name=None,
-                     never_fail=None):
-            self.expected_access = thetest.expect_access(expected_access)
-            self.sufficient_privs = thetest.suffice_privs(sufficient_privs)
-            self.expected_admin = thetest.expect_admin(expected_admin)
-            self.expected_authenticated = thetest.expect_authenticated(expected_authenticated)
-            self.expected_loa = thetest.expect_loa(expected_loa)
-            self.expected_exception_name = thetest.expect_exception_name(expected_exception_name)
-            self.possible_exception_name = thetest.get_possible_exception_name(possible_exception_name)
-            self.never_fail = never_fail
-            # pprint.pprint(self.expected_exception_name)
-            self.thetest = thetest
-
-            (self.exception_expected, self.exception_names, self.possible_exception) = thetest.expect_exception(expected_access, 
-                                                                                                                sufficient_privs, 
-                                                                                                                expected_admin, 
-                                                                                                                expected_authenticated,
-                                                                                                                expected_exception_name,
-                                                                                                                possible_exception_name)
-            # pprint.pprint(self.exception_names)
-            # If we now expect the superuser to fail, we have probably overlooked something
-            # unless we explicitly indicated that the test should fail even as superuser
-            # pprint.pprint(thetest.superuser_test_may_fail)
-            if self.exception_expected and not self.thetest.superuser_test_may_fail:
-                assert self.thetest.proxy != self.thetest.superuser, "TEST ERROR! Superuser access expected to fail"
-            
-            # print "Exceptions expected=",(self.exception_expected, self.exception_names)
-
-        def __enter__(self):
-            return True
-
-        def __exit__(self, ex_type, value, traceback):
-            if self.never_fail:
+        else:
+            if not ex_type:
                 return True
-            if self.exception_expected:
-                if not ex_type:
-                    print "Expected exceptions", self.exception_names, " not raised"
-                    print "Sufficient privs=", self.sufficient_privs, "Actual privs=", self.thetest.actual_privs
-                    print "Expected access=", self.expected_access, "Actual access=", self.thetest.actual_access
-                    print "Expected loa=", self.expected_loa, "Actual loa=", self.thetest.actual_loa
-                    print "Expected admin=", self.expected_admin, "Actual admin=", self.thetest.actual_admin
-                    raise Exception("RPCCError %s expected", self.exception_names)
+            return False
 
-                if ex_type == rpcc_client.RPCCError and (value[0]["name"] in self.exception_names or value[0]["name"] == self.possible_exception):
-                    return True
-                print "An unexpected exception was raised instead of another expected exception:"
+
+class AllowRPCCError(object):
+    """ This class implements a simple context manager in which the tests wraps operations using the python 'with' statement.
+    Given a RPCCError exception name the method 
+    will silently swallow exception of the staring with the given name. 
+    """
+
+    def __init__(self, name):
+        self.exception_name = name
+
+    def __enter__(self):
+        return True
+
+    def __exit__(self, ex_type, value, traceback):
+        if not ex_type:
+            return True
+        if ex_type == rpcc_client.RPCCError and value[0]["name"].startswith(self.exception_name):
+            return True
+        return False
+
+
+class AssertAccessError(object):
+    """ This class implements an elaboration of AssertRPCCError above. 
+        It evaluates the expected behavior using the expect_exception method of the test using this class.
+    """
+
+    def __init__(self, thetest, expected_admin=None,
+                 expected_access=None,
+                 sufficient_privs=None,
+                 expected_authenticated=None,
+                 expected_loa=None,
+                 expected_exception_name=None,
+                 possible_exception_name=None,
+                 never_fail=None):
+        self.expected_access = thetest.expect_access(expected_access)
+        self.sufficient_privs = thetest.suffice_privs(sufficient_privs)
+        self.expected_admin = thetest.expect_admin(expected_admin)
+        self.expected_authenticated = thetest.expect_authenticated(expected_authenticated)
+        self.expected_loa = thetest.expect_loa(expected_loa)
+        self.expected_exception_name = thetest.expect_exception_name(expected_exception_name)
+        self.possible_exception_name = thetest.get_possible_exception_name(possible_exception_name)
+        self.never_fail = never_fail
+        # pprint.pprint(self.expected_exception_name)
+        self.thetest = thetest
+
+        (self.exception_expected, self.exception_names, self.possible_exception) = thetest.expect_exception(expected_access,
+                                                                                                            sufficient_privs,
+                                                                                                            expected_admin,
+                                                                                                            expected_authenticated,
+                                                                                                            expected_exception_name,
+                                                                                                            possible_exception_name)
+        # pprint.pprint(self.exception_names)
+        # If we now expect the superuser to fail, we have probably overlooked something
+        # unless we explicitly indicated that the test should fail even as superuser
+        # pprint.pprint(thetest.superuser_test_may_fail)
+        if self.exception_expected and not self.thetest.superuser_test_may_fail:
+            assert self.thetest.proxy != self.thetest.superuser, "TEST ERROR! Superuser access expected to fail"
+
+        # print "Exceptions expected=",(self.exception_expected, self.exception_names)
+
+    def __enter__(self):
+        return True
+
+    def __exit__(self, ex_type, value, traceback):
+        if self.never_fail:
+            return True
+        if self.exception_expected:
+            if not ex_type:
+                print "Expected exceptions", self.exception_names, " not raised"
                 print "Sufficient privs=", self.sufficient_privs, "Actual privs=", self.thetest.actual_privs
                 print "Expected access=", self.expected_access, "Actual access=", self.thetest.actual_access
                 print "Expected loa=", self.expected_loa, "Actual loa=", self.thetest.actual_loa
                 print "Expected admin=", self.expected_admin, "Actual admin=", self.thetest.actual_admin
-                print "Expected exceptions were:", self.exception_names
-                print "Raised exception is:", ex_type
-                return False
+                raise Exception("RPCCError %s expected", self.exception_names)
 
-            else:
-                if not ex_type:
-                    return True
-                if ex_type == rpcc_client.RPCCError and value[0]["name"] == self.possible_exception:
-                    return True
-                print "Unexpected exception raised though no exception was expected:"
-                print "Sufficient privs=", self.sufficient_privs, "Actual privs=", self.thetest.actual_privs
-                print "Expected access=", self.expected_access, "Actual access=", self.thetest.actual_access
-                print "Expected loa=", self.expected_loa, "Actual loa=", self.thetest.actual_loa
-                print "Expected admin=", self.expected_admin, "Actual admin=", self.thetest.actual_admin
-                print "Raised exception is:", ex_type
-                return False
-        
-        
+            if ex_type == rpcc_client.RPCCError and (value[0]["name"] in self.exception_names or value[0]["name"] == self.possible_exception):
+                return True
+            print "An unexpected exception was raised instead of another expected exception:"
+            print "Sufficient privs=", self.sufficient_privs, "Actual privs=", self.thetest.actual_privs
+            print "Expected access=", self.expected_access, "Actual access=", self.thetest.actual_access
+            print "Expected loa=", self.expected_loa, "Actual loa=", self.thetest.actual_loa
+            print "Expected admin=", self.expected_admin, "Actual admin=", self.thetest.actual_admin
+            print "Expected exceptions were:", self.exception_names
+            print "Raised exception is:", ex_type
+            return False
+
+        else:
+            if not ex_type:
+                return True
+            if ex_type == rpcc_client.RPCCError and value[0]["name"] == self.possible_exception:
+                return True
+            print "Unexpected exception raised though no exception was expected:"
+            print "Sufficient privs=", self.sufficient_privs, "Actual privs=", self.thetest.actual_privs
+            print "Expected access=", self.expected_access, "Actual access=", self.thetest.actual_access
+            print "Expected loa=", self.expected_loa, "Actual loa=", self.thetest.actual_loa
+            print "Expected admin=", self.expected_admin, "Actual admin=", self.thetest.actual_admin
+            print "Raised exception is:", ex_type
+            return False
+
+
 class UnAuthTests(MyTests):
     """ Superclass for tests that do not require any access rights"""
 
@@ -758,23 +774,23 @@ class AuthTests(MyTests):
 
 class FloorAdminTests(AuthTests):
     sufficient_privs = ["write_all_hosts", "write_all_rooms"]
-   
-    
+
+
 class ServiceDeskTests(AuthTests):
-    sufficient_privs = ["write_all_host_classes", 
+    sufficient_privs = ["write_all_host_classes",
                         "write_all_buildings",
                         "write_all_groups",
                         "write_all_optionspaces"]
-    
-    
+
+
 class NetworkAdminTests(AuthTests):
     sufficient_privs = ["write_all_subnetworks",
                         "write_all_networks",
                         "write_all_global_options"
                         "write_all_pools",
                         "write_all_pool_ranges"]
-    
-    
+
+
 class SuperUserTests(AuthTests):
     """ Superclass for tests that are expected to work for anyone who is logged as a superUser"""
     expected_access = ["superusers"]
