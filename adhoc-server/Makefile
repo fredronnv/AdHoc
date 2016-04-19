@@ -1,15 +1,14 @@
-TOP=../..
+TOP=..
 SUBDIRS=
-DISTDIR=${TOP}/dist/dhconf
+DISTDIR=${TOP}/dist/adhoc-server
 RELEASEDIR=${TOP}/releases
-RPCC_DIR=${TOP}/RPCC/client_libs
-
+RPCC_DIR=${TOP}/../RPCC/rpcc
 subdirs:
 	for dir in $(SUBDIRS); do \
 	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS} ;\
 	done
 
-clean:
+clean:	
 	rm -rf ${DISTDIR}
 	for dir in $(SUBDIRS); do \
 	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS}  clean;\
@@ -19,26 +18,35 @@ install: clean
 	for dir in $(SUBDIRS); do \
 	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS}  install;\
 	done
-	
 	svn_version=`svnversion | cut -f2 -d:`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p ${DISTDIR};\
-	cp INSTALL.txt dhconfproxy.py ${RPCC_DIR}/rpcc_client.py ${DISTDIR};\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < dhconf | \
-	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ${DISTDIR}/dhconf ;\
-	(cd ${DISTDIR}; chmod +x dhconf; ./dhconf Release; mv ./dhconf-* ./dhconf ) ;\
-	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;)
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./lib/adhoc_version.template  | \
+	sed "s/@@ADHOC_SVN_VERSION@@/$${svn_version}/" > ./lib/adhoc_version.py ;\
+	cp -r .  ${DISTDIR};\
+	cp -r ${RPCC_DIR} ${DISTDIR};\
+	rm -rf ${DISTDIR}/testing ${DISTDIR}/tmp;\
+        cp ./fix-files-adhoc-server.sh ${DISTDIR}; \
+        chmod +x ${DISTDIR}/fix-files-adhoc-server.sh; \
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server_setup.txt >${DISTDIR}/INSTALL.txt;\
+	rm ${DISTDIR}/server_setup.txt; \
+	rm ${DISTDIR}/etc/bashrc.private; \
+	echo "adhoc_svn_version = \"$${svn_version}\"" > ${DISTDIR}/lib/adhoc_version.py;\
+	echo "adhoc_release = \"$${revno}\"" >>${DISTDIR}/lib/adhoc_version.py;\
+	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;); \
+	(cd ${DISTDIR}; find . -name \*.svn -exec rm {} \;); \
+	(cd ${DISTDIR}; find . -name \*.gitignore -exec rm {} \;)
 
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_dhconf.txt ;\
-	(cd ${DISTDIR}/..; mv dhconf dhconf-$${revno};tar cf ${RELEASEDIR}/dhconf-$${revno}.tar dhconf-$${revno};)
-	
-patch: svnstatus patchbump install
+        cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_adhoc-server.txt ;\
+	(cd ${DISTDIR}/..; mv adhoc-server adhoc-server-$${revno};tar cf ${RELEASEDIR}/adhoc-server-$${revno}.tar adhoc-server-$${revno})
 
-minor: svnstatus minorbump install
+patch: svnstatus patchbump install release
 
-major: svnstatus majorbump install
+minor: svnstatus minorbump install release
+
+major: svnstatus majorbump install release
 
 patchbump:
 	(patch=`cat rel_patch`; patch=`expr $${patch} + 1`; echo $${patch} > rel_patch)
@@ -69,9 +77,13 @@ svnstatus:
 	    	    if [ `svnversion rel_major` -ge $${svn_version} ]; then \
 	    		true; \
 	    	    else \
-	    	    	echo "Release number for dhconf needs to be bumped"; \
+	    	    	echo "Release number for adhoc-server needs to be bumped"; \
 	    		false; \
 	    	    fi \
 	    	fi \
 	    fi \
 	fi
+	
+svnmajor:
+	svn_version=`svnversion | cut -f2 -d:`;\
+	

@@ -36,21 +36,20 @@ a GSSAPI authentication to the server by implicitly adding the 'token'
 argument to the session_auth_kerberos call.
 """
 
-import re
-import json
-import time
+import functools
 import getpass
-import urllib2
 import inspect
+import json
 import os
+import re
+import ssl
 import sys
+import time
+import urllib2
 
 
 # Kludge to enable TLSv1 protocol via urllib2
 #
-import functools
-import ssl
-
 old_init = ssl.SSLSocket.__init__
 
 

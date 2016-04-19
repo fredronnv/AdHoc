@@ -2,14 +2,14 @@
 <?eclipse-pydev version="1.0"?><pydev_project>
 
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.7</pydev_property>
-<pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">python27</pydev_property>
+<pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">binpython</pydev_property>
 
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
-<path>/${PROJECT_DIR_NAME}/server/bin</path>
-<path>/${PROJECT_DIR_NAME}/server</path>
+<path>/${PROJECT_DIR_NAME}/adhoc-server/bin</path>
+<path>/${PROJECT_DIR_NAME}/adhoc-server</path>
 <path>/${PROJECT_DIR_NAME}</path>
-<path>/${PROJECT_DIR_NAME}/server/lib</path>
+<path>/${PROJECT_DIR_NAME}/adhoc-server/lib</path>
 <path>/${PROJECT_DIR_NAME}/client</path>
-<path>/${PROJECT_DIR_NAME}/server/testing</path>
+<path>/${PROJECT_DIR_NAME}/adhoc-server/testing</path>
 </pydev_pathproperty>
 </pydev_project>

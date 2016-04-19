@@ -1,5 +1,6 @@
-import rpcc_client
 import getpass
+
+import rpcc_client
 
 
 def connect(url="https://adhoc.ita.chalmers.se:8877", user="bernerus"):

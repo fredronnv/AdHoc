@@ -4,12 +4,15 @@ Created on 28 jan 2014
 
 @author: bernerus
 '''
-import sys
-import os
-import kerberos
-import re
 import StringIO
+import os
+import re
+import sys
+
+import kerberos
+
 from rpcc_client import RPCC, RPCCRuntimeError, RPCCValueError, RPCCTypeError, RPCCLookupError
+
 
 true = True
 false = False

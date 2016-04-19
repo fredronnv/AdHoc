@@ -1,5 +1,5 @@
 TOP=`pwd`
-SUBDIRS=applications/dhconf adhoc-connect server
+SUBDIRS=applications/dhconf adhoc-connect adhoc-server
 DISTDIR=${TOP}/dist
 
 subdirs:

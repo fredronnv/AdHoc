@@ -14,9 +14,10 @@
 # limitations under the License.
 ##
 
+import commands
 from distutils.core import setup, Extension
 import sys
-import commands
+
 
 long_description = """
 This Python package is a high-level wrapper for Kerberos (GSSAPI) operations.
