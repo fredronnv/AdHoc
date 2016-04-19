@@ -3,8 +3,7 @@
 # $Id$
 
 from option_def import ExtOptionspace, ExtOrNullOptionspace, ExtOptionKeyList
-# @UnusedImport OptionSetManager is needed anyway. Do not remove!
-from optionset import ExtOptionset, Optionset, OptionsetManager
+from optionset import ExtOptionset, Optionset, OptionsetManager  # @UnusedImport OptionSetManager is needed anyway. Do not remove!
 from rpcc import AnyGrants, IntegrityError, ExtLookupError, ExtValueError, ExtString, ExtList, ExtOrNull, ExtInteger, \
                  ExtStruct, SessionedFunction, ExtNull, ExtDateTime, update, template, entry, search, \
                  NullableStringMatch, IntegerMatch, StringMatch
