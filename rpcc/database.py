@@ -40,25 +40,7 @@ import re
 
 import default_tables
 
-
 import exterror
-
-try:
-    import cx_Oracle  # @UnresolvedImport
-except:
-    pass
-
-try:
-    import mysql.connector
-    #from mysql.connector.conversion import MySQLConverter
-    #from mysql.connector.cursor import MySQLCursor
-except:
-    pass
-
-try:
-    import sqlite3
-except:
-    pass
 
 from interror import IntInvalidUsageError
 
@@ -656,6 +638,7 @@ class OracleDatabase(Database):
         self.return_link(lnk)
 
     def get_link(self):
+        import cx_Oracle  # @UnresolvedImport
         with self.lock:
             while self.pool:
                 link = self.pool.pop(0)
@@ -750,6 +733,7 @@ class MySQLLink(DatabaseLink):
             self.logger.error("ERROR IN QUERY: " + query)
             self.logger.error("WITH ARGUMENTS: " + str(args))
             self.logger.error("INNER ERROR: " + str(inner))
+        import mysql.connector
         if isinstance(inner, mysql.connector.errors.IntegrityError):
             errno = inner.errno
             message = inner.msg
@@ -788,6 +772,8 @@ class MySQLDatabase(Database):
         host = host or self.server.config("DB_HOST")
         port = port or self.server.config("DB_PORT")
         socket = port or self.server.config("DB_SOCKET")
+        
+        import mysql.connector
 
         if mysql.connector.__version_info__[0] > 1:
             raise exterror.ExtRuntimeError("The server is not supporting the use of MySQL connector version 2 and above")
@@ -804,6 +790,7 @@ class MySQLDatabase(Database):
 
     def get_link(self):
         try:
+            import mysql.connector
             raw_link = mysql.connector.connect(**self.connect_args)
             return self.link_class(self, raw_link)
         except:
@@ -969,6 +956,9 @@ class SQLiteLink(DatabaseLink):
             curs.close()
 
     def exception(self, inner, query, args):
+        
+        import sqlite3
+
         if self.database.server.config("DEBUG_SQL", default=False):
             self.logger.debug("ERROR IN QUERY: " + query)
             self.logger.debug("WITH ARGUMENTS: " + str(args))
@@ -1003,6 +993,9 @@ class SQLiteDatabase(Database):
         self.return_link(lnk)
 
     def get_link(self):
+        
+        import sqlite3
+        
         try:
             raw_link = sqlite3.connect(**self.connect_args)
             return self.link_class(self, raw_link)
