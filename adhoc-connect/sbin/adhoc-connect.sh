@@ -3,7 +3,7 @@
 # $Id$
 
 ADHOC_RELEASE="@@ADHOC_RELEASE@@"
-ADHOC_SVN_VERSION="@@ADHOC_SVN_VERSION@@"
+ADHOC_GIT_VERSION="@@ADHOC_GIT_VERSION@@"
 
 TMP_CONF=/etc/dhcp/dhcpd.conf.new
 RAW_CONF=/etc/dhcp/dhcpd.conf.raw
