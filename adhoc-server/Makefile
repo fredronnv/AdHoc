@@ -69,7 +69,7 @@ gitstatus:
 	    echo "There are untracked or uncommitted new or modified files in adhoc-server, please commit first";\
 	    false ; \
 	else \
-	    git_version=`git rev-list --max-count=1 HEAD`;\
+	    git_version=`git rev-list --max-count=1 HEAD .`;\
 	    if [ `git rev-list --max-count=1 HEAD rel_patch` =  $${git_version} ]; then \
 		true; \
 	    else \
@@ -79,7 +79,7 @@ gitstatus:
 		    if [ `git rev-list --max-count=1 HEAD rel_major` = $${git_version} ]; then \
 			true; \
 		    else \
-			echo "Release number for adhoc-connect needs to be bumped"; \
+			echo "Release number for adhoc-server needs to be bumped"; \
 			false; \
 		    fi \
 		fi \
