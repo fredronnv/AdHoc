@@ -56,7 +56,7 @@ majorbump:
 	git commit rel_major rel_minor rel_patch -m "Bumped major version to $${revno}"
 
 gitstatus:
-	if git status -s | awk '{print $$1" "$$2}' | grep -v '\.\./' | egrep "A|M|\?\?" >/dev/null ; then \
+	if git status -s | awk '{print $$1" "$$2}' | grep -v '\.\./' | grep -v Makefile | egrep "A|M|\?\?" >/dev/null ; then \
 	    echo "There are untracked or uncommitted new or modified files in adhoc-connect, please commit first";\
 	    false ; \
 	else \

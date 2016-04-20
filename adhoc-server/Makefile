@@ -21,8 +21,6 @@ install: clean
 	git_version=`git rev-list --max-count=1 HEAD`
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p ${DISTDIR};\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < ./lib/adhoc_version.template  | \
-	sed "s/@@ADHOC_GIT_VERSION@@/$${git_version}/" > ./lib/adhoc_version.py ;\
 	cp -r .  ${DISTDIR};\
 	cp -r ${RPCC_DIR} ${DISTDIR};\
 	rm -rf ${DISTDIR}/testing ${DISTDIR}/tmp;\
@@ -30,7 +28,7 @@ install: clean
 	chmod +x ${DISTDIR}/fix-files-adhoc-server.sh; \
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" <server_setup.txt >${DISTDIR}/INSTALL.txt;\
 	rm ${DISTDIR}/server_setup.txt; \
-	rm ${DISTDIR}/etc/bashrc.private; \
+	rm -f ${DISTDIR}/etc/bashrc.private; \
 	echo "adhoc_git_version = \"$${git_version}\"" > ${DISTDIR}/lib/adhoc_version.py;\
 	echo "adhoc_release = \"$${revno}\"" >>${DISTDIR}/lib/adhoc_version.py;\
 	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;); \
@@ -65,7 +63,7 @@ majorbump:
 	git commit rel_major rel_minor rel_patch -m "Bumped major version to $${revno}"
 
 gitstatus:
-	if git status -s | awk '{print $$1" "$$2}' | grep -v '\.\./' | egrep "A|M|\?\?" >/dev/null ; then \
+	if git status -s | awk '{print $$1" "$$2}' | grep -v '\.\./' | grep -v Makefile | egrep "A|M|\?\?" >/dev/null ; then \
 	    echo "There are untracked or uncommitted new or modified files in adhoc-server, please commit first";\
 	    false ; \
 	else \

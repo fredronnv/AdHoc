@@ -54,7 +54,7 @@ gitstatus:
 	        else  echo "Git status in $$dir must be fixed"; exit 1;\
 	    fi;\
 	done; \
-	if git status -s | awk '{print $$1" "$$2}' | grep -v '\.\./' | egrep "A|M|\?\?" >/dev/null ; then \
+	if git status -s | awk '{print $$1" "$$2}' | grep -v '\.\./' | grep -v Makefile | egrep "A|M|\?\?" >/dev/null ; then \
             echo "There are untracked or uncommitted new or modified files in main section, please commit first";\
             false ; \
         else \
