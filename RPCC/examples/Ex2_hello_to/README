@@ -1,0 +1,17 @@
+This example introduces new function, hello_to, similar to the hello function in the previous example.
+The new function takes a parameter which is returned within the friendly greeting sent back by the hello_to function.
+
+This example also introduces the rpcc_client library, which makes it a lot simpler to write advanced rpcc clients.
+
+The client directory contains two different clients, one using the urllib and one
+using the provided rpcc_client library. The proxy exposed by the rpcc library images the functions of the server as
+functions in the client program using the proxy.
+The server implements two functions:
+    hello - like the first example and
+    hello_to which takes one parameter returning a possibly personalized friendly greeting.
+
+The hello_toclient uses the low level urllib to send the JSON dump of a dict containing
+two values, function and params, containing the fucntion name hello and a parameter containing one 
+parameter and subsequently read the answer back.
+
+The hello_to_me client uses rpcc_client to do the same things as hello_toclient, but presents the returned strings differently.

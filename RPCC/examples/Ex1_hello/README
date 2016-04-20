@@ -1,0 +1,7 @@
+This is the first and simplest example.
+
+The server defines one function without parameters nemad hello which returns a friendly greeting.
+
+The client uses the low level urllib to send the JSON dump of a dict containing
+two values, function and params, containing the fucntion name hello and an empty parameter list,
+and subsequently read the answer back

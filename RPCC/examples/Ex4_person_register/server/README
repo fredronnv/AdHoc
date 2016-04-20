@@ -1,0 +1,47 @@
+There are two source files here.
+server.py is the server itself, and person.py implements the data model for a person.
+
+Have a look at server.py first. The first statement after the imports 
+creates an instance of a server.
+Then we tell the server instance what functionality we want to enable.
+Some of these statements need to come in a certain order: 
+* The database must be enabled before registering any models or managers.
+* Digs and updates must be enabled after all models and managers have been registered.
+* The database check must be done after enabling digs and updates.
+* If digs and updates are not enabled, check tables may not specify dynamic=True.
+
+Finally the serve_forever statement activates the server functions.
+Here is the code annotated
+
+srv = Server("localhost", 12121) # Create a server instance
+  This statement specifies that the server will serve calls to localhost on port 12121
+
+srv.enable_documentation()  # Enable documentation functions
+  This statement enables the documentation functions, in particular it registers
+  the function server_function_definition() needed by rpcc_client, so in this case
+  it does not have to be registered separately as in the previous example.
+
+srv.enable_database(SQLiteDatabase, database="person_database")
+  Enables the SQLite database. The statement defines that a SQLite database in the file
+  "person_database" is to be used. The database parameter may be omitted in which case the
+   database in the file "rpcc_scratch_database" will be used.
+
+srv.register_manager(PersonManager)
+srv.register_model(Person)
+   Registers the manager and the person model.
+
+srv.register_function(PersonCreate)
+srv.register_function(PersonRemove)
+ These two statements registers the explicitly written functions in the person module.
+
+srv.enable_digs_and_updates()
+   This will introspect all models and create _dig(), _fetch() and _update() functions for the models.
+
+srv.check_tables(tables_spec=None, dynamic=True, fix=True)
+  This statement checks that the used database is OK. 
+  The dynamic=True enables checking that the database contains tables and columns needed for all models registered. 
+  The fix=True will also make rpcc to create the needed database and its tables and columns.
+  The tables_spec may refer to an explicitly created database specification. More about this in a later example.
+
+srv.serve_forever() # Start serving. 
+  Runs the server

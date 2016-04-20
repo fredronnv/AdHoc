@@ -1,0 +1,15 @@
+This is litte more complicated example which implements a simple person register.
+
+To do that, we introduce a database and a data model for a person.
+
+The database uses the simple SQLite database engine since it requires so little administration.
+In fact, with RPCC, there is no database administration whatsoever. In this example, RPCC will deduce the required
+database tables and create them.
+
+The data model for a person is implemented in the person.py source file.
+
+This example also makes use of RPCC's automatic reference documentation system. This exposes on port 80
+the reference for all the functions that the server implements.
+After starting the server, point your browser to http://localhost:12121/api/0.
+
+See the README files in the client and server directories for a walkthrough on the source code.

@@ -1,0 +1,185 @@
+
+I'd like to say: 
+
+Here's a Person data type.
+
+It basically lives in the "person" table, but the "account" and
+"namespace" tables are needed to make sense of it all. The primary ID
+is in the person.ucid column.
+
+It has some direct attributes, which are stored in the person table,
+and one which is stored in the account table.
+
+The "firstname" and "lastname" attributes are stored in person.fname
+and person.lname respectively, and are readable by anyone. Writing
+them requires the X privilege or that you are operating on your own
+post, and writes should go through a case-converter and result in a
+simple update on the person table. They are strings and cannot be
+NULL.
+
+The "personnummer" attribute is stored in person.pnr. It should only
+be readable by people that has the Y privilige, and writable by people
+with the Z privilege. Writes on personnummer updates the person.pnr
+field, but also the person.birthdate field after parsing. person.pnr
+can be NULL, but person.birthdate can't.
+
+The "primary_account" attribute isn't stored in a table - it's the
+ucid column from the account table, where the ucid_owner column
+matches the person's id and the primary column is 1. It points to an
+Account. You shouldn't be able to set it directly.
+
+The "secondary_accounts" attribute is also fetched from the "account"
+table, but this time it's a list of all Account ids where
+primary=0. The list could be empty.
+
+The "shoesize" attribute is stored in the person table, but should
+only be available in API versions up to 2. Setting it should never be
+possible. It is an integer but it can be null.
+
+Persons are managed by a PersonManager. It has operations to create
+and destroy persons, as well as search for them. 
+
+There's also an Account data type.
+
+It lives in the "account" table. The primary ID is the account.ucid
+column.
+
+The "owner" attribute is stored in the "ucid_owner" column, and points
+to a Person. It should be readable by everyone, but not directly
+settable.
+
+The "status" attribute is stored in the "status" column. In API
+versions 0-1 it was defined as an enum with values "fresh", "open" and
+"closed". In API version 2 and up the values "unsigned" and "inactive"
+were added - API version 0-1 clients should se "unsigned" as "open"
+and "inactive" as "closed".
+
+
+
+From this description, the system should be able to do the following:
+
+* Define unique PDBPersonDataType and PDBAccountDataType for each
+  version of the API. The PDBPersonDataType for version 1 of the API
+  should have an optional "shoesize" attribute, but for version 2 that
+  field shouldn't be visible.
+
+* Define a PDBPersonDataUpdateType where all fields visible in the
+  respective API versions are optional.
+
+* Define a PDBPersonDataTemplateType, a PDBPersonTemplatedDataType,
+  and a PDBPersonSearchType for each API version.
+
+* Define RPC functions person_dig() and person_update(), taking the
+  appropriate types for the respective API version. The
+  person_update() call should accept and parse a
+  PDBPersonDataUpdateType value, calling setters for given values.
+
+* person_dig() and person_update() are prime candidates for a REST
+  interface on top of the available formats.
+
+* Allow calls to set_firstname()/get_firstname(), protected by the
+  appropriate access controls. Setting it should filter the incoming
+  string. All set_*() calls should generate the simple events, and
+  allow more complex "from which follows that"-events to be created by
+  custom code.
+
+* Allow calls to get_shoesize() iff the incoming call is from a
+  connection using version 0 or 1 of the API. Never allow calls to
+  set_shoesize(). 
+
+* Allow subclassing to implement specific methods like
+  promote_account_to_primary(), and easy implementation of RPC
+  functions to call such methods.
+
+
+At the top level, the most basic question is where API versioning
+should be applied - at the model layer or the RPC layer.
+
+Today the model evolves, but does so in a way where we _think_ that
+the RPC API stays the same. If we change the format of an attribute,
+there is of course a risk that the old RPC:s still present the old
+format, but it's the new format that is actually delivered. Return
+value checking lessens this risk, but there's still the risk of
+semantic changes affecting old API versions.
+
+What is API versioning good for? The goal is that a client written to
+send and expect responses in certain formats continue to work when the
+model evolves, as long as the old calls are still semantically
+meaningful.
+
+
+We're basically choosing between two designs:
+
+A (current):
+                      <--> API 1 <--> Model 1
+Database <--> Model 3 <--> API 2 <--> Model 2
+	              <--> API 3 <--> Model 3
+
+B (considered):
+         <--> Model 1 <--> API 1 <--> Model 1
+Database <--> Model 2 <--> API 2 <--> Model 2
+         <--> Model 3 <--> API 3 <--> Model 3
+
+
+A reasonable assumption (based on experience in PDB) is that the
+normal evolution of a model is limited to:
+
+  1. Gaining model types. This also leads to new attributes and
+     methods on old types.
+
+  2. Gaining composite operations on existing types, to make actual
+     usage more efficient.
+
+  3. Losing model types. This also leads to attributes and methods
+     being removed from old types.
+
+     a. Losing types in a "soft" manner - the data in the database is
+        still valid but not updated. Clients that use the type will
+        get stale data but not worse.
+
+     b. Losing types in a "hard" manner - the data is removed or
+        expected to contain misleading data. Clients that use the type
+        will stop working correctly.
+
+
+The functionality inside the API is most often just to add external
+typing of arguments, public documentation, and initial access
+control. They very rarely have more than 3-4 lines of actual
+code. They frequently have 10 lines or more of documentation, typing
+etcetera.
+
+Moving those 10 lines into the model - for each operation - will make
+the already complex model classes hideously large.
+
+The reason for making the model classes API-version-aware would be
+that we can then automatically generate large parts of the search and
+template classes. At the expense of moving complexity from the API to
+the model - there would almost be nothing left of the API.
+
+
+The template classes are, however, already quite simple. They
+basically define the external attributes, mapping them to the
+model. 
+
+Creating an update mechanism which works similarly would be quite
+simple.
+
+The search classes are currently only vaguely API versioned. The most
+severe limitation is that through using a list of attributes, removing
+things in subclasses is hopeless. Had it used decorated methods or
+class attributes instead, we could easily have had special values in
+subclasses which hide the parent's attribute.
+
+
+
+To sum up, moving versioning into the model is of little value.
+
+
+
+
+
+
+
+
+
+

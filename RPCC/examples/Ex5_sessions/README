@@ -1,0 +1,28 @@
+This example illustrates the addition of session support. It has two different servers unsessioned_server.py and sessioned_server.py
+These two servers operates at different ports, so they can be started simultaneously.
+
+Start both servers, and point two different tabs of your browser to 
+http://localhost/12121/api/0 and to http://localhost/12122/api/0
+
+Study the difference between the two API's. Note that on port 12122, the sessioned server, 
+there are now six more functions available, prefixed session_. 
+Of these, only session_start, session_stop and session_info are meaningful. The other three are
+an effect of the implementation of the sessions as a model which always get a ._dig, a ._fetch and an ._update function.
+
+The session_start function returns a 40 character random string to the client. 
+This string enables the client to identify itself to the other functions for a limited time.
+
+The session functionality by itself isn't of much more value than this timeout until we add later on, 
+but the sessions support is a mandatory requisite for this because the application protocol, 
+http, does not handle sessions by itself.
+
+On the client side, the rpcc_client.py library handles sessions behind the scenes. If however other libraries are used
+the session string will have to be handled properly, and a call to session_start be issued before accessing any other
+functions is needed, and a session_stop should issued before leaving.
+
+The client directory in this example has two similar clients that do the same thing with the 
+sessioned and the unsessioned server. Since the servers here operate on different databases, there should be no errors
+the first time the clients are run, but any subsequent runs should produce errors.
+
+Yoy may want to remove the [un]sessioned_database files in the server directory in order to restart the test,
+or port the cleanup.py client from Example 4 and run that on both servers.

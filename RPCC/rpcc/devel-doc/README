@@ -1,0 +1,138 @@
+
+* SSL has been made an opt-in feature rather than an opt-out one.
+
+* Defaulting to XMLRPC on post to / has been removed (you must
+  explicitly request a particular protocol).
+
+* Typing. RPCType has been renamed ExtType (external type). Parsing
+  has been split into check()/convert()/lookup(). ExtType has gained
+  an .output() method which converts from internal to intermediate
+  value (passing the result through .check() as well).
+
+* Function parameter inheritance. Function subclasses automatically
+  gain the parameters of all their ancestors, prepended to their own.
+
+* SOAP subsystem rewrite - SOAP is a native protocol so the ExtType
+  classes have gained methods to generate XSD and parse/create XML
+  formed according to that XSD.
+
+* Session management. A SessionedFunction baseclass that can be used
+  for functions that want to use the session feature. A SessionStore
+  base class which stores session data in memory, and a
+  DatabaseSessionStore which stores it in the database.
+
+* Database access. 
+
+  Severly deovercleverized compared to PDB. You get a link with
+  server.get_db_link(), use it, and return it with .return_db_link().
+  The server may have a link pool, or serve new links and implement
+  return_db_link() as a null operation.
+
+  PDB attempted to restart links when they failed - overclever.
+
+  Database links are database-specific subclasses of DatabaseLink. It
+  includes a Query class to build database-agnostic queries (although
+  this is normally only used to implement the RPCC-specific behaviour
+  - servers implemented using RPCC often know which database they are
+  working with and need not be agnostic).
+
+* Some modelling support. The PDBObject/PDBObjectHandler system,
+  renamed model.Model/model.Manager. 
+
+  If a FooManager has been registered with a Server, all Function:s
+  will gain a .foo_manager attribute which is always a singleton
+  instance of that manager, specific for the Function.
+
+  All managers and models get the calling Function as an argument, and
+  also have magic get methods to return the Functions .foo_manager
+  attribute.
+
+* Guard system. Renamed model.Guard.
+
+  Guards are small objects that form an access perimiter on the
+  models. Their methods can be decorated by @guard(foo), where foo is
+  a Guard class or instance. 
+
+  In any call chain, the first @guard-decorated method called will
+  let its Guard allow or deny access. If allowed, an attribute on the
+  Function is set, and guard decorators further down the call chain
+  will let the call through. The decorator that set the attribute will
+  clear it when the call is done, so calls in a parallell call chain
+  will be checked in a similar way.
+
+* Database call logging.
+
+  If enabled, a rpcc-standard table called RPCC_CALL will be used to
+  log calls made.
+
+* Event/changelog system.
+
+  Whenever changes are made to the system, models/managers can write
+  events to the changelog. Special marker events guarantee that
+  clients can only see events that make a consistent state (even
+  though different Functions can be executing simultaneously, each in
+  their own database transaction).
+
+  The rpcc-standard tables RPCC_EVENT, RPCC_EVENT_DATA_TYPE and
+  RPCC_EVENT_DATA will be used. Unlike PDB, all event data attributes
+  must be strings and converted by the rpcc server.
+
+* DataFormatter/PDBSearch, renamed model.Formatter and
+  model.Searcher.
+
+  A Formatter is tied to a Model, and is an object that takes a list
+  of Model id:s and a template as input. It produces a list of
+  formatted data, formed according to the template, and in doing so
+  can also cross into other Model objects that have links to the Model
+  objects being templated.
+
+  A Searcher exposes search keys for a particular Model. Each key is
+  generated from a search attribute, where one attribute generates
+  many different possible keys, depending on its type. Incoming keys
+  are used to generate SQL which performs the search. Searches can
+  also cross Model boundaries.
+
+  The PDBSearch functionality has been augmented with set operations.
+
+  Uses the RPCC_SEARCH_SET table.
+
+* DigFunction base class.
+
+  Using model.Formatter and model.Searcher, a default DigFunction
+  baseclass is defined similarly to PDBDigFunction.
+
+* ALL NEW: An UpdateFunction base class which autogenerates keys that
+  can be called.
+
+  Probably implemented using a @setter(RPCType) decorator on setter
+  methods.
+
+* RPC mutexes and mutex variables.
+
+  A Mutex for clients, implemented using standard SQL functionality,
+  is only given to a single client at a time. Holder of a particular
+  such mutex can get and manipulate variables (simple name/value
+  pairs) and lists (name/value-list pairs) stored in the rpcc server's
+  database.
+
+  Uses the RPCC_MUTEX, RPCC_MUTEX_VAR and RPCC_MUTEX_LISTVAR tables.
+
+* RPC client watchdogs.
+
+  A holder of a mutex can manipulate one or more watchdogs. A watchdog
+  is basically a timer that the client sets and resets. External
+  users, such as monitoring software, can access watchdogs over HTTP
+  GET, and get a single state back.
+
+  The timer has two values - warning time and error time. If the
+  watchdog is running and has been running for more than the error
+  time, the status is "ERROR". If it is otherwise running and has
+  passed the warning time, the status is "WARNING". Otherwise (not
+  running, or not above any of the limits) the status is "OK".
+
+* Functions and typing
+
+  RPCTypedFunction introduced the .params attribute. It has been
+  somewhat edited and extended. See README.params.
+
+
