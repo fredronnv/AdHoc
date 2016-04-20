@@ -60,7 +60,7 @@ gitstatus:
 	    echo "There are untracked or uncommitted new or modified files in dhconf, please commit first";\
 	    false ; \
 	else \
-	    git_version=`git rev-list --max-count=1 HEAD`;\
+	    git_version=`git rev-list --max-count=1 HEAD .`;\
 	    if [ `git rev-list --max-count=1 HEAD rel_patch` =  $${git_version} ]; then \
 		true; \
 	    else \
