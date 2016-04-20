@@ -2,7 +2,7 @@ TOP=../..
 SUBDIRS=
 DISTDIR=${TOP}/dist/dhconf
 RELEASEDIR=${TOP}/releases
-RPCC_DIR=${TOP}/../RPCC/client_libs
+RPCC_DIR=${TOP}/RPCC/client_libs
 
 subdirs:
 	for dir in $(SUBDIRS); do \

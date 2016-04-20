@@ -2,7 +2,7 @@ TOP=..
 SUBDIRS=
 DISTDIR=${TOP}/dist/adhoc-server
 RELEASEDIR=${TOP}/releases
-RPCC_DIR=${TOP}/../RPCC/rpcc
+RPCC_DIR=${TOP}/RPCC/rpcc
 subdirs:
 	for dir in $(SUBDIRS); do \
 	    TOP=${TOP} $(MAKE) -e -C $$dir ${MAKEFLAGS} ;\
