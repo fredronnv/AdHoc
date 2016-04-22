@@ -104,7 +104,13 @@ class DHCPManager(AdHocManager):
         db = self.server.config("ODB_DATABASE")
         host = self.server.config("ODB_HOST")
         port = self.server.config("ODB_PORT")
-
+        
+        # Turn off all dhcpd assisted checks while doing this
+        skip_dhcpd_test = self.server.config("SKIP_DHCPD_CHECKS", default=None)
+        import os
+        os.environ["ADHOC_SKIP_DHCPD_CHECKS"] = "1"
+        #self.server.config["SKIP_DHCPD_CHECKS"] = True
+          
         arrayoptions = []
         optiontypes = {}
         hostidmap = {}
@@ -661,6 +667,8 @@ class DHCPManager(AdHocManager):
             if max_lease_time:
                 oset.set_option_by_name("max-lease-time", max_lease_time)
 
+        if not skip_dhcpd_test:
+            del os.environ["ADHOC_SKIP_DHCPD_CHECKS"]
         return None
 
     def resolve_option_host(self, option_value, host, option_key):

@@ -9,7 +9,6 @@ cd $ADHOC_RUNTIME_HOME || exit 1
 export CHALMERS_DEPLOY_LEVEL="install"
 export ADHOC_GENERIC_PASSWORD='hgUUw/fsy%6gh'
 export PYTHONPATH=$PYTHONPATH:$ADHOC_RUNTIME_HOME/lib/python2.6
-export ADHOC_SKIP_DHCPD_CHECKS=1
 . $ADHOC_RUNTIME_HOME/etc/bashrc.public
 . $ADHOC_USER_HOME/etc/bashrc.private
 /etc/init.d/adhoc-server start
@@ -28,7 +27,6 @@ q.session_deauth()
 q.session_stop()
 EOF
 
-unset ADHOC_SKIP_DHCPD_CHECKS
 unset CHALMERS_DEPLOY_LEVEL
 unset ADHOC_GENERIC_PASSWORD
 /etc/init.d/adhoc-server stop
