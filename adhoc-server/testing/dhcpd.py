@@ -4,18 +4,16 @@ from framework import *
 from testutil import *
 
 
-class T0300_DhcpXfer(SuperUserTests):
+class T0100_DhcpXfer(SuperUserTests):
     """ Test dhcpd data transfer from old database"""
-    skip = True
     
     def do(self):
         with AssertAccessError(self):
             self.proxy.dhcp_xfer()
 
 
-class T0310_DhcpdConf(AuthTests):
+class T0110_DhcpdConf(AuthTests):
     """ Test dhcpd configuration"""
-    skip = True
     
     def do(self):
         if self.proxy != self.superuser:
