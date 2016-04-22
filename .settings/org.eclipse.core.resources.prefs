@@ -1,4 +1,8 @@
 eclipse.preferences.version=1
+encoding//RPCC/client_libs/rpcc_client.py=utf-8
+encoding//RPCC/examples/Ex2_hello_to/client/rpcc_client.py=utf-8
+encoding//RPCC/examples/Ex6_application_server/server/docroot/rpcc_client.py=utf-8
+encoding//RPCC/examples/Ex7_host_registry/server/docroot/rpcc_client.py=utf-8
 encoding//adhoc-server/docroot/lib/python2.6/rpcc_client.py=utf-8
 encoding//adhoc-server/lib/python2.6/rpcc_client.py=utf-8
 encoding//adhoc-server/testing/building.py=utf8

@@ -107,7 +107,6 @@ class DHCPManager(AdHocManager):
         
         # Turn off all dhcpd assisted checks while doing this
         skip_dhcpd_test = self.server.config("SKIP_DHCPD_CHECKS", default=None)
-        import os
         os.environ["ADHOC_SKIP_DHCPD_CHECKS"] = "1"
         #self.server.config["SKIP_DHCPD_CHECKS"] = True
           

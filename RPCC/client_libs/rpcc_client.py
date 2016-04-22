@@ -55,7 +55,7 @@ old_init = ssl.SSLSocket.__init__
 
 @functools.wraps(old_init)
 def adhoc_ssl(self, *args, **kwargs):
-    kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
+    kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1  # @UndefinedVariable
     old_init(self, *args, **kwargs)
 
 ssl.SSLSocket.__init__ = adhoc_ssl

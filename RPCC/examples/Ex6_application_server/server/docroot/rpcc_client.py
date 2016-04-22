@@ -5,7 +5,7 @@ Client for RPCC servers.
 
 To create a client proxy, instantiate the RPCCProxy class.
 
-  rpcc = RPCC("https://some.where/", api=1, attrdicts=True)
+  rpcc = RPCCProxy("https://some.where/", api=1, attrdicts=True)
 
 Functions on the server appear as methods on the proxy object. 
 
@@ -36,27 +36,26 @@ a GSSAPI authentication to the server by implicitly adding the 'token'
 argument to the session_auth_kerberos call.
 """
 
-import re
-import json
-import time
-import getpass
-import urllib2
-import inspect
-import os
-import sys
-
-
-# ## Kludge to enalme TLSv1 protocol via urllib2
-#
 import functools
+import getpass
+import inspect
+import json
+import os
+import re
 import ssl
+import sys
+import time
+import urllib2
 
+
+# ## Kludge to enable TLSv1 protocol via urllib2
+#
 old_init = ssl.SSLSocket.__init__
 
 
 @functools.wraps(old_init)
 def adhoc_ssl(self, *args, **kwargs):
-    kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
+    kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1  # @UndefinedVariable
     old_init(self, *args, **kwargs)
 
 ssl.SSLSocket.__init__ = adhoc_ssl
@@ -68,7 +67,7 @@ env_prefix = "ADHOC_"
 
 # Automagic way to find out the home of adhoc.
 adhoc_home = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/.."
-#print "ADHOC_HOME=", adhoc_home
+# print "ADHOC_HOME=", adhoc_home
 os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home  # Export as env variable ADHOC_RUNTIME_HOME if needed outside server
 
 sys.path.append(adhoc_home)
@@ -79,7 +78,6 @@ sys.path.append(os.path.join(adhoc_home, 'lib', 'python2.6'))
 
 class AttrDict(dict):
     """A dictionary where keys can also be accessed as attributes."""
-
     def __init__(self, rawdict=None):
         if not rawdict:
             return
@@ -111,7 +109,7 @@ class RPCCErrorMixin(object):
     def init(self, err):
         self.path = err["name"].split("::")
         self.name = self.path[-1]
-
+        
 
 class RPCCValueError(RPCCErrorMixin, ValueError):
     def __init__(self, err):
@@ -148,7 +146,7 @@ def error_object(ret, pyexc=True):
             return RPCCTypeError(ret)
         elif name.startswith("RuntimeError"):
             return RPCCRuntimeError(ret)
-
+    
     return RPCCError(ret)
 
 
@@ -159,10 +157,10 @@ class RPCC(object):
         def __init__(self, proxy, funname):
             self.proxy = proxy
             self.funname = funname
-
+            
         def doc(self):
             print self.proxy.server_documentation(self.rpcname)
-
+            
         def __call__(self, *args):
             return self.proxy._call(self.funname, *args)
 
@@ -178,7 +176,7 @@ class RPCC(object):
         self._host = url.replace("http://", "").replace("https://", "").split(":")[0]
         self._api = api_version
         self._auth = None
-        #print >>sys.stderr, "URL='%s'"%self._url
+        # print >>sys.stderr, "URL='%s'"%self._url
         self.reset()
 
     def __getattr__(self, name):
@@ -209,7 +207,7 @@ class RPCC(object):
 
     def _argcount(self, fun):
         return len(self._fundef(fun)["parameters"])
-
+    
     def _get_session(self):
         if self._session_id is None:
             ret = self._rawcall("session_start")
@@ -240,7 +238,7 @@ class RPCC(object):
             (_res, ctx) = kerberos.authGSSClientInit("HTTP@" + self._host)
             kerberos.authGSSClientStep(ctx, "")
             token = kerberos.authGSSClientResponse(ctx)
-            #print >>sys.stderr, "TOKEN=",token
+            # print >>sys.stderr, "TOKEN=",token
             args.append(token)
 
         # Perform call, measuring passed time.
@@ -271,6 +269,7 @@ class RPCC(object):
             if self._attrdicts:
                 err = self._convert_to_attrdicts(err)
 
+            _errname = err['name']
             raise error_object(err, self._pyexceptions)
 
     def _convert_to_attrdicts(self, val):
@@ -350,7 +349,7 @@ class RPCC(object):
                     tokens = tokens[2:]
                 else:
                     subval = True
-
+                    
                 if isinstance(subval, str) and subval and subval[0] == '#':
                     if subval == '#None':
                         subval = None
@@ -391,13 +390,13 @@ class RPCC(object):
 
         if not oldauth:
             return "Reconnected to %s" % (self._purl,)
-
+        
         if password is not None:
             if self.session_auth_login(oldauth, password):
                 return "Reconnected to %s as %s" % (self._purl, self._auth)
             else:
                 return "Restarted with new session to %s, but login for %s failed" % (self._purl, self._auth)
-
+            
         for _i in range(3):
             try:
                 self.session_auth_login(oldauth, getpass.getpass("Reconnect %s@%s, password: " % (oldauth, self._purl)))
@@ -416,7 +415,7 @@ class RPCC(object):
                 raise
 
         return "Restarted with new session to %s, but login for %s failed" % (self._purl, oldauth)
-
+                                    
     def doc(self, substr=None):
         funcs = self.server_list_functions()
         if substr:
@@ -429,29 +428,29 @@ class RPCC(object):
         if password is None:
             password = getpass.getpass("Password for %s@%s: " % (user, self._url))
         return self.session_auth_login(user, password)
-#
+# 
 # class XXXRPCC_Krb5(RPCC):
 #     def reset(self):
 #         # xmlrpclib.Server cannot pass arbitrary headers with the calls,
 #         # so run an explicit session_start() to fetch a session id and
 #         # associate it with a principal.
-#
+#         
 #         start_call = xmlrpclib.dumps(tuple(), "session_start", False, "UTF-8")
 #         req = urllib2.Request(self._url, start_call)
 #         (scheme, host, path, params, query, fragment) = urlparse.urlparse(self._url)
 #         if ':' in host:
 #             host = host.split(':', 1)[0]
-#
+# 
 #         (res, ctx) = kerberos.authGSSClientInit("HTTP@" + host)
 #         kerberos.authGSSClientStep(ctx, "")
 #         token = kerberos.authGSSClientResponse(ctx)
-#
+# 
 #         req.add_header('Authorization', "Negotiate " + token)
 #         result = urllib2.urlopen(req)
-#
+# 
 #         start_response = result.read()
 #         res = xmlrpclib.loads(start_response)
 #         self._sid = res[0][0]['result']
-#
+#         
 #         self._server = xmlrpclib.Server(self._url, encoding='UTF-8', allow_none=1)
-#
+#         

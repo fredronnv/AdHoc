@@ -48,26 +48,26 @@ import time
 import urllib2
 
 
-# Kludge to enable TLSv1 protocol via urllib2
+# ## Kludge to enable TLSv1 protocol via urllib2
 #
 old_init = ssl.SSLSocket.__init__
 
 
 @functools.wraps(old_init)
 def adhoc_ssl(self, *args, **kwargs):
-    kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
+    kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1  # @UndefinedVariable
     old_init(self, *args, **kwargs)
 
 ssl.SSLSocket.__init__ = adhoc_ssl
 #
-# End kludge
+# ## End kludge
 
 env_prefix = "ADHOC_"
 
 
 # Automagic way to find out the home of adhoc.
 adhoc_home = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/.."
-#print "ADHOC_HOME=", adhoc_home
+# print "ADHOC_HOME=", adhoc_home
 os.environ[env_prefix + "RUNTIME_HOME"] = adhoc_home  # Export as env variable ADHOC_RUNTIME_HOME if needed outside server
 
 sys.path.append(adhoc_home)
@@ -176,7 +176,7 @@ class RPCC(object):
         self._host = url.replace("http://", "").replace("https://", "").split(":")[0]
         self._api = api_version
         self._auth = None
-        #print >>sys.stderr, "URL='%s'"%self._url
+        # print >>sys.stderr, "URL='%s'"%self._url
         self.reset()
 
     def __getattr__(self, name):
@@ -238,7 +238,7 @@ class RPCC(object):
             (_res, ctx) = kerberos.authGSSClientInit("HTTP@" + self._host)
             kerberos.authGSSClientStep(ctx, "")
             token = kerberos.authGSSClientResponse(ctx)
-            #print >>sys.stderr, "TOKEN=",token
+            # print >>sys.stderr, "TOKEN=",token
             args.append(token)
 
         # Perform call, measuring passed time.

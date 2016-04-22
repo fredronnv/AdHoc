@@ -47,7 +47,7 @@ class SSLConfig(object):
                                keyfile=self.keyfile, 
                                certfile=self.certfile, 
                                server_side=True,
-                               ssl_version=ssl.PROTOCOL_TLSv1)
+                               ssl_version=ssl.PROTOCOL_TLSv1)  # @UndefinedVariable
 
 
 class Server(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
