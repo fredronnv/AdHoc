@@ -11,5 +11,6 @@
 <path>/${PROJECT_DIR_NAME}/adhoc-server/lib</path>
 <path>/${PROJECT_DIR_NAME}/client</path>
 <path>/${PROJECT_DIR_NAME}/adhoc-server/testing</path>
+<path>/${PROJECT_DIR_NAME}/RPCC</path>
 </pydev_pathproperty>
 </pydev_project>
