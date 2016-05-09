@@ -481,6 +481,7 @@ class HostManager(AdHocManager):
     
     def generate_host_name(self, mac, today=None, same_as=None):
         """ Generates a free host name according to standard naming devised by the networking group"""
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         
         if not today:
             today = date.today().strftime("%Y%m%d")
@@ -519,18 +520,22 @@ class HostManager(AdHocManager):
                   
         else:
             name = same_as.oid[0:12]
-            q = """SELECT id, mac from hosts WHERE substr(id, 1, 12) = :name"""
+            q = """SELECT id, mac from hosts WHERE substr(id, 1, 12) = :name ORDER BY id DESC"""
             res = self.db.get(q, name=name)
             if len(res) < 1:
                 raise ExtInternalError("skrivbordslampa")
-            count = len(res)
+            
+            suffix = res[0][0][12:]
+            count = 0
+            for ltr in suffix:
+                count = count * len(alphabet) + alphabet.index(ltr) + 1
 
         if count > 0:
             name = res[0][0][0:12]  # Pick old ID prefix if mac or name already found
             
         r = ""
         while count > 0:
-            r = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[count % 26] + r
+            r = alphabet[count % 26] + r
             count //= 26
         if r == "":
             name += "A"
