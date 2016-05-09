@@ -12,7 +12,7 @@ from rpcc import ExtString, ExtList, ExtStruct, ExtType, ExtInteger, \
 
 class ExtLiteralOptionString(ExtString):
     name = "literal-option-string"
-    desc = "Option value literally tranferred to the dhcpd configutation file"
+    desc = "Option value literally transferred to the dhcpd configuration file"
     maxlen = 1024  # If increased, the database definiton must be changed
 
     
