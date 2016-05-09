@@ -290,10 +290,10 @@ class GroupManager(AdHocManager):
         return "g.parent_group"
     
     # Note: This seems to do the trick I want, but I don't understand why...
-    @search("granted_for", StringMatch, "Groups granted for a certain named pool")
-    def s_granted_for(self, q):
-        q.table("pool_group_map pgm")
-        q.where("g.groupname = pgm.groupname")
+    @search("granted_for", StringMatch, desc="Groups granted for a certain named pool")
+    def s_granted_for(self, dq):
+        dq.table("pool_group_map pgm")
+        dq.where("g.groupname = pgm.groupname")
         return "pgm.poolname"
     
     def get_current_members(self, groupname):
