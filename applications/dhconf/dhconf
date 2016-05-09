@@ -2723,7 +2723,7 @@ check_date()
 #M The addhost subcommand adds a host to the dhcp database.
 #M DNS addresses names are preferably written as FQDN names, but if not,
 #M they will be looked up using the I<getent(1)> command.
-#M Host ID's are generated automatially using the pattern YYYYMMDD-NNNX where YYMMDD is a date, NNN is a seral number and
+#M Host ID's are generated automatially using the pattern YYYYMMDD-NNNX where YYMMDD is a date, NNN is a serial number and
 #M X is an uppercase letter ABCD etc. Host names with X > B, C, D etc are to be regarded as variants of the same device, either
 #M by having the same mac address or having more than one interface.
 #M YYMMDD is set today's date if registering a device the first time. This date will be re-used if registering the same device
@@ -2943,7 +2943,7 @@ addhost()
                     echo "Too many matches for the DNS name, use a host ID instead"
                     exit 1
                 fi
-                addhost_sameas_arg=`echo "$addhost_likes" | tr ' ' '\n' | cut -c1-12 | sort -u`
+                addhost_sameas_arg=`echo "$addhost_likes" | tr ' ' '\n' | cut -c1-14 | sort -u`
             else
                 echo "The DNS name you specified is not registered"
                 exit 1
@@ -3397,12 +3397,13 @@ chhost()
                 if [ -z "$validated_dns_arg" ]; then
                     echo "WARNING: The DNS name specified is invalid"
                 fi
+                proxy_call "update_template['dns']='$chhost_d_arg'"
         else
             if [[ -z "$chhost_q_flag" ]]; then
                 echo "WARNING: You are removing the DNS entry. The host can only be used within a pool"
             fi
+            proxy_call "update_template['dns']=None"
         fi
-        proxy_call "update_template['dns']='$chhost_d_arg'"
     fi
     
     if [ -n "$chhost_m_flag" ];then
