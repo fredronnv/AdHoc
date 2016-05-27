@@ -25,6 +25,4 @@ encoding//adhoc-server/tmp/opt-client.py=utf-8
 encoding//applications/dhconf/rpcc_client.py=utf-8
 encoding//applications/scripts/rpcc_client.py=utf-8
 encoding//client/rpcc_client.py=utf-8
-encoding//dist/adhoc-server-1.9.12/rpcc/exterror.py=utf-8
-encoding//dist/adhoc-server-1.9.12/rpcc/exttype.py=utf-8
 encoding//lib/python2.6/rpcc_client.py=utf-8
