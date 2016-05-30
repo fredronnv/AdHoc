@@ -12,6 +12,7 @@ from shared_network import *
 
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_subnetworks"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("write_all_subnetworks"))
 
 
 class ExtNoSuchSubnetworkError(ExtLookupError):
@@ -123,25 +124,30 @@ class Subnetwork(AdHocModel):
         self.optionset = a.pop(0)
 
     @template("subnetwork", ExtSubnetwork, desc="The subnetwork")
+    @entry(g_read)
     def get_subnetwork(self):
         return self
 
     @template("network", ExtNetworkName, desc="Which shared network the subnetwork belongs to")
+    @entry(g_read)
     def get_network(self):
         return self.network
     
     @template("netmask", ExtIpV4Address, desc="The netmask corresponding to bit count of the subnetwork")
+    @entry(g_read)
     def get_netmask(self):
         (_ip, n) = self.oid.split('/', 1)
         bits = 0xffffffff ^ (1 << 32 - n) - 1
         return socket.inet_ntoa(struct.pack('>I', bits))
     
     @template("start_ip", ExtIpV4Address, desc="The start IP address of the subnetwork")
+    @entry(g_read)
     def get_start_ip(self):
         (ip, _n) = self.oid.split('/', 1)
         return ip
     
     @template("size", ExtInteger, desc="The number of IP addresses covered by the subnetwork")
+    @entry(g_read)
     def get_size(self):
         (_ip, n) = self.oid.split('/', 1)
         n = int(n)
@@ -151,22 +157,27 @@ class Subnetwork(AdHocModel):
         return (1 << 32 - n)
         
     @template("info", ExtString, desc="Subnetwork description")
+    @entry(g_read)
     def get_info(self):
         return self.info
     
     @template("mtime", ExtDateTime, desc="Time of last change")
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
     
     @template("changed_by", ExtString, desc="User who did the last change")
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
     
     @template("options", ExtOptionKeyList, desc="List of options defined for this subnetwork")
+    @entry(g_read)
     def list_options(self):
         return self.get_optionset().list_options()
     
     @template("optionset", ExtOptionset, model=Optionset)
+    @entry(g_read)
     def get_optionset(self):
         return self.optionset_manager.get_optionset(self.optionset)
     

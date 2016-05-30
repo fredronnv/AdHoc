@@ -7,6 +7,7 @@ from util import *
 
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_rooms"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_rooms"))
 
 
 class ExtNoSuchRoomError(ExtLookupError):
@@ -96,24 +97,29 @@ class Room(AdHocModel):
         self.changed_by = a.pop(0)
 
     @template("room", ExtRoom)
+    @entry(g_read)
     def get_room(self):
         return self
 
     @template("printers", ExtRoomPrinters)
+    @entry(g_read)
     def get_printers(self):
         if self.printers is None:
             return ""
         return self.printers
 
     @template("info", ExtString)
+    @entry(g_read)
     def get_info(self):
         return self.info
     
     @template("mtime", ExtDateTime)
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
     
     @template("changed_by", ExtString)
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
     

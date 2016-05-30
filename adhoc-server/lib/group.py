@@ -11,8 +11,8 @@ from util import ExtHostList, AllowUserWithPriv, AdHocSuperuserGuard, AdHocModel
 from util import g_rename, g_write_literal_option, ExtLiteralOptionString
 
 
-g_read = AnyGrants(AllowUserWithPriv("write_all_groups"), AllowUserWithPriv("read_all_groups"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_groups"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_groups"))
 
 
 class ExtNoSuchGroupError(ExtLookupError):
@@ -153,48 +153,59 @@ class Group(AdHocModel):
         self.hostcount = a.pop(0)
 
     @template("group", ExtGroup)
+    @entry(g_read)
     def get_group(self):
         # print "GET_GROUP"
         return self
 
     @template("parent", ExtGroup)
+    @entry(g_read)
     def get_parent(self):
         p = self.manager.get_group(self.parent)
         return p
     
     @template("optionspace", ExtOrNullOptionspace)
+    @entry(g_read)
     def get_optionspace(self):
         return self.optionspace
 
     @template("info", ExtString)
+    @entry(g_read)
     def get_info(self):
         return self.info
     
     @template("mtime", ExtDateTime)
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
     
     @template("changed_by", ExtString)
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
     
     @template("options", ExtOptionKeyList, desc="List of options defined for this group")
+    @entry(g_read)
     def list_options(self):
         return self.get_optionset().list_options()
     
     @template("optionset", ExtOptionset, model=Optionset)
+    @entry(g_read)
     def get_optionset(self):
         return self.optionset_manager.get_optionset(self.optionset)
     
     @template("hostcount", ExtHostCount)
+    @entry(g_read)
     def get_hostcount(self):
         return self.hostcount
     
     @template("current_members", ExtHostList, desc="List of current host IDs")
+    @entry(g_read)
     def get_current_members(self):
         return self.manager.get_current_members(self.oid)
     
     @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this group")
+    @entry(g_read)
     def get_literal_options(self):
         q = "SELECT value, changed_by, id FROM group_literal_options WHERE `for`= :group"
         ret = []

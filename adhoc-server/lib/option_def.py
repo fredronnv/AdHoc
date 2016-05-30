@@ -7,8 +7,8 @@ from optionspace import *
 from rpcc import *
 from util import *
 
-
 g_write = AnyGrants(AllowUserWithPriv("write_all_option_defs"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_option_defs"))
 
 
 class ExtNoSuchOptionDefError(ExtLookupError):
@@ -184,30 +184,37 @@ class OptionDef(AdHocModel):
         self.id = a.pop(0)
 
     @template("option_def", ExtOptionDef)
+    @entry(g_read)
     def get_option_def(self):
         return self
 
     @template("code", ExtOptionDefCode)
+    @entry(g_read)
     def get_code(self):
         return self.code
     
     @template("qualifier", ExtOptionDefQualifier)
+    @entry(g_read)
     def get_qualifier(self):
         return self.qualifier
     
     @template("type", ExtOptionType)
+    @entry(g_read)
     def get_type(self):
         return self.type
     
     @template("optionspace", ExtOrNullOptionspace)
+    @entry(g_read)
     def get_optionspace(self):
         return self.optionspace
     
     @template("encapsulate", ExtOrNullOptionspace)
+    @entry(g_read)
     def get_encapsulate(self):
         return self.encapsulate
     
     @template("struct", ExtOptionDefStruct)
+    @entry(g_read)
     def get_struct(self):
         struct = self.struct
         if not struct:
@@ -225,14 +232,17 @@ class OptionDef(AdHocModel):
         return list
 
     @template("info", ExtString)
+    @entry(g_read)
     def get_info(self):
         return self.info
     
     @template("mtime", ExtDateTime)
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
     
     @template("changed_by", ExtString)
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
     

@@ -6,8 +6,8 @@ from rpcc import *
 from util import *
 
 
-g_read = AnyGrants(AllowUserWithPriv("write_all_buildings"), AllowUserWithPriv("read_all_buildings"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_buildings"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_buildings"))
 
 
 class ExtNoSuchBuildingError(ExtLookupError):
@@ -84,24 +84,29 @@ class Building(AdHocModel):
         self.changed_by = a.pop(0)
 
     @template("building", ExtBuilding)
+    @entry(g_read)
     def get_building(self):
         return self
 
     @template("re", ExtBuildingRe)
+    @entry(g_read)
     def get_re(self):
         if self.re is None:
             return ""
         return self.re
 
     @template("info", ExtString)
+    @entry(g_read)
     def get_info(self):
         return self.info
     
     @template("mtime", ExtDateTime)
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
     
     @template("changed_by", ExtString)
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
     

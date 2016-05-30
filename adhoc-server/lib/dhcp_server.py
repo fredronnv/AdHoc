@@ -5,6 +5,9 @@
 from rpcc import *
 from util import *
 
+g_write = AnyGrants(AllowUserWithPriv("write_all_dhcp_servers"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_dhcp_servers"))
+
 
 class ExtNoSuchDHCPServerError(ExtLookupError):
     desc = "No such dhcp_server exists."
@@ -74,26 +77,32 @@ class DHCPServer(AdHocModel):
         self.latest_fetch = a.pop(0)
 
     @template("dhcp_server", ExtDHCPServer)
+    @entry(g_read)
     def get_dhcp_server(self):
         return self
 
     @template("dns", ExtString)
+    @entry(g_read)
     def get_dns(self):
         return self.dns
 
     @template("info", ExtString)
+    @entry(g_read)
     def get_info(self):
         return self.info
     
     @template("mtime", ExtDateTime)
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
     
     @template("changed_by", ExtString)
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
     
     @template("latest_fetch", ExtInteger)
+    @entry(g_read)
     def get_latest_fetch(self):
         return self.latest_fetch
 

@@ -6,8 +6,8 @@ from option_def import ExtNoSuchOptionDefError
 from rpcc import *
 from util import *
 
-
 g_write = AnyGrants(AllowUserWithPriv("write_all_global_options"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_global_options"))
 
 
 class ExtNoSuchGlobalOptionError(ExtLookupError):
@@ -89,28 +89,34 @@ class GlobalOption(AdHocModel):
         self.changed_by = a.pop(0)
 
     @template("global_option", ExtGlobalOption)
+    @entry(g_read)
     def get_global_option(self):
         return self
     
     @template("name", ExtGlobalOptionName)
+    @entry(g_read)
     def get_name(self):
         return self.name
 
     @template("value", ExtGlobalOptionValue)
+    @entry(g_read)
     def get_value(self):
         if self.value is None:
             return ""
         return self.value
     
     @template("mtime", ExtDateTime)
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
     
     @template("basic", ExtBoolean)
+    @entry(g_read)
     def get_basic_command(self):
         return self.basic
     
     @template("info", ExtOrNull(ExtString))
+    @entry(g_read)
     def get_info(self):
         try:
             return self.option_def_manager.get_option_def(self.name).info
@@ -118,6 +124,7 @@ class GlobalOption(AdHocModel):
             return None
     
     @template("changed_by", ExtString)
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
     

@@ -6001,7 +6001,9 @@ chrange()
 #S reload;;Reload DHCP servers;0;0;;Trigger a reload of the DHCP server configurations;002
 #M =head2 I<Description>
 #M
-#M The reload subcommand initates a reload of the DHCP server configurations
+#M The reload subcommand initates a reload of the DHCP server configurations. This is normally 
+#M only done when any configuration has been changed.
+#M This command will trigger a reload even if nothing is changed.
 #M
 reload()
 {

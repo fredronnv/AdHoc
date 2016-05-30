@@ -7,8 +7,8 @@ from pool import *
 from rpcc import *
 from util import *
 
-
 g_write = AnyGrants(AllowUserWithPriv("write_all_pool_ranges"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_pool_ranges"))
 
 
 class ExtNoSuchPoolRangeError(ExtLookupError):
@@ -133,16 +133,19 @@ class PoolRange(AdHocModel):
         # return self.dhcp_server_manager.get_dhcp_server(self.served_by)
     
     @template("served_by", ExtDHCPServer, model="dhcp_server")
+    @entry(g_read)
     def get_served_by(self):
         q = "SELECT id FROM dhcp_servers WHERE id=:served_by"
         return self.dhcp_server_manager.model(self.db.get_all(q, served_by=self.served_by)[0][0])
         # return [self.dhcp_server_manager.model(a) for (a,) in self.db.get(q, served_by=self.served_by)]
     
     @template("mtime", ExtDateTime)
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
     
     @template("changed_by", ExtString)
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
     

@@ -10,9 +10,9 @@ from optionset import *
 from rpcc import *
 from shared_network import ExtNetwork, ExtNetworkName
 
-
 g_write = AnyGrants(AllowUserWithPriv("write_all_pools"), AdHocSuperuserGuard)
-g_admin = AnyGrants(g_write, AllowUserWithPriv("admin_all_pools"), AdHocSuperuserGuard)
+g_admin = AnyGrants(g_write, AllowUserWithPriv("admin_all_pools"))
+g_read = AnyGrants(g_admin, AllowUserWithPriv("read_all_pools"))
 
 
 class ExtNoSuchPoolError(ExtLookupError):
@@ -240,42 +240,52 @@ class Pool(AdHocModel):
         self.open = a.pop(0)
 
     @template("pool", ExtPool)
+    @entry(g_read)
     def get_pool(self):
         return self
 
     @template("network", ExtNetworkName)
+    @entry(g_read)
     def get_network(self):
         return self.network
 
     @template("optionspace", ExtOrNullOptionspace)
+    @entry(g_read)
     def get_optionspace(self):
         return self.optionspace
 
     @template("max_lease_time", ExtInteger)
+    @entry(g_read)
     def get_max_lease_time(self):
         return self.get_optionset().get_option("max-lease-time")
 
     @template("info", ExtString)
+    @entry(g_read)
     def get_info(self):
         return self.info
 
     @template("mtime", ExtDateTime)
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
 
     @template("changed_by", ExtString)
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
 
     @template("options", ExtOptionKeyList, desc="List of options defined for this pool")
+    @entry(g_read)
     def list_options(self):
         return self.get_optionset().list_options()
 
     @template("optionset", ExtOptionset, model=Optionset)
+    @entry(g_read)
     def get_optionset(self):
         return self.optionset_manager.get_optionset(self.optionset)
 
     @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this pool")
+    @entry(g_read)
     def get_literal_options(self):
         q = "SELECT value, changed_by, id FROM pool_literal_options WHERE `for`= :pool"
         ret = []
@@ -287,24 +297,28 @@ class Pool(AdHocModel):
         return ret
 
     @template("granted_hosts", ExtHostList)
+    @entry(g_read)
     def get_granted_hosts(self):
         q = "SELECT hostname FROM pool_host_map WHERE poolname=:pool"
         hosts = self.db.get(q, pool=self.oid)
         return [x[0] for x in hosts]
 
     @template("granted_groups", ExtGroupList)
+    @entry(g_read)
     def get_granted_groups(self):
         q = "SELECT groupname FROM pool_group_map WHERE poolname=:pool"
         groups = self.db.get(q, pool=self.oid)
         return [x[0] for x in groups]
 
     @template("granted_host_classes", ExtHostClassList)
+    @entry(g_read)
     def get_granted_host_classes(self):
         q = "SELECT classname FROM pool_class_map WHERE poolname=:pool"
         classes = self.db.get(q, pool=self.oid)
         return [x[0] for x in classes]
 
     @template("open", ExtBoolean)
+    @entry(g_read)
     def get_open(self):
         return self.open
 

@@ -9,6 +9,7 @@ from rpcc import *
 
 #from util import ExtLiteralOptionString
 g_write = AnyGrants(AllowUserWithPriv("write_all_host_classes"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_host_classes"))
 
 
 class ExtNoSuchHostClassError(ExtLookupError):
@@ -141,38 +142,47 @@ class HostClass(AdHocModel):
         self.optionset = a.pop(0)
 
     @template("host_class", ExtHostClass)
+    @entry(g_read)
     def get_host_class(self):
         return self
 
     @template("vendor_class_id", ExtHostClassVendorClassID)
+    @entry(g_read)
     def get_vendor_class_id(self):
         return self.vendor_class_id
     
     @template("optionspace", ExtOrNullOptionspace)
+    @entry(g_read)
     def get_optionspace(self):
         return self.optionspace
 
     @template("info", ExtString)
+    @entry(g_read)
     def get_info(self):
         return self.info
     
     @template("mtime", ExtDateTime)
+    @entry(g_read)
     def get_mtime(self):
         return self.mtime
     
     @template("changed_by", ExtString)
+    @entry(g_read)
     def get_changed_by(self):
         return self.changed_by
     
     @template("options", ExtOptionKeyList, desc="List of options defined for this class")
+    @entry(g_read)
     def list_options(self):
         return self.get_optionset().list_options()
     
     @template("optionset", ExtOptionset, model=Optionset)
+    @entry(g_read)
     def get_optionset(self):
         return self.optionset_manager.get_optionset(self.optionset)
     
     @template("literal_options", ExtLiteralOptionList, desc="List of literal options defined for this class")
+    @entry(g_read)
     def get_literal_options(self):
         q = "SELECT value, changed_by, id FROM class_literal_options WHERE `for`= :host_class"
         ret = []

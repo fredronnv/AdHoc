@@ -6,8 +6,8 @@
 from rpcc import *
 from util import *
 
-
 g_write = AnyGrants(AllowUserWithPriv("write_all_optionsets"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_optionsets"))
 
 
 class ExtOptionset(ExtInteger):
@@ -72,6 +72,7 @@ class Optionset(AdHocModel):
             self.options[name] = (value)
 
     @template("optionset", ExtOptionset)
+    @entry(g_read)
     def get_optionset(self):
         return self
     
@@ -88,6 +89,7 @@ class Optionset(AdHocModel):
         return f        
 
     @auto_template
+    @entry(g_read)
     def get_option(self, opt):
         (typ, _optid, _name, _exttyp, _fromv, _tov, _desc) = self.optionset_manager.get_option_details_by_name(opt, self.manager.function.api.version)
         if "array" in typ:

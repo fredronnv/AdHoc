@@ -8,8 +8,8 @@ from rpcc import *
 from util import *
 
 
-g_read = AnyGrants(AllowUserWithPriv("write_all_accounts"), AllowUserWithPriv("read_all_accounts"), AdHocSuperuserGuard)
 g_write = AnyGrants(AllowUserWithPriv("write_all_accounts"), AdHocSuperuserGuard)
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_accounts"))
 
 
 class SessionGetPrivileges(SessionedFunction):
