@@ -6309,10 +6309,14 @@ revoke()
 #O history;g;;Show changes made to groups;;
 #O history;H;;Show changes made to hosts;;
 #O history;by;cid;Limit history changes made by a specific account;;
-#O history;from;from_date;Limit history to time after a certain date;;
+#O history;from;from_date;Limit history to time after a certain date (YYYY-MM-DD);;
 #M =head2 I<Description>
 #M
-#M The history subcommand does something that is yet undefined and needs to be documented
+#M The history subcommand shows the history of changes made to the configuration database,
+#M Limiting the time span with the --from option is probably a good idea. Use a
+#M ISO8601 formatted date for that option.
+#M Note that selecting too many flags will probably result in an empty list because
+#M not many changes affect more than one kind of object.
 #M
 history()
 {
@@ -6376,7 +6380,156 @@ history()
     if [ -n "$history_by_flag" ]; then
         search_exp="$search_exp, 'authuser':'$history_by_arg'"
     fi
-    
+#M
+#M The result from this command has four fixed columns: 
+#M
+#M =over
+#M
+#M =item event
+#M 
+#M The event ID. This is an internal number that may be used for reference.
+#M
+#M =item authuser
+#M
+#M The account (CID) of the person making the change
+#M
+#M =item created
+#M
+#M Date and time that the change was made.
+#M
+#M =item type
+#M 
+#M The type of change. The types are:
+#M
+#M =over 
+#M
+#M =item create
+#M
+#M The creation of some object, e.g. a host or group.
+#M
+#M =item destroy
+#M
+#M The deletion (or destruction) of some object.
+#M
+#M =item update
+#M
+#M When an existing object is changed in some way.
+#M
+#M =item grant_access
+#M
+#M When a host, class or group is granted access to a pool.
+#M
+#M =item revoke_access
+#M
+#M When such an access is revoked,
+#M
+#M =item connect
+#M 
+#M When a connection is made between two objects, typcially when a host becomes a member of a group.
+#M
+#M =item disconnect
+#M
+#M When such a connection is removed.
+#M
+#M =back
+#M
+#M The remaining data contains key-value pairs describing the values or the existing objects involved in the
+#M event.
+#M The following keys are used:
+#M
+#M =over
+#M
+#M =item authoritative
+#M
+#M Whether the authoritative flag for a subnetork is set or not. See documentation dhcpd.conf(5) for more info.
+#M
+#M =item cid
+#M 
+#M This item signifies the designated user for a host.
+#M 
+#M =item code
+#M
+#M The DHCP code value when creating DHCP options
+#M
+#M =item dhcp_server
+#M
+#M The DHCP server designated to handle a pool
+#M
+#M =item dns
+#M
+#M The DNS name of a host.
+#M
+#M =item end_ip
+#M
+#M The end IP address of the range when a pool is created or changed.
+#M
+#M =item entry_status
+#M
+#M The status of a Host entry. Active or Inactive
+#M
+#M =item global_option
+#M
+#M The name of a global option
+#M
+#M =item group
+#M
+#M The name of a group involved in the event.
+#M
+#M =item host
+#M
+#M Name of host involved
+#M
+#M =item info
+#M 
+#M The information or description saved for an object
+#M
+#M =item mac
+#M
+#M The media access control address (physical address) for a host.
+#M
+#M =item optionset
+#M
+#M The internal ID of the set of options given for an object,
+#M
+#M =item parent_object
+#M 
+#M Some objects, like pools or subnetworks, are meant to have a parent object, e.g, a pool lives within a subnetwork. This
+#M event item gives the name of that object.
+#M
+#M =item pool
+#M 
+#M Name of pool involved
+#M
+#M =item pool_range
+#M
+#M The start IP addresses of the IP range when a pool is created.
+#M
+#M =item qualifier
+#M
+#M The qualifier given when a DHCP option is created. See dhcpd.conf(5)
+#M
+#M =item room
+#M
+#M Room code given when a host is created or changed.
+#M
+#M =item start_ip
+#M
+#M The start IP addresses of the IP range when a pool is changed.
+#M
+#M =item served_by
+#M
+#M The code for the DHCP server that serves a particular pool. This is usually A, B or C.
+#M
+#M =item subnetwork
+#M
+#M The name of a subnetwork involved in the event.
+#M 
+#M =item vendor_class_id
+#M
+#M The vendor class ID associated with a dhcpd option. See dhcpd.conf(5)
+#M
+#M =back
+#M
     data_template='"event":true,"authuser":true, "created":true, "type":true, "parent_object":key, "pool":key, "host":key, '
     data_template=$data_template'"authoritative":key, "cid":key, "code":key, "dhcp_server":key, "pool_range":key, "start_ip":key, "end_ip":key, "errline":key, '
     data_template=$data_template'"function":key, '
