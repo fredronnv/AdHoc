@@ -31,6 +31,12 @@ class ExtNetworkName(ExtString):
     regexp = "^[A-Za-z0-9_][-A-Za-z0-9_]*$"
 
 
+class ExtNetworkInfo(ExtOrNull):
+    name = "network-info"
+    desc = "Information about a network"
+    typ = ExtString
+
+
 class ExtNetwork(ExtNetworkName):
     name = "network"
     desc = "A DHCP shared network"
@@ -148,7 +154,7 @@ class Network(AdHocModel):
         self.db.put(q, id=self.oid, authoritative=value)
         self.event_manager.add("update", network=self.oid, authoritative=value, authuser=self.function.session.authuser)
         
-    @update("info", ExtString)
+    @update("info", ExtNetworkInfo)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE networks SET info=:info WHERE id=:id"

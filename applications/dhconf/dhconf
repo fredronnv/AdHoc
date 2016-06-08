@@ -3592,7 +3592,7 @@ _choption()
 
 #S chroom;cr;Change a room;1;1;room_id;Change the data stored for a room in the database;102
 #O chroom;i;info;Change room description
-#O chroom;p;printer_name;Change printer definition
+#O chroom;p;printers;Update the default printer set
 #M =head2 I<Description>
 #M
 #M The chroom subcommand changes the data in the database that is stored for a room.
@@ -3980,7 +3980,7 @@ deletehost()
 #M =head2 I<Description>
 #M
 #M The lsclasses lists the host classes defined. Host classes are used for classifying hosts that are not
-#M listes in the host list, but nevertheless are identifiable through the I<vendor_class_id> field in the
+#M listed in the host list, but nevertheless are identifiable through the I<vendor_class_id> field in the
 #M DHCP protocol. Without the I<-l> option, only the names of the classes are listed. With I<-l>, the
 #M columns listed are as follows:
 #M
@@ -3995,28 +3995,19 @@ deletehost()
 #M This is the vendor class identifier that a host must present over the DHCP protocol to be considered a member
 #M of the class.
 #M
-#M =item next-server
-#M
-#M The I<next-server> field specifies the host address of the server from which the initial boot file (which is specified in the group)
-#M is to be loaded. The value is a numeric IP address. If the field is empty, the address of the DHCP server itself is used.
-#M
-#M =item server-name
-#M
-#M The I<server-name> field informs the client of the name of the server from which it is booting.
-#M
-#M =item server-id
-#M
 #M The I<server-name> field informs the client of the IP address of the server from which it should boot.
 #M
 #M =item Option space
 #M
 #M This field specifies which option space any attached options belongs to. See also the lsoption subcommand.
 #M
-#M =item Optionlist
+#M =item Info
 #M
-#M This field signifies a list of options belonging to the class.  Use the lsoptions subcommand to view the options.
+#M Information about the class.
 #M
 #M =back 
+#M
+#M To see the actual DHCP options defined for a class, use the command lsoptions -c I<classname>.
 #M
 lsclasses()
 {
@@ -4038,8 +4029,8 @@ lsclasses()
     format="'host_class':true"
     pattern="^[^	]*${1-.*}"
     if [ -n "$lsclasses_l_flag" ]; then
-        format="'host_class':true, 'vendor_class_id':true, 'optionspace':true"
-        echo "Class name	Vendor class id	Option space" | _lsclasses_fmt
+        format="'host_class':true, 'vendor_class_id':true, 'optionspace':true, 'info':true"
+        echo "Class name	Vendor class id	Option space	Info" | _lsclasses_fmt
     fi
     
      
@@ -4164,7 +4155,7 @@ _lsgroups_fmt()
 #O lshosts;m;mac-pattern;List hosts matching a MAC pattern
 #O lshosts;r;room_id_pattern;List hosts registered in a room ID matching a pattern
 #O lshosts;d;description_pattern;List hosts whose description (info) matches a pattern
-#O lshosts;i;id_pattern;List hosts whise ID matches a pattern.
+#O lshosts;i;id_pattern;List hosts whose ID matches a pattern.
 #M
 #M =head2 I<Description>
 #M
@@ -4310,6 +4301,7 @@ lshosts()
     fi
 
     if [ -n "$dns_pattern" ]; then
+        dns_pattern=`echo "$dns_pattern" | tr '[:upper:]' '[:lower:]'`
         search_exp="$search_exp'dns_pattern':'*$dns_pattern*',"
     fi
     

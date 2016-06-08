@@ -56,6 +56,12 @@ class ExtSubnetworkID(ExtString):
         return cval
 
 
+class ExtSubnetworkInfo(ExtOrNull):
+    name = "subnetwork-info"
+    desc = "Information about a subnetwork"
+    typ = ExtString
+    
+    
 class ExtSubnetwork(ExtSubnetworkID):
     name = "subnetwork"
     desc = "A defined subnetwork in CIDR notation. [ipaddress/bitcount]"
@@ -217,7 +223,7 @@ class Subnetwork(AdHocModel):
         self.db.put(q, id=self.oid, value=value)
         self.event_manager.add("update", subnetwork=self.oid, network=value, authuser=self.function.session.authuser)
               
-    @update("info", ExtString)
+    @update("info", ExtSubnetworkInfo)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE subnetworks SET info=:value WHERE id=:id"

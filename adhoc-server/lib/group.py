@@ -32,6 +32,12 @@ class ExtGroupName(ExtString):
     desc = "Name of a group"
     regexp = "^[-a-zA-Z0-9_]+$"
     maxlen = 64
+    
+
+class ExtGroupInfo(ExtOrNull):
+    name = "group_info"
+    desc = "Information about a group"
+    typ = ExtString
 
 
 class ExtGroup(ExtGroupName):
@@ -216,7 +222,7 @@ class Group(AdHocModel):
             ret.append(d)
         return ret
     
-    @update("group", ExtString)
+    @update("group", ExtGroupInfo)
     @entry(g_write)
     def set_name(self, group_name):
         nn = str(group_name)

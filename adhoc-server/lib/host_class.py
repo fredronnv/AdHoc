@@ -29,6 +29,12 @@ class ExtHostClassName(ExtString):
     desc = "Name of a host_class"
     regexp = "^[-a-zA-Z0-9_]+$"
     maxlen = 64
+    
+    
+class ExtHostClassInfo(ExtOrNull):
+    name = "host_class_info"
+    desc = "Information about a host class"
+    typ = ExtString
 
 
 class ExtHostClassList(ExtList):
@@ -204,7 +210,7 @@ class HostClass(AdHocModel):
         self.manager.rename_object(self, nn)
         self.event_manager.add("rename", host_class=self.oid, newstr=nn, authuser=self.function.session.authuser)
         
-    @update("info", ExtString)
+    @update("info", ExtHostClassInfo)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE classes SET info=:value WHERE classname=:name LIMIT 1"
@@ -223,7 +229,7 @@ class HostClass(AdHocModel):
     @update("optionspace", ExtOrNullOptionspace)
     @entry(g_write)
     def set_optionspace(self, value):
-        q = "UPDATE host_classes SET optionspace=:value WHERE classname=:name"
+        q = "UPDATE classes SET optionspace=:value WHERE classname=:name"
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", host_class=self.oid, optionspace=value, authuser=self.function.session.authuser)
         

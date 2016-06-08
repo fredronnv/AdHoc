@@ -9,6 +9,7 @@ from option_def import *
 from optionset import *
 from rpcc import *
 from shared_network import ExtNetwork, ExtNetworkName
+from optionspace import ExtOrNullOptionspace
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_pools"), AdHocSuperuserGuard)
 g_admin = AnyGrants(g_write, AllowUserWithPriv("admin_all_pools"))
@@ -64,6 +65,12 @@ class ExtPoolName(ExtString):
     desc = "Name of a pool"
     regexp = "^[-a-zA-Z0-9_]+$"
     maxlen = 64
+    
+    
+class ExtPoolInfo(ExtOrNull):
+    name = "pool_info"
+    desc = "Information about a pool"
+    typ = ExtString
 
 
 class ExtPool(ExtPoolName):
@@ -333,7 +340,7 @@ class Pool(AdHocModel):
         self.manager.rename_object(self, nn)
         self.event_manager.add("rename", pool=self.oid, newstr=nn, authuser=self.function.session.authuser)
 
-    @update("info", ExtString)
+    @update("info", ExtPoolInfo)
     @entry(g_write)
     def set_info(self, value):
         q = "UPDATE pools SET info=:value WHERE poolname=:name LIMIT 1"
