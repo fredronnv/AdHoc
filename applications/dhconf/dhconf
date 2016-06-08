@@ -6522,6 +6522,8 @@ history()
 #M
 #M =back
 #M
+#M =back
+#M
     data_template='"event":true,"authuser":true, "created":true, "type":true, "parent_object":key, "pool":key, "host":key, '
     data_template=$data_template'"authoritative":key, "cid":key, "code":key, "dhcp_server":key, "pool_range":key, "start_ip":key, "end_ip":key, "errline":key, '
     data_template=$data_template'"function":key, '

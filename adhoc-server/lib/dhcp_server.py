@@ -77,12 +77,10 @@ class DHCPServer(AdHocModel):
         self.latest_fetch = a.pop(0)
 
     @template("dhcp_server", ExtDHCPServer)
-    @entry(g_read)
     def get_dhcp_server(self):
         return self
 
     @template("dns", ExtString)
-    @entry(g_read)
     def get_dns(self):
         return self.dns
 
@@ -102,7 +100,6 @@ class DHCPServer(AdHocModel):
         return self.changed_by
     
     @template("latest_fetch", ExtInteger)
-    @entry(g_read)
     def get_latest_fetch(self):
         return self.latest_fetch
 

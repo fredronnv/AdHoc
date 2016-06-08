@@ -703,6 +703,7 @@ class DHCPManager(AdHocManager):
         row = self.db.get_all(q, key=key, table=table, where=where)[0]
         return row
 
+    @entry(AlwaysAllowGuard)
     def make_dhcpd_conf(self, serverID=None):
         timing_array = []
         # b4start = datetime.datetime.now()
