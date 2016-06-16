@@ -39,7 +39,7 @@ class ExtHostInUseError(ExtValueError):
 class ExtHostStatus(ExtEnum):
     name = "host-status"
     desc = "Status of host entry"
-    values = ["Active", "Inactive", "Dead"]
+    values = ["Active", "Inactive"]
 
 
 class ExtDNSName(ExtString):

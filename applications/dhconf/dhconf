@@ -2900,7 +2900,7 @@ addhost()
         :
     else
         echo "The entry status value given is not valid"
-        echo "valid values are:"; lsestatus
+        echo "valid values are: Active, Inactive"
     fi
 #M
 #M If the given MAC address is already present in the database, the command is aborted with an
@@ -2962,8 +2962,9 @@ addhost()
     
     db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_u_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_sameas_arg}"
 }
+#M
 
-#S addoption;ao;Add an option;2;2;key value;Add an option to a class, group, host, network, subnetwork, pool or a global option.;95
+#S addoption;ao;Set the value of an option applied to an object;2;2;key value;Set the value of an option applied to a class, group, host, network, subnetwork, pool or a global option.;95
 #O addoption;c;class;Add option to this class
 #O addoption;g;group;Add option to this group
 #O addoption;p;pool;Add option to this pool
@@ -3440,8 +3441,11 @@ chhost()
             if [ -z "`_validate_username ${chhost_u_arg}`" ]; then
                 exit 1
             fi
+            proxy_call "update_template['cid']='$chhost_u_arg'"
+     
+        else
+                proxy_call "update_template['cid']=None"
         fi
-        proxy_call "update_template['cid']='$chhost_u_arg'"
     fi
     
 
@@ -3495,7 +3499,7 @@ _chhost_foundaflag()
     chhost_anyflag=1
 }
 
-#S choption;co;Change an option;2;2;key_or_id value;Modify an option of a group, class, host, network, subnetwork, pool or a global option;96
+#S choption;co;Change the value of an applied option;2;2;key_or_id value;Change the value of an option already applied to a group, class, host, network, subnetwork, pool or a global option;96
 #O choption;c;class;Change option for this class
 #O choption;g;group;Change option for this group
 #O choption;p;pool;Change option for this pool
@@ -3647,7 +3651,7 @@ chroom()
     server_call "room_update('$_chroom_id', options)"
 }
 
-#S defoption;;Define an option;2;3;name type [info];Define a new option;93
+#S defoption;;Define a custom option;2;3;name type [info];Define a new option;93
 #O defoption;s;namespace;Assign the option to a namespace
 #O defoption;c;code;Assign a DHCP code to the option
 #O defoption;q;qualifier;Type qualifier
@@ -3821,7 +3825,7 @@ defoption()
     server_call "option_def_create('$_defoption_name', $_defoption_code_py, '$_defoption_type', '$_defoption_info', {$_defoption_optstring})"
     
 }
-#S defspace;;Define namespace;1;2;name [info];Define an option namespace;91
+#S defspace;;Define a namespace for custom option definitions;1;2;name [info];Define an option namespace;91
 #O defspace;s;;Create a site namespace. Default is a vendor namespace
 #O defspace;;
 #M
@@ -3859,11 +3863,11 @@ defspace()
     
     server_call "optionspace_create('$_defspace_name', '$_defspace_type', '$_defspace_info')"
 }
-#S deleteoption;;Delete an option;1;1;name;Delete an option definition;94
+#S undefineoption;;Undefine a custom option;1;1;name;Remove an option definition;94
 #M
 #M =head2 I<Description>
 #M
-#M The deleteoption subcommand deletes an option definition. Use with caution. There are no checks.
+#M The undefineoption subcommand deletes an option definition. Use with caution. There are no checks.
 #M
 deleteoption()
 {
@@ -3897,7 +3901,7 @@ deleteroom()
     proxy_start
     server_call "room_destroy('$_deleteroom_name')"
 }
-#S deletespace;;Delete namespace;1;1;name;Delete an option namespace;92
+#S deletespace;;Delete a namespace for custom option definitions;1;1;name;Delete an option namespace;92
 #M
 #M =head2 I<Description>
 #M
@@ -4419,7 +4423,7 @@ _lsnetworks_fmt()
 {
     sed 's/NULL//' | awk -F'	' '{ printf("%-18s %4s %s\n",$1,$2,$3);}' |  sed 's/ *$//'
 }
-#S lsoptions;;List options;0;0;;List DHCP options defined in the database;98
+#S lsoptions;;List option definitions or options applied to an object;0;0;;List DHCP options defined in the database or applied to an object;98
 #O lsoptions;c;class;List the options for a I<class>
 #O lsoptions;g;group;List the options for a I<group>
 #O lsoptions;H;host;List the options for a I<host>
@@ -5008,7 +5012,7 @@ lsrooms()
     pattern="^[^	]*${1-.*}"
     echo "ID	Printer	Info"  | _lsrooms_fmt
     proxy_start
-    server_call "room_dig({'info_not_like': 'Auto inserted%'}, {'room':true, 'printers':true, 'info':true})" | egrep "$pattern" | _lsrooms_fmt
+    server_call "room_dig({'room_like': '%'}, {'room':true, 'printers':true, 'info':true})" | egrep "$pattern" | _lsrooms_fmt
 }
 
 _lsrooms_fmt()
@@ -5399,7 +5403,7 @@ mkhost()
     exit 2
 }
 
-#S rmoption;;Remove an option;1;1;key_or_id;Remove an option from a group, class, host, network, subnetwork, pool or a global option;97
+#S rmoption;;Remove an applied option from an object;1;1;key_or_id;Remove an option that is applied to a group, class, host, network, subnetwork, pool or a global option;97
 #O rmoption;c;class;Remove option for this class
 #O rmoption;g;group;Remove option for this group
 #O rmoption;p;pool;Remove option for this pool
@@ -6595,7 +6599,12 @@ chclass()
     if [ -n "$chclass_O_flag" ]; then
         _chclass_foundaflag
         if db_spaceexists "$chclass_O_arg"; then
-            proxy_call "update_template['optionspace']='$chclass_O_arg'"
+            if [ -z "$chclass_O_arg" ]; then
+                proxy_call "update_template['optionspace']=None"
+                echo "You just removed the option space declaration on the class ${chclass_classname}, hope that is OK"
+            else
+                proxy_call "update_template['optionspace']='$chclass_O_arg'"
+            fi
         else
             echo "The specified option space $chclass_O_arg is unknown in the database"
             exit 1

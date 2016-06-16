@@ -4,6 +4,7 @@
 
 from option_def import *
 from optionset import *
+from optionspace import ExtOrNullOptionspace
 from rpcc import *
 
 
@@ -162,7 +163,7 @@ class HostClass(AdHocModel):
     def get_optionspace(self):
         return self.optionspace
 
-    @template("info", ExtString)
+    @template("info", ExtHostClassInfo)
     @entry(g_read)
     def get_info(self):
         return self.info
