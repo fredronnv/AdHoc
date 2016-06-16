@@ -7,7 +7,7 @@ from datetime import date
 from group import ExtGroup, ExtNoSuchGroupError
 from option_def import *
 from optionset import *
-from optionspace import *
+from optionspace import ExtOptionspace
 from room import ExtRoom, ExtRoomName
 from rpcc import *
 from util import *
