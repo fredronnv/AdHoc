@@ -2550,7 +2550,7 @@ db_exists()
             fi
             return 1
             ;;
-        class)
+        class|host_class)
             if db_classexists $2; then
                 return 0
             fi
@@ -3869,18 +3869,18 @@ defspace()
 #M
 #M The undefineoption subcommand deletes an option definition. Use with caution. There are no checks.
 #M
-deleteoption()
+undefineoption()
 {
-    _deleteoption_name=$1
+    _undefineoption_name=$1
 
-    if db_optionexists $_deleteopotion_name; then
+    if db_optionexists $_undefineoption_name; then
         :
     else
-        echo "The option '$_deleteoption_name' is not defined"
+        echo "The option '$_undefineoption_name' is not defined"
         return
     fi
     proxy_start
-    server_call "option_def_destroy('$_deleteoption_name')"
+    server_call "option_def_destroy('$_undefineoption_name')"
 }
 #S deleteroom;;Delete a room;1;1;room_id;Delete a room entry in the database;103
 #M
@@ -4531,14 +4531,14 @@ lsoptions()
                 lsoptions_p_arg=$1; shift
                 lsoptions_gtype='pool';
                 ;;
-            -n)
+            -N)
                 lsoptions_mutexcheck
                 lsoptions_n_flag=$i; shift
                 if [ -z "$1" ]; then echo "-n flag needs an argument"; exit 1; fi;
                 lsoptions_n_arg=$1; shift
                 lsoptions_gtype='network';
                 ;;
-            -s)
+            -S)
                 lsoptions_mutexcheck
                 lsoptions_s_flag=$i; shift
                 if [ -z "$1" ]; then echo "-s flag needs an argument"; exit 1; fi;
@@ -4831,6 +4831,9 @@ find_subnet()
         return 0
     fi
     fs_ip=`dig +short $hdns` 
+    if [ -z "$fs_ip" ]; then
+        return 0
+    fi
     sn=`server_call "subnetwork_dig({'subnetwork_covers':'$fs_ip'},{'subnetwork':true})"`
     if [ -n "$sn" ]; then
         echo $sn
