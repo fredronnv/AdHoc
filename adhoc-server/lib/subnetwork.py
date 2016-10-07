@@ -12,7 +12,7 @@ from shared_network import *
 
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_subnetworks"), AdHocSuperuserGuard)
-g_read = AnyGrants(g_write, AllowUserWithPriv("write_all_subnetworks"))
+g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_subnetworks"))
 
 
 class ExtNoSuchSubnetworkError(ExtLookupError):
