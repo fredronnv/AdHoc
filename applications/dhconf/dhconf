@@ -2932,25 +2932,26 @@ addhost()
 #M
     if [ -n "$addhost_like_flag" ]; then
         addhost_dnslike=$addhost_like_arg
-        addhost_dnslike1=`_validate_fqdn ${addhost_dnslike} nowarn`
-
-        addhost_likes=`db_dns2host $addhost_dnslike`
-        if [ -n "$addhost_likes" ]; then
-            addhost_likes=`db_dns2host $addhost_dnslike1`
-
-            if [ -n "$addhost_likes" ]; then
-                if [ `echo $addhost_likes | tr ' ' '\n' | cut -c1-12 | sort -u | wc -l` -ne 1 ]; then
-                    echo "Too many matches for the DNS name, use a host ID instead"
-                    exit 1
-                fi
-                addhost_sameas_arg=`echo "$addhost_likes" | tr ' ' '\n' | cut -c1-14 | sort -u`
-            else
-                echo "The DNS name you specified is not registered"
-                exit 1
-            fi
+        addhost_hostidlike=`echo "$addhost_dnslike" | egrep '[0-9]+-[0-9]+[A-Z]'`
+        if [ -n "$addhost_hostidlike" ] ; then
+            addhost_sameas_arg=$addhost_dnslike
         else
-            addhost_sameas_arg=$addhost_like_arg
-        fi
+	    addhost_dnslike1=`_validate_fqdn $addhost_dnslike`
+	    if [ -z "$addhost_dnslike1" ]; then
+		exit 1
+	    fi
+	    addhost_likes=`db_dns2host $addhost_dnslike1`
+	    if [ -n "$addhost_likes" ]; then
+		    if [ `echo $addhost_likes | tr ' ' '\n' | cut -c1-12 | sort -u | wc -l` -ne 1 ]; then
+			echo "Too many matches for the DNS name, use a host ID instead"
+			exit 1
+		    fi
+		    addhost_sameas_arg=`echo "$addhost_likes" | tr ' ' '\n' | cut -c1-14 | sort -u`
+	    else
+		    echo "The DNS host name you specified is not registered: $addhost_dnslike"
+		    exit 1
+	    fi
+	fi
     fi
     
 #M If the B<-u> I<username> argument is given, I<username> is checked against the server's Account list.
