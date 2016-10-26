@@ -2948,7 +2948,7 @@ addhost()
 		    fi
 		    addhost_sameas_arg=`echo "$addhost_likes" | tr ' ' '\n' | cut -c1-14 | sort -u`
 	    else
-		    echo "The DNS host name you specified is not registered: $addhost_dnslike"
+		    echo "The DNS host name you specified is not registered in the DHCP database: $addhost_dnslike"
 		    exit 1
 	    fi
 	fi
@@ -3292,7 +3292,7 @@ _chgroup_foundaflag()
 #O chhost;u;uname;Change the owner uname
 #O chhost;g;group;Change the group
 #O chhost;m;mac-address;Change the mac address;;mac_address
-#O chhost;s;entry_status;Change the entry's status
+#O chhost;s;<Active|Inactive>;Change the entry's status. 
 #O chhost;i;info;Change the information about the host
 #O chhost;q;;Quiet - do not ask questions or warn.
 #M
