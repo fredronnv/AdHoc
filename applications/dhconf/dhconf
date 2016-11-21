@@ -8,7 +8,7 @@ ADHOC_GIT_VERSION="@@ADHOC_GIT_VERSION@@"
 set -m 
 
 #
-# Copyright (C) Christer Bernerus, 2003-2014
+# Copyright (C) Christer Bernerus, Chalmers Univerity of Technology 2003-2016
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -3128,8 +3128,21 @@ _addoption()
             else
                 server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':${_addoption_value}})"
             fi
+        elif [[ $otype =~ ip-address ]]; then
+            if [[ $otype =~ array ]]; then
+                for _ip in $(echo ${_addoption_value} | tr "," "\n"); do
+                        _iplist="$_iplist'$_ip',"
+                done
+                server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':[${_iplist}]})"
+            else
+                server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
+            fi
         else
-            server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
+            if [[ $otype =~ array ]]; then
+                server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':[${_addoption_value}]})"
+            else
+                server_call "${_addoption_gtype}_option_update('$_addoption_group',{'$_addoption_key':'${_addoption_value}'})"
+            fi
         fi
     fi 
 }
@@ -3589,8 +3602,21 @@ _choption()
             else
                 server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':${_choption_value}})"
             fi
+        elif [[ $otype =~ ip-address ]]; then
+            if [[ $otype =~ array ]]; then
+                for _ip in $(echo ${_choption_value} | tr "," "\n"); do
+                        _iplist="$_iplist'$_ip',"
+                done
+                server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':[${_iplist}]})"
+            else
+                server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
+            fi
         else
-            server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
+            if [[ $otype =~ array ]]; then
+                server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':[${_choption_value}]})"
+            else
+                server_call "${_choption_gtype}_option_update('$_choption_group',{'$_choption_key':'${_choption_value}'})"
+            fi
         fi
     fi
 }
