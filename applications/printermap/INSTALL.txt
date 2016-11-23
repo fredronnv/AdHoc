@@ -1,0 +1,48 @@
+INSTALLATION PROCEDURE:
+
+Installation assumes a Unix/Linux or Mac OS X system having bash and python version 2.6+ installed beforehand.
+
+As the installation can be done in many ways, the path and procedure may vary greatly with your system and your preferences.
+The following is only an example of an installation for all users on a typical unix based system:
+
+1. Create a local account, (Make sure that the account exists in PDB first)
+
+2. Log in as that account
+
+3. Remove everything in the home directory
+   cd ~ && rm -rf *.??*
+
+4. Download the printermap package from the distribution server
+   wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/printermap-x.y.z.tar
+   tar -xf printermap-x.y.z.tar
+   ln -s printermap-x.y.z printermap
+
+5. Copy printermap/etc/bashrc.private.prototype to printermap/etc/bashrc.private and set restricted permissions
+   cp printermap/etc/bashrc.private.prototype printermap/etc/bashrc.private && chmod go-rwx printermap/etc/bashrc.private
+   Edit the printermap/etc/bashrc.private file and enter the password for the AdHoc user.
+    
+6. Edit etc/bashrc.private and insert the appropriate passwords instead of XXX
+
+7. Make a link to printermap/etc/.bashrc from home directory
+   ln -s printermap/.bashrc
+   
+8. If installing for production server, edit ~/.bashrc and change "devel" to "prod"
+
+9. Install crontab file:
+   crontab etc/crontab
+   
+10. Check crontab. You may want to uncomment the MAILTO line and enter a working mail address.
+   crontab -e
+
+---------------------------------------------------------------------------
+
+UPGRADE PROCEDURE:
+
+cd /usr/local/lib
+
+Download the printermap package from the distribution server
+wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/printermap-v.w.u.tar
+
+tar -xf printermap-v.w.u.tar
+rm printermap
+ln -s printermap-v.w.u dhconf

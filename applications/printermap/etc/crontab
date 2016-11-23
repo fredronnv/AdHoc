@@ -1,0 +1,3 @@
+MAILTO=erikl@chalmers.se
+
+16   11,23  * * * CHALMERS_DEPLOY_LEVEL=prod $HOME/printermap/bin/run

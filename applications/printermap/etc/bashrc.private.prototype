@@ -1,0 +1,12 @@
+
+if [ x"$CHALMERS_DEPLOY_LEVEL" == x"devel" ]; then
+    export PMAP_ADHOC_PASSWORD=YYY
+fi
+
+if [ x"$CHALMERS_DEPLOY_LEVEL" == x"uat" ]; then
+    export PMAP_ADHOC_PASSWORD=YYY
+fi
+
+if [ x"$CHALMERS_DEPLOY_LEVEL" == x"prod" ]; then
+    export PMAP_ADHOC_PASSWORD="$PMAP_PDB_PASSWORD"
+fi
