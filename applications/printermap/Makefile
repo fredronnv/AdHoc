@@ -23,17 +23,18 @@ install: clean
 	git_version=`git rev-list --max-count=1 HEAD`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	mkdir -p ${DISTDIR} ${DISTDIR}/etc/ ${DISTDIR}/bin/ ;\
-	cp INSTALL.txt .bashrc {DISTDIR}; \
+	cp INSTALL.txt .bashrc ${DISTDIR}; \
 	cp bin/run ${RPCC_DIR}/rpcc_client.py ${DISTDIR}/bin;\
-	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < printermap.py | \
-	sed "s/@@ADHOC_GIT_VERSION@@/$${git_version}/" > ${DISTDIR}/printermap.py ;\
-	(cd ${DISTDIR}; chmod +x printermap.py) ;\
+	cp etc/* ${DISTDIR}/etc ;\
+	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < bin/printermap.py | \
+	sed "s/@@ADHOC_GIT_VERSION@@/$${git_version}/" > ${DISTDIR}/bin/printermap.py ;\
+	(cd ${DISTDIR}/bin; chmod +x printermap.py) ;\
 	(cd ${DISTDIR}; find . -name \*.pyc -exec rm {} \;)
 
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL.txt ;\
-	(cd ${DISTDIR}/..; mv printermap printermap-$${revno};tar cf ${RELEASEDIR}/printermap-$${revno}.tar printermap-$${revno})
+	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_printermap.txt ;\
+	(cd ${DISTDIR}/..; mv printermap printermap-$${revno}; tar cf ${RELEASEDIR}/printermap-$${revno}.tar printermap-$${revno};)
 	
 patch: gitstatus patchbump install
 
