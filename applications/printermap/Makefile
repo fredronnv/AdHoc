@@ -22,8 +22,7 @@ install: clean
 	
 	git_version=`git rev-list --max-count=1 HEAD`;\
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
-	mkdir -p ${DISTDIR} 
-        mkdir -p ${DISTDIR} ${DISTDIR}/etc/ ${DISTDIR}/bin/ ;\
+	mkdir -p ${DISTDIR} ${DISTDIR}/etc/ ${DISTDIR}/bin/ ;\
 	cp INSTALL.txt .bashrc {DISTDIR}; \
 	cp bin/run ${RPCC_DIR}/rpcc_client.py ${DISTDIR}/bin;\
 	sed "s/@@ADHOC_RELEASE@@/$${revno}/" < printermap.py | \

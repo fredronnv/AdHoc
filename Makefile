@@ -1,5 +1,5 @@
 TOP=`pwd`
-SUBDIRS=applications/dhconf adhoc-connect adhoc-server
+SUBDIRS=applications/dhconf adhoc-connect adhoc-server applications/printermap
 DISTDIR=${TOP}/dist
 
 subdirs:
