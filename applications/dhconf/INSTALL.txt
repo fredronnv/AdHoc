@@ -28,7 +28,7 @@ UPGRADE PROCEDURE:
 
 cd /usr/local/lib
 
-Download the adhoc-connect package from the distribution server
+Download the dhconf package from the distribution server
 wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/dhconf-v.w.u.tar
 
 tar -xf dhconf-v.w.u.tar
