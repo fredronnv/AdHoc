@@ -1,6 +1,6 @@
 INSTALLATION PROCEDURE:
 
-Installation assumes a Unix/Linux or Mac OS X system having bash and python version 2.6+ installed beforehand.
+Installation instructions below assumes a Unix/Linux or Mac OS X system having bash and python version 2.6+ installed beforehand.
 
 As the installation can be done in many ways, the path and procedure may vary greatly with your system and your preferences.
 The following is only an example of an installation for all users on a typical unix based system:
@@ -19,17 +19,16 @@ The following is only an example of an installation for all users on a typical u
 
 5. Copy printermap/etc/bashrc.private.prototype to printermap/etc/bashrc.private and set restricted permissions
    cp printermap/etc/bashrc.private.prototype printermap/etc/bashrc.private && chmod go-rwx printermap/etc/bashrc.private
-   Edit the printermap/etc/bashrc.private file and enter the password for the AdHoc user.
     
 6. Edit etc/bashrc.private and insert the appropriate passwords instead of XXX
 
 7. Make a link to printermap/etc/.bashrc from home directory
    ln -s printermap/.bashrc
    
-8. If installing for production server, edit ~/.bashrc and change "devel" to "prod"
+8. If installing for production, edit ~/.bashrc and change "devel" to "prod"
 
-9. Install crontab file:
-   crontab etc/crontab
+9. If installing for production, install crontab file:
+   crontab printermap/etc/crontab
    
 10. Check crontab. You may want to uncomment the MAILTO line and enter a working mail address.
    crontab -e

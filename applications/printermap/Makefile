@@ -59,7 +59,7 @@ majorbump:
 
 gitstatus:
 	if git status -s | awk '{print $$1" "$$2}' | grep -v '\.\./' | grep -v Makefile | egrep "A|M|\?\?" >/dev/null ; then \
-	    echo "There are untracked or uncommitted new or modified files in dhconf, please commit first";\
+	    echo "There are untracked or uncommitted new or modified files in printermap, please commit first";\
 	    false ; \
 	else \
 	    git_version=`git rev-list --max-count=1 HEAD .`;\
@@ -72,7 +72,7 @@ gitstatus:
 		    if [ `git rev-list --max-count=1 HEAD rel_major` = $${git_version} ]; then \
 			true; \
 		    else \
-			echo "Release number for dhconf needs to be bumped"; \
+			echo "Release number for printermap needs to be bumped"; \
 			false; \
 		    fi \
 		fi \
