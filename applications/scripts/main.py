@@ -8,10 +8,7 @@ def connect(url="https://adhoc.ita.chalmers.se:8877", user="bernerus"):
         return connect_krb5(url)
     except Exception, e:
         print e
-        try:
-            return do_connect(url="https://test-cdks.ita.chalmers.se:4434", user=user)
-        except:
-            return do_connect(url="https://cdks.chalmers.se:4434", user=user)
+	return do_connect(url="https://adhoc-test.ita.chalmers.se:8877", user=user)
 
 
 def do_connect(url, user):
