@@ -77,5 +77,5 @@ for room in sorted(room_info.keys()):
             for host in sorted(room_to_host[room]):
                 if host in printers:
                     continue
-                print >>wf, "%s;\\\\print.chalmers.se\%s" % (host.split(".")[0].upper(), prter)
+                print >>wf, "%s;\\\\print.chalmers.se\%s\r" % (host.split(".")[0].upper(), prter)
 wf.close()

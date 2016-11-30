@@ -1,11 +1,11 @@
 #!/bin/bash
 
-. ${HOME}/AdHoc/etc/bashrc.public
+. ${HOME}/etc/bashrc.public
 . ${HOME}/etc/bashrc.private
 
 echo ">> Start run-full at `date`" >> ${ADHOCINT_LOGFILE}
 
-/usr/bin/python ${HOME}/AdHoc/bin/adhocint.py --full $@ >> ${ADHOCINT_LOGFILE} 2>&1
+/usr/bin/python ${HOME}/bin/printermap.py --full $@ >> ${ADHOCINT_LOGFILE} 2>&1
 
 echo ">> Stop run-full with status $? at `date`" >> ${ADHOCINT_LOGFILE}
 exit $?
