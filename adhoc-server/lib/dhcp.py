@@ -940,7 +940,7 @@ class DHCPManager(AdHocManager):
                 self.emit("}", 4 * indent)
             else:
                 if dns:
-                    self.emit("host %s { hardware ethernet %s; fixed-address %s; option host-name \"%s\"} %s" %
+                    self.emit("host %s { hardware ethernet %s; fixed-address %s; option host-name \"%s\";} %s" %
                               (hostid, mac, dns, dns, comment), 4 * indent)
                 else:
                     self.emit("host %s { hardware ethernet %s;} %s" % (hostid, mac, comment), 4 * indent)
