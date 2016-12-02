@@ -919,6 +919,7 @@ class DHCPManager(AdHocManager):
         if entry_status == 'Active':
             # host = self.host_manager.get_host(hostid)
             if hasopts == 'yes':
+                
                 self.emit("host %s %s" % (hostid, comment), 4 * indent)
                 self.emit("{", 4 * indent)
                 self.emit("hardware ethernet %s;" % mac, 4 * (indent + 1))
@@ -926,13 +927,21 @@ class DHCPManager(AdHocManager):
                     self.emit("fixed-address %s;" % dns, 4 * (indent + 1))
                 self.emit_option_space(optionspace, (4 * (indent + 1)))
                 host = self.host_manager.get_host(hostid)
-                self.emit_optlist(host, indent + 1)
+                option_names = host.list_options()
+                if len(option_names):
+                    optionset = object.get_optionset()
+                    if "host-name" in option_names:  # The host-name option is given in options, so don't synthesize one
+                        self.do_emit_optlist(option_names, optionset, indent + 1)
+                    else:
+                        # Synthesize a host-name option from the dns entry if available
+                        if dns:
+                            self.emit("option host-name \"%s\";" % dns, 4 * (indent + 1))
                 # self.emit_option_list(hostid, optionspace, indent + 1, 'host')
                 self.emit("}", 4 * indent)
             else:
                 if dns:
-                    self.emit("host %s { hardware ethernet %s; fixed-address %s;} %s" %
-                              (hostid, mac, dns, comment), 4 * indent)
+                    self.emit("host %s { hardware ethernet %s; fixed-address %s; option host-name \"%s\"} %s" %
+                              (hostid, mac, dns, dns, comment), 4 * indent)
                 else:
                     self.emit("host %s { hardware ethernet %s;} %s" % (hostid, mac, comment), 4 * indent)
             return
@@ -1219,6 +1228,9 @@ class DHCPManager(AdHocManager):
         if len(option_names) == 0:
             return False
         optionset = object.get_optionset()
+        self.do_emit_optlist(option_names, optionset, indent)
+        
+    def do_emit_optlist(self, option_names, optionset, indent):
         for name in option_names:
             value = optionset.get_option(name)
             (space, opt_type, qual) = self.db.get_all(
