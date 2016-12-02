@@ -929,7 +929,7 @@ class DHCPManager(AdHocManager):
                 host = self.host_manager.get_host(hostid)
                 option_names = host.list_options()
                 if len(option_names):
-                    optionset = object.get_optionset()
+                    optionset = host.get_optionset()
                     if "host-name" in option_names:  # The host-name option is given in options, so don't synthesize one
                         self.do_emit_optlist(option_names, optionset, indent + 1)
                     else:
