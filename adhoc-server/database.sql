@@ -50,8 +50,8 @@ INSERT INTO `account_privilege_map` (`account`, `privilege`) VALUES
 
 CREATE TABLE IF NOT EXISTS `accounts` (
   `account` varchar(9) COLLATE ascii_bin NOT NULL COMMENT 'PDB account',
-  `fname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci NOT NULL COMMENT 'First name of owner',
-  `lname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci NOT NULL COMMENT 'Last name of owner',
+  `fname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci COMMENT 'First name of owner',
+  `lname` varchar(4000) CHARACTER SET utf8 COLLATE utf8_swedish_ci COMMENT 'Last name of owner',
   `status` varchar(12) COLLATE ascii_bin NULL COMMENT 'PDB status',
   PRIMARY KEY (`account`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_bin COMMENT='User accounts';
@@ -284,8 +284,8 @@ CREATE TABLE IF NOT EXISTS `hosts` (
 CREATE TABLE IF NOT EXISTS `int_option` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `option_base` int(11) NOT NULL,
-  `minval` int(11) DEFAULT NULL,
-  `maxval` int(11) DEFAULT NULL,
+  `minval` bigint(11) DEFAULT NULL,
+  `maxval` bigint(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `option_base` (`option_base`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
@@ -706,7 +706,7 @@ CREATE TABLE IF NOT EXISTS `rpcc_event` (
 CREATE TABLE IF NOT EXISTS `rpcc_event_int` (
   `event` int(11) NOT NULL,
   `attr` int(11) NOT NULL,
-  `value` int(11) DEFAULT NULL,
+  `value` bigint(11) DEFAULT NULL,
   UNIQUE KEY `rpcc_idx_evint` (`event`,`attr`),
   KEY `attr` (`attr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

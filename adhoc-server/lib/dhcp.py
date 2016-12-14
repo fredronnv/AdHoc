@@ -117,6 +117,11 @@ class DHCPManager(AdHocManager):
         self.odbase = database.MySQLDatabase(self.server, user=user, password=password, database=db, host=host, port=port)
 
         self.odb = self.odbase.get_link()
+        # MySQL 5.6 is quite picky about truncating tables hving FK *definitions* to itself
+        # not just foreign key references, thus we have to turn off
+        # FK checks completely while clearing the database.
+        #
+        self.db.put("SET foreign_key_checks=0")
         # Beacuse of the interdependencies between the tables,the ytansfer is divided into four strata.
         # All tables of one stratum must be completely transferred before beginning the transfer of any
         # tables in a subsequent stratum.
@@ -153,11 +158,10 @@ class DHCPManager(AdHocManager):
                       "intarray_option"]:
             self.db.put("TRUNCATE TABLE %s;" % table)
 
-        # Stratum 2. The groups table references itself, so we have to turn off foreign key checks
-        self.db.put("SET foreign_key_checks=0")
+        # Stratum 2.
+
         self.db.put("TRUNCATE TABLE groups")
         self.db.put("TRUNCATE TABLE group_groups_flat")
-        self.db.put("SET foreign_key_checks=1")
 
         for table in ["option_base",
                       "pools",
@@ -180,7 +184,8 @@ class DHCPManager(AdHocManager):
                       "dnsmac",
                       "rpcc_event"]:
             self.db.put("TRUNCATE TABLE %s" % table)
-
+        
+        self.db.put("SET foreign_key_checks=1")
         #
         # Now build the tables in normal stratum order
         # buildings
@@ -217,8 +222,8 @@ class DHCPManager(AdHocManager):
             # print name, value, mtime, my_id
             if name == 'ddns-update-style' and value == 'ad-hoc':
                 continue  # This mode is not supported in later versions of the dhcpd server
-            self.db.insert("id", qp, name=name, value=value, changedby="DHCONF-ng", mtime=mtime, id=my_id)
-            self.option_def_manager.define_option("", "DHCONF-ng", mtime, name, "text", None, "parameter", None)
+            self.db.insert("id", qp, name=name, value=value, changedby="DHCONF", mtime=mtime, id=my_id)
+            self.option_def_manager.define_option("", "DHCONF", mtime, name, "text", None, "parameter", None)
 
         # Global options
         qf = "SELECT name, value, changed_by, mtime, id FROM optionlist WHERE gtype='global'"
@@ -236,14 +241,14 @@ class DHCPManager(AdHocManager):
                 pass
 
             if not changedby:
-                changedby = "DHCONF-ng"
+                changedby = "DHCONF"
             self.db.insert("id", qp, name=name, value=value, changedby=changedby, mtime=mtime, id=my_id)
             self.option_def_manager.define_option("", changedby, mtime, name, "text", None, "parameter", None)
 
         self.db.insert("id", "INSERT INTO global_options (name, value, basic, changed_by, id) VALUES (:name, :value, 1, :changedby, :id)",
-                       name="log-facility", value="local5", changedby="DHCONF-ng", id=my_id + 1)
+                       name="log-facility", value="local5", changedby="DHCONF", id=my_id + 1)
 
-        self.option_def_manager.define_option("", "DHCONF-ng", mtime, "log-facility", "text", None, "parameter", None)
+        self.option_def_manager.define_option("", "DHCONF", mtime, "log-facility", "text", None, "parameter", None)
 
         # dhcp_servers
         # print
@@ -310,7 +315,7 @@ class DHCPManager(AdHocManager):
             except ExtNoSuchOptionDefError:
                 pass
             if not changed_by:
-                changed_by = "DHCONF-ng"
+                changed_by = "DHCONF"
             self.option_def_manager.define_option(info, changed_by, mtime, name, my_type, code, qualifier, optionspace)
 
             # Save option info for later usage when adding options
@@ -491,7 +496,7 @@ class DHCPManager(AdHocManager):
                     # Add yet unseen rooms into the rooms table
                     if room not in rooms:
                         self.db.insert(id, "INSERT INTO rooms (id, info, changed_by) VALUES (:id, :info, :changed_by)",
-                                       id=room, info="Auto inserted on hosts migration", changed_by="AdHoc_server")
+                                       id=room, info="Auto inserted on hosts migration", changed_by="AdHoc_")
                         rooms.add(room)
                 else:
                     msg = "Room code %s for host %s not accepted" % (room, dns)
@@ -505,8 +510,11 @@ class DHCPManager(AdHocManager):
                 cid = cid.lower()
 
             if cid and cid not in cids:
-                self.db.insert(id, "INSERT INTO accounts (account, status) VALUES (:cid, NULL)",
+                try:
+                    self.db.insert(id, "INSERT INTO accounts (account, status) VALUES (:cid, NULL)",
                                cid=cid)
+                except Exception as _e:
+                    raise
                 cids.add(cid)
 
             if mac and not re.match(ExtMacAddress.regexp, mac):
