@@ -417,29 +417,35 @@ class GroupManager(AdHocManager):
         for (key, value) in updates.iteritems():
             optionset.set_option_by_name(key, value)
             self.event_manager.add("update", group=group.oid, option=key, option_value=unicode(value), authuser=self.function.session.authuser)
+    
+    def child_groups(self, groupname):
+
+        q = "SELECT groupname FROM groups WHERE parent_group=:parent ORDER BY (CONVERT(groupname USING latin1) COLLATE latin1_swedish_ci)"
+        rows = self.db.get_all(q, parent=groupname)
+        return [x[0] for x in rows]
             
+    def gather_for(self, groupname):
+        if not groupname:
+                return 0
+        # print "Gather stats for group ", groupname
+        hostcount = self.db.get("SELECT COUNT(*) from hosts WHERE `group`= :groupname AND entry_status='Active'", groupname=groupname)[0][0]
+        # print "Direct host count for %s is %d"%(groupname, hostcount)
+        children = self.child_groups(groupname)
+        for group in children:
+            if group == "plain":
+                continue
+            hostcount += self.gather_for(group)
+        self.db.put("UPDATE groups SET hostcount=:hostcount WHERE groupname=:groupname", groupname=groupname, hostcount=hostcount)
+        return hostcount
+        
     @entry(AdHocSuperuserGuard)
     def gather_stats(self, parent=None):
         """ Walk through the group tree, count the number of hosts assigned directly or indirectly
             to the group. This count is used primarily for deciding which groups to generate configuration for."""
-        if not parent:
-            q = "SELECT groupname, parent_group FROM groups WHERE groupname='plain' ORDER BY (CONVERT(groupname USING latin1) COLLATE latin1_swedish_ci)"
-            rows = self.db.get_all(q)
-        else:
-            q = "SELECT groupname, parent_group FROM groups WHERE parent_group=:parent AND groupname!='plain' ORDER BY (CONVERT(groupname USING latin1) COLLATE latin1_swedish_ci)"
-            rows = self.db.get_all(q, parent=parent)
-        hostcount = 0   
-        for (groupname, parent) in rows:
-            if not groupname:
-                continue
-            # print "Gather stats for group ", groupname
-            hostcount = self.db.get("SELECT COUNT(*) from hosts WHERE `group`= :groupname AND entry_status='Active'", groupname=groupname)[0][0]
-            # print "Direct host count for %s is %d"%(groupname, hostcount)
-            indirect = self.gather_stats(parent=groupname)
-            # print "Indirect host count for %s is %d"%(groupname, indirect)
-            hostcount += indirect
-            self.db.put("UPDATE groups SET hostcount=:hostcount WHERE groupname=:groupname", groupname=groupname, hostcount=hostcount)
-            # print "Group %s has %d active hosts"%(groupname, hostcount)
+ 
+        hostcount = self.gather_for("plain")
+        self.db.put("UPDATE groups SET hostcount=:hostcount WHERE groupname='plain'", hostcount=hostcount)
+        # print "Group %s has %d active hosts"%(groupname, hostcount)
         return hostcount
     
     @entry(g_write)
