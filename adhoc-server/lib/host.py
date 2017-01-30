@@ -51,13 +51,13 @@ class ExtDNSName(ExtString):
     def lookup(self, fun, cval):
         # We cannot look up here because it should be possible to
         # register a DNS name in advance.
-        # Warnings cannot be issued over the RBC service.
+        # Warnings cannot be issued over the RPC service.
         #         try:
         #             dummy = socket.gethostbyname(cval)
         #
         #         except socket.gaierror:
         #             raise ExtNoSuchDNSNameError()
-        return cval
+        return cval.lower()
 
 
 class ExtHostDns(ExtOrNull):
