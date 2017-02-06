@@ -24,6 +24,7 @@ encoding//adhoc-server/testing/subnetwork.py=utf8
 encoding//adhoc-server/testing/testutil.py=utf-8
 encoding//adhoc-server/tmp/opt-client.py=utf-8
 encoding//applications/dhconf/rpcc_client.py=utf-8
+encoding//applications/printermap/bin/rpcc_client.py=utf-8
 encoding//applications/scripts/rpcc_client.py=utf-8
 encoding//client/rpcc_client.py=utf-8
 encoding//lib/python2.6/rpcc_client.py=utf-8
