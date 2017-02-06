@@ -208,7 +208,7 @@ def process(command, output):
 srv_url = None
 if "DHCONF_SRV_URL" in os.environ:
     srv_url = os.environ["DHCONF_SRV_URL"]
-    print >>sys.stderr, "NOTE: SERVER URL=", srv_url
+    print >>sys.stderr, "NOTE: DHCONF_SRV_URL=", srv_url
     
 srv = None
 
