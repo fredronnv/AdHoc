@@ -8,7 +8,7 @@ ADHOC_GIT_VERSION="@@ADHOC_GIT_VERSION@@"
 set -m 
 
 #
-# Copyright (C) Christer Bernerus, Chalmers Univerity of Technology 2003-2016
+# Copyright (C) Christer Bernerus, Chalmers University of Technology 2003-2017
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -2775,6 +2775,7 @@ addhost()
         esac
     done
 
+
 #M
 #M If given, the dns is validated against DNS. If the B<-f> flag is not given
 #M the DNS canonical name will be used. If  the B<-f> flag is given
@@ -2784,16 +2785,23 @@ addhost()
     if [ -n "$addhost_d_flag" ]; then
         addhost_dnsname=$addhost_d_arg
         addhost_dnsname1=`_validate_fqdn ${addhost_dnsname} nowarn`
-        if [ -n "$addhost_dnsname1" -a "$addhost_dnsname1" != "$addhost_dnsname" ]; then
-            if [ -z "$addhost_f_flag" ]; then
-                echo Using the fully qualified name "'${addhost_dnsname1}'" instead of "'${addhost_dnsname}'" 
-                addhost_dnsname=$addhost_dnsname1
+      
+        if [ -n "${addhost_dnsname1}" ]; then
+            # The following is a portable case-insensitive string comparison...
+            if echo "${addhost_dnsname1}" | grep -i "^${addhost_dnsname}$" > /dev/null ; then
+                :
             else
-                echo Warning: The given DNS name "'$addhost_dnsname'" differs from the DNS canonical name "'$addhost_dnsname1'"
-                echo Using the given name anyway.
-                addhost_dnsname1=$addhost_dnsname
+                if [ -z "$addhost_f_flag" ]; then
+                    echo Using the fully qualified name "'${addhost_dnsname1}'" instead of "'${addhost_dnsname}'" 
+                    addhost_dnsname=$addhost_dnsname1
+                else
+                    echo Warning: The given DNS name "'$addhost_dnsname'" differs from the DNS canonical name "'$addhost_dnsname1'"
+                    echo Using the given name anyway.
+                    addhost_dnsname1=$addhost_dnsname
+                fi
             fi
         fi
+    
     
     
 #M
@@ -2909,9 +2917,12 @@ addhost()
 #M
 
     if db_macindb ${addhost_macaddr}; then
-        if [ -z "$addhost_f_flag$addhost_like_flag" ]; then 
-            echo "ERROR: The given MAC address is already present in the database, use -f or --like <host> to override"
-            exit 1
+        if [ "${addhost_macaddr}" != "00:00:00:00:00:00" ]; then
+            echo "$addhost_f_flag$addhost_like_flag" >&2
+            if [ -z "$addhost_f_flag$addhost_like_flag" ]; then 
+                echo "ERROR: The given MAC address ${addhost_macaddr} is already present in the database, use -f or --like <host> to override"
+                exit 1
+            fi
         fi
     fi
 #M
@@ -5596,7 +5607,21 @@ addsubnetwork()
     fi
     
     server_call "subnetwork_create('$addsubnetwork_id', '$addsubnet_network', '$addsubnetwork_i_arg')"
+    
+    network_mask_option=`server_call "network_dig({'network':'$addsubnet_network'},{'optionset_data':{'subnet-mask':true}})"`
+    if echo "$network_mask_option" | grep NULL >/dev/null 2>&1; then
+        global_mask_option=`server_call "global_option_dig({'name':'subnet-mask'}, {'value': true})"`
+        if [ -n "$global_mask_option" ]; then
+            echo "NOTE: the subnetwork will use the global netmask '${global_mask_option}'. You may change this using 'dhconf addoption -S $addsubnet_network subnet-mask <subnet-mask-value>'"
+        else
+            echo "NOTE: There is no subnet-mask option that applied for this subnetwork."
+            echo "      A subnet mask matching the subnet CIDR will be used until a subnet-mask option is specified, either globally, "
+            echo "      for the network '$addsubnet_network' or for the subnetwork $addsubnetwork_id specifically. See 'dhconf addoption --help' for info on how to do that."
+        fi
+    else
+        echo "NOTE: the subnetwork will use the netmask '${network_mask_option}'. You may change this using 'dhconf addoption -S $addsubnet_network subnet-mask <subnet-mask-value>'"
 
+    fi
 }
 #S deletesubnetwork;;Delete a subnetwork;1;1;subnetwork_cidr;Delete a subnetwork;68
 #M =head2 I<Description>
