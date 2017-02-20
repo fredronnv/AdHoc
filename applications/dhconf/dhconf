@@ -3689,7 +3689,7 @@ chroom()
     server_call "room_update('$_chroom_id', options)"
 }
 
-#S defoption;;Define a custom option;2;3;name type [info];Define a new option;93
+#S defoption;;Define a custom option;2;3;name type [info];Define a new option;83
 #O defoption;s;namespace;Assign the option to a namespace
 #O defoption;c;code;Assign a DHCP code to the option
 #O defoption;q;qualifier;Type qualifier
@@ -3863,7 +3863,7 @@ defoption()
     server_call "option_def_create('$_defoption_name', $_defoption_code_py, '$_defoption_type', '$_defoption_info', {$_defoption_optstring})"
     
 }
-#S defspace;;Define a namespace for custom option definitions;1;2;name [info];Define an option namespace;91
+#S defspace;;Define a namespace for custom option definitions;1;2;name [info];Define an option namespace;81
 #O defspace;s;;Create a site namespace. Default is a vendor namespace
 #O defspace;;
 #M
@@ -3901,7 +3901,7 @@ defspace()
     
     server_call "optionspace_create('$_defspace_name', '$_defspace_type', '$_defspace_info')"
 }
-#S undefineoption;;Undefine a custom option;1;1;name;Remove an option definition;94
+#S undefineoption;;Undefine a custom option;1;1;name;Remove an option definition;84
 #M
 #M =head2 I<Description>
 #M
@@ -3939,7 +3939,7 @@ deleteroom()
     proxy_start
     server_call "room_destroy('$_deleteroom_name')"
 }
-#S deletespace;;Delete a namespace for custom option definitions;1;1;name;Delete an option namespace;92
+#S deletespace;;Delete a namespace for custom option definitions;1;1;name;Delete an option namespace;82
 #M
 #M =head2 I<Description>
 #M
@@ -5496,6 +5496,7 @@ _rmoption()
 #T DHCP Networks;60
 #T DHCP Sub-networks;65
 #T DHCP Pools;70
+#T DHCP Option definitions;81
 #T DHCP Options handling;90
 #T Rooms;100
 
