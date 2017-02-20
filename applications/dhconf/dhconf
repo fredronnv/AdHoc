@@ -6702,6 +6702,23 @@ _chclass_foundaflag()
     chclass_anyflag=1
 }
 
+#S lsospaces;;List optionspaces;0;0;;List all option spaces;92
+#M =head2 I<Description>
+#M
+#M The lsospaces subcommand does something that is yet undefined and needs to be documented
+#M
+_lsospaces_options_fmt()
+{
+    sed s/NULL//g | awk -F'\t' '{printf("%-18s %6s %s\n",$1,$2,$3);}' |  sed 's/ *$//'
+}
+
+lsospaces()
+{
+    echo 'Optionspace        Type   Description' | _lsospaces_options_fmt
+    proxy_start
+    server_call "optionspace_dig({'optionspace_pattern':'*'}, {'optionspace':true,'type':true,'info':true})" | _lsospaces_options_fmt
+}
+
 ##SGIP Subcommand generation insertion point, do not delete!!
 
 ##SSCB2 Suite specific code begin 2
