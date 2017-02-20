@@ -2918,10 +2918,12 @@ addhost()
 
     if db_macindb ${addhost_macaddr}; then
         if [ "${addhost_macaddr}" != "00:00:00:00:00:00" ]; then
-            echo "$addhost_f_flag$addhost_like_flag" >&2
+            #echo "$addhost_f_flag$addhost_like_flag" >&2
             if [ -z "$addhost_f_flag$addhost_like_flag" ]; then 
                 echo "ERROR: The given MAC address ${addhost_macaddr} is already present in the database, use -f or --like <host> to override"
                 exit 1
+            else
+                echo "WARNING: The given MAC address ${addhost_macaddr} is already present in the database"
             fi
         fi
     fi
