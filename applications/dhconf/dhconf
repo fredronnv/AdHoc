@@ -6065,11 +6065,25 @@ reload()
 #S chnetwork;;Change network;1;1;network-name;Change name and parameters of an already defined network;62
 #O chnetwork;A;;Turn on authoritativity for the network (excludes the use of --noA);;
 #O chnetwork;noA;;Turn off authoritativity for the network (excludes the use of -A);;
-#O chnetwork;i;new-description;Change description;;description
+#O chnetwork;i;new-description;Change the description (Use at least five characters);;description
 #O chnetwork;n;new-name;Change network name;;network_name
 #M =head2 I<Description>
 #M
-#M The chnetwork subcommand does something that is yet undefined and needs to be documented
+#M The chnetwork subcommand is used in order to change parameters for a shared network.
+#M 
+#M The only thing that can be changed, aside from the name of the shared network, is the
+#M status of the so-called "Authoritative" flag. This is a flag defined in the DHCP protocol
+#M which tells the DHCP client that if you get multiple answers from different DHCP servers,
+#M the one you get from this particular server is the one to trust. 
+#M
+#M Typically, consumer-grade
+#M network equipment that employs a DHCP server, like the ones sold by D-Link, Netgear and the 
+#M like, has this flag turned off in order not to disturb enterprise level servers
+#M if they are accidentally connected to the network. Typically here at Chalmers, this flag 
+#M should be turned on.
+#M
+#M The other thing that can be changed here is the description of the network. The server will
+#M require you to write at least five letters in the network description.
 #M
 chnetwork()
 {
