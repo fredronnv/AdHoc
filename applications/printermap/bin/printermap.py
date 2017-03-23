@@ -28,7 +28,7 @@ srv.session_auth_login(os.environ[env_prefix + "_ADHOC_USER"],
                        os.environ[env_prefix + "_ADHOC_PASSWORD"])
 
 # Fetch hosts and rooms from AdHoc. Get only the Active hosts, but all rooms.
-hosts = srv.host_dig({"status": "Active"}, {"dns": True, "room": True, "group": True})
+hosts = srv.host_dig({"status": "Active", "dns_is_set": True}, {"dns": True, "room": True, "group": True})
 rooms = srv.room_dig({"room_pattern": "*"}, {"room": True, "printers": True, "info": True})
 
 
@@ -75,5 +75,6 @@ for room in sorted(room_info.keys()):
     if (len(room_to_host[room]) and room_printers[room]):
         for prter in room_printers[room].split(','):
             for host in sorted(room_to_host[room]):
-                print >>wf, "%s;\\\\print.chalmers.se\%s\r" % (host.split(".")[0].upper(), prter)
+                if host:
+                    print >>wf, "%s;\\\\print.chalmers.se\%s\r" % (host.split(".")[0].upper(), prter)
 wf.close()
