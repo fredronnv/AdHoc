@@ -1241,3 +1241,7 @@ ALTER TABLE `subnetworks`
   ADD CONSTRAINT `subnetworks_ibfk_1` FOREIGN KEY (`network`) REFERENCES `networks` (`id`) ON UPDATE CASCADE,
   ADD CONSTRAINT `subnetworks_ibfk_2` FOREIGN KEY (`optionset`) REFERENCES `optionset` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- Machine ID additions
+ALTER TABLE `hosts` ADD COLUMN `mid` varchar(16) NULL DEFAULT NULL;
+ALTER TABLE `hosts` ADD indINDEXex (`mid`);
+INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES (46, 'mid');
