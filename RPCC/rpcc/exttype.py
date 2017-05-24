@@ -496,7 +496,7 @@ class ExtInteger(ExtType):
         ExtType.__init__(self, **kwargs)
 
     def check(self, function, rawval):
-        if not isinstance(rawval, int):
+        if not isinstance(rawval, int) and not isinstance(rawval, long):
             raise ExtExpectedIntegerError(value=rawval)
 
         if self.range:

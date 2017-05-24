@@ -257,6 +257,7 @@ class Host(AdHocModel):
         self.mtime = a.pop(0)
         self.changed_by = a.pop(0)
         self.optionset = a.pop(0)
+        self.mid = a.pop(0)
 
     @template("host", ExtHost)
     @entry(g_read)
@@ -482,7 +483,7 @@ class HostManager(AdHocManager):
     def base_query(cls, dq):
         dq.select("h.id", "h.dns", "h.`group`", "h.mac", "h.cid", "h.room",
                   "h.optionspace", "h.info", "h.entry_status",
-                  "h.mtime", "h.changed_by", "h.optionset")
+                  "h.mtime", "h.changed_by", "h.optionset", "h.mid")
         dq.table("hosts h")
         return dq
 
