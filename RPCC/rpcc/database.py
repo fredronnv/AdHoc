@@ -766,17 +766,17 @@ class MySQLDatabase(Database):
     link_class = MySQLLink
 
     def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):
-        user = user or self.server.config("DB_USER")
+        user = user or self.server.config("DB_USER", default="root")
         password = password or self.server.config("DB_PASSWORD")
-        database = database or self.server.config("DB_DATABASE")
-        host = host or self.server.config("DB_HOST")
-        port = port or self.server.config("DB_PORT")
-        socket = port or self.server.config("DB_SOCKET")
+        database = database or self.server.config("DB_DATABASE", default="AdHoc")
+        host = host or self.server.config("DB_HOST", default='localhost')
+        port = port or self.server.config("DB_PORT", default=3306)
+        socket = socket or self.server.config("DB_SOCKET", default=None)
         
         import mysql.connector
 
-        if mysql.connector.__version_info__[0] > 1:
-            raise exterror.ExtRuntimeError("The server is not supporting the use of MySQL connector version 2 and above")
+#        if mysql.connector.__version_info__[0] > 1:
+#            raise exterror.ExtRuntimeError("The server is not supporting the use of MySQL connector version 2 and above")
 
         self.connect_args = {"user": user, "password": password, "db": database}
         if host:
