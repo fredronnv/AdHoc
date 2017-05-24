@@ -9,46 +9,10 @@ g_write = AnyGrants(AllowUserWithPriv("write_all_optionspaces"), AdHocSuperuserG
 g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_optionspaces"))
 
 
-class ExtNoSuchOptionspaceError(ExtLookupError):
-    desc = "No such optionspace exists."
+from optionspace_errors import *
+from optionspace_types import *
 
 
-class ExtOptionspaceAlreadyExistsError(ExtLookupError):
-    desc = "The optionspace already exists"
-
-    
-class ExtOptionspaceInUseError(ExtValueError):
-    desc = "The optionspace is referred to by other objects. It cannot be destroyed"    
-
-
-class ExtOptionspaceName(ExtString):
-    name = "optionspace-name"
-    desc = "Name of an optionspace"
-    regexp = "^[-a-zA-Z0-9_]+$"
-
-
-class ExtOptionspaceType(ExtEnum):
-    name = "optionspace-type"
-    desc = "Type of an optionspace"
-    values = ['vendor', 'site']
-    
-  
-class ExtOrNullOptionspace(ExtOrNull):
-    name = "group_option_space"
-    desc = "An option space, or null"
-    typ = ExtOptionspaceName
-    
-
-class ExtOptionspace(ExtOptionspaceName):
-    name = "optionspace"
-    desc = "An optionspace instance"
-
-    def lookup(self, fun, cval):
-        return fun.optionspace_manager.get_optionspace(str(cval))
-
-    def output(self, fun, obj):
-        return obj.oid
- 
     
 class OptionspaceCreate(SessionedFunction):
     extname = "optionspace_create"
