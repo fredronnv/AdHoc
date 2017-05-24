@@ -3,7 +3,7 @@
 # $Id$
 
 import optionset
-from optionspace import *
+import optionspace
 from rpcc import *
 from util import *
 
@@ -128,8 +128,8 @@ class ExtOptionDefCreateOptions(ExtStruct):
     desc = "Optional parameters when defining an option"
     
     optional = {"qualifier": (ExtOptionDefQualifier, "Defines what kind of data the option holds"),
-                "optionspace": (ExtOptionspace, "Whether the option belongs to a defined option space"),
-                "encapsulate": (ExtOptionspace, "Whether this option encapsulates the defined option space"),
+                "optionspace": (optionspace.ExtOptionspace, "Whether the option belongs to a defined option space"),
+                "encapsulate": (optionspace.ExtOptionspace, "Whether this option encapsulates the defined option space"),
                 "struct": (ExtList(ExtOptionType), "Defines a record type, or structure, that the values of this option should adhere to")
                 }
  
@@ -203,12 +203,12 @@ class OptionDef(AdHocModel):
     def get_type(self):
         return self.type
     
-    @template("optionspace", ExtOrNullOptionspace)
+    @template("optionspace", optionspace.ExtOrNullOptionspace)
     @entry(g_read)
     def get_optionspace(self):
         return self.optionspace
     
-    @template("encapsulate", ExtOrNullOptionspace)
+    @template("encapsulate", optionspace.ExtOrNullOptionspace)
     @entry(g_read)
     def get_encapsulate(self):
         return self.encapsulate
@@ -287,14 +287,14 @@ class OptionDef(AdHocModel):
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", option=self.oid, type=value, authuser=self.function.session.authuser)
              
-    @update("optionspace", ExtOrNullOptionspace)
+    @update("optionspace", optionspace.ExtOrNullOptionspace)
     @entry(g_write)
     def set_optionspace(self, value):
         q = "UPDATE option_base SET encapsulate=:value WHERE name=:name"
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", option=self.oid, optionspace=value, authuser=self.function.session.authuser)
         
-    @update("encapsulate", ExtOrNullOptionspace)
+    @update("encapsulate", optionspace.ExtOrNullOptionspace)
     @entry(g_write)
     def set_encapsulate(self, value):
         q = "UPDATE option_base SET encapsulate=:value WHERE name=:name"

@@ -9,7 +9,8 @@ from option_def import *
 from optionset import *
 from rpcc import *
 from shared_network import ExtNetwork, ExtNetworkName
-from optionspace import ExtOrNullOptionspace
+
+from optionspace_types import ExtOrNullOptionspace, ExtOptionspace
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_pools"), AdHocSuperuserGuard)
 g_admin = AnyGrants(g_write, AllowUserWithPriv("admin_all_pools"))

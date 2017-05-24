@@ -4,7 +4,7 @@
 
 from option_def import *
 from optionset import *
-from optionspace import ExtOrNullOptionspace
+from optionspace_types import ExtOrNullOptionspace, ExtOptionspace
 from rpcc import *
 
 
