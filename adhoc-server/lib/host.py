@@ -5,9 +5,9 @@
 from datetime import date
 
 from group import ExtGroup, ExtNoSuchGroupError
-from option_def import *
+import option_def
 from optionset import *
-from optionspace import ExtOptionspace
+from optionspace import ExtOptionspace, ExtOrNullOptionspace
 from room import ExtRoom, ExtRoomName
 from rpcc import *
 from util import *
@@ -32,6 +32,17 @@ class ExtDNSUsedByOtherMacError(ExtValueError):
 class ExtHostInUseError(ExtValueError):
     desc = "The host is referred to by other objects. It cannot be destroyed"
 
+
+class ExtMidInUseError(ExtValueError):
+    desc = "The machine ID is already in use"
+    
+    
+class ExtMidMatchError(ExtValueError):
+    desc = "The given machine does not match the machine_id already recorded for this host"
+
+
+class ExtMidCorruptionError(ExtLookupError):
+    desc = "The instances of the machine have differing machine id's"
 
 # class ExtHostName(ExtString): is defined in util.py to break an import loop
 
@@ -73,6 +84,23 @@ class ExtMacAddress(ExtString):
     desc = "A valid MAC address"
     regexp = r"^([0-9a-fA-F]{1,2}[\.:-]){5}([0-9A-Fa-f]{1,2})$"
     maxlen = 17
+
+
+class ExtMid(ExtString):
+    name = "machine-id"
+    desc = "A machine identifier common to all instances of a host"
+    regexp = r"^[a-zA-Z]\d{2}[a-zA-Z]{4}$"
+    maxlen = 7
+    minlen = 7
+
+
+class ExtHostMid(ExtOrNull):
+    name = "host-machine-id"
+    desc = "A local machine identifier common to all instances of a host"
+    typ = ExtMid
+    
+    def lookup(self, fun, cval):
+        return cval.upper()
 
 
 class ExtHost(ExtHostName):
@@ -131,7 +159,8 @@ class ExtHostCreateOptions(ExtStruct):
                 "info": (ExtString, "Information about the host"),
                 "status": (ExtHostStatus, "Initial status of the host, default=Active"),
                 "same_as": (ExtHost, "Create host entry as an instance of this host"),
-                "cid": (ExtHostAccount, "Account of the owner or responsible person")
+                "cid": (ExtHostAccount, "Account of the owner or responsible person"),
+                "mid": (ExtMid, "Machine ID for the host"),
                 }
 
 
@@ -289,7 +318,7 @@ class Host(AdHocModel):
     def get_changed_by(self):
         return self.changed_by
 
-    @template("options", ExtOptionKeyList, desc="List of options defined for this host")
+    @template("options", option_def.ExtOptionKeyList, desc="List of options defined for this host")
     @entry(g_read)
     def list_options(self):
         return self.get_optionset().list_options()
@@ -311,6 +340,11 @@ class Host(AdHocModel):
                  "id": id}
             ret.append(d)
         return ret
+    
+    @template("mid", ExtHostMid, desc="The local machine identifier for the host")
+    @entry(g_read)
+    def get_mid(self):
+        return self.mid
 
     @update("host", ExtString)
     @entry(g_write)
@@ -368,12 +402,32 @@ class Host(AdHocModel):
         q = "UPDATE hosts SET mac=:value WHERE id=:name"
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", host=self.oid, mac=value, authuser=self.function.session.authuser)
+        
+    @update("mid", ExtHostMid)
+    @entry(g_write)
+    def set_mid(self, value):
+        namebase_like = self.oid[0:12] + "%"
+        
+        if self.dns:
+            if not self.db.get("SELECT dns FROM hosts WHERE dns=:value AND id != :name", value=self.dns, name=self.oid):
+                self.db.put("DELETE FROM dnsmac WHERE dns=:dns", dns=self.dns)
+            try:
+                self.db.put("INSERT INTO dnsmac (dns, mac) VALUES (:dns, :mac)", dns=self.dns, mac=value)
+            except IntegrityError, e:
+                raise ExtDNSUsedByOtherMacError()
+            
+        if self.db.get("SELECT id FROM hosts WHERE mid=:mid AND id NOT LIKE :namebase_like", mid=value, namebase_like=namebase_like):
+            raise ExtMidInUseError("The macine ID is in use by a host which is not an instance of this host")
+
+        q = "UPDATE hosts SET mid=:value WHERE id LIKE :namebase_like"
+        self.db.put(q, namebase_like=namebase_like, mid=value)
+        self.event_manager.add("update", host=self.oid[0:12] + "%", mac=value, authuser=self.function.session.authuser)
 
     @update("room", ExtHostRoom)
     @entry(g_write)
     def set_room(self, value):
         try:
-            q = "UPDATE hosts SET room=:value WHERE id=:name"
+            q = "UPDATE hosts SET room=:value WHERE id=:namebase"
             self.db.put(q, name=self.oid, value=value)
         except IntegrityError as e:
             self.room_manager.create_room(self.function, value, None, "Auto-created by host_set_room")
@@ -480,6 +534,11 @@ class HostManager(AdHocManager):
     def s_mac(self, dq):
         dq.table("hosts h")
         return "h.`mac`"
+    
+    @search("mid", StringMatch)
+    def s_mid(self, dq):
+        dq.table("hosts h")
+        return "h.`mid`"
 
     @search("dns", NullableStringMatch)
     def s_dns(self, dq):
@@ -577,6 +636,7 @@ class HostManager(AdHocManager):
         info = options.get("info", None)
         status = options.get("status", "Active")
         same_as = options.get("same_as", None)
+        mid = options.get("mid", None)
         cid = options.get("cid", None)
 
         if not host_name:
@@ -595,12 +655,31 @@ class HostManager(AdHocManager):
                 dns, stored_mac = res[0]
                 if mac != stored_mac:
                     raise ExtDNSUsedByOtherMacError()
+                
+        if mid:
+            # See if there are other hosts with the same name base but with different MID
+            namebase_like = host_name[0:12] + "%"
+            q = "SELECT id FROM hosts WHERE mid IS NOT NULL AND mid != :mid AND id LIKE :namebase_like"
+            if self.db.get(q, mid=mid, namebase_like=namebase_like):
+                raise ExtMidMatchError("The given MID does not match the MID of the other instances of the same host")
+            # See if the MID is in use by another host
+            if self.db.get("SELECT id FROM hosts WHERE mid=:mid AND id NOT LIKE :namebase_like", mid=mid, namebase_like=namebase_like):
+                raise ExtMidInUseError("The machine ID is in use bu a host which is not an instance of the host to be created")
+        else:
+            q = "SELECT DISTINCT mid FROM hosts WHERE id LIKE :namebase_like"
+            mids = self.db.get(q, namebase_like=namebase_like)
+            if len(mids) > 1:
+                self.logger.error("The hosts with the base %s has multiple different machine ID's" % namebase_like)
+                raise ExtMidCorruptionError("The machine ID's for this host are corrupted, please assign a MID")
+            if len(mids) == 1:
+                mid=mids[0]
+            
 
-        q = """INSERT INTO hosts (id, dns, `group`, mac, room, optionspace, info, entry_status, cid, changed_by, optionset) 
-               VALUES (:host_name, :dns, :group, :mac, :room, :optionspace, :info, :entry_status, :cid, :changed_by, :optionset)"""
+        q = """INSERT INTO hosts (id, dns, `group`, mac, mid, room, optionspace, info, entry_status, cid, changed_by, optionset) 
+               VALUES (:host_name, :dns, :group, :mac, :mid, :room, :optionspace, :info, :entry_status, :cid, :changed_by, :optionset)"""
         try:
             self.db.put(q, host_name=host_name, dns=dns, group=group.oid,
-                        mac=mac, room=room, optionspace=optionspace,
+                        mac=mac, mid=mid, room=room, optionspace=optionspace,
                         info=info, changed_by=fun.session.authuser,
                         entry_status=status,
                         cid=cid, optionset=optionset)
@@ -611,7 +690,7 @@ class HostManager(AdHocManager):
 
         self.event_manager.add("create", host=host_name,
                                dns=dns, group=group.oid,
-                               mac=mac, room=room, optionspace=optionspace,
+                               mac=mac, mid=mid, room=room, optionspace=optionspace,
                                info=info, authuser=fun.session.authuser,
                                entry_status=status, cid=cid,
                                optionset=optionset)
