@@ -421,8 +421,8 @@ class Host(AdHocModel):
             raise ExtMidInUseError("The macine ID is in use by a host which is not an instance of this host")
 
         q = "UPDATE hosts SET mid=:value WHERE id LIKE :namebase_like"
-        self.db.put(q, namebase_like=namebase_like, mid=value)
-        self.event_manager.add("update", host=self.oid[0:12] + "%", mac=value, authuser=self.function.session.authuser)
+        self.db.put(q, namebase_like=namebase_like, value=value)
+        self.event_manager.add("update", host=namebase_like, mid=value, authuser=self.function.session.authuser)
 
     @update("room", ExtHostRoom)
     @entry(g_write)
@@ -656,10 +656,11 @@ class HostManager(AdHocManager):
                 dns, stored_mac = res[0]
                 if mac != stored_mac:
                     raise ExtDNSUsedByOtherMacError()
-                
+        
+        namebase_like = host_name[0:12] + "%"       
         if mid:
+            mid = mid.upper()
             # See if there are other hosts with the same name base but with different MID
-            namebase_like = host_name[0:12] + "%"
             q = "SELECT id FROM hosts WHERE mid IS NOT NULL AND mid != :mid AND id LIKE :namebase_like"
             if self.db.get(q, mid=mid, namebase_like=namebase_like):
                 raise ExtMidMatchError("The given MID does not match the MID of the other instances of the same host")
@@ -669,11 +670,12 @@ class HostManager(AdHocManager):
         else:
             q = "SELECT DISTINCT mid FROM hosts WHERE id LIKE :namebase_like"
             mids = self.db.get(q, namebase_like=namebase_like)
+            #print("MIDS=", mids)
             if len(mids) > 1:
                 self.logger.error("The hosts with the base %s has multiple different machine ID's" % namebase_like)
                 raise ExtMidCorruptionError("The machine ID's for this host are corrupted, please assign a MID")
             if len(mids) == 1:
-                mid=mids[0]
+                mid = mids[0][0]
             
 
         q = """INSERT INTO hosts (id, dns, `group`, mac, mid, room, optionspace, info, entry_status, cid, changed_by, optionset) 
