@@ -685,7 +685,7 @@ class MySQLIterator(DatabaseIterator):
         return row
 
 
-class MySQLLink(DatabaseLink):
+class MySQLLink1(DatabaseLink):
 
     iterator_class = MySQLIterator
     query_class = MySQLDynamicQuery
@@ -759,11 +759,53 @@ class MySQLLink(DatabaseLink):
 #             print "MESSAGE:", err.message.strip()
 #             print "OFFSET:", err.offset
         raise
+    
+    def get_all(self, query, **kwargs):
+        """ Executes the query and returns the result as a list instead of an iterator.
 
+            This is needed when looping over a result and the loop body is doing writes
+            to the database.
+        """
+        ret = list(self._get(query, **kwargs).fetchall())
+        return ret
+
+    def get(self, query, **kwargs):
+        curs = self._get(query, **kwargs)
+        ret = curs.fetchall()
+        return ret
+
+
+class MySQLLink2(MySQLLink1):
+    """ This subclass handles the incompatible change made by musql.connector version 2 and up"""
+    
+    def get_all(self, query, **kwargs):
+        """ Executes the query and returns the result as a list instead of an iterator.
+
+            This is needed when looping over a result and the loop body is doing writes
+            to the database.
+        """
+        ret = list(self._get(query, **kwargs).fetchall())
+        return self.bytearrays_to_str(ret)
+    
+    def bytearrays_to_str(self, ret):
+        rows = []
+        for row in ret:
+            cols = []
+            for col in row:
+                if type(col) is bytearray:
+                    col = str(col)
+                cols.append(col)
+            rows.append(tuple(cols))
+        return rows
+
+    def get(self, query, **kwargs):
+        curs = self._get(query, **kwargs)
+        ret = curs.fetchall()
+        return self.bytearrays_to_str(ret)
+    
 
 class MySQLDatabase(Database):
     query_class = MySQLDynamicQuery
-    link_class = MySQLLink
 
     def init(self, user=None, password=None, database=None, host=None, port=None, socket=None):
         user = user or self.server.config("DB_USER", default="root")
@@ -774,9 +816,7 @@ class MySQLDatabase(Database):
         socket = socket or self.server.config("DB_SOCKET", default=None)
         
         import mysql.connector
-
-#        if mysql.connector.__version_info__[0] > 1:
-#            raise exterror.ExtRuntimeError("The server is not supporting the use of MySQL connector version 2 and above")
+        self.connector_version = mysql.connector.__version_info__[0]
 
         self.connect_args = {"user": user, "password": password, "db": database}
         if host:
@@ -792,7 +832,9 @@ class MySQLDatabase(Database):
         try:
             import mysql.connector
             raw_link = mysql.connector.connect(**self.connect_args)
-            return self.link_class(self, raw_link)
+            if self.connector_version > 1:
+                return MySQLLink2(self, raw_link)
+            return MySQLLink1(self, raw_link)
         except:
             raise
             raise exterror.ExtRuntimeError("Database has gone away")
