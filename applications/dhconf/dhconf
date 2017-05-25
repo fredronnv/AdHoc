@@ -2315,6 +2315,7 @@ db_hostadd()
     hroom=$6
     hinfo=$7
     hsame=$8
+    hmid=$9
 
     trace "New host will become member of the group '$hgrp'" >&2
 
@@ -2344,6 +2345,10 @@ db_hostadd()
     
     if [ -n "$hsame" ]; then
         proxy_call "options['same_as']='$hsame'"
+    fi
+
+    if [ -n "$hmid" ]; then
+        proxy_call "options['mid']='$hmid'"
     fi
     server_call "host_create('$hmac', options)"
     
@@ -2709,6 +2714,7 @@ check_date()
 #M
 
 #S addhost;;Add a host;1;1;mac-address;Add a host to the DHCP database;21
+#O addhost;mid;machine_id;Assign machine identifier;;
 #O addhost;r;room;Assign room number
 #O addhost;d;DNS;Assign a DNS address
 #O addhost;f;;Force - bypass checks
@@ -2730,7 +2736,10 @@ check_date()
 #M again.
 #M If creating a new host with the same mac address as an already registered host, the host-ID up to, but not including X will be
 #M reused, so if 20150101-007A has the mac address 00:11:22:33:44:66 the second time this host is registered, its ID will become
-#M 20150101-007B
+#M 20150101-007B. In this case, the --mid aotion is not needed as the machine ID will be ingerited from the previously defined
+#M hosts. If --mid is given, it must match the machine ID of the previously defined hosts if they have a machine id defined.
+#M If they do not have a defined machine ID, the given mid will be applied to all instances of the host.
+#M 
 
 #M
 addhost()
@@ -2768,6 +2777,10 @@ addhost()
             --like)
                 addhost_like_flag=$i; shift
                 addhost_like_arg=$1;shift
+                ;;
+            --mid)
+                addhost_mid_flag=$i; shift
+                addhost_mid_arg=$1; shift
                 ;;
             --)
                 shift;break
@@ -2968,13 +2981,15 @@ addhost()
     fi
     
 #M If the B<-u> I<username> argument is given, I<username> is checked against the server's Account list.
+#M
     if [ -n "$addhost_u_flag" -a -n "${addhost_u_arg}" ]; then
         if [ -z "`_validate_username ${addhost_u_arg}`" ]; then
             exit 1
         fi
     fi
+#M If the B<--midZ I<machine_id> argument is given, it is sent along to the server.
     
-    db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_u_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_sameas_arg}"
+    db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_u_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_sameas_arg}" "${addhost_mid_arg}"
 }
 #M
 
@@ -3312,6 +3327,7 @@ _chgroup_foundaflag()
     chgroup_anyflag=1
 }
 #S chhost;;Change data for a host;1;1;host_id;Change the different data associated with a host. A ? last in host_id equates the -a flag.;23
+#O chhost;mid;machine_id;Change Machine identifier;;
 #O chhost;a;;Change all instances of a host
 #O chhost;d;dns;Change the DNS name
 #O chhost;r;room_id;Change the owner room ID
@@ -3328,6 +3344,7 @@ _chgroup_foundaflag()
 #M The chhost subcommand manipulates the different attributes associated with a host.
 #M On a host_id, the last letter may be replaced by a ? to signify that the change should be applied to all instances of a host, 
 #M effectively implying the -a flag.
+#M Any changes to the machine identifier are always applied to all instances of a host.
 #M
 chhost()
 {
@@ -3368,6 +3385,10 @@ chhost()
             -i)
                 chhost_i_flag=$i; shift
                 chhost_i_arg=$1; shift
+                ;;
+            --mid)
+                chhost_mid_flag=$i; shift
+                chhost_mid_arg=$1; shift
                 ;;
             --)
                 shift;break
@@ -3493,6 +3514,15 @@ chhost()
             proxy_call "update_template['info']='$chhost_i_arg'"
         else  
             proxy_call "update_template['info']=None"
+        fi
+    fi
+
+    if [ -n "$chhost_mid_flag" ]; then
+        _chhost_foundaflag
+        if [ -n "$chhost_mid_arg" ]; then
+            proxy_call "update_template['mid']='$chhost_mid_arg'"
+        else  
+            proxy_call "update_template['mid']=None"
         fi
     fi
 
@@ -4191,6 +4221,7 @@ _lsgroups_fmt()
 }
 
 #S lshosts;lh;List hosts;0;1;[dns_pattern];List configured hosts;25
+#O lshosts;mid;machine_id_pattern;List hosts whise machine ID matches this pattern;;
 #O lshosts;p;pool_name;List hosts granted to a specific pool;;pool_name
 #O lshosts;l;;Use long format
 #O lshosts;g;group;List hosts belonging groups matching a group name pattern
@@ -4264,6 +4295,10 @@ lshosts()
                 lshosts_p_flag=$i; shift
                 lshosts_p_arg=$1; shift
                 ;;
+            --mid)
+                lshosts_mid_flag=$i; shift
+                lshosts_mid_arg=$1; shift
+                ;;
             --)
                 shift;break
                 ;;
@@ -4287,6 +4322,10 @@ lshosts()
         fi
     fi
     
+    if [ -n "$lshosts_mid_flag" ]; then
+        mid_pattern="$lshosts_mid_arg"
+    fi
+
     if [ -n "$lshosts_m_flag" ]; then
         mac_pattern="$lshosts_m_arg"
     fi
@@ -4361,6 +4400,10 @@ lshosts()
         search_exp="$search_exp'info_pattern':'*$description_pattern*',"
     fi
     
+    if [ -n "$mid_pattern" ]; then
+        search_exp="$search_exp'mid_pattern':'*$mid_pattern*',"
+    fi
+
     if [ -n "$id_pattern" ]; then
         search_exp="$search_exp'host_pattern':'*$id_pattern*',"
     fi
