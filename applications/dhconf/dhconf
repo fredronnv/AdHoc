@@ -4422,7 +4422,7 @@ lshosts()
     if [ -n "$lshosts_l_flag" ]; then
         server_call "host_dig({$search_exp},{$data_template})"   | _lshosts_l_fmt
 	else
-		server_call "host_dig({$search_exp},{$data_template})"
+		server_call "host_dig({$search_exp},{$data_template})" | sed s/NULL//
     fi
     
     if [ -n "$pool_name" ]; then 
@@ -4451,7 +4451,7 @@ lshosts()
 _lshosts_l_fmt()
 {
 	
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-13s %-7s %42s %18s %32s %-9s %-8s %-8s %-8s %7s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10);}" |  sed 's/ *$//'
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-13s %-10s %42s %18s %32s %-9s %-8s %-8s %-8s %7s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10);}" |  sed 's/ *$//'
 }
 
 #S lsnetworks;ln;List networks;0;0;;List shared networks defined in the DHCP database;64
