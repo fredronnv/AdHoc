@@ -15,6 +15,7 @@ from util import *
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_hosts"), AdHocSuperuserGuard)
 g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_hosts"))
+mid_write = AnyGrants(AllowUserWithPriv("write_all_hosts_mid"), AdHocSuperuserGuard)
 
 
 class ExtNoSuchHostError(ExtLookupError):
@@ -100,7 +101,9 @@ class ExtHostMid(ExtOrNull):
     typ = ExtMid
     
     def lookup(self, fun, cval):
-        return cval.upper()
+        if cval:
+            return cval.upper()
+        return cval
 
 
 class ExtHost(ExtHostName):
@@ -408,14 +411,6 @@ class Host(AdHocModel):
     @entry(g_write)
     def set_mid(self, value):
         namebase_like = self.oid[0:12] + "%"
-        
-        if self.dns:
-            if not self.db.get("SELECT dns FROM hosts WHERE dns=:value AND id != :name", value=self.dns, name=self.oid):
-                self.db.put("DELETE FROM dnsmac WHERE dns=:dns", dns=self.dns)
-            try:
-                self.db.put("INSERT INTO dnsmac (dns, mac) VALUES (:dns, :mac)", dns=self.dns, mac=value)
-            except IntegrityError, e:
-                raise ExtDNSUsedByOtherMacError()
             
         if self.db.get("SELECT id FROM hosts WHERE mid=:mid AND id NOT LIKE :namebase_like", mid=value, namebase_like=namebase_like):
             raise ExtMidInUseError("The macine ID is in use by a host which is not an instance of this host")
@@ -536,7 +531,7 @@ class HostManager(AdHocManager):
         dq.table("hosts h")
         return "h.`mac`"
     
-    @search("mid", StringMatch)
+    @search("mid", NullableStringMatch)
     def s_mid(self, dq):
         dq.table("hosts h")
         return "h.`mid`"
