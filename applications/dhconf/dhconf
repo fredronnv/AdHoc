@@ -4242,9 +4242,9 @@ _lsgroups_fmt()
 #M
 #M =head3 I<Format control>
 #M
-#M The default format only lists the host_id's.
+#M The default format lists the host_id's together with the machine_id if present.
 #M
-#M The long format (-l) gives host_id, dns name, MAC-address, status, group, room ID and comments.
+#M The long format (-l) gives host_id, machine_id, dns name, MAC-address, status, group, room ID and comments.
 #M 
 #M =head3 I<Selection control>
 #M
@@ -4309,7 +4309,7 @@ lshosts()
     pattern="^[^	]*${1-.*}"
     dns_pattern=$1
     
-    data_template='"host":true'
+    data_template='"host":true, "mid":true'
     search_exp=""
     
     if [ -n "$lshosts_p_flag" ]; then
@@ -4343,8 +4343,8 @@ lshosts()
     fi
     
     if [ -n "$lshosts_l_flag" ]; then
-        data_template='"host":true,"dns":true,"mac":true,"group":true,"status":true,"cid":true,"room":true,"info":true'
-        echo "Host ID	DNS	Mac	Group	Status	Uname	Room	Info" | _lshosts_l_fmt
+        data_template='"host":true,"mid":true,"dns":true,"mac":true,"group":true,"status":true,"cid":true,"room":true,"info":true'
+        echo "Host ID	Machine ID	DNS	Mac	Group	Status	Uname	Room	Info" | _lshosts_l_fmt
     fi
     
     if [ -z "$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
@@ -4451,7 +4451,7 @@ lshosts()
 _lshosts_l_fmt()
 {
 	
-     sed s/NULL//g | awk -F'	' "{ printf(\"%-13s %42s %18s %32s %-9s %-8s %-8s %-8s %7s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9);}" |  sed 's/ *$//'
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-13s %-7s %42s %18s %32s %-9s %-8s %-8s %-8s %7s\n\", \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10);}" |  sed 's/ *$//'
 }
 
 #S lsnetworks;ln;List networks;0;0;;List shared networks defined in the DHCP database;64
