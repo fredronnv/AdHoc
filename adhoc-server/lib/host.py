@@ -15,7 +15,7 @@ from util import *
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_hosts"), AdHocSuperuserGuard)
 g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_hosts"))
-mid_write = AnyGrants(AllowUserWithPriv("write_all_hosts_mid"), AdHocSuperuserGuard)
+g_write_machine_id = AnyGrants(AllowUserWithPriv("write_machine_id"), AdHocSuperuserGuard)
 
 
 class ExtNoSuchHostError(ExtLookupError):
@@ -408,7 +408,7 @@ class Host(AdHocModel):
         self.event_manager.add("update", host=self.oid, mac=value, authuser=self.function.session.authuser)
         
     @update("mid", ExtHostMid)
-    @entry(g_write)
+    @entry(g_write_machine_id)
     def set_mid(self, value):
         namebase_like = self.oid[0:12] + "%"
             
