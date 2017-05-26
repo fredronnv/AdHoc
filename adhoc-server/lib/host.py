@@ -412,8 +412,9 @@ class Host(AdHocModel):
     def set_mid(self, value):
         namebase_like = self.oid[0:12] + "%"
             
-        if self.db.get("SELECT id FROM hosts WHERE mid=:mid AND id NOT LIKE :namebase_like", mid=value, namebase_like=namebase_like):
-            raise ExtMidInUseError("The macine ID is in use by a host which is not an instance of this host")
+        if value:
+            if self.db.get("SELECT id FROM hosts WHERE mid=:mid AND id NOT LIKE :namebase_like", mid=value, namebase_like=namebase_like):
+                raise ExtMidInUseError("The macine ID is in use by a host which is not an instance of this host")
 
         q = "UPDATE hosts SET mid=:value WHERE id LIKE :namebase_like"
         self.db.put(q, namebase_like=namebase_like, value=value)
