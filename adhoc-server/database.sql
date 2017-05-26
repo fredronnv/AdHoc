@@ -1243,5 +1243,5 @@ ALTER TABLE `subnetworks`
 
 -- Machine ID additions
 ALTER TABLE `hosts` ADD COLUMN `mid` varchar(16) NULL DEFAULT NULL;
-ALTER TABLE `hosts` ADD indINDEXex (`mid`);
+ALTER TABLE `hosts` ADD INDEX (`mid`);
 INSERT INTO `rpcc_event_str_attr` (`id`, `name`) VALUES (46, 'mid');
