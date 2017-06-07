@@ -424,7 +424,7 @@ class Host(AdHocModel):
     @entry(g_write)
     def set_room(self, value):
         try:
-            q = "UPDATE hosts SET room=:value WHERE id=:namebase"
+            q = "UPDATE hosts SET room=:value WHERE id=:name"
             self.db.put(q, name=self.oid, value=value)
         except IntegrityError as e:
             self.room_manager.create_room(self.function, value, None, "Auto-created by host_set_room")
