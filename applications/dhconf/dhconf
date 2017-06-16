@@ -2933,9 +2933,12 @@ addhost()
         if [ "${addhost_macaddr}" != "00:00:00:00:00:00" ]; then
             #echo "$addhost_f_flag$addhost_like_flag" >&2
             if [ -z "$addhost_f_flag$addhost_like_flag" ]; then 
-                echo "ERROR: The given MAC address ${addhost_macaddr} is already present in the database, use -f or --like <host> to override"
+                echo "ERROR: The given MAC address ${addhost_macaddr} is already present in the database:"
                 echo "       The following hosts have the given address:"  
-		lshosts -v ${addhost_macaddr} 
+		(lshosts -v -m ${addhost_macaddr})
+	        echo "       If the MAC address is connected to an installation address use"
+	        echo '       "dhconf chhost" and set the MAC address to 00:00:00:00:00:00.'
+                echo '       Then run "dhconf addhost" again and create a new Host ID.'
                 exit 1
             else
                 echo "WARNING: The given MAC address ${addhost_macaddr} is already present in the database"
