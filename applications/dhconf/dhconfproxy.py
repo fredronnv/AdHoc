@@ -144,9 +144,9 @@ def process(command, output):
                 desc = e.name
             try:
                 if e["value"]:
-                    print >>sys.stderr, "%s: %s" % (desc, e.value)
+                    print >>sys.stderr, "ERROR: %s: %s" % (desc, e.value)
                 else:
-                    print >>sys.stderr, "%s" % desc
+                    print >>sys.stderr, "ERROR: %s" % desc
             except:
                 print >>sys.stderr, "Unexpected error from server:", e
             raise
