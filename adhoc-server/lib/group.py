@@ -14,6 +14,7 @@ from util import g_rename, g_write_literal_option, ExtLiteralOptionString
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_groups"), AdHocSuperuserGuard)
 g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_groups"))
+g_gather_stats = AnyGrants(AllowUserWithPriv("gather_stats"), AdHocSuperuserGuard)
 
 
 class ExtNoSuchGroupError(ExtLookupError):
@@ -439,7 +440,7 @@ class GroupManager(AdHocManager):
         self.db.put("UPDATE groups SET hostcount=:hostcount WHERE groupname=:groupname", groupname=groupname, hostcount=hostcount)
         return hostcount
         
-    @entry(AdHocSuperuserGuard)
+    @entry(g_gather_stats)
     def gather_stats(self, parent=None):
         """ Walk through the group tree, count the number of hosts assigned directly or indirectly
             to the group. This count is used primarily for deciding which groups to generate configuration for."""
