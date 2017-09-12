@@ -1036,10 +1036,10 @@ class DHCPManager(AdHocManager):
         # Typically:
 
         # class "allocation-class-1" {
-        #  match pick-first-value (option dhcp-client-identifier, hardware);
+        #  match pick-first-value (hardware);
         # }
         # class "allocation-class-2" {
-        #  match pick-first-value (option dhcp-client-identifier, hardware);
+        #  match pick-first-value (hardware);
         # }
         # subclass "allocation-class-1" 1:8:0:2b:4c:39:ad;
         # subclass "allocation-class-2" 1:8:0:2b:a9:cc:e3;
@@ -1053,7 +1053,7 @@ class DHCPManager(AdHocManager):
                     continue
                 count += 1
                 self.emit("class \"%s\" {" % groupclass, 4 * indent)
-                self.emit("match pick-first-value (option dhcp-client-identifier, hardware);", 4 * (indent + 1))
+                self.emit("match pick-first-value (hardware);", 4 * (indent + 1))
                 self.emit("}", 4 * (indent))
                 g0 = "SELECT descendant FROM group_groups_flat WHERE groupname=:groupname"
                 groups = [ x[0] for x in self.db.get(g0, groupname=groupname)]
@@ -1073,7 +1073,7 @@ class DHCPManager(AdHocManager):
                 return
             count += 1
             self.emit("class \"%s\" {" % hostclass, 4 * indent)
-            self.emit("match pick-first-value (option dhcp-client-identifier, hardware);", 4 * (indent + 1))
+            self.emit("match pick-first-value (hardware);", 4 * (indent + 1))
             self.emit("}", 4 * (indent))
             for h in hosts:
                 q = "SELECT id, mac FROM hosts WHERE id=:id"
