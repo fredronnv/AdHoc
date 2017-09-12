@@ -4,7 +4,7 @@
 DATE=`date "+%Y-%m-%d-%H:%M:%S"`
 export ADHOC_USER=${ADHOC_USER:-srvadhoc}
 ADHOC_USER_HOME=$(eval echo ~${ADHOC_USER})
-BACKUPDIR=${ADHOC_USER_HOME}/var/backups
+BACKUPDIR=${ADHOC_USER_HOME}/backups
 mkdir -p ${BACKUPDIR}
 TMPDIR=${ADHOC_USER_HOME}/var/tmp
 mkdir -p ${TMPDIR}
@@ -37,6 +37,6 @@ rm ${PWF}
 if [ -s ${BACKUPDIR}/mysql_backup.${DATE} ]; then # If we have a new nonzero size file and we manage to compress it, remove files older than 7 days.
 	gzip ${BACKUPDIR}/mysql_backup.${DATE} && \
 	chmod go-rw ${BACKUPDIR}/mysql_backup.${DATE}.gz && \
-	find ${BACKUPDIR} -type f -mtime +7 -exec rm -f {} \;
+	find ${BACKUPDIR}/ -type f -mtime +7 -exec rm -f {} \;
 fi
 
