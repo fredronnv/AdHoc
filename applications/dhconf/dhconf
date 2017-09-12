@@ -6786,7 +6786,7 @@ _chclass_foundaflag()
     chclass_anyflag=1
 }
 
-#S lsospaces;;List optionspaces;0;0;;List all option spaces;92
+#S lsospaces;;List optionspaces;0;0;;List all option spaces;82
 #M =head2 I<Description>
 #M
 #M The lsospaces subcommand does something that is yet undefined and needs to be documented
