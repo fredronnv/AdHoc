@@ -666,7 +666,7 @@ do_subcmd()
                 return 0
                 ;;
 #C
-#C Check the -h option, if found, prin short help and return OK.
+#C Check the -h option, if found, print short help and return OK.
 #C
             -h)
                 _short_help
@@ -688,7 +688,7 @@ do_subcmd()
 #C Does it require an argument ?
                 eval _do_subcmd_tmp=\"\$_${subcmd}_${_larg}_arg\"
                 if [ -n "${_do_subcmd_tmp}" ]; then
-#                    echo Argument to $_arg is $1
+                    echo Argument to $_arg is $1
 #C Check if it does have an argument
                     if [ $# -eq 0 -o "${1:1}" = '-' ]; then
                         echo "The option $_arg needs an argument"
@@ -730,7 +730,7 @@ do_subcmd()
                 fi
                 eval _do_subcmd_tmp=\"\$_${subcmd}_${_sarg}_arg\"
                 if [ -n "${_do_subcmd_tmp}" ]; then
-#                    echo Argument to $_arg is "'$1'"
+                    echo Argument to $_arg is "'$1'"
                     if [ $# -eq 0 -o "${1:1}" = '-' ]; then
                         echo "The flag $_arg needs an argument"
                         _short_help
@@ -760,7 +760,7 @@ do_subcmd()
                 _argsleft=$((_argsleft+1))
                 ;;
         esac
-#    echo _do_subcmd_arglist="$_do_subcmd_arglist"
+    echo _do_subcmd_arglist="$_do_subcmd_arglist"
     done
 
 #C Check residual arg count
@@ -843,7 +843,11 @@ help()
     for i in "$@"; do
         case "$i" in
             -n)
-        _help_n_flag=$1; shift
+               _help_n_flag=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -933,6 +937,10 @@ man()
                 man_o_arg=$1 
                 man_pager=cat
                 shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift 
@@ -1118,6 +1126,10 @@ Newtitle()
                 Newtitle_r_flag=$i;
                 shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -1231,6 +1243,10 @@ Newsub()
                 shift
                 Newsub_s_arg=$1
                 shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
               shift;break
@@ -1426,6 +1442,10 @@ Newoption()
             -f)
                 Newoption_f_flag=$i; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -1580,6 +1600,10 @@ line: while (\$_ = shift @lines)
         {
                 print '                '.\$subcmd.'_'.\$newflag.'_arg=\$1; shift';
         }
+        print '                ;;';
+        print '           --*)';
+        print '                echo "Invalid flag $i"; shift';
+        print '                exit 1';
         print '                ;;';
         print '            --)';
         print '                shift;break';
@@ -2745,7 +2769,9 @@ check_date()
 addhost()
 {
 
+    echo "Addhost" "$@"
     for i in "$@"; do
+        echo "Addhost" "$@"
         case "$i" in
             -f)
                 addhost_f_flag=$i; shift
@@ -2771,9 +2797,9 @@ addhost()
                 addhost_r_arg=$1; shift
                 ;;
             -u)
-            	addhost_u_flag=$i; shift
-            	addhost_u_arg=$1; shift
-            	;;
+            	    addhost_u_flag=$i; shift
+            	    addhost_u_arg=$1; shift
+            	    ;;
             --like)
                 addhost_like_flag=$i; shift
                 addhost_like_arg=$1;shift
@@ -2782,7 +2808,11 @@ addhost()
                 addhost_mid_flag=$i; shift
                 addhost_mid_arg=$1; shift
                 ;;
-            --)
+             --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
+             --)
                 shift;break
                 ;;
         esac
@@ -3075,6 +3105,10 @@ opoption()
                 opoption_gtype='pool';
                 shift; opoption_arg=$1; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -3199,6 +3233,10 @@ addroom()
                 addroom_p_flag=$i; shift
                 addroom_p_arg=$1; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -3263,6 +3301,10 @@ chgroup()
             -I)
                 chgroup_I_flag=$i; shift
                 chgroup_I_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -3394,6 +3436,10 @@ chhost()
             --mid)
                 chhost_mid_flag=$i; shift
                 chhost_mid_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -3689,6 +3735,10 @@ chroom()
                 chroom_i_flag=$i; shift
                 chroom_i_arg=$1; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -3752,6 +3802,10 @@ defoption()
             -q)
                 defoption_q_flag=$i; shift
                 defoption_q_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -3915,6 +3969,10 @@ defspace()
         case "$i" in
             -s)
                 defspace_s_flag=$i; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -4099,6 +4157,10 @@ lsclasses()
                 lsclasses_p_flag=$i; shift
                 lsclasses_p_arg=$1; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -4160,6 +4222,10 @@ lsgroups()
             -p)
                 lsgroups_p_flag=$i; shift
                 lsgroups_p_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -4307,6 +4373,10 @@ lshosts()
             --mid)
                 lshosts_mid_flag=$i; shift
                 lshosts_mid_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -4657,6 +4727,10 @@ lsoptions()
                 lsoptions_mutexcheck
                 lsoptions_G_flag=$i; shift
                 lsoptions_gtype='global';
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -5201,6 +5275,10 @@ mkgroup()
                 mkgroup_i_flag=$i; shift
                 mkgroup_i_arg=$1; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -5423,6 +5501,10 @@ mkhost()
             -n)
                 mkhost_n_flag=$i; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -5598,6 +5680,10 @@ addnetwork()
             --noA)
                 addnetwork_noA_flag=$i; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -5650,6 +5736,10 @@ addsubnetwork()
             -i)
                 addsubnetwork_i_flag=$i; shift
                 addsubnetwork_i_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -5778,8 +5868,12 @@ mkpool()
                 mkpool_max_lease_arg=$1; shift
                 ;;
             --open)
-            	mkpool_open_flag=$i; shift
-            	;;
+              	mkpool_open_flag=$i; shift
+            	    ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -5868,6 +5962,10 @@ addrange()
             --dhcp_server)
                 addrange_dhcp_server_flag=$i; shift
                 addrange_dhcp_server_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -5975,6 +6073,10 @@ chpool()
                 chpool_max_lease_flag=$i; shift
                 chpool_max_lease_arg=$1; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -6059,6 +6161,10 @@ chrange()
             --dhcp_server)
                 chrange_dhcp_server_flag=$i; shift
                 chrange_dhcp_server_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -6174,6 +6280,10 @@ chnetwork()
             -A)
                 chnetwork_A_flag=$i; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -6259,6 +6369,10 @@ chsubnetwork()
                 chsubnetwork_network_name_flag=$i; shift
                 chsubnetwork_network_name_arg=$1; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -6337,6 +6451,10 @@ grant()
                 grant_c_flag=$i; shift
                 grant_c_arg=$1; shift
                 ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
             --)
                 shift;break
                 ;;
@@ -6398,6 +6516,10 @@ revoke()
             -c)
                 revoke_c_flag=$i; shift
                 revoke_c_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -6481,6 +6603,10 @@ history()
                 ;;
             -n)
                 history_n_flag=$i; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
@@ -6713,6 +6839,10 @@ chclass()
             -V)
                 chclass_V_flag=$i; shift
                 chclass_V_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
                 ;;
             --)
                 shift;break
