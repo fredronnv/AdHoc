@@ -29,7 +29,7 @@ class ExtRoomInUseError(ExtValueError):
 class ExtRoomName(ExtString):
     name = "room-name"
     desc = "Name of a room"
-    regexp = "^[-a-zA-Z0-9_]+$"
+    regexp = "^(\A\Z)|([-a-zA-Z0-9_]+)$"
     
     def lookup(self, fun, cval):
         q = "SELECT re FROM buildings"
