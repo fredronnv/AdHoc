@@ -2,15 +2,16 @@
 
 # $Id$
 
+from optionspace_errors import *
+from optionspace_types import *
 from rpcc import *
 from util import *
+
 
 g_write = AnyGrants(AllowUserWithPriv("write_all_optionspaces"), AdHocSuperuserGuard)
 g_read = AnyGrants(g_write, AllowUserWithPriv("read_all_optionspaces"))
 
 
-from optionspace_errors import *
-from optionspace_types import *
 
 
     
