@@ -2933,7 +2933,12 @@ addhost()
         if [ "${addhost_macaddr}" != "00:00:00:00:00:00" ]; then
             #echo "$addhost_f_flag$addhost_like_flag" >&2
             if [ -z "$addhost_f_flag$addhost_like_flag" ]; then 
-                echo "ERROR: The given MAC address ${addhost_macaddr} is already present in the database, use -f or --like <host> to override"
+                echo "ERROR: The given MAC address ${addhost_macaddr} is already present in the database:"
+                echo "       The following hosts have the given address:"  
+		(lshosts -v -m ${addhost_macaddr})
+	        echo "       If the MAC address is connected to an installation address use"
+	        echo '       "dhconf chhost" and set the MAC address to 00:00:00:00:00:00.'
+                echo '       Then run "dhconf addhost" again and create a new Host ID.'
                 exit 1
             else
                 echo "WARNING: The given MAC address ${addhost_macaddr} is already present in the database"
@@ -4223,7 +4228,8 @@ _lsgroups_fmt()
 #S lshosts;lh;List hosts;0;1;[dns_pattern];List configured hosts;25
 #O lshosts;mid;machine_id_pattern;List hosts whise machine ID matches this pattern;;
 #O lshosts;p;pool_name;List hosts granted to a specific pool;;pool_name
-#O lshosts;l;;Use long format
+#O lshosts;l;;Use long format (overrides -v flag)
+#O lshosts;v;;Use a verbose format showing ID, dns and mac address
 #O lshosts;g;group;List hosts belonging groups matching a group name pattern
 #O lshosts;A;;Include only active entries
 #O lshosts;I;;Include only entries that are inactive
@@ -4282,6 +4288,9 @@ lshosts()
                 ;;
             -l)
                 lshosts_l_flag=$i; shift
+                ;;
+            -v)
+                lshosts_v_flag=$i; shift
                 ;;
             -r) 
             	lshosts_r_flag=$i; shift
@@ -4343,8 +4352,14 @@ lshosts()
     fi
     
     if [ -n "$lshosts_l_flag" ]; then
+        lshosts_v_flag=''
         data_template='"host":true,"mid":true,"dns":true,"mac":true,"group":true,"status":true,"cid":true,"room":true,"info":true'
         echo "Host ID	Machine ID	DNS	Mac	Group	Status	Uname	Room	Info" | _lshosts_l_fmt
+    fi
+
+    if [ -n "$lshosts_v_flag" ]; then
+        data_template='"host":true,"dns":true,"mac":true'
+        echo "Host ID	DNS	Mac" | _lshosts_v_fmt
     fi
     
     if [ -z "$lshosts_A_flag$lshosts_I_flag$lshosts_D_flag" ];then 
@@ -4419,10 +4434,15 @@ lshosts()
     #echo G "{$search_exp}" >&2
 
     proxy_start
+    if [ -z "$lshosts_l_flag$lshosts_v_flag" ]; then
+	server_call "host_dig({$search_exp},{$data_template})" | sed s/NULL//
+    fi
     if [ -n "$lshosts_l_flag" ]; then
         server_call "host_dig({$search_exp},{$data_template})"   | _lshosts_l_fmt
-	else
-		server_call "host_dig({$search_exp},{$data_template})" | sed s/NULL//
+    fi
+
+    if [ -n "$lshosts_v_flag" ]; then
+        server_call "host_dig({$search_exp},{$data_template})"   | _lshosts_v_fmt
     fi
     
     if [ -n "$pool_name" ]; then 
@@ -4446,6 +4466,11 @@ lshosts()
         done
     fi
     exit 0
+}
+
+_lshosts_v_fmt()
+{
+     sed s/NULL//g | awk -F'	' "{ printf(\"%-13s %-42s %18s\n\", \$1,\$2,\$3);}" |  sed 's/ *$//'
 }
 
 _lshosts_l_fmt()
