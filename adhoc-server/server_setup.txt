@@ -177,12 +177,12 @@ EOF
 12A. Create a directory for the parts that store changing data and make a symlink
      to that directory. This is the place where the log, the server process ID,
      and the database backups will be stored. The software will assume that
-     this place is at /usr/local/cdg/adhoc/backups, so a symbolic link to the actual place is needed if
-     placed elsewhere.
+     this place is at /cdg/adhoc/backups, so a symbolic link to the actual 
+     place is needed, e.g.:
      
    mkdir -p /usr/local/cdg/adhoc/backups
-   chown srvadhoc:srvadhoc /usr/local/cdg/adhoc/backups
-  
+   chown srvadhoc:srvadhoc /usr/local/cdg/adhoc
+   ln -s /usr/local/cdg/adhoc/backups /cdg/adhoc/backups
   
 ---------------------------------------------------------------------------
 
