@@ -2678,6 +2678,9 @@ check_entry_status()
 
 check_room()
 {
+    if [ -z "$1" ]; then
+        return 0
+    fi
     trace "Checking room $1"
     proxy_start
     buildings=`server_call "building_dig({}, {'re':true})"`

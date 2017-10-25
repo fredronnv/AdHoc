@@ -32,11 +32,13 @@ class ExtRoomName(ExtString):
     regexp = "^(\A\Z)|([-a-zA-Z0-9_]+)$"
     
     def lookup(self, fun, cval):
-        q = "SELECT re FROM buildings"
-        for rexp in fun.db.get_all(q):
-            if re.match(rexp[0], cval):
-                return cval
-        raise ExtNoMatchingBuildingError()
+        if cval:
+            q = "SELECT re FROM buildings"
+            for rexp in fun.db.get_all(q):
+                if re.match(rexp[0], cval):
+                    return cval
+            raise ExtNoMatchingBuildingError()
+        return cval
 
 
 class ExtRoomPrinters(ExtString):
