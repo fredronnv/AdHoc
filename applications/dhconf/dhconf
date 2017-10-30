@@ -760,7 +760,7 @@ do_subcmd()
                 _argsleft=$((_argsleft+1))
                 ;;
         esac
-    echo _do_subcmd_arglist="$_do_subcmd_arglist"
+    #echo _do_subcmd_arglist="$_do_subcmd_arglist"
     done
 
 #C Check residual arg count
