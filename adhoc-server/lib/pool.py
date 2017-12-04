@@ -434,7 +434,7 @@ class PoolManager(AdHocManager):
         optionspace = options.get("optionspace", None)
         if optionspace:
             optionspace = optionspace.oid
-        max_lease_time = options.get("max_lease_time", 600)
+        max_lease_time = options.get("max_lease_time", 28800)
 
         open = options.get("allow_all_hosts", False)
 
