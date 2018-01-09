@@ -174,15 +174,19 @@ EOF
    chown srvadhoc:srvadhoc server.keytab
    chmod 0640 server.keytab
    
-12A. Create a directory for the parts that store changing data and make a symlink
-     to that directory. This is the place where the log, the server process ID,
-     and the database backups will be stored. The software will assume that
-     this place is at /cdg/adhoc/backups, so a symbolic link to the actual 
-     place is needed, e.g.:
-     
-   mkdir -p /usr/local/cdg/adhoc/backups
-   chown srvadhoc:srvadhoc /usr/local/cdg/adhoc
-   ln -s /usr/local/cdg/adhoc/backups /cdg/adhoc/backups
+12A. Create directories for variable data and symlinks pointing to these 
+     locations. Here the server log, the server process ID, and the database
+     backups will be stored. The software will assume that these folders are 
+     located in /cdg/adhoc, thus symbolic links to the actual places are
+     necessary, e.g.:
+
+     mkdir -p /var/cdg/adhoc
+     chown srvadhoc:srvadhoc /var/cdg/adhoc
+     ln -s /var/cdg/adhoc /cdg/adhoc/var
+
+     mkdir -p /usr/local/cdg/adhoc/backups
+     chown srvadhoc:srvadhoc /usr/local/cdg/adhoc/backups
+     ln -s /usr/local/cdg/adhoc/backups /cdg/adhoc/backups
   
 ---------------------------------------------------------------------------
 
