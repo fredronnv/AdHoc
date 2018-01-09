@@ -688,7 +688,7 @@ do_subcmd()
 #C Does it require an argument ?
                 eval _do_subcmd_tmp=\"\$_${subcmd}_${_larg}_arg\"
                 if [ -n "${_do_subcmd_tmp}" ]; then
-                    echo Argument to $_arg is $1
+                    #echo Argument to $_arg is $1
 #C Check if it does have an argument
                     if [ $# -eq 0 -o "${1:1}" = '-' ]; then
                         echo "The option $_arg needs an argument"
@@ -730,7 +730,7 @@ do_subcmd()
                 fi
                 eval _do_subcmd_tmp=\"\$_${subcmd}_${_sarg}_arg\"
                 if [ -n "${_do_subcmd_tmp}" ]; then
-                    echo Argument to $_arg is "'$1'"
+#                    echo Argument to $_arg is "'$1'"
                     if [ $# -eq 0 -o "${1:1}" = '-' ]; then
                         echo "The flag $_arg needs an argument"
                         _short_help
@@ -2773,9 +2773,7 @@ check_date()
 addhost()
 {
 
-    echo "Addhost" "$@"
     for i in "$@"; do
-        echo "Addhost" "$@"
         case "$i" in
             -f)
                 addhost_f_flag=$i; shift
