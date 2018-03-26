@@ -3037,7 +3037,7 @@ addhost()
             exit 1
         fi
     fi
-#M If the B<--midZ I<machine_id> argument is given, it is sent along to the server.
+#M If the B<--mid> I<machine_id> argument is given, it is sent along to the server.
     
     db_hostadd "${addhost_macaddr}" "${addhost_g_arg}" "${addhost_dnsname}" "${addhost_s_arg}" "${addhost_u_arg}" "${addhost_r_arg}" "${addhost_i_arg}" "${addhost_sameas_arg}" "${addhost_mid_arg}"
 }
