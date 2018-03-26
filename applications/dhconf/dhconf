@@ -1719,9 +1719,17 @@ _validate_validator()
 #M
 _validate_mac_address()
 {
-    ether_in=`echo $1 | sed 's/-/:/'`
-    #echo "Validating ether address $ether_in" >&2
+    ether_in=`echo $1 | sed 's/-/:/g'`
+    echo "Validating ether address $ether_in" >&2
     ether_out=
+    
+    if echo "$ether_in" | grep ":" >/dev/null 2>&1; then
+       :
+    else
+        echo "Invalid mac address: $ether_in" >&2
+        return
+    fi
+    
 
     ea1=`echo ${ether_in} | cut -f1 -d:`
     ea2=`echo ${ether_in} | cut -f2 -d:`
@@ -1729,6 +1737,11 @@ _validate_mac_address()
     ea4=`echo ${ether_in} | cut -f4 -d:`
     ea5=`echo ${ether_in} | cut -f5 -d:`
     ea6=`echo ${ether_in} | cut -f6 -d:`
+    
+    if [ -z "$ea1" -o -z "$ea2" -o -z "$ea3" -o -z "$ea4" -o -z "$ea5" -o -z "$ea6" ]; then
+        echo "Invalid mac address: $ether_in" >&2
+        return
+    fi
 
     for j in $ea1 $ea2 $ea3 $ea4 $ea5 $ea6; do
         j=`echo $j | tr 'abcdef' 'ABCDEF'`
