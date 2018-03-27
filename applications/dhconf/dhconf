@@ -1720,7 +1720,7 @@ _validate_validator()
 _validate_mac_address()
 {
     ether_in=`echo $1 | sed 's/-/:/g'`
-    echo "Validating ether address $ether_in" >&2
+    #echo "Validating ether address $ether_in" >&2
     ether_out=
     
     if echo "$ether_in" | grep ":" >/dev/null 2>&1; then
@@ -3799,7 +3799,7 @@ chroom()
 #M =head2 I<Description>
 #M
 #M The defoption subcommand defines an option that can be used in the various groups. Please enter something
-#M useful in the info field.
+#M useful in the info field. Note that the AdHoc server must be restarted before the new option may be used.
 #M
 defoption()
 {
@@ -3967,8 +3967,9 @@ defoption()
     
     _defoption_code='None'
     server_call "option_def_create('$_defoption_name', $_defoption_code_py, '$_defoption_type', '$_defoption_info', {$_defoption_optstring})"
-    
+    echo "NOTE that the AdHoc server must be restarted before the new option can be used"
 }
+
 #S defspace;;Define a namespace for custom option definitions;1;2;name [info];Define an option namespace;82
 #O defspace;s;;Create a site namespace. Default is a vendor namespace
 #O defspace;;
