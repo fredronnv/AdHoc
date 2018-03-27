@@ -85,6 +85,10 @@ class ExtMacAddress(ExtString):
     desc = "A valid MAC address"
     regexp = r"^([0-9a-fA-F]{1,2}[\.:-]){5}([0-9A-Fa-f]{1,2})$"
     maxlen = 17
+    
+    def lookup(self, fun, cval):
+        if cval:
+            return cval.lower().replace('-', ':').replace('.', ';')
 
 
 class ExtMid(ExtString):
