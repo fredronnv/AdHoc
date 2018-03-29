@@ -256,7 +256,11 @@ _setup_syntax()
     IFS=' 	
 '
     _cmdarr_s1="$_titarr $_cmdarr_s1"
-    subcmd_list_sorted=`echo $_cmdarr_s1 | tr ' ' '\n' | sort -t ';' -n -k +2 | cut -f1 -d';'`
+    
+    #echo $_cmdarr_s1 | tr ' ' '\n' 
+    
+    
+    subcmd_list_sorted=`echo $_cmdarr_s1 | tr ' ' '\n' | sort -t ';' -n -k 2 | cut -f1 -d';'`
     subcmd_list=`echo $_cmdarr_s1 | tr ' ' '\n' | cut -f1 -d';'`
 }
 
@@ -2986,6 +2990,26 @@ addhost()
                 echo '       Then run "dhconf addhost" again and create a new Host ID.'
                 exit 1
             else
+                if [ -n "$addhost_dnsname" ]; then
+                        if db_dnsindb "$addhost_dnsname"; then
+                            echo "Both the MAC address and the DNS name are already defined in the database"
+                            echo "This would create a duplicate or otherwise ambiguous host definition in the database"
+                            echo "       The following hosts have the given MAC address:"  
+                            (lshosts -v -m ${addhost_macaddr})
+                            echo "       and the following hosts have the given DNS address:"
+                            (lshosts -v ${addhost_dnsname})
+                            exit 1
+                        fi
+                else 
+                    if [ -n "$addhost_g_arg" ]; then
+                            if [ `(lshosts -g ${addhost_g_arg} -m ${addhost_macaddr} 2>/dev/null | wc -w)` -gt 0 ]; then
+                                    echo "There is already a host with this MAC address and this group defined"
+                                    echo "This command would have created a duplicate entry"
+                                    exit 1
+                            fi
+                    fi
+                fi
+                        
                 echo "WARNING: The given MAC address ${addhost_macaddr} is already present in the database"
             fi
         fi
