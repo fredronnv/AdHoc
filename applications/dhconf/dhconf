@@ -6863,6 +6863,14 @@ _history_fmt()
 #M
 #M The chclass subcommand is used for altering DHCP or vendor attributes of a class. 
 #M
+#M The vendor_class_id attribute specifies what the DHCP server will look for in the vendor-class-identifier parameter
+#M that the connecting device sends to the DHCP server. AdHoc will generate a matching statement to the DHCP server
+#M that specifies that it will only look for so many characters from the device that are specified in the attribute.
+#M Thus, an attribute specified as AAPL will essentially match all vendor-class-identifier strings beginning with AAPL
+#M so any added suffixes from the device till not matter. Note that the consequence of this is that if one class specifies AAPL
+#M and another class specifies AAPL-v12, the outcome of the matches is undefined if a device sends e.g. AAPL-v12-129
+#M because there will now be two classes matching, and the dhcpd.conf manual does not specify which class will match or if both will.
+#M
 chclass()
 {
 
