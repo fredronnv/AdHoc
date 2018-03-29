@@ -44,6 +44,9 @@ class ExtMidMatchError(ExtValueError):
 
 class ExtMidCorruptionError(ExtLookupError):
     desc = "The instances of the machine have differing machine id's"
+    
+class ExtMultipleHostIDsMatchingError(ExtLookupError):
+    desc = "The MAC address is in use by more than one base host ID. ID for new host cannot be determined automatically"
 
 # class ExtHostName(ExtString): is defined in util.py to break an import loop
 
@@ -581,14 +584,14 @@ class HostManager(AdHocManager):
             name = today + "-%03d" % new_index
 
             if mac == "00:00:00:00:00:00":
-                return name + "A"  # This mac is so special so we do not squeeze these macs togetrer.
+                return name + "A"  # This mac is so special so we do not squeeze these macs together.
 
             q = """SELECT DISTINCT substr(id, 1, 12)  mac FROM hosts WHERE mac=:mac"""
             res = self.db.get(q, mac=mac)
             if len(res) == 0:
                 return name + "A"  # No contenders
             if len(res) > 1:
-                raise ExtInternalError("piano")
+                raise ExtMultipleHostIDsMatchingError()
             name = res[0][0]
 
             q = """SELECT id, mac from hosts WHERE substr(id, 1, 12) = :name"""
