@@ -296,7 +296,7 @@ class HostClassManager(AdHocManager):
         q = """INSERT INTO classes (classname, vendor_class_id, optionspace, info, changed_by, optionset) 
                VALUES (:host_class_name, :vendor_class_id, :optionspace, :info, :changed_by, :optionset)"""
         try:
-            self.db.insert("id", q, host_class_name=host_class_name, vendor_class_id=vendor_class_id, optionspace=optionspace,
+            self.db.insert("id", q, host_class_name=host_class_name, vendor_class_id=vendor_class_id, optionspace=optionspace.oid,
                            info=info, changed_by=fun.session.authuser, optionset=optionset)
             # print "HostClass created, name=", host_class_name
             
@@ -304,7 +304,7 @@ class HostClassManager(AdHocManager):
             raise ExtHostClassAlreadyExistsError()
         self.event_manager.add("create", host_class=host_class_name, 
                                vendor_class_id=vendor_class_id, 
-                               optionspace=optionspace,
+                               optionspace=optionspace.oid,
                                authuser=fun.session.authuser,
                                optionset=optionset,
                                info=info)
