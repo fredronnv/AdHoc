@@ -4332,7 +4332,8 @@ _lsgroups_fmt()
 }
 
 #S lshosts;lh;List hosts;0;1;[dns_pattern];List configured hosts;25
-#O lshosts;mid;machine_id_pattern;List hosts whise machine ID matches this pattern;;
+#O lshosts;u;username;Lists hosts associated with a specific username;;username
+#O lshosts;mid;machine_id_pattern;List hosts whose machine ID matches this pattern;;
 #O lshosts;p;pool_name;List hosts granted to a specific pool;;pool_name
 #O lshosts;l;;Use long format (overrides -v flag)
 #O lshosts;v;;Use a verbose format showing ID, dns and mac address
@@ -4418,6 +4419,10 @@ lshosts()
                 echo "Invalid flag $i"; shift
                 exit 1
                 ;;
+            -u)
+                lshosts_u_flag=$i; shift
+                lshosts_u_arg=$1; shift
+                ;;
             --)
                 shift;break
                 ;;
@@ -4490,6 +4495,10 @@ lshosts()
         search_exp="$search_exp 'group_pattern': '$lshosts_g_arg',"
     fi
 
+    if [ -n "$lshosts_u_flag" ]; then
+        search_exp="$search_exp 'cid_equal':   '$lshosts_u_arg'," 
+    fi
+
     status_regexp=""
     if [ -n "${lshosts_A_flag}${lshosts_I_flag}${lshosts_D_flag}" ]; then
         
@@ -4540,6 +4549,8 @@ lshosts()
     if [ -n "$pool_name" ]; then
     	search_exp="$search_exp'granted_for':'$pool_name',"
     fi
+
+    
     
     #echo G "{$search_exp}" >&2
 
