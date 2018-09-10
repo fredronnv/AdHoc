@@ -6068,7 +6068,7 @@ rmrange()
 #M
 rmpool()
 {
-	if db_exists pool $1; then
+    if db_exists pool $1; then
         :
     else
         echo "The pool named $1 is not defined"
@@ -6981,6 +6981,94 @@ lsospaces()
     server_call "optionspace_dig({'optionspace_pattern':'*'}, {'optionspace':true,'type':true,'info':true})" | _lsospaces_options_fmt
 }
 
+#S mkclass;;Create a class;1;1;class_name;Create a host class;53
+#O mkclass;s;option_space;Option space;;
+#O mkclass;vid;id;Vendor class ID;;
+#O mkclass;i;description;Class description;M;
+#M =head2 I<Description>
+#M
+#M The mkclass subcommand creates a host class to be used as a default for identifying the type of host calling.
+#M host classes may e.g. be used for defining options to special devices that are hard to maintain a registry of.
+#M
+mkclass()
+{
+
+    for i in "$@"; do
+        case "$i" in
+            -i)
+                mkclass_i_flag=$i; shift
+                mkclass_i_arg=$1; shift
+                ;;
+          
+            --vid)
+                mkclass_vid_flag=$i; shift
+                mkclass_vid_arg=$1; shift
+                ;;
+            -s)
+                mkclass_s_flag=$i; shift
+                mkclass_s_arg=$1; shift
+                ;;
+            --*)
+                echo "Invalid flag $i"; shift
+                exit 1
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
+
+    mkclass_classname=$1
+
+	if [ -z "$mkclass_i_flag" -o -z "$mkclass_i_arg" ]; then
+	    echo "Please describe the new class uning the -i flag"
+        exit 1
+    fi
+    
+    if [ -z "$mkclass_vid_arg" ]; then
+        mkclass_vid_arg='None'
+    fi
+
+    if db_exists class $1; then
+        echo "The class named $1 already exists"
+        exit 1
+    fi
+    
+    mkclass_options="{}"
+    if [ -n "$mkclass_s_flag" ]; then
+            if db_exists optionspace $mkclass_s_arg; then
+                mkclass_options="{'optionspace': '$mkclass_s_arg'}"
+            else
+                echo "The option space $i is not defined"
+                exit 1
+            fi
+    fi
+
+    server_call "host_class_create('$mkclass_classname','$mkclass_vid_arg','$mkclass_i_arg', $mkclass_options)"
+}
+#S rmclass;;Destroy a class;1;1;class_name;Destroy a host class;54
+#M =head2 I<Description>
+#M
+#M The rmclass subcommand will destroy a host class along with all of its definitions. Use cautiously.
+#M
+rmclass()
+{
+    rmclass_classname=$1
+    
+    if [ -z "$rmclass_classname" ]; then
+        echo "The name of the class to remove is not defined"
+        exit 1 
+    fi       
+    
+    if db_exists class $rmclass_classname; then
+        :
+    else
+        echo "The class named $rmclass_classname is not defined"
+        exit 1
+    fi
+
+    server_call "host_class_destroy('$rmclass_classname')"
+}
 ##SGIP Subcommand generation insertion point, do not delete!!
 
 ##SSCB2 Suite specific code begin 2
