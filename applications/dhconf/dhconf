@@ -5178,6 +5178,7 @@ _lsoptions_all_fmt()
     sed s/NULL//g | awk -F'	' '{printf("%-28s %15s %9s %-20s - %s\n",$1,$2,$3,$4,$5,$6);}' |  sed 's/ *$//'
 }
 #S lspools;;List pools;0;1;[pattern];List IP number pools;71
+#O lspools;specific_leases;;List the lease times configuration specific to the pool instead of effective lease times;;
 #M
 #M =head2 I<Description>
 #M
@@ -5186,7 +5187,8 @@ _lsoptions_all_fmt()
 #M The output consists of a header line for every pool and a number of lines containing a DHCP server and an
 #M IP range which that server controls for the listed pool in the header line.
 #M
-#M A pattern may be given to limit the returned pools to those whose name matcher that patten.
+#M A pattern may be given to limit the returned pools to those whose name matcher that pattern.
+#M
 #M
 #M The columns output are as follows:
 #M 
@@ -5196,13 +5198,10 @@ _lsoptions_all_fmt()
 #M
 #M The pool name.  Used for reference.
 #M
-#M =item Server code
-#M
-#M Server which handles the range.
-#M
 #M =item Min. Def. Max.
 #M
-#M The effective minimum, default and maximum lease times assigned to a client. 
+#M Unless the --specific_leases flag is given, the effective minimum, default and maximum lease times that will be assigned to a clients. 
+#M Otherwise the lease times configuration specific to the pool is printed and in cases where such a configuration is missing, NULL is printed.
 #M
 #M =item Access
 #M
@@ -5210,12 +5209,27 @@ _lsoptions_all_fmt()
 #M
 #M =item Info
 #M
-#M Something hopefully informative about what this pool is used for.
+#M Something hopefully informative about what this pool is being used for.
 #M
 #M =back
 #M
 lspools()
 {
+
+    for i in "$@"; do
+        case "$i" in
+            --specific_leases)
+                lspools_specific_leases_flag=$i; shift
+                ;;
+           --*)
+                echo "Invalid flag List the lease configuration specific the pool instead of effective lease times"; shift
+                exit 1
+                ;;
+            --)
+                shift;break
+                ;;
+        esac
+    done
     echo "Pool name	Network	Min.	Def.	Max.	Access	Info" | _lspools_fmt
     echo "Range served by	Range Start	Range End" | _lspoolrange_fmt
     
@@ -5233,7 +5247,7 @@ lspools()
     global_default_lease_time=43200
     global_max_lease_time=86400
     
-    # fetych defaults defined in global options
+    # fetch defaults defined in global options
     while read k v; do
         export global_$k=$v
     done << EOF
@@ -5253,21 +5267,31 @@ _glob_replace()
         #Replace NULL optiosn with globallöy defined and interpret access code.
         read a b gr_min gr_def gr_max gr_access gr_info
         
-        if [ "$gr_max" == 'NULL' ]; then gr_max=$global_max_lease_time; fi
-                
-        if [ "$gr_min" == 'NULL' ]; then
-                if [ $global_min_lease_time >  $gr_max ]; then
-                        gr_min=$gr_max;
-                else
-                        gr_min=$global_min_lease_time; 
-                fi;
-        fi
-        if [ "$gr_def" == 'NULL' ]; then 
-                if [ $global_default_lease_time > $gr_max ]; then
-                        gr_def=$gr_max;
-                else
-                        gr_def=$global_default_lease_time; 
-                fi;
+        if [ -z "$lspools_specific_leases_flag" ]; then
+                if [ "$gr_max" == 'NULL' ]; then gr_max=$global_max_lease_time; fi
+                        
+                if [ "$gr_min" == 'NULL' ]; then
+                        if [ $global_min_lease_time -gt  $gr_max ]; then
+                                gr_min=$gr_max;
+                        else
+                                gr_min=$global_min_lease_time; 
+                        fi;
+                fi
+                if [ "$gr_def" == 'NULL' ]; then 
+                        gr_def=$global_default_lease_time
+                        if [ $global_default_lease_time -gt $gr_max ]; then
+                                gr_def=$gr_max;
+                        fi
+                        if [ $global_default_lease_time -lt $gr_min ]; then
+                                gr_def=$gr_min
+                        fi;
+                fi
+                if [ $gr_def -gt $gr_max ]; then
+                        gr_def=$gr_max
+                fi
+                if [ $gr_def -lt $gr_min ]; then
+                        gr_def=$gr_min
+                fi
         fi
         if [ "$gr_access" == '1' ]; then gr_access='Open'; else gr_access='Closed'; fi
         #echo "$a" "$b" "$gr_min" "$gr_def" "$gr_max" "$gr_access" "$gr_info" 1>&2
