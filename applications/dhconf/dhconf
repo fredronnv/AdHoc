@@ -5177,11 +5177,16 @@ _lsoptions_all_fmt()
 {
     sed s/NULL//g | awk -F'	' '{printf("%-28s %15s %9s %-20s - %s\n",$1,$2,$3,$4,$5,$6);}' |  sed 's/ *$//'
 }
-#S lspools;;List pools;0;0;;List IP number pools;71
+#S lspools;;List pools;0;1;[pattern];List IP number pools;71
 #M
 #M =head2 I<Description>
 #M
-#M The lspools lists the defined IP number pools tha the DHCP server uses.
+#M The lspools lists the defined IP number pools that the DHCP server uses.
+#M
+#M The output consists of a header line for every pool and a number of lines containing a DHCP server and an
+#M IP range which that server controls for the listed pool in the header line.
+#M
+#M A pattern may be given to limit the returned pools to those whose name matcher that patten.
 #M
 #M The columns output are as follows:
 #M 
@@ -5195,42 +5200,83 @@ _lsoptions_all_fmt()
 #M
 #M Server which handles the range.
 #M
-#M =item Range
-#M 
-#M This column lists the first and the last IP number in the pool.
+#M =item Min. Def. Max.
 #M
-#M =item Members
+#M The effective minimum, default and maximum lease times assigned to a client. 
 #M
-#M The class name to which this pool is assigned. The members of this class will use the pool.
+#M =item Access
 #M
-#M =item Max. lease
-#M
-#M This is the maximum lease time in seconds.
+#M Whether the pool is open to be used by any client or if access is restricted to registered clients (Closed).
 #M
 #M =item Info
 #M
-#M Something hopefully informative about waht this pool is used for.
+#M Something hopefully informative about what this pool is used for.
 #M
 #M =back
 #M
 lspools()
 {
-    echo "Pool name	Network	Max. lease	Access	Info" | _lspools_fmt
+    echo "Pool name	Network	Min.	Def.	Max.	Access	Info" | _lspools_fmt
     echo "Range served by	Range Start	Range End" | _lspoolrange_fmt
     
+    pattern=$1
+    
     proxy_start
-    pools=`server_call 'pool_dig({},{"pool":true})'`
+    if [ -n "$pattern" ]; then
+        pools=`server_call "pool_dig({'pool_pattern':'*$pattern*'},{'pool':true})"`
+    else
+        pools=`server_call 'pool_dig({},{"pool":true})'`
+    fi
+    
+    # dhcpd defaults
+    global_min_lease_time=300
+    global_default_lease_time=43200
+    global_max_lease_time=86400
+    
+    # fetych defaults defined in global options
+    while read k v; do
+        export global_$k=$v
+    done << EOF
+    $(server_call "global_option_dig({'name_pattern':'*-lease-time'}, {'name':true, 'value':true})" | sed s/-/_/g)
+EOF
     
     for p in $pools; do
-        server_call "pool_fetch('$p',{'pool':true,'network':true,'max_lease_time':true, 'open':true, 'info':true})" | _lspools_fmt
+        server_call "pool_fetch('$p',{'pool':true,'network':true,'min_lease_time':true, 'default_lease_time':true,'max_lease_time':true, 'open':true, 'info':true})" | _glob_replace | _lspools_fmt
         server_call "pool_range_dig({'pool':'$p'},{'served_by_data':{'dns':true},'start_ip':true,'end_ip':true})" | _lspoolrange_fmt
         echo
     done
 }
 
+
+_glob_replace()
+{
+        #Replace NULL optiosn with globallöy defined and interpret access code.
+        read a b gr_min gr_def gr_max gr_access gr_info
+        
+        if [ "$gr_max" == 'NULL' ]; then gr_max=$global_max_lease_time; fi
+                
+        if [ "$gr_min" == 'NULL' ]; then
+                if [ $global_min_lease_time >  $gr_max ]; then
+                        gr_min=$gr_max;
+                else
+                        gr_min=$global_min_lease_time; 
+                fi;
+        fi
+        if [ "$gr_def" == 'NULL' ]; then 
+                if [ $global_default_lease_time > $gr_max ]; then
+                        gr_def=$gr_max;
+                else
+                        gr_def=$global_default_lease_time; 
+                fi;
+        fi
+        if [ "$gr_access" == '1' ]; then gr_access='Open'; else gr_access='Closed'; fi
+        #echo "$a" "$b" "$gr_min" "$gr_def" "$gr_max" "$gr_access" "$gr_info" 1>&2
+        echo -e "$a\t$b\t$gr_min\t$gr_def\t$gr_max\t$gr_access\t$gr_info"
+}
+
 _lspools_fmt()
 {
-    awk -F'	' '{ open=$4; if($4==1) {open="Open"}; if($4=="NULL") {open="Closed"}; printf("%-23s %-28s %-15s %-10s %6s %-40s\n",$1,$2,$3,open,$5,$6);}' |  sed 's/ *$//'
+    awk -F'	' '{ printf("%-23s %-28s %-6s %-6s %-6s %6s %-40s\n",$1,$2,$3,$4,$5,$6,$7);}' |  sed 's/ *$//'
 }
 
 _lspoolrange_fmt()
@@ -5256,6 +5302,14 @@ _lsrooms_fmt()
     sed 's/NULL//' | awk -F'	' '{ printf("%-10s %-35s %-80s\n",$1,$2,$3);}' |  sed 's/ *$//'
 }
 
+_global_fetcher()
+{
+    while read k v; do
+        export global_$k=$v
+    done
+    echo Global max = $global_max_lease_time
+    echo Global default = $global_default_lease_time
+}
 #S lssubnetworks;;List subnetworks;0;1;[pattern];List configured subnetworks;69
 #M
 #M =head2 I<Description>
