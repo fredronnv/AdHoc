@@ -104,12 +104,12 @@ class DHCPManager(AdHocManager):
         db = self.server.config("ODB_DATABASE")
         host = self.server.config("ODB_HOST")
         port = self.server.config("ODB_PORT")
-        
+
         # Turn off all dhcpd assisted checks while doing this
         skip_dhcpd_test = self.server.config("SKIP_DHCPD_CHECKS", default=None)
         os.environ["ADHOC_SKIP_DHCPD_CHECKS"] = "1"
         #self.server.config["SKIP_DHCPD_CHECKS"] = True
-          
+
         arrayoptions = []
         optiontypes = {}
         hostidmap = {}
@@ -573,12 +573,12 @@ class DHCPManager(AdHocManager):
 
             if address in targets:
                 host = self.host_manager.get_host(unicode(address))
-                
+
                 if name in arrayoptions:
-                            value = [y.strip() for y in value.split(",")]
-                            if "integer" in optiontypes[name]:
-                                value = [ int(x) for x in value]  # Convert elements to integers
-                                
+                    value = [y.strip() for y in value.split(",")]
+                    if "integer" in optiontypes[name]:
+                        value = [ int(x) for x in value]  # Convert elements to integers
+
                 host.get_optionset().set_option_by_name(name, value)
 
         # Pick up options formerly encoded in the data model tables:
@@ -919,7 +919,7 @@ class DHCPManager(AdHocManager):
         if entry_status == 'Active':
             # host = self.host_manager.get_host(hostid)
             if hasopts == 'yes':
-                
+
                 self.emit("host %s %s" % (hostid, comment), 4 * indent)
                 self.emit("{", 4 * indent)
                 self.emit("hardware ethernet %s;" % mac, 4 * (indent + 1))
@@ -961,9 +961,8 @@ class DHCPManager(AdHocManager):
         pool = self.pool_manager.get_pool(poolname)
 
         optionset = pool.get_optionset()
-        maxlease = optionset.get_option('max-lease-time')
 
-        if maxlease or self.has_allowed_group(poolname):
+        if self.has_ranges(poolname) or self.has_grants(poolname):
 
             if info:
                 self.emit("%s" % info, 4 * (indent + 1))
@@ -985,15 +984,14 @@ class DHCPManager(AdHocManager):
             if not self.has_grants(poolname) and not pool.open:
                 if info:
                     self.emit("# Not generated as there are no defined grants to a closed pool", 4 * (indent + 1))
+                    self.emit_ranges(poolname, 4 * (indent + 2), prefix="# ")
                 return
 
             self.emit("pool", 4 * (indent + 1))
             self.emit("{", 4 * (indent + 1))
-            # if maxlease: self.emit("max-lease-time %s;" % maxlease[0] ,4 * (indent+2))
             self.emit_option_space(optionspace, 4 * (indent + 2))
 
             self.emit_optlist(pool, indent + 2)
-            # self.emit_option_list(poolname, optionspace, indent + 2, 'pool')
             self.emit_ranges(poolname, 4 * (indent + 2))
             self.emit_allow_classes(poolname, 4 * (indent + 2))
             self.emit("}", 4 * (indent + 1))
@@ -1095,7 +1093,7 @@ class DHCPManager(AdHocManager):
             pools.add(pool)
         return pools
 
-    def emit_ranges(self, poolname, indent):
+    def emit_ranges(self, poolname, indent, prefix=''):
 
         argdict = {"poolname": poolname}
         q = "SELECT start_ip,end_ip FROM pool_ranges WHERE pool=:poolname "
@@ -1105,7 +1103,19 @@ class DHCPManager(AdHocManager):
         q += " ORDER BY start_ip ASC"
 
         for(start, end) in self.db.get_all(q, **argdict):
-            self.emit("range %s %s;" % (start, end), indent)
+            self.emit("%srange %s %s;" % (prefix, start, end), indent)
+            
+    def has_ranges(self, poolname):
+
+        argdict = {"poolname": poolname}
+        q = "SELECT start_ip,end_ip FROM pool_ranges WHERE pool=:poolname "
+        if self.serverID:
+            q += " AND (served_by=:server_id OR served_by IS NULL ) "
+            argdict["server_id"] = self.serverID
+
+        if self.db.get_all(q, **argdict):
+            return True
+        return False
 
     def emit_subnetwork(self, subnet_id, network, info, hasopts, indent):
             # print "em:",network,subnet_id,info
@@ -1229,7 +1239,7 @@ class DHCPManager(AdHocManager):
             return False
         optionset = object.get_optionset()
         self.do_emit_optlist(option_names, optionset, indent)
-        
+
     def do_emit_optlist(self, option_names, optionset, indent):
         for name in option_names:
             value = optionset.get_option(name)
