@@ -83,6 +83,12 @@ class ExtPool(ExtPoolName):
 
     def output(self, fun, obj):
         return obj.oid
+    
+    
+class ExtPoolLeaseTime(ExtOrNull):
+    name = "lease_time"
+    desc = "Pool specific lease time"
+    typ = ExtInteger
 
 
 class ExtPoolCreateOptions(ExtStruct):
@@ -262,10 +268,20 @@ class Pool(AdHocModel):
     def get_optionspace(self):
         return self.optionspace
 
-    @template("max_lease_time", ExtInteger)
+    @template("max_lease_time", ExtPoolLeaseTime)
     @entry(g_read)
     def get_max_lease_time(self):
         return self.get_optionset().get_option("max-lease-time")
+    
+    @template("min_lease_time", ExtPoolLeaseTime)
+    @entry(g_read)
+    def get_min_lease_time(self):
+        return self.get_optionset().get_option("min-lease-time")
+    
+    @template("default_lease_time", ExtPoolLeaseTime)
+    @entry(g_read)
+    def get_default_lease_time(self):
+        return self.get_optionset().get_option("default-lease-time")
 
     @template("info", ExtString)
     @entry(g_read)
@@ -364,12 +380,26 @@ class Pool(AdHocModel):
         self.db.put(q, name=self.oid, value=value)
         self.event_manager.add("update", pool=self.oid, optionspace=value, authuser=self.function.session.authuser)
 
-    @update("max_lease_time", ExtInteger)
+    @update("max_lease_time", ExtPoolLeaseTime)
     @entry(g_write)
     def set_max_lease_time(self, value):
         set = self.get_optionset()
         set.set_option_by_name("max-lease-time", value)
-        self.event_manager.add("rename", pool=self.oid, max_lease_time=value, authuser=self.function.session.authuser)
+        self.event_manager.add("update", pool=self.oid, max_lease_time=value, authuser=self.function.session.authuser)
+        
+    @update("min_lease_time", ExtPoolLeaseTime)
+    @entry(g_write)
+    def set_min_lease_time(self, value):
+        set = self.get_optionset()
+        set.set_option_by_name("min-lease-time", value)
+        self.event_manager.add("update", pool=self.oid, min_lease_time=value, authuser=self.function.session.authuser)
+        
+    @update("default_lease_time", ExtPoolLeaseTime)
+    @entry(g_write)
+    def set_default_lease_time(self, value):
+        set = self.get_optionset()
+        set.set_option_by_name("default-lease-time", value)
+        self.event_manager.add("update", pool=self.oid, default_lease_time=value, authuser=self.function.session.authuser)
 
     @update("open", ExtBoolean)
     @entry(g_write)
