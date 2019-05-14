@@ -34,7 +34,7 @@ install: clean
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_printermap.txt ;\
-	(cd ${DISTDIR}/..; mv printermap printermap-$${revno}; tar cf ${RELEASEDIR}/printermap-$${revno}.tar printermap-$${revno};)
+	(cd ${DISTDIR}/..; mv printermap printermap-$${revno}; /usr/local/bin/gtar cf ${RELEASEDIR}/printermap-$${revno}.tar printermap-$${revno};)
 	
 patch: gitstatus patchbump install
 

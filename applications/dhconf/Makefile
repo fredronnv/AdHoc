@@ -32,7 +32,7 @@ install: clean
 release: install
 	revno=`cat rel_major`.`cat rel_minor`.`cat rel_patch`;\
 	cp ${DISTDIR}/INSTALL.txt ${RELEASEDIR}/INSTALL_dhconf.txt ;\
-	(cd ${DISTDIR}/..; mv dhconf dhconf-$${revno};tar cf ${RELEASEDIR}/dhconf-$${revno}.tar dhconf-$${revno};)
+	(cd ${DISTDIR}/..; mv dhconf dhconf-$${revno};/usr/local/bin/gtar cf ${RELEASEDIR}/dhconf-$${revno}.tar dhconf-$${revno};)
 	
 patch: gitstatus patchbump install
 
