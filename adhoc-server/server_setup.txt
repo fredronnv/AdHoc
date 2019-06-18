@@ -3,9 +3,9 @@ ADHOC-SERVER INSTALLATION INSTRUCTIONS
 
 Version @@ADHOC_RELEASE@@
 
-The instructions assume a 64 bit Red Hat Enterprise Linux system version 6 
+The instructions assume a 64 bit Red Hat Enterprise Linux system version 7 
 with Python and Kerberos installed, including the python-kerberos package.
-The system should be registered to receive updates from Red Hat. A RHEL 6 
+The system should be registered to receive updates from Red Hat. A RHEL 7 
 virtual machine in IT Service' VMware Cluster conforms to this specification.
 
 In case you're reading this from a paper or an old file, make sure to get
@@ -25,61 +25,40 @@ A. adhoc-server-x.y.z.tar, the adhoc server package.
 
    URL: https://utveckling.ita.chalmers.se/project/2
    
-   Currently (2015-04-13) we use the following command
+   Currently (2019-06-17) we use the following command
    
    wget https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/\
-files/adhoc-server-1.6.3.tar
-   
-B. The latest version of the daemon utility. This utility does a lot 
-   more than the daemon function supplied by RedHat. 
-
-   URL: http://libslack.org/daemon/download/
-
-   Currently (2014-08-26) we use the following command
-
-   wget http://libslack.org/daemon/download/daemon-0.6.4-1.x86_64.rpm
+files/adhoc-server-1.11.0_0.tar   
   
-C. MySQL Connector for Python. 
-   NOTE: You must use version 1.x.x  of this utility. Version 2 and above 
-   contains incompatible changes and will not work with the adhoc-server. 
+B. Download MySQL Connector for Python. 
 
-   URL: http://dev.mysql.com/downloads/connector/python
-
-   Currently (2014-08-27) we use the following command
-
-   wget http://dev.mysql.com/get/Downloads/Connector-Python/\
-   mysql-connector-python-1.2.3-1.el6.noarch.rpm
+   Currently (2019-06-17) we use the following command
    
-D. Enum module for Python
-   URL: https://pypi.python.org/packages/source/e/enum34/enum34-1.0.4.tar.gz#md5=ac80f432ac9373e7d162834b264034b6
+   wget https://dev.mysql.com/get/Downloads/Connector-Python/\
+mysql-connector-python-cext-8.0.16-1.el7.x86_64.rpm
    
-   Currently (2015-02-11) we use the following commands
+   wget https://dev.mysql.com/get/Downloads/Connector-Python/\
+mysql-connector-python-8.0.16-1.el7.x86_64.rpm
    
-   su
-   wget https://pypi.python.org/packages/source/e/enum34/\
-   enum34-1.0.4.tar.gz#md5=ac80f432ac9373e7d162834b264034b6
-   tar -zxvf enum34-1.0.4.tar.gz
-   cd tar -zxvf enum34-1.0.4
-   python setup.py install
 
-E. The passwords to be used for the MySQL root and srvadhoc accounts.
+C. The passwords to be used for the MySQL root and srvadhoc accounts.
 
-F. SSL server certificate and key files for the server hostname. 
+D. SSL server certificate and key files for the server hostname. 
    If you are installing the system as part of a disaster recovery, 
    retrieve the certificate and key files from the old system's backup.
    Otherwise, use ITS' standard routines to order a new SSL certificate.
    
-G. A Kerberos keytab for the principal HTTP/$HOSTNAME@CHALMERS.SE where 
+E. A Kerberos keytab for the principal HTTP/$HOSTNAME@CHALMERS.SE where 
    $HOSTNAME is the server hostname. In the case of a disaster recovery, 
    try to retrieve the Kerberos keytab file from the old system's backup. 
    If this is not possible, or if you are installing a new system, contact 
    the Kerberos operations staff (teamunix@ita.chalmers.se) for help.
    
-H. Make sure that $HOSTNAME and the hostname command returns the fully 
+F. Make sure that $HOSTNAME and the hostname command returns the fully 
    qualified host name, i.e. one ending with .chalmers.se. If not, adjust 
    the network configuration.
    
-I. The dhcpd server binary on the adhoc server and that its version is
+G. The dhcpd server binary on the adhoc server and that its version is
    the same as on the production DHCP servers.
 
 
@@ -96,9 +75,9 @@ that they are performed from the root account.
 
    rpm -i PACKAGE.rpm
   
-2.  Install MySQL server. 
+2.  Install MariaDB server. 
 
-   yum install mysql-server
+   yum install mariadb-server
 
 3.  Install the previously downloaded MySQL Connector for Python
 
@@ -106,23 +85,68 @@ that they are performed from the root account.
 
 4.  Start the MySQL server
 
-   /etc/init.d/mysqld start
+   systemctl start mariadb
 
-5.  Set the MySQL root password
- 
-        RDBPW='tgilmeh'     <- Use something else than tgilmeh here, e.g. terces ;-)
-        /usr/bin/mysqladmin -u root password "$RDBPW"
-        mysql -p <<EOF
-          SET PASSWORD FOR 'root'@'$HOSTNAME' = PASSWORD('$RDBPW');
-          GRANT ALL PRIVILEGES ON *.* TO 'root'@'$HOSTNAME' WITH GRANT OPTION;
-EOF
+5.  Secure the installation:
 
- When the system ask for a password after the "EOF", enter the newly 
- added MySQL root password.
+    mysql_secure_installation
+    
+    Enter current password for root (enter for none):
+    
+    OK, successfully used password, moving on...
 
-6.  Configure MySQL to start on runlevel 3
+Setting the root password ensures that nobody can log into the MariaDB
+root user without the proper authorisation.
 
-  /sbin/chkconfig --level 3 mysqld on
+Set root password? [Y/n] Y
+New password: 
+Re-enter new password: 
+Password updated successfully!
+Reloading privilege tables..
+ ... Success!
+
+
+By default, a MariaDB installation has an anonymous user, allowing anyone
+to log into MariaDB without having to have a user account created for
+them.  This is intended only for testing, and to make the installation
+go a bit smoother.  You should remove them before moving into a
+production environment.
+
+Remove anonymous users? [Y/n] Y
+ ... Success!
+
+Normally, root should only be allowed to connect from 'localhost'.  This
+ensures that someone cannot guess at the root password from the network.
+
+Disallow root login remotely? [Y/n] Y
+ ... Success!
+
+By default, MariaDB comes with a database named 'test' that anyone can
+access.  This is also intended only for testing, and should be removed
+before moving into a production environment.
+
+Remove test database and access to it? [Y/n] Y
+ - Dropping test database...
+ ... Success!
+ - Removing privileges on test database...
+ ... Success!
+
+Reloading the privilege tables will ensure that all changes made so far
+will take effect immediately.
+
+Reload privilege tables now? [Y/n] Y
+ ... Success!
+
+Cleaning up...
+
+All done!  If you've completed all of the above steps, your MariaDB
+installation should now be secure.
+
+Thanks for using MariaDB!
+
+6.  Enable Mariadb as a service
+
+  systemctl enable mariadb
   
 7.  Grant privileges for the local user srvadhoc to the database. Enter
     the MySQL root password previously defined when asked for the password
@@ -135,12 +159,13 @@ EOF
          GRANT SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES ON  AdHoc.* TO  'srvadhoc'@'$HOSTNAME';
          COMMIT;
 EOF
+Enter password: <The MariaDB password for root given in section 5>
 
 8.  Open the firewall for TCP packets on port 8877 but from .chalmers.se only.
     The exact syntax depends on how you have set up your iptables configuration.
     Regard the following as an example only
      
-   -A INPUT -m state --state NEW -m tcp -p tcp --dport 8877 -s 129.16.0.0/16 -j ACCEPT
+   -A INPUT -p tcp -m state --state NEW -m tcp --dport 8877 -s 129.16.0.0/16 -j ACCEPT
    
 9.  Create the local user srvadhoc with the personal group srvadhoc using the 
     UID and GID specified below:
@@ -162,7 +187,8 @@ EOF
     Beware that the cert file must contain the whole chain of certificates, so
     if you have been issued a certificate and a chain file, these two files will 
     have to be concatenated into the cert file.
-
+    
+   cd ~srvadhoc/etc
    chown srvadhoc:srvadhoc $HOSTNAME.cert $HOSTNAME.key
    chmod 0444 $HOSTNAME.cert
    chmod 0400 $HOSTNAME.key
@@ -249,23 +275,18 @@ EOF
    on the first line.
    Stop the server with <Ctrl>-C.
 
-19. Link in the startup script
+19. Enable and start adhoc as a systemd service.
+    (Distributing and storing the adhoc.service below a user directory is intentional, to ease
+     the transition to when systemd user mode becomes available)
 
-   ln -s $ADHOC_RUNTIME_HOME/etc/init.d/adhoc-server.sh /etc/init.d/adhoc-server
-
-20. Tell Linux to start the adhoc server at boot time
-
-   /sbin/chkconfig --level 3 adhoc-server on
-
-21. Start the server manually. This step assumes that you have installed the 
-    daemon utility as described in step 1. The startup script does not work 
-    with the native RedHat daemon utility.
-
-   /etc/init.d/adhoc-server start
+    mkdir -p ~srvadhoc/.config/systemd/user
+    cp ~srvadhoc/adhoc-server/.config/systemd/user/adhoc.service ~srvadhoc/.config/systemd/user/
+    ln -s  ~srvadhoc/.config/systemd/user/adhoc.service  /usr/lib/systemd/system
+    systemctl enable adhoc
         
-22. Check connectivity again, see step 18.
+20. Check connectivity again, see step 18.
 
-23. Copy the cron job that creates the the database backup. This script 
+21. Copy the cron job that creates the the database backup. This script 
     has the path to the backup script hardwired, so if the server software 
     is installed elsewhere than /cdg/adhoc, the cron job will have to be 
     changed.
@@ -276,20 +297,15 @@ EOF
    cp $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron /etc/cron.d/adhoc-server-backup
    chown root:root /etc/cron.d/adhoc-server-backup
 
-24. Transfer current setup from old database
-        Run the script:
+22. Transfer data from the previous installation
 
-   $ADHOC_RUNTIME_HOME/migrate_data
-   
-    Disregard any warnings in the log about DHCPD Checks being disabled. It is essential for the migration 
-    script to work properly that these checks are turned off during migration.
-
-    Leave the install level password as is because it is used by the backup 
-    script.
+    Shut down the old adhoc server.
+    Make a last backup.
+    Move the backup file to the new system.
+    Restore that backup into the new database.
     
-    When this is done, contact PDB support to get a complete update of accounts and privileges in AdHoc.
 
-25. Reboot and check that the server is running    
+23. Reboot and check that the server is running    
 
    /sbin/shutdown -r now
   
@@ -306,7 +322,7 @@ Assuming logged in as root:
  
 1. Stop the server
 
-   /etc/init.d/adhoc-server stop
+   systemctl stop adhoc
         
 2. Expand the adhoc-server distribution
 
@@ -320,6 +336,6 @@ Assuming logged in as root:
                 
 4. Restart the server
 
-   /etc/init.d/adhoc-server start
+   systemctl start adhoc
         
 

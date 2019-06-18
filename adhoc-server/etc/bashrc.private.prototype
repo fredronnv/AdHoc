@@ -1,4 +1,3 @@
-export ADHOC_ODB_PASSWORD=z6X9HHBzfPJCMHYR
 
 if [ x"$CHALMERS_DEPLOY_LEVEL" == x"devel" ]; then
     export ADHOC_DB_PASSWORD=WWW

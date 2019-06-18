@@ -4,6 +4,7 @@ encoding//RPCC/examples/Ex2_hello_to/client/rpcc_client.py=utf-8
 encoding//RPCC/examples/Ex6_application_server/server/docroot/rpcc_client.py=utf-8
 encoding//RPCC/examples/Ex7_host_registry/server/docroot/rpcc_client.py=utf-8
 encoding//RPCC/rpcc/database.py=utf-8
+encoding//RPCC/rpcc/database_description.py=utf-8
 encoding//RPCC/rpcc/exterror.py=utf-8
 encoding//RPCC/rpcc/exttype.py=utf-8
 encoding//adhoc-server/docroot/lib/python2.6/rpcc_client.py=utf-8

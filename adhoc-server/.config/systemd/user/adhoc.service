@@ -1,0 +1,16 @@
+[Unit]
+Description=AdHoc RPC service (DHCP configuration administration)
+After=syslog.target systemd-user-sessions.service mariadb.service
+
+[Service]
+WorkingDirectory=/cdg/adhoc
+User=srvadhoc
+Type=simple
+PIDFile=/cdg/adhoc/var/run/pid
+ExecStart=/cdg/adhoc/adhoc-server/bin/startserver.sh
+Restart=always
+StartLimitInterval=300
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target
