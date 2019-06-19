@@ -12,10 +12,15 @@ In case you're reading this from a paper or an old file, make sure to get
 the latest revision of this document!
 
 
-INITIAL INSTALLATION
-====================
 
-To be done once only. 
+
+TRANSFERRED INSTALLATION FROM A PREVIOUSLY RUNNING  SYSTEM
+==========================================================
+ 
+Be aware that you cannot change the host name of the target server without
+re-running these instructions from the start. Thus, make sure that you have
+the correct SSL certificates with the intended final hostname and that
+the host runs under that name. 
 
 
 WHAT YOU NEED
@@ -40,8 +45,10 @@ mysql-connector-python-cext-8.0.16-1.el7.x86_64.rpm
    wget https://dev.mysql.com/get/Downloads/Connector-Python/\
 mysql-connector-python-8.0.16-1.el7.x86_64.rpm
    
-
 C. The passwords to be used for the MySQL root and srvadhoc accounts.
+   Make sure you have access to the database root password on the old server.
+   These instructions assume you will use the same database root password.
+   You CAN use another, but the instructions may not cover the effects of that change.
 
 D. SSL server certificate and key files for the server hostname. 
    If you are installing the system as part of a disaster recovery, 
@@ -175,14 +182,22 @@ Enter password: <The MariaDB password for root given in section 5>
    mkdir -p /cdg/adhoc
    chown srvadhoc:srvadhoc /cdg/adhoc
    chmod 0700 /cdg/adhoc
+   
+10. Set a password for the new uer. Remember that password beacuse it is needed when transferring the data from the old system.
+   
+   passwd srvadhoc
+   Ändrar lösenord för användare srvadhoc.
+   Nytt lösenord:
+   Ange nytt lösenord igen:
+   
 
-10. Create a directory for the adhoc server's keytab and certificate files
+11. Create a directory for the adhoc server's keytab and certificate files
 
    mkdir ~srvadhoc/etc
    chown srvadhoc:srvadhoc ~srvadhoc/etc
    chmod 0775 ~srvadhoc/etc
 
-11. Move the adhoc server's key and certificate files to ~srvadhoc/etc. Adjust
+12. Move the adhoc server's key and certificate files to ~srvadhoc/etc. Adjust
     file ownership and permissions according to the following.
     Beware that the cert file must contain the whole chain of certificates, so
     if you have been issued a certificate and a chain file, these two files will 
@@ -193,14 +208,14 @@ Enter password: <The MariaDB password for root given in section 5>
    chmod 0444 $HOSTNAME.cert
    chmod 0400 $HOSTNAME.key
 
-12. Move the adhoc server's Kerberos keytab file to ~srvadhoc/etc, the file
+13. Move the adhoc server's Kerberos keytab file to ~srvadhoc/etc, the file
     name should be "server.keytab". Adjust file ownership and permissions 
     according to the following
 
    chown srvadhoc:srvadhoc server.keytab
    chmod 0640 server.keytab
    
-12A. Create directories for variable data and symlinks pointing to these 
+14. Create directories for variable data and symlinks pointing to these 
      locations. Here the server log, the server process ID, and the database
      backups will be stored. The software will assume that these folders are 
      located in /cdg/adhoc, thus symbolic links to the actual places are
@@ -218,7 +233,7 @@ Enter password: <The MariaDB password for root given in section 5>
 
  Part B. Installing the server software 
 
-13. Install and configure the adhoc-server distibution
+15. Install and configure the adhoc-server distibution
 
    cd /cdg/adhoc
    tar -xf adhoc-server-x.y.z.tar
@@ -226,7 +241,7 @@ Enter password: <The MariaDB password for root given in section 5>
    cd adhoc-server-x.y.z
    ./fix-files-adhoc-server.sh
   
-14. Configure the adhoc-server startup environment. Check that RDBPW and DBPW 
+16. Configure the adhoc-server startup environment. Check that RDBPW and DBPW 
     contains the correct passwords before proceeding to the next steps.
     
    echo $RDBPW
@@ -243,7 +258,7 @@ Enter password: <The MariaDB password for root given in section 5>
 
 ---------------------------------------------------------------------------
 
-15. Change to the srvadhoc user and create the AdHoc database. Use the MySQL 
+17. Change to the srvadhoc user and create the AdHoc database. Use the MySQL 
     root password previously defined when asked to enter a password. Return
     to the root usershell by issuing the "exit" command afterwards.
 
@@ -253,15 +268,15 @@ Enter password: <The MariaDB password for root given in section 5>
 
 ---------------------------------------------------------------------------
 
-16. As the root user again, initialize ADHOC_RUNTIME_HOME
+18. As the root user again, initialize ADHOC_RUNTIME_HOME
 
    ADHOC_RUNTIME_HOME=`(cd ~srvadhoc/adhoc-server; pwd)`
 
-17. Start the server. 
+19. Start the server manually: 
 
    su - srvadhoc $ADHOC_RUNTIME_HOME/bin/startserver.sh
 
-18. Check connectivity. Replace <adhoc_server_host> with the actual FQDN 
+20. Check connectivity. Replace <adhoc_server_host> with the actual FQDN 
     of the AdHoc Server you just started. The server should only be accessible
     from within Chalmers network, 129.16.0.0/255.255.0.0. Start your browser 
     and go to the following url:
@@ -275,7 +290,7 @@ Enter password: <The MariaDB password for root given in section 5>
    on the first line.
    Stop the server with <Ctrl>-C.
 
-19. Enable and start adhoc as a systemd service.
+21. Enable and start adhoc as a systemd service.
     (Distributing and storing the adhoc.service below a user directory is intentional, to ease
      the transition to when systemd user mode becomes available)
 
@@ -284,9 +299,9 @@ Enter password: <The MariaDB password for root given in section 5>
     ln -s  ~srvadhoc/.config/systemd/user/adhoc.service  /usr/lib/systemd/system
     systemctl enable adhoc
         
-20. Check connectivity again, see step 18.
+22. Check connectivity again, see step 20
 
-21. Copy the cron job that creates the the database backup. This script 
+23. Copy the cron job that creates the the database backup. This script 
     has the path to the backup script hardwired, so if the server software 
     is installed elsewhere than /cdg/adhoc, the cron job will have to be 
     changed.
@@ -297,19 +312,48 @@ Enter password: <The MariaDB password for root given in section 5>
    cp $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron /etc/cron.d/adhoc-server-backup
    chown root:root /etc/cron.d/adhoc-server-backup
 
-22. Transfer data from the previous installation
+24. Transfer data from the previous installation
 
-    Shut down the old adhoc server.
-    Make a last backup.
+    Make a last backup on the old system.
+    
     Move the backup file to the new system.
+    Note: As the backup file name contains colons(:) it cannot be scp'd directly.
+    
+    old-adhoc> cd /cdg/adhoc/backups
+    old-adhoc> ln -s `ls mysql_backup.*.gz | tail -1` transferred_to_new_adhoc.gz
+    old-adhoc> scp transferred_to_new_adhoc.gz srvadhoc@<new_adhoc_host>:backups/transferred_from_old_adhoc.gz
+    
     Restore that backup into the new database.
     
+    cd ~srvadhoc/backups
+    systemctl stop adhoc
+    
+    gunzip transferred_from_old_adhoc.gz
+    
+    Add the following SQL to the backup in order to transfer host privileges to the new host:
+    
+    export OHOST=<DNS name of the old host>
+    export NHOST=`hostname`
+    echo "UPDATE mysql.user set Host='$NHOST' WHERE Host='$OHOST';" >> transferred_from_old_adhoc
+    echo "UPDATE mysql.db set Host='$NHOST' WHERE Host='$OHOST';" >> transferred_from_old_adhoc
+    echo "COMMIT;" >> transferred_from_old_adhoc
+    echo "FLUSH PRIVILEGES"  >> transferred_from_old_adhoc
+    
+    mysql -p -u root < transferred_from_old_adhoc
+    Enter password:
+    
+    
+25: Transfer the bashrc.private file form the old system to the new:
 
-23. Reboot and check that the server is running    
+    old-adhoc> cd ~srvadhoc/backups
+    old-adhoc> scp bashrc.private srvadhoc@<new_adhoc_host>:etc
+    
+
+25. Reboot and check that the server is running    
 
    /sbin/shutdown -r now
   
-    See step 18 for checking connectivity.
+    See step 20 for checking connectivity.
     
 
 ---------------------------------------------------------------------------
