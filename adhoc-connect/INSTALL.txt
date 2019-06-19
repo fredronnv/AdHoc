@@ -20,12 +20,6 @@ Please ignore any messages about "Ignoring unknown extended header keyword"s
 cd adhoc-connect-x.y.z
 ./fix-files-adhoc-connect.sh
 
-Install a symlink from /etc/cron.d to the cron configuration file
-
-cd /etc/cron.d
-ln -s /cdg/adhoc/adhoc-connect/etc/cron.d/adhoc-connect .
-restorecon -F adhoc-connect
-
 ---------------------------------------------------------------------------
 
 UPGRADE PROCEDURE:

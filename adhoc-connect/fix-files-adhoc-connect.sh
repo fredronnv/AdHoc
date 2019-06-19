@@ -71,6 +71,10 @@ main()
         rm -f $PKGNAME
         ln -f --symbolic $PKG $PKGNAME || die "Failed to link $PKGNAME to $PKG"
         
+        # Copy the adhoc-connect crontab to /etc/cron.d
+		cp /cdg/adhoc/adhoc-connect/etc/cron.d/adhoc-connect /etc/cron.d/adhoc-connect
+        restorecon -F /etc/cron.d/adhoc-connect || die "SELinux context on /etc/cron.d/adhoc-connect could not be reset"
+        
         # Fix SELinux context errors
         restorecon -FR $DIRNAME || die "SELinux context on $DIRNAME could not be reset"
         restorecon -F $PKGNAME || die "SELinux context on $PKGNAME could not be reset"
