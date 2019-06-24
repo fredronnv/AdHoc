@@ -33,14 +33,11 @@ A. adhoc-server-x.y.z.tar, the adhoc server package.
    Currently (2019-06-17) we use the following command
    
    wget https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/\
-files/adhoc-server-1.11.0_0.tar   
+files/adhoc-server-1.12.0.tar   
   
 B. Download MySQL Connector for Python. 
 
    Currently (2019-06-17) we use the following command
-   
-   wget https://dev.mysql.com/get/Downloads/Connector-Python/\
-mysql-connector-python-cext-8.0.16-1.el7.x86_64.rpm
    
    wget https://dev.mysql.com/get/Downloads/Connector-Python/\
 mysql-connector-python-8.0.16-1.el7.x86_64.rpm
@@ -67,6 +64,8 @@ F. Make sure that $HOSTNAME and the hostname command returns the fully
    
 G. The dhcpd server binary on the adhoc server and that its version is
    the same as on the production DHCP servers.
+   
+   dhcpd -t prints the version number.
 
 
 ---------------------------------------------------------------------------
@@ -77,24 +76,20 @@ This part prepares the server machine with the needed accounts and supporting
 software packages. The instructions assume that the AdHoc server will be
 installed in /cdg/adhoc. If not explicitly stated the instructions assume
 that they are performed from the root account.
-
-1.  Install the previously downloaded daemon utility
-
-   rpm -i PACKAGE.rpm
-  
-2.  Install MariaDB server. 
+ 
+1.  Install MariaDB server. 
 
    yum install mariadb-server
 
-3.  Install the previously downloaded MySQL Connector for Python
+2.  Install the previously downloaded MySQL Connector for Python
 
    rpm -i PACKAGE.rpm   
 
-4.  Start the MySQL server
+3.  Start the MySQL server
 
    systemctl start mariadb
 
-5.  Secure the installation:
+4.  Secure the installation:
 
     mysql_secure_installation
     
@@ -151,11 +146,16 @@ installation should now be secure.
 
 Thanks for using MariaDB!
 
-6.  Enable Mariadb as a service
+Now while you still remember the root database password, store it in a variable to be used later on:
+
+RDBPW='tgilmeh' # Or whatever password you used.
+
+
+5.  Enable Mariadb as a service
 
   systemctl enable mariadb
   
-7.  Grant privileges for the local user srvadhoc to the database. Enter
+6.  Grant privileges for the local user srvadhoc to the database. Enter
     the MySQL root password previously defined when asked for the password
      
    DBPW='mxyzptlk'         <- Or something better
@@ -168,13 +168,18 @@ Thanks for using MariaDB!
 EOF
 Enter password: <The MariaDB password for root given in section 5>
 
-8.  Open the firewall for TCP packets on port 8877 but from .chalmers.se only.
+7.  Open the firewall for TCP packets on port 8877 but from .chalmers.se only.
     The exact syntax depends on how you have set up your iptables configuration.
-    Regard the following as an example only
+    Regard the following as an example only, however there might already be a
+    similar line to that below in /etc/sysconfig/iptables. That line may unly concern UDP
+    which is not enought for the server to work properly.
      
-   -A INPUT -p tcp -m state --state NEW -m tcp --dport 8877 -s 129.16.0.0/16 -j ACCEPT
+    -A INPUT -p tcp -m state --state NEW -m tcp --dport 8877 -s 129.16.0.0/16 -j ACCEPT
    
-9.  Create the local user srvadhoc with the personal group srvadhoc using the 
+    When changed, the IP tables must be restarted:
+    systemctl restart iptables
+   
+8.  Create the local user srvadhoc with the personal group srvadhoc using the 
     UID and GID specified below:
 
    groupadd -g 127397 srvadhoc
@@ -183,21 +188,23 @@ Enter password: <The MariaDB password for root given in section 5>
    chown srvadhoc:srvadhoc /cdg/adhoc
    chmod 0700 /cdg/adhoc
    
-10. Set a password for the new uer. Remember that password beacuse it is needed when transferring the data from the old system.
+9. Set a password for the new user. 
+    Remember that password beacuse it is needed when transferring the data from the old system later on.
    
    passwd srvadhoc
-   Ändrar lösenord för användare srvadhoc.
-   Nytt lösenord:
-   Ange nytt lösenord igen:
+   Changing password for user srvadhoc.
+   New password: 
+   Retype new password: 
+   passwd: all authentication tokens updated successfully.
    
 
-11. Create a directory for the adhoc server's keytab and certificate files
+10. Create a directory for the adhoc server's keytab and certificate files
 
    mkdir ~srvadhoc/etc
    chown srvadhoc:srvadhoc ~srvadhoc/etc
    chmod 0775 ~srvadhoc/etc
 
-12. Move the adhoc server's key and certificate files to ~srvadhoc/etc. Adjust
+11. Move the adhoc server's key and certificate files to ~srvadhoc/etc. Adjust
     file ownership and permissions according to the following.
     Beware that the cert file must contain the whole chain of certificates, so
     if you have been issued a certificate and a chain file, these two files will 
@@ -208,14 +215,14 @@ Enter password: <The MariaDB password for root given in section 5>
    chmod 0444 $HOSTNAME.cert
    chmod 0400 $HOSTNAME.key
 
-13. Move the adhoc server's Kerberos keytab file to ~srvadhoc/etc, the file
+12. Move the adhoc server's Kerberos keytab file to ~srvadhoc/etc, the file
     name should be "server.keytab". Adjust file ownership and permissions 
     according to the following
 
    chown srvadhoc:srvadhoc server.keytab
    chmod 0640 server.keytab
    
-14. Create directories for variable data and symlinks pointing to these 
+13. Create directories for variable data and symlinks pointing to these 
      locations. Here the server log, the server process ID, and the database
      backups will be stored. The software will assume that these folders are 
      located in /cdg/adhoc, thus symbolic links to the actual places are
@@ -233,15 +240,18 @@ Enter password: <The MariaDB password for root given in section 5>
 
  Part B. Installing the server software 
 
-15. Install and configure the adhoc-server distibution
+14. Install and configure the adhoc-server distibution
 
    cd /cdg/adhoc
    tar -xf adhoc-server-x.y.z.tar
 
    cd adhoc-server-x.y.z
    ./fix-files-adhoc-server.sh
+   Continue and setup adhoc-server version 1.12.0?:  [y/n] y
+   Setting up adhoc-server ...
+
   
-16. Configure the adhoc-server startup environment. Check that RDBPW and DBPW 
+15. Configure the adhoc-server startup environment. Check that RDBPW and DBPW 
     contains the correct passwords before proceeding to the next steps.
     
    echo $RDBPW
@@ -258,7 +268,7 @@ Enter password: <The MariaDB password for root given in section 5>
 
 ---------------------------------------------------------------------------
 
-17. Change to the srvadhoc user and create the AdHoc database. Use the MySQL 
+16. Change to the srvadhoc user and create the AdHoc database. Use the MySQL 
     root password previously defined when asked to enter a password. Return
     to the root usershell by issuing the "exit" command afterwards.
 
@@ -268,15 +278,15 @@ Enter password: <The MariaDB password for root given in section 5>
 
 ---------------------------------------------------------------------------
 
-18. As the root user again, initialize ADHOC_RUNTIME_HOME
+17. As the root user again, initialize ADHOC_RUNTIME_HOME
 
    ADHOC_RUNTIME_HOME=`(cd ~srvadhoc/adhoc-server; pwd)`
 
-19. Start the server manually: 
+18. Start the server manually: 
 
    su - srvadhoc $ADHOC_RUNTIME_HOME/bin/startserver.sh
 
-20. Check connectivity. Replace <adhoc_server_host> with the actual FQDN 
+19. Check connectivity. Replace <adhoc_server_host> with the actual FQDN 
     of the AdHoc Server you just started. The server should only be accessible
     from within Chalmers network, 129.16.0.0/255.255.0.0. Start your browser 
     and go to the following url:
@@ -290,18 +300,19 @@ Enter password: <The MariaDB password for root given in section 5>
    on the first line.
    Stop the server with <Ctrl>-C.
 
-21. Enable and start adhoc as a systemd service.
-    (Distributing and storing the adhoc.service below a user directory is intentional, to ease
+20. Enable and start adhoc as a systemd service.
+    (Distributing and storing the adhoc.service below a systemd user directory is intentional, to ease
      the transition to when systemd user mode becomes available)
 
     mkdir -p ~srvadhoc/.config/systemd/user
     cp ~srvadhoc/adhoc-server/.config/systemd/user/adhoc.service ~srvadhoc/.config/systemd/user/
     ln -s  ~srvadhoc/.config/systemd/user/adhoc.service  /usr/lib/systemd/system
     systemctl enable adhoc
+    systemctl start adhoc
         
-22. Check connectivity again, see step 20
+21. Check connectivity again, see step 19
 
-23. Copy the cron job that creates the the database backup. This script 
+22. Copy the cron job that creates the the database backup. This script 
     has the path to the backup script hardwired, so if the server software 
     is installed elsewhere than /cdg/adhoc, the cron job will have to be 
     changed.
@@ -312,7 +323,7 @@ Enter password: <The MariaDB password for root given in section 5>
    cp $ADHOC_RUNTIME_HOME/etc/adhoc-server-backup.cron /etc/cron.d/adhoc-server-backup
    chown root:root /etc/cron.d/adhoc-server-backup
 
-24. Transfer data from the previous installation
+23. Transfer data from the previous installation
 
     Make a last backup on the old system.
     
@@ -343,9 +354,9 @@ Enter password: <The MariaDB password for root given in section 5>
     Enter password:
     
     
-25: Transfer the bashrc.private file form the old system to the new:
+24: Transfer the bashrc.private file from the old system to the new:
 
-    old-adhoc> cd ~srvadhoc/backups
+    old-adhoc> cd ~srvadhoc/etc
     old-adhoc> scp bashrc.private srvadhoc@<new_adhoc_host>:etc
     
 
@@ -353,7 +364,7 @@ Enter password: <The MariaDB password for root given in section 5>
 
    /sbin/shutdown -r now
   
-    See step 20 for checking connectivity.
+    See step 19 for checking connectivity.
     
 
 ---------------------------------------------------------------------------
