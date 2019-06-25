@@ -1,21 +1,26 @@
 FIRST TIME INSTALLATION PROCEDURE:
 
-Installation assumes a system running Red Hat Enterprise Linux 6.x in
+Installation assumes a system running Red Hat Enterprise Linux 7.x in
 enforced mode with the dhcp package installed.
+You need root access as well.
 
-Create the installation directory:
+1. Get root
+
+su -
+Password:
+
+2. Create the installation directory:
 
 mkdir -p /cdg/adhoc/
 restorecon -FR /cdg
 cd /cdg/adhoc/
 
-Download the adhoc-connect package from the distribution server
+3. Download the adhoc-connect package from the distribution server
 wget --no-check-certificate https://utveckling.ita.chalmers.se/sites/utveckling.ita.chalmers.se/files/adhoc-connect-x.y.z.tar
 
-Expand and configure the distribution archive:
+4. Expand and configure the distribution archive:
 
 tar -xf adhoc-connect-x.y.z.tar
-Please ignore any messages about "Ignoring unknown extended header keyword"s
 
 cd adhoc-connect-x.y.z
 ./fix-files-adhoc-connect.sh
