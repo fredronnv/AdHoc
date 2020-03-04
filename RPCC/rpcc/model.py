@@ -240,7 +240,15 @@ class Model(object):
 
         if len(args) == 0:
             raise ValueError("There must be a second argument to a Model instance  - the object id - but none was received by %s." % (self.__class__.__name__,))
-        if not isinstance(args[0], self.id_type):
+        
+        id_types = [self.id_type]
+        if isinstance(self.id_type, type(basestring)):  # If checking for basestring, also allow unicode.
+            id_types.append(unicode)
+            
+        for id_type in id_types:
+            if isinstance(args[0], id_type):
+                break
+        else:
             raise ValueError("The object id %s is of type %s, not of type %s, which %s.id_type says it should be." % (args[0], type(args[0]), self.id_type, self.__class__.__name__))
 
         self.init(*args, **kwargs)
@@ -1059,6 +1067,8 @@ class Manager(object):
         result of self.base_query() to the Model's constructor."""
 
         if oid not in self._model_cache:
+            if isinstance(oid, unicode) and self.manages.id_type is str:
+                oid = oid.encode('ascii','ignore')  # Somehow the database returns unicode even thougt the columns are in ascii. Handle that special case here.
             if not isinstance(oid, self.manages.id_type):
                 # print "AAAA", self.manages, self.manages.id_type, type(oid), oid
                 raise ValueError("%s id is of type %s, but must be of type %s - supplied value %s isn't" % (self.manages.__name__, type(oid), self.manages.id_type, oid))
