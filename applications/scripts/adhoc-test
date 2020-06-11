@@ -1,7 +1,7 @@
 #!/usr/bin/python -i
 import sys
 import main
-url = "https://adhoc-test.ita.chalmers.se:8877"
+url = "https://adhoc2-test.ita.chalmers.se:8877"
 user = None
 if len(sys.argv) > 1:
     url = sys.argv[1]
