@@ -48,14 +48,14 @@ import time
 import urllib2
 
 
-# ## Kludge to enable TLSv1 protocol via urllib2
+# ## Kludge to enable TLSv1.2 protocol via urllib2
 #
 old_init = ssl.SSLSocket.__init__
 
 
 @functools.wraps(old_init)
 def adhoc_ssl(self, *args, **kwargs):
-    kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
+    kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1_2
     old_init(self, *args, **kwargs)
 
 ssl.SSLSocket.__init__ = adhoc_ssl
