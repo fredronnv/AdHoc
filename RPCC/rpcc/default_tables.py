@@ -49,7 +49,7 @@ _dig_tables = [
     DBTable("rpcc_result", "Dig results help table",
             engine=EngineType.memory,
             columns=[
-                DBColumn("resid", VType.integer, 16, primary=True, autoincrement=True),
+                DBColumn("resid", VType.integer, 11, primary=True, autoincrement=True),
                 DBColumn("manager", VType.string, 32, index=True),
                 DBColumn("expires", VType.datetime),
             ]),
