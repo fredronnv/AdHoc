@@ -1,0 +1,22 @@
+export INSTALL_HOME=/
+export PYTHONPATH=${INSTALL_HOME}/lib:${INSTALL_HOME}/lib/python2.6:${INSTALL_HOME}/rpcc:${INSTALL_HOME}
+export ADHOC_RUNTIME_HOME=${INSTALL_HOME}
+export KRB5_KTNAME=$HOME/etc/server.keytab
+
+export ADHOC_DB_HOST=mariadb
+export ADHOC_DB_PORT=3306
+export ADHOC_DB_USER=srvadhoc
+export ADHOC_DB_PASSWORD=srvadhoc
+export ADHOC_DB_DATABSE=AdHoc
+
+export ADHOC_ODB_USER=srvadhoc
+export ADHOC_ODB_DATABASE=a_dhcp_new
+export ADHOC_ODB_HOST=enoki.medic.chalmers.se
+export ADHOC_ODB_PORT=3306
+
+export ADHOC_SERVER_HOST=0.0.0.0
+export ADHOC_SERVER_PORT=8877
+export ADHOC_SERVER_URL="http://${ADHOC_SERVER_HOST}:${ADHOC_SERVER_PORT}"
+
+export ADHOC_SSL_ENABLE=0
+

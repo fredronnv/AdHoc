@@ -1,0 +1,28 @@
+version: '2'
+services:
+  adhoc-server:
+    image: adhoc-server
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile-adhoc-server
+    command: /bin/startserver.sh
+    volumes:
+      - ./bashrc.public:/etc/bashrc.public
+      - ./bashrc.private:/etc/bashrc.private
+      - ./adhoc_version.py:/lib/adhoc_version.py
+    ports:
+      - "8877:8877"
+
+  mariadb:
+    image: mariadb
+    restart: always
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: AdHoc
+      MYSQL_USER: srvadhoc
+      MYSQL_PASSWORD: srvadhoc
+      MYSQL_ROOT_PASSWORD: 'rootpass'
+
+volumes:
+  mariadb-data:
